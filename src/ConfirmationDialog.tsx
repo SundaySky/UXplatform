@@ -1,0 +1,97 @@
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, IconButton, Box, Typography,
+} from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import LinkIcon   from '@mui/icons-material/Link'
+
+// ─── DS tokens ───────────────────────────────────────────────────────────────
+const ds = {
+  textPrimary: '#323338',
+  divider:     'rgba(0, 83, 229, 0.12)',
+}
+
+interface Props {
+  open:         boolean
+  onClose:      () => void
+  approverCount: number
+}
+
+export default function ConfirmationDialog({ open, onClose, approverCount }: Props) {
+  const isMulti = approverCount > 1
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          boxShadow:    '0px 0px 10px 0px rgba(3, 25, 79, 0.25)',
+          overflow:     'hidden',
+        },
+      }}
+    >
+      {/* ── Title ──────────────────────────────────────────────────────────── */}
+      <DialogTitle
+        component="div"
+        sx={{
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+          pl: '32px', pr: '22px', pt: '20px', pb: '16px', gap: 1,
+        }}
+      >
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20,
+          lineHeight: 1.5, color: ds.textPrimary, flex: 1,
+        }}>
+          Approval request sent, you'll be notified when approvers respond
+        </Typography>
+        {/* DS: Size=Medium, Color=Default IconButton */}
+        <IconButton size="medium" color="default" onClick={onClose}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      {/* ── Content ────────────────────────────────────────────────────────── */}
+      <DialogContent sx={{ px: '32px', pt: '0 !important', pb: '8px' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Both variants share this first paragraph */}
+          <Typography sx={{
+            fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
+            lineHeight: 1.5, color: ds.textPrimary,
+          }}>
+            You can also share the link below if you prefer.
+          </Typography>
+
+          {/* Multi-approver only: second paragraph (node 19013:35274) */}
+          {isMulti && (
+            <Typography sx={{
+              fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
+              lineHeight: 1.5, color: ds.textPrimary,
+            }}>
+              All comments will be available once all approvers have responded or
+              submitted their approval.
+            </Typography>
+          )}
+        </Box>
+      </DialogContent>
+
+      {/* ── Actions: Copy share link (text/left) · Close (contained/right) ─── */}
+      <DialogActions sx={{
+        display: 'flex', justifyContent: 'flex-end',
+        px: '32px', pt: 1, pb: '20px', gap: 1,
+      }}>
+        {/* DS: Size=Large, Color=Primary, Variant=Text */}
+        <Button variant="text" color="primary" size="large" startIcon={<LinkIcon />}>
+          Copy share link
+        </Button>
+        {/* DS: Size=Large, Color=Primary, Variant=Contained */}
+        <Button variant="contained" color="primary" size="large" onClick={onClose}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
