@@ -857,7 +857,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 const PHASE_STATUS: Record<number, 'draft' | 'pending'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'draft', 4: 'draft' }
 
 // Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
-type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string }
+type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string }
 const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: 'draft', sentApprovers: [] }
 
 export default function App() {
@@ -989,11 +989,13 @@ export default function App() {
           <StudioPage
             videoTitle={selectedVideo?.title ?? 'Video'}
             initialHeadingText={currentVState.headingText}
+            initialSubheadingText={currentVState.subheadingText}
             approverNames={sentApprovers.length > 0 ? formatApproverNames(sentApprovers) : 'Sarah Johnson and Emma Rodriguez'}
             onNavigateToVideoPage={() => setCurrentPage('video')}
             onNavigateToLibrary={() => setCurrentPage('library')}
             onRequestReapproval={() => updateVideoState(currentKey, { phase: 0, pageState: 'pending' })}
             onHeadingChange={(text) => updateVideoState(currentKey, { headingText: text })}
+            onSubheadingChange={(text) => updateVideoState(currentKey, { subheadingText: text })}
             openCommentsOnMount={openCommentsOnStudio}
             triggerOpenComments={openCommentsCounter}
             notifications={notifications}

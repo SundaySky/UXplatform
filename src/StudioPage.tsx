@@ -104,9 +104,10 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
   )
 }
 
-// ─── Edit Heading dialog ──────────────────────────────────────────────────────
-function EditHeadingDialog({ open, currentText, onClose }: {
+// ─── Edit Heading / Sub-heading dialog ───────────────────────────────────────
+function EditHeadingDialog({ open, title, currentText, onClose }: {
   open: boolean
+  title?: string
   currentText: string
   onClose: (newText: string) => void
 }) {
@@ -137,7 +138,7 @@ function EditHeadingDialog({ open, currentText, onClose }: {
         px: 3, pt: 3, pb: 2,
       }}>
         <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 700, fontSize: 22, color: '#1A1A2E' }}>
-          Heading
+          {title ?? 'Heading'}
         </Typography>
         <IconButton size="small" onClick={handleClose} sx={{ color: '#888' }}>
           <CloseIcon sx={{ fontSize: 18 }} />
@@ -638,7 +639,7 @@ function CommentsPanel({
 }
 
 // ─── Scene thumbnail ──────────────────────────────────────────────────────────
-function SceneThumbnail({ index, selected, headingText, onClick }: { index: number; selected: boolean; headingText?: string; onClick?: () => void }) {
+function SceneThumbnail({ index, selected, headingText, subheadingText, onClick }: { index: number; selected: boolean; headingText?: string; subheadingText?: string; onClick?: () => void }) {
   return (
     <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
       <Typography sx={{
@@ -656,16 +657,20 @@ function SceneThumbnail({ index, selected, headingText, onClick }: { index: numb
       }}>
         <Box component="img" src={IMG_THUMB} alt=""
           sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        {headingText && (
-          <>
-            <Box sx={{ position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%', bgcolor: '#fff' }} />
-            <Box sx={{ position: 'absolute', left: '3.5%', top: '15%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
-              <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '10cqw', color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word' }}>
-                {headingText}
-              </Typography>
-            </Box>
-          </>
-        )}
+        {headingText && (<>
+          <Box sx={{ position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%', bgcolor: '#fff' }} />
+          <Box sx={{ position: 'absolute', left: '3.5%', top: '15%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
+            <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '10cqw', color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word' }}>
+              {headingText}
+            </Typography>
+          </Box>
+          <Box sx={{ position: 'absolute', left: '3%', top: '41%', width: '44%', height: '9%', bgcolor: '#fff' }} />
+          <Box sx={{ position: 'absolute', left: '3.5%', top: '41.5%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
+            <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 400, fontSize: '4cqw', color: '#888', lineHeight: 1.4, wordBreak: 'break-word' }}>
+              {subheadingText ?? 'Sub-heading Placeholder'}
+            </Typography>
+          </Box>
+        </>)}
       </Box>
     </Box>
   )
@@ -673,20 +678,22 @@ function SceneThumbnail({ index, selected, headingText, onClick }: { index: numb
 
 // ─── Studio page ──────────────────────────────────────────────────────────────
 interface Props {
-  videoTitle:             string
-  initialHeadingText?:    string
-  approverNames:          string
-  onNavigateToVideoPage:  () => void
-  onNavigateToLibrary:    () => void
-  onRequestReapproval:    () => void
-  onHeadingChange?:       (text: string) => void
+  videoTitle:               string
+  initialHeadingText?:      string
+  initialSubheadingText?:   string
+  approverNames:            string
+  onNavigateToVideoPage:    () => void
+  onNavigateToLibrary:      () => void
+  onRequestReapproval:      () => void
+  onHeadingChange?:         (text: string) => void
+  onSubheadingChange?:      (text: string) => void
   openCommentsOnMount?:   boolean
   triggerOpenComments?:   number
   notifications?:         NotificationItem[]
   initialThreads?:        CommentThread[]
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -695,9 +702,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
   }, [triggerOpenComments])
   const [activeNav,        setActiveNav]        = useState<string | null>(null)
   const [selectedScene,    setSelectedScene]    = useState(0)
-  const [headingSelected,  setHeadingSelected]  = useState(false)
-  const [headingText,      setHeadingText]      = useState(initialHeadingText ?? videoTitle)
-  const [editHeadingOpen,  setEditHeadingOpen]  = useState(false)
+  const [headingSelected,     setHeadingSelected]     = useState(false)
+  const [headingText,         setHeadingText]         = useState(initialHeadingText ?? videoTitle)
+  const [editHeadingOpen,     setEditHeadingOpen]     = useState(false)
+  const [subheadingSelected,  setSubheadingSelected]  = useState(false)
+  const [subheadingText,      setSubheadingText]      = useState(initialSubheadingText ?? 'Sub-heading Placeholder')
+  const [editSubheadingOpen,  setEditSubheadingOpen]  = useState(false)
 
   const SCENE_COUNT = 4
   const goToScene = (idx: number) => {
@@ -905,58 +915,64 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
                 <Box component="img" src={IMG_THUMB} alt={videoTitle}
                   sx={{ width: '100%', display: 'block' }} />
 
-                {/* Heading overlay — only on scene 0 */}
+                {/* Heading + Sub-heading overlays — only on scene 0 */}
                 {selectedScene === 0 && (<>
-                <Box sx={{
-                  position: 'absolute', left: '3%', top: '14%',
-                  width: '44%', height: '27%', bgcolor: '#fff',
-                }} />
-                <Box sx={{
-                  position: 'absolute', left: '3.5%', top: '15%', width: '43%',
-                  pointerEvents: 'none', containerType: 'inline-size',
-                }}>
-                  <Typography sx={{
-                    fontFamily: 'sans-serif', fontWeight: 700,
-                    fontSize: '10cqw',
-                    color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word',
-                  }}>
-                    {headingText}
-                  </Typography>
-                </Box>
+                  {/* Heading */}
+                  <Box sx={{ position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%', bgcolor: '#fff' }} />
+                  <Box sx={{ position: 'absolute', left: '3.5%', top: '15%', width: '43%', pointerEvents: 'none', containerType: 'inline-size' }}>
+                    <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '10cqw', color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                      {headingText}
+                    </Typography>
+                  </Box>
+                  {/* Sub-heading */}
+                  <Box sx={{ position: 'absolute', left: '3%', top: '41%', width: '44%', height: '9%', bgcolor: '#fff' }} />
+                  <Box sx={{ position: 'absolute', left: '3.5%', top: '41.5%', width: '43%', pointerEvents: 'none', containerType: 'inline-size' }}>
+                    <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 400, fontSize: '4cqw', color: '#888', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                      {subheadingText}
+                    </Typography>
+                  </Box>
                 </>)}
               </Box>
 
-              {/* Clickable selection overlay — only on scene 0 */}
-              {selectedScene === 0 && (
-              <Box
-                onClick={e => { e.stopPropagation(); setHeadingSelected(prev => !prev) }}
-                sx={{
-                  position: 'absolute', left: '3%', top: '14%',
-                  width: '44%', height: '27%',
-                  cursor: 'pointer', borderRadius: '4px',
-                  border: headingSelected ? '2px solid #0053E5' : '2px solid transparent',
-                  bgcolor: headingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
-                  transition: 'background 0.15s, border-color 0.15s',
-                  '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
-                }}
-              />
-              )}
+              {/* Clickable overlays + toolbars — only on scene 0 */}
+              {selectedScene === 0 && (<>
 
-              {/* Toolbar — floats just above the heading selection box */}
-              {headingSelected && selectedScene === 0 && (
-                <Box sx={{
-                  position: 'absolute',
-                  left: '50%',
-                  top: 'calc(14% - 10px)',
-                  transform: 'translate(-50%, -100%)',
-                  zIndex: 20,
-                  pointerEvents: 'auto',
-                }}>
-                  <PlaceholderToolbar
-                    onEditClick={() => { setEditHeadingOpen(true); setHeadingSelected(false) }}
-                  />
-                </Box>
-              )}
+                {/* Heading selection overlay */}
+                <Box
+                  onClick={e => { e.stopPropagation(); setHeadingSelected(p => !p); setSubheadingSelected(false) }}
+                  sx={{
+                    position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%',
+                    cursor: 'pointer', borderRadius: '4px',
+                    border: headingSelected ? '2px solid #0053E5' : '2px solid transparent',
+                    bgcolor: headingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
+                    transition: 'background 0.15s, border-color 0.15s',
+                    '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
+                  }}
+                />
+                {headingSelected && (
+                  <Box sx={{ position: 'absolute', left: '50%', top: 'calc(14% - 10px)', transform: 'translate(-50%, -100%)', zIndex: 20, pointerEvents: 'auto' }}>
+                    <PlaceholderToolbar onEditClick={() => { setEditHeadingOpen(true); setHeadingSelected(false) }} />
+                  </Box>
+                )}
+
+                {/* Sub-heading selection overlay */}
+                <Box
+                  onClick={e => { e.stopPropagation(); setSubheadingSelected(p => !p); setHeadingSelected(false) }}
+                  sx={{
+                    position: 'absolute', left: '3%', top: '41%', width: '44%', height: '9%',
+                    cursor: 'pointer', borderRadius: '4px',
+                    border: subheadingSelected ? '2px solid #0053E5' : '2px solid transparent',
+                    bgcolor: subheadingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
+                    transition: 'background 0.15s, border-color 0.15s',
+                    '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
+                  }}
+                />
+                {subheadingSelected && (
+                  <Box sx={{ position: 'absolute', left: '50%', top: 'calc(41% - 10px)', transform: 'translate(-50%, -100%)', zIndex: 20, pointerEvents: 'auto' }}>
+                    <PlaceholderToolbar onEditClick={() => { setEditSubheadingOpen(true); setSubheadingSelected(false) }} />
+                  </Box>
+                )}
+              </>)}
             </Box>
 
             {/* Next arrow */}
@@ -1023,7 +1039,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
               '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
             }}>
               {[0, 1, 2, 3].map(i => (
-                <SceneThumbnail key={i} index={i} selected={i === selectedScene} headingText={i === 0 ? headingText : undefined} onClick={() => goToScene(i)} />
+                <SceneThumbnail key={i} index={i} selected={i === selectedScene} headingText={i === 0 ? headingText : undefined} subheadingText={i === 0 ? subheadingText : undefined} onClick={() => goToScene(i)} />
               ))}
               {/* Add scene */}
               <Box sx={{
@@ -1049,8 +1065,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
       {/* ── Edit Heading dialog ───────────────────────────────────────────── */}
       <EditHeadingDialog
         open={editHeadingOpen}
+        title="Heading"
         currentText={headingText}
         onClose={(newText) => { setHeadingText(newText); setEditHeadingOpen(false); onHeadingChange?.(newText) }}
+      />
+      <EditHeadingDialog
+        open={editSubheadingOpen}
+        title="Sub-heading"
+        currentText={subheadingText}
+        onClose={(newText) => { setSubheadingText(newText); setEditSubheadingOpen(false); onSubheadingChange?.(newText) }}
       />
 
       {/* ── Comments panel — draggable + resizable ────────────────────────── */}
