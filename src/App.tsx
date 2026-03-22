@@ -291,6 +291,9 @@ function VideoPreviewCard({
   effectiveStatus,
   approvers,
   pendingTooltip,
+  headingText,
+  subheadingText,
+  videoTitle,
   onSentForApproval,
   onEdit,
   onApproveVideo,
@@ -299,6 +302,9 @@ function VideoPreviewCard({
   effectiveStatus:   'draft' | 'pending'
   approvers:         string[]
   pendingTooltip:    string
+  headingText?:      string
+  subheadingText?:   string
+  videoTitle?:       string
   onSentForApproval: () => void
   onEdit:            (fromComments?: boolean) => void
   onApproveVideo:    () => void
@@ -450,13 +456,25 @@ function VideoPreviewCard({
 
       <Divider sx={{ borderColor: t.divider }} />
 
-      {/* Preview — single full-width Figma asset image (matches real app proportions) */}
-      <Box
-        component="img"
-        src={imgVideoPreview}
-        alt="Recent TTS Pronunciation Advancements preview"
-        sx={{ width: '100%', display: 'block', objectFit: 'cover' }}
-      />
+      {/* Preview — first scene with heading/sub-heading overlaid */}
+      <Box sx={{ position: 'relative', width: '100%' }}>
+        <Box component="img" src={imgVideoPreview} alt={videoTitle ?? 'Video preview'}
+          sx={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+        {/* Heading overlay */}
+        <Box sx={{ position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%', bgcolor: '#fff' }} />
+        <Box sx={{ position: 'absolute', left: '3.5%', top: '15%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
+          <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '10cqw', color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word' }}>
+            {headingText ?? videoTitle ?? ''}
+          </Typography>
+        </Box>
+        {/* Sub-heading overlay */}
+        <Box sx={{ position: 'absolute', left: '3%', top: '41%', width: '44%', height: '9%', bgcolor: '#fff' }} />
+        <Box sx={{ position: 'absolute', left: '3.5%', top: '41.5%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
+          <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 400, fontSize: '4cqw', color: '#888', lineHeight: 1.4, wordBreak: 'break-word' }}>
+            {subheadingText ?? 'Sub-heading Placeholder'}
+          </Typography>
+        </Box>
+      </Box>
 
       <Divider sx={{ borderColor: t.divider }} />
 
@@ -1044,6 +1062,9 @@ export default function App() {
                       effectiveStatus={effectiveStatus}
                       approvers={sentApprovers.length > 0 ? sentApprovers : ['sjohnson', 'erodriguez']}
                       pendingTooltip={pendingTooltip}
+                      headingText={currentVState.headingText}
+                      subheadingText={currentVState.subheadingText}
+                      videoTitle={selectedVideo?.title}
                       onSentForApproval={() => setDialogStep('form')}
                       onEdit={(fromComments?: boolean) => {
                         if (isPending && !fromComments) {
