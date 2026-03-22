@@ -531,8 +531,8 @@ function CommentsPanel({
         {/* ── Divider ───────────────────────────────────────────────────── */}
         <Divider sx={{ borderColor: '#E0E0E0', flexShrink: 0 }} />
 
-        {/* ── "View version" link — Unresolved tab only ────────────────── */}
-        {tab === 'unresolved' && (
+        {/* ── "View version" link — Unresolved tab only, hidden when no comments ── */}
+        {tab === 'unresolved' && unresolvedCount > 0 && (
           <Box sx={{
             px: 2, py: '8px', flexShrink: 0,
             display: 'flex', alignItems: 'center', gap: '4px',
@@ -613,33 +613,35 @@ function CommentsPanel({
             </Typography>
           )}
           {tab === 'unresolved' && unresolvedCount === 0 && (
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: s.successMain, textAlign: 'center', mt: 2 }}>
-              All comments addressed ✓
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: s.textSecondary, textAlign: 'center', mt: 3 }}>
+              There are no unresolved comments
             </Typography>
           )}
         </Box>
 
-        {/* ── Footer: right-aligned "Resent for approval" button ────────── */}
-        <Box sx={{
-          px: 2, py: '12px',
-          borderTop: `1px solid ${s.dividerGrey}`,
-          flexShrink: 0,
-          display: 'flex', justifyContent: 'flex-end',
-        }}>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleRequestApproval}
-            sx={{
-              fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
-              textTransform: 'none', borderRadius: '8px',
-              bgcolor: s.primary, '&:hover': { bgcolor: '#0042BB' },
-              px: 2,
-            }}
-          >
-            Resent for approval
-          </Button>
-        </Box>
+        {/* ── Footer: "Resent for approval" — only when there are unresolved comments ── */}
+        {unresolvedCount > 0 && (
+          <Box sx={{
+            px: 2, py: '12px',
+            borderTop: `1px solid ${s.dividerGrey}`,
+            flexShrink: 0,
+            display: 'flex', justifyContent: 'flex-end',
+          }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleRequestApproval}
+              sx={{
+                fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+                textTransform: 'none', borderRadius: '8px',
+                bgcolor: s.primary, '&:hover': { bgcolor: '#0042BB' },
+                px: 2,
+              }}
+            >
+              Resent for approval
+            </Button>
+          </Box>
+        )}
       </Box>
 
       {/* ── Unresolved warning dialog ─────────────────────────────────────── */}
