@@ -665,7 +665,7 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
 
           {/* Body text */}
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: t.textPrimary }}>
-            Approval requests were sent to the approvers' email addresses. You can also share the link below if you prefer to send it another way.
+            Requests have been sent to approvers. You can also share the link below.
           </Typography>
 
           {/* Copy share link */}
