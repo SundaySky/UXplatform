@@ -638,9 +638,9 @@ function CommentsPanel({
 }
 
 // ─── Scene thumbnail ──────────────────────────────────────────────────────────
-function SceneThumbnail({ index, selected, headingText }: { index: number; selected: boolean; headingText?: string }) {
+function SceneThumbnail({ index, selected, headingText, onClick }: { index: number; selected: boolean; headingText?: string; onClick?: () => void }) {
   return (
-    <Box sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+    <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
       <Typography sx={{
         fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
         color: s.textSecondary, letterSpacing: '0.4px',
@@ -694,9 +694,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
     if (triggerOpenComments && triggerOpenComments > 0) setCommentsOpen(true)
   }, [triggerOpenComments])
   const [activeNav,        setActiveNav]        = useState<string | null>(null)
+  const [selectedScene,    setSelectedScene]    = useState(0)
   const [headingSelected,  setHeadingSelected]  = useState(false)
   const [headingText,      setHeadingText]      = useState(initialHeadingText ?? videoTitle)
   const [editHeadingOpen,  setEditHeadingOpen]  = useState(false)
+
+  const SCENE_COUNT = 4
+  const goToScene = (idx: number) => {
+    setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
+    setHeadingSelected(false)
+  }
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,  setSnackbarMsg]  = useState<string | null>(null)
 
@@ -872,9 +879,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
           }}>
             {/* Prev arrow */}
             <IconButton
-              disabled
+              disabled={selectedScene === 0}
+              onClick={() => goToScene(selectedScene - 1)}
               size="small"
-              sx={{ position: 'absolute', left: 16, color: s.actionDisabled }}
+              sx={{ position: 'absolute', left: 16, color: selectedScene === 0 ? s.actionDisabled : s.primary }}
             >
               <ChevronLeftIcon />
             </IconButton>
@@ -897,13 +905,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
                 <Box component="img" src={IMG_THUMB} alt={videoTitle}
                   sx={{ width: '100%', display: 'block' }} />
 
-                {/* White cover to hide the SVG's static "HEADING / PLACEHOLDER" text */}
+                {/* Heading overlay — only on scene 0 */}
+                {selectedScene === 0 && (<>
                 <Box sx={{
                   position: 'absolute', left: '3%', top: '14%',
                   width: '44%', height: '27%', bgcolor: '#fff',
                 }} />
-
-                {/* Video title text — scales with canvas width */}
                 <Box sx={{
                   position: 'absolute', left: '3.5%', top: '15%', width: '43%',
                   pointerEvents: 'none', containerType: 'inline-size',
@@ -916,9 +923,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
                     {headingText}
                   </Typography>
                 </Box>
+                </>)}
               </Box>
 
-              {/* Clickable selection overlay */}
+              {/* Clickable selection overlay — only on scene 0 */}
+              {selectedScene === 0 && (
               <Box
                 onClick={e => { e.stopPropagation(); setHeadingSelected(prev => !prev) }}
                 sx={{
@@ -931,9 +940,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
                   '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
                 }}
               />
+              )}
 
               {/* Toolbar — floats just above the heading selection box */}
-              {headingSelected && (
+              {headingSelected && selectedScene === 0 && (
                 <Box sx={{
                   position: 'absolute',
                   left: '50%',
@@ -950,7 +960,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
             </Box>
 
             {/* Next arrow */}
-            <IconButton size="small" sx={{ position: 'absolute', right: 16, color: s.primary }}>
+            <IconButton
+              disabled={selectedScene === SCENE_COUNT - 1}
+              onClick={() => goToScene(selectedScene + 1)}
+              size="small"
+              sx={{ position: 'absolute', right: 16, color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary }}
+            >
               <ChevronRightIcon />
             </IconButton>
           </Box>
@@ -997,7 +1012,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
                 color: s.primaryLight, letterSpacing: '0.4px', ml: 1.5,
               }}>
-                Scene 1 / 4
+                Scene {selectedScene + 1} / {SCENE_COUNT}
               </Typography>
             </Box>
 
@@ -1008,7 +1023,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, approverNam
               '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
             }}>
               {[0, 1, 2, 3].map(i => (
-                <SceneThumbnail key={i} index={i} selected={i === 0} headingText={i === 0 ? headingText : undefined} />
+                <SceneThumbnail key={i} index={i} selected={i === selectedScene} headingText={i === 0 ? headingText : undefined} onClick={() => goToScene(i)} />
               ))}
               {/* Add scene */}
               <Box sx={{
