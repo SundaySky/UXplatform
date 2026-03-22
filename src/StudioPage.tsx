@@ -46,7 +46,7 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       sx={{
         display: 'inline-flex', alignItems: 'center', gap: '5px',
         px: label ? '10px' : '7px', py: '5px',
-        borderRadius: '20px', border: `1px solid ${c}`,
+        borderRadius: '8px', border: `1px solid ${c}`,
         cursor: 'pointer', bgcolor: '#fff', color: c,
         transition: 'background 0.15s',
         '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
@@ -67,7 +67,7 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       onMouseDown={e => e.stopPropagation()}
       sx={{
         display: 'inline-flex', alignItems: 'center',
-        bgcolor: '#fff', borderRadius: '28px',
+        bgcolor: '#fff', borderRadius: '8px',
         px: '8px', py: '6px', gap: '6px',
         boxShadow: '0px 4px 16px rgba(3,25,79,0.18)',
         userSelect: 'none',
@@ -75,10 +75,10 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
     >
       <Pill icon={<EditOutlinedIcon sx={{ fontSize: 14 }} />} label="Edit" onClick={onEditClick} />
 
-      {/* Zoom — single bordered pill */}
+      {/* Zoom — single bordered box */}
       <Box sx={{
         display: 'inline-flex', alignItems: 'center', gap: '2px',
-        px: '8px', py: '5px', borderRadius: '20px', border: `1px solid ${c}`,
+        px: '8px', py: '5px', borderRadius: '8px', border: `1px solid ${c}`,
         bgcolor: '#fff', color: c, flexShrink: 0,
       }}>
         <Box sx={{ display: 'flex', cursor: 'pointer', '&:hover': { opacity: 0.6 } }}>
