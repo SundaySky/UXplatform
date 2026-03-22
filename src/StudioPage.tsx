@@ -613,7 +613,7 @@ function CommentsPanel({
             </Typography>
           )}
           {tab === 'unresolved' && unresolvedCount === 0 && (
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: s.textSecondary, textAlign: 'center', mt: 3 }}>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: s.textSecondary, textAlign: 'center', mt: 3, pb: '50px' }}>
               There are no unresolved comments
             </Typography>
           )}
