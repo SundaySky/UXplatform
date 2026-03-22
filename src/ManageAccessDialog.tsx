@@ -8,8 +8,8 @@ import {
 } from '@mui/material'
 import CloseIcon                   from '@mui/icons-material/Close'
 import HelpOutlineIcon             from '@mui/icons-material/HelpOutline'
-import VisibilityOutlinedIcon      from '@mui/icons-material/VisibilityOutlined'
-import VisibilityOffOutlinedIcon   from '@mui/icons-material/VisibilityOffOutlined'
+import PeopleAltOutlinedIcon       from '@mui/icons-material/PeopleAltOutlined'
+import LockOutlinedIcon            from '@mui/icons-material/LockOutlined'
 import PeopleOutlinedIcon          from '@mui/icons-material/PeopleOutlined'
 import EditOutlinedIcon            from '@mui/icons-material/EditOutlined'
 import CheckIcon                   from '@mui/icons-material/Check'
@@ -82,10 +82,10 @@ const VIEW_OPTIONS: {
   iconColor: string
   bgColor: string
 }[] = [
-  { value: 'everyone', label: 'Everyone in your account', Icon: VisibilityOutlinedIcon, iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)' },
-  { value: 'editors',  label: 'Users who can manage access', Icon: EditOutlinedIcon,        iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
-  { value: 'specific', label: 'Specific users',           Icon: PeopleOutlinedIcon,      iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
-  { value: 'private',  label: 'Private (only you)',       Icon: VisibilityOffOutlinedIcon, iconColor: c.successMain, bgColor: 'rgba(17,135,71,0.10)' },
+  { value: 'everyone', label: 'Everyone in your account',  Icon: PeopleAltOutlinedIcon, iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)' },
+  { value: 'editors',  label: 'Users who can manage access', Icon: EditOutlinedIcon,   iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
+  { value: 'specific', label: 'Specific users',            Icon: PeopleOutlinedIcon,  iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
+  { value: 'private',  label: 'Private (only you)',        Icon: LockOutlinedIcon,    iconColor: c.successMain, bgColor: 'rgba(17,135,71,0.10)' },
 ]
 
 function getViewOption(v: ViewPermission) {
@@ -147,15 +147,17 @@ function UsersAutocomplete({
   onChange,
   placeholder,
   excludeIds = [],
+  disabledUsers = [],
   error,
   helperText,
 }: {
-  value:       User[]
-  onChange:    (v: User[]) => void
-  placeholder?: string
-  excludeIds?: string[]
-  error?:      boolean
-  helperText?: string
+  value:          User[]
+  onChange:       (v: User[]) => void
+  placeholder?:   string
+  excludeIds?:    string[]
+  disabledUsers?: { id: string; reason: string }[]
+  error?:         boolean
+  helperText?:    string
 }) {
   const options = ALL_USERS.filter(u => !excludeIds.includes(u.id))
 
@@ -163,10 +165,14 @@ function UsersAutocomplete({
     <Autocomplete<User, true>
       multiple
       value={value}
-      onChange={(_, newValue) => onChange(newValue)}
+      onChange={(_, newValue) => {
+        // Filter out any disabled users that slipped through
+        onChange(newValue.filter(u => !disabledUsers.find(d => d.id === u.id)))
+      }}
       options={options}
       getOptionLabel={u => u.name}
       isOptionEqualToValue={(opt, val) => opt.id === val.id}
+      getOptionDisabled={option => !!disabledUsers.find(d => d.id === option.id)}
       disableCloseOnSelect
       popupIcon={<KeyboardArrowDownIcon sx={{ fontSize: 18 }} />}
       renderInput={params => (
@@ -205,30 +211,60 @@ function UsersAutocomplete({
           />
         ))
       }
-      renderOption={(props, option, { selected }) => (
-        <Box
-          component="li"
-          {...props}
-          sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1, cursor: 'pointer' }}
-        >
-          <UserAvatar user={option} size={36} />
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{
-              fontFamily: '"Open Sans", sans-serif', fontWeight: 500,
-              fontSize: 14, color: c.textPrimary, lineHeight: 1.4,
-            }}>
-              {option.name}
-            </Typography>
-            <Typography sx={{
-              fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-              fontSize: 12, color: c.textSecondary, lineHeight: 1.3,
-            }}>
-              {option.email}
-            </Typography>
+      renderOption={(props, option, { selected }) => {
+        const disabledEntry = disabledUsers.find(d => d.id === option.id)
+        const row = (
+          <Box
+            component="li"
+            {...props}
+            sx={{
+              display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1,
+              cursor: disabledEntry ? 'not-allowed' : 'pointer',
+              opacity: disabledEntry ? 0.45 : 1,
+            }}
+          >
+            <UserAvatar user={option} size={36} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{
+                fontFamily: '"Open Sans", sans-serif', fontWeight: 500,
+                fontSize: 14, color: c.textPrimary, lineHeight: 1.4,
+              }}>
+                {option.name}
+              </Typography>
+              <Typography sx={{
+                fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                fontSize: 12, color: c.textSecondary, lineHeight: 1.3,
+              }}>
+                {disabledEntry ? disabledEntry.reason : option.email}
+              </Typography>
+            </Box>
+            {selected && <CheckIcon sx={{ color: c.primary, fontSize: 18, flexShrink: 0 }} />}
           </Box>
-          {selected && <CheckIcon sx={{ color: c.primary, fontSize: 18, flexShrink: 0 }} />}
-        </Box>
-      )}
+        )
+
+        if (disabledEntry) {
+          return (
+            <Tooltip
+              key={option.id}
+              title={disabledEntry.reason}
+              placement="right"
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1,
+                    fontSize: 12, color: '#fff',
+                    '& .MuiTooltip-arrow': { color: '#03194F' },
+                  },
+                },
+              }}
+              arrow
+            >
+              <span style={{ display: 'block' }}>{row}</span>
+            </Tooltip>
+          )
+        }
+        return row
+      }}
       ListboxProps={{
         sx: {
           p: '4px',
@@ -451,6 +487,10 @@ export default function ManageAccessDialog({
                 value={viewUsers}
                 onChange={setViewUsers}
                 placeholder="Select from users or groups list or type email address"
+                disabledUsers={manageUsers.map(u => ({
+                  id: u.id,
+                  reason: `${u.name} already has manage access`,
+                }))}
                 error={viewUsersError}
                 helperText={viewUsersError ? 'Select the specific users' : undefined}
               />
@@ -508,6 +548,10 @@ export default function ManageAccessDialog({
                 setManageUsers(hasOwner ? v : [OWNER_USER, ...v])
               }}
               placeholder="Add users who can manage access..."
+              disabledUsers={viewPermission === 'specific' ? viewUsers.map(u => ({
+                id: u.id,
+                reason: `${u.name} already has view access`,
+              })) : []}
             />
           </Box>
         </Collapse>

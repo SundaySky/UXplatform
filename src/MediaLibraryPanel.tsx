@@ -117,10 +117,10 @@ function visibleLabel(vp: ViewPermission) {
 function VisibleIcon({ vp }: { vp: ViewPermission }) {
   const sx = { fontSize: '14px !important' }
   switch (vp) {
-    case 'everyone': return <VisibilityOutlinedIcon sx={{ ...sx, color: c.primary }} />
-    case 'editors':  return <EditOutlinedIcon       sx={{ ...sx, color: c.warningMain }} />
-    case 'specific': return <PeopleOutlinedIcon     sx={{ ...sx, color: c.warningMain }} />
-    case 'private':  return <VisibilityOffOutlinedIcon sx={{ ...sx, color: c.successMain }} />
+    case 'everyone': return <PeopleAltOutlinedIcon sx={{ ...sx, color: c.primary }} />
+    case 'editors':  return <EditOutlinedIcon      sx={{ ...sx, color: c.warningMain }} />
+    case 'specific': return <PeopleOutlinedIcon    sx={{ ...sx, color: c.warningMain }} />
+    case 'private':  return <LockOutlinedIcon      sx={{ ...sx, color: c.successMain }} />
   }
 }
 
@@ -195,8 +195,6 @@ function PermissionSection({
   const visibleViewUsers  = viewPermission === 'specific' ? viewUsers.slice(0, MAX_VIEW) : []
   const extraView         = viewPermission === 'specific' ? Math.max(0, viewUsers.length - MAX_VIEW) : 0
 
-  const showRightSide = true // always show divider + right side
-
   return (
     <Box sx={{ px: 1, py: 0.75, display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
@@ -226,56 +224,26 @@ function PermissionSection({
       {/* ── Avatars row ─────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
 
-        {/* Left: manage-access users */}
-        {visibleManage.map(u => (
+        {viewPermission === 'private' ? (
+          /* Private: only show the owner (me) — no other avatars, no indicator */
           <UserAvatarWithTooltip
-            key={u.id} user={u}
+            user={OWNER_USER}
             role="Can manage access, delete, and rename."
             size={32}
           />
-        ))}
-        {extraManage > 0 && (
-          <Tooltip
-            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraManage} more</Typography>}
-            placement="bottom" arrow
-            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-          >
-            <Avatar variant="rounded" sx={{
-              width: 32, height: 32, bgcolor: c.grey300,
-              fontSize: 11, color: c.textPrimary, cursor: 'default',
-            }}>
-              +{extraManage}
-            </Avatar>
-          </Tooltip>
-        )}
-
-        {/* Divider */}
-        {showRightSide && (
-          <Divider
-            orientation="vertical" flexItem
-            sx={{ mx: '4px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
-          />
-        )}
-
-        {/* Right: view permission indicator */}
-        {viewPermission === 'private' ? (
-          <Tooltip
-            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>Only you can view</Typography>}
-            placement="bottom" arrow
-            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-          >
-            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.successMain, cursor: 'default' }}>
-              <LockOutlinedIcon sx={{ fontSize: 16, color: '#fff' }} />
-            </Avatar>
-          </Tooltip>
-        ) : viewPermission === 'specific' && viewUsers.length > 0 ? (
+        ) : (
           <>
-            {visibleViewUsers.map(u => (
-              <UserAvatarWithTooltip key={u.id} user={u} role="Can view" size={32} />
+            {/* Left: manage-access users */}
+            {visibleManage.map(u => (
+              <UserAvatarWithTooltip
+                key={u.id} user={u}
+                role="Can manage access, delete, and rename."
+                size={32}
+              />
             ))}
-            {extraView > 0 && (
+            {extraManage > 0 && (
               <Tooltip
-                title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraView} more can view</Typography>}
+                title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraManage} more</Typography>}
                 placement="bottom" arrow
                 componentsProps={{ tooltip: { sx: navyTooltipSx } }}
               >
@@ -283,42 +251,57 @@ function PermissionSection({
                   width: 32, height: 32, bgcolor: c.grey300,
                   fontSize: 11, color: c.textPrimary, cursor: 'default',
                 }}>
-                  +{extraView}
+                  +{extraManage}
                 </Avatar>
               </Tooltip>
             )}
+
+            {/* Right: only for everyone (icon) or specific with view users */}
+            {viewPermission === 'everyone' && (
+              <>
+                <Divider
+                  orientation="vertical" flexItem
+                  sx={{ mx: '4px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
+                />
+                <Tooltip
+                  title={<Typography sx={{ fontSize: 12, color: '#fff' }}>Everyone in your account can view</Typography>}
+                  placement="bottom" arrow
+                  componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                >
+                  <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.secondary, cursor: 'default' }}>
+                    <PeopleAltOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
+                  </Avatar>
+                </Tooltip>
+              </>
+            )}
+
+            {viewPermission === 'specific' && visibleViewUsers.length > 0 && (
+              <>
+                <Divider
+                  orientation="vertical" flexItem
+                  sx={{ mx: '4px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
+                />
+                {visibleViewUsers.map(u => (
+                  <UserAvatarWithTooltip key={u.id} user={u} role="Can view" size={32} />
+                ))}
+                {extraView > 0 && (
+                  <Tooltip
+                    title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraView} more can view</Typography>}
+                    placement="bottom" arrow
+                    componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                  >
+                    <Avatar variant="rounded" sx={{
+                      width: 32, height: 32, bgcolor: c.grey300,
+                      fontSize: 11, color: c.textPrimary, cursor: 'default',
+                    }}>
+                      +{extraView}
+                    </Avatar>
+                  </Tooltip>
+                )}
+              </>
+            )}
+            {/* editors / specific-with-no-users: no right-side indicator */}
           </>
-        ) : viewPermission === 'specific' ? (
-          <Tooltip
-            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>No specific users added yet</Typography>}
-            placement="bottom" arrow
-            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-          >
-            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.warningMain, cursor: 'default' }}>
-              <PeopleOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
-            </Avatar>
-          </Tooltip>
-        ) : viewPermission === 'editors' ? (
-          <Tooltip
-            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>All users who can manage access can view</Typography>}
-            placement="bottom" arrow
-            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-          >
-            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.warningMain, cursor: 'default' }}>
-              <EditOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
-            </Avatar>
-          </Tooltip>
-        ) : (
-          /* everyone */
-          <Tooltip
-            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>Everyone in your account can view</Typography>}
-            placement="bottom" arrow
-            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-          >
-            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.secondary, cursor: 'default' }}>
-              <PeopleAltOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
-            </Avatar>
-          </Tooltip>
         )}
       </Box>
 
@@ -404,6 +387,9 @@ export default function MediaLibraryPanel({
       setPermissions(prev => ({ ...prev, [manageKey]: s }))
     }
   }
+
+  // When navigating inside a private folder, all nested items inherit the lock indicator
+  const parentIsPrivate = folder !== null && getPerms(folder).viewPermission === 'private'
 
   return (
     <Box sx={{
@@ -711,6 +697,9 @@ export default function MediaLibraryPanel({
             {/* Subfolders inside a folder */}
             {folder && (FOLDER_CONTENTS[folder] ?? []).map(sf => {
               const sfvp = getPerms(sf.name).viewPermission
+              // If parent folder is private, inherited lock shows regardless of subfolder's own permission
+              const sfIconVp = parentIsPrivate ? 'private' : sfvp
+              const sfShowIcon = parentIsPrivate || sfvp !== 'everyone'
               return (
                 <Box
                   key={sf.name}
@@ -751,14 +740,14 @@ export default function MediaLibraryPanel({
                     }}>
                       {sf.name}
                     </Typography>
-                    {sfvp !== 'everyone' && (
+                    {sfShowIcon && (
                       <Tooltip
-                        title={<Typography sx={{ fontSize: 12, color: '#fff' }}>{visibleLabel(sfvp)}</Typography>}
+                        title={<Typography sx={{ fontSize: 12, color: '#fff' }}>{visibleLabel(sfIconVp)}</Typography>}
                         placement="top" arrow
                         componentsProps={{ tooltip: { sx: navyTooltipSx } }}
                       >
                         <Box sx={{ display: 'flex', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                          <VisibleIcon vp={sfvp} />
+                          <VisibleIcon vp={sfIconVp} />
                         </Box>
                       </Tooltip>
                     )}
@@ -770,6 +759,8 @@ export default function MediaLibraryPanel({
             {/* Media items */}
             {MEDIA_ITEMS.map(item => {
               const ivp = getPerms(item.name).viewPermission
+              const itemIconVp  = parentIsPrivate ? 'private' : ivp
+              const itemShowIcon = parentIsPrivate || ivp !== 'everyone'
               return (
                 <Box
                   key={item.id}
@@ -832,14 +823,14 @@ export default function MediaLibraryPanel({
                     }}>
                       {item.name}
                     </Typography>
-                    {ivp !== 'everyone' && (
+                    {itemShowIcon && (
                       <Tooltip
-                        title={<Typography sx={{ fontSize: 12, color: '#fff' }}>{visibleLabel(ivp)}</Typography>}
+                        title={<Typography sx={{ fontSize: 12, color: '#fff' }}>{visibleLabel(itemIconVp)}</Typography>}
                         placement="top" arrow
                         componentsProps={{ tooltip: { sx: navyTooltipSx } }}
                       >
                         <Box sx={{ display: 'flex', flexShrink: 0 }}>
-                          <VisibleIcon vp={ivp} />
+                          <VisibleIcon vp={itemIconVp} />
                         </Box>
                       </Tooltip>
                     )}
