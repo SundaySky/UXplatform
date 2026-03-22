@@ -83,6 +83,13 @@ const MEDIA_ITEMS = [
   { id: 3, name: 'Marketing highlights', duration: '1:30', bg: '#3A2A1E', added: 'Mar 1, 2026 9:00 AM'  },
 ]
 
+// ─── Subfolders shown when navigating into a folder ──────────────────────────
+const FOLDER_CONTENTS: Record<string, { name: string; isAi?: boolean }[]> = {
+  'AI Media Assets':      [{ name: 'Generated clips', isAi: true }, { name: 'AI backgrounds', isAi: true }],
+  'Spring camping':       [{ name: 'Day 1 footage' },                { name: 'Highlights reel' }],
+  'Marketing department': [{ name: 'Q1 2026 assets' },               { name: 'Social media' }],
+}
+
 // ─── Default permissions ──────────────────────────────────────────────────────
 const defaultPermissions = (): PermissionSettings => ({
   viewPermission: 'everyone',
@@ -169,36 +176,31 @@ function HoverIconBtn({
 function PermissionSection({
   settings,
   onManageAccess,
+  onViewClick,
 }: {
   settings:       PermissionSettings
   onManageAccess: () => void
+  onViewClick?:   () => void
 }) {
   const { viewPermission, viewUsers, manageUsers } = settings
-  const firstManage = manageUsers[0] ?? OWNER_USER
-  const showRightAvatar = viewPermission !== 'private'
+  const handleViewClick = onViewClick ?? onManageAccess
 
-  // Right-side avatar:
-  // - everyone / editors → group icon
-  // - specific → first viewUser or group icon
-  // - private → hidden
-  const firstViewUser: User | null =
-    viewPermission === 'specific' && viewUsers.length > 0 ? viewUsers[0] : null
+  // Manage users: show up to 3, then +N overflow
+  const MAX_MANAGE = 3
+  const visibleManage = manageUsers.slice(0, MAX_MANAGE)
+  const extraManage   = manageUsers.length - MAX_MANAGE
 
-  const allAccountTooltip = (
-    <Typography sx={{ fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
-      Everyone in your account can view
-    </Typography>
-  )
+  // View users (specific): show up to 2, then +N overflow
+  const MAX_VIEW = 2
+  const visibleViewUsers  = viewPermission === 'specific' ? viewUsers.slice(0, MAX_VIEW) : []
+  const extraView         = viewPermission === 'specific' ? Math.max(0, viewUsers.length - MAX_VIEW) : 0
 
-  const editorsTooltip = (
-    <Typography sx={{ fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
-      All editors and owners can view
-    </Typography>
-  )
+  const showRightSide = true // always show divider + right side
 
   return (
     <Box sx={{ px: 1, py: 0.75, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {/* Visible row */}
+
+      {/* ── Visible row ─────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
         <Typography sx={{
           fontFamily: '"Inter", sans-serif', fontWeight: 500,
@@ -207,10 +209,10 @@ function PermissionSection({
           Visible
         </Typography>
         <Button
-          variant="text"
-          size="small"
+          variant="text" size="small"
           startIcon={<VisibleIcon vp={viewPermission} />}
           endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '13px !important' }} />}
+          onClick={e => { e.stopPropagation(); handleViewClick() }}
           sx={{
             color: c.primary,
             fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 13,
@@ -221,102 +223,114 @@ function PermissionSection({
         </Button>
       </Box>
 
-      {/* Avatars row: [manage-access user] | [view indicator] */}
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        {/* Left: first manage-access user */}
-        <UserAvatarWithTooltip
-          user={firstManage}
-          role="Can manage access, delete, and rename."
-          size={32}
-        />
+      {/* ── Avatars row ─────────────────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
 
-        {showRightAvatar && (
+        {/* Left: manage-access users */}
+        {visibleManage.map(u => (
+          <UserAvatarWithTooltip
+            key={u.id} user={u}
+            role="Can manage access, delete, and rename."
+            size={32}
+          />
+        ))}
+        {extraManage > 0 && (
+          <Tooltip
+            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraManage} more</Typography>}
+            placement="bottom" arrow
+            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+          >
+            <Avatar variant="rounded" sx={{
+              width: 32, height: 32, bgcolor: c.grey300,
+              fontSize: 11, color: c.textPrimary, cursor: 'default',
+            }}>
+              +{extraManage}
+            </Avatar>
+          </Tooltip>
+        )}
+
+        {/* Divider */}
+        {showRightSide && (
+          <Divider
+            orientation="vertical" flexItem
+            sx={{ mx: '4px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
+          />
+        )}
+
+        {/* Right: view permission indicator */}
+        {viewPermission === 'private' ? (
+          <Tooltip
+            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>Only you can view</Typography>}
+            placement="bottom" arrow
+            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+          >
+            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.successMain, cursor: 'default' }}>
+              <LockOutlinedIcon sx={{ fontSize: 16, color: '#fff' }} />
+            </Avatar>
+          </Tooltip>
+        ) : viewPermission === 'specific' && viewUsers.length > 0 ? (
           <>
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ mx: '8px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
-            />
-
-            {/* Right: view permission indicator */}
-            {firstViewUser ? (
-              /* Specific user */
-              <UserAvatarWithTooltip
-                user={firstViewUser}
-                role="Can view"
-                size={32}
-              />
-            ) : viewPermission === 'editors' ? (
-              /* Editors group */
+            {visibleViewUsers.map(u => (
+              <UserAvatarWithTooltip key={u.id} user={u} role="Can view" size={32} />
+            ))}
+            {extraView > 0 && (
               <Tooltip
-                title={editorsTooltip}
-                placement="bottom"
-                arrow
+                title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraView} more can view</Typography>}
+                placement="bottom" arrow
                 componentsProps={{ tooltip: { sx: navyTooltipSx } }}
               >
-                <Avatar
-                  variant="rounded"
-                  sx={{ width: 32, height: 32, bgcolor: c.warningMain, cursor: 'default' }}
-                >
-                  <EditOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
-                </Avatar>
-              </Tooltip>
-            ) : (
-              /* Everyone */
-              <Tooltip
-                title={allAccountTooltip}
-                placement="bottom"
-                arrow
-                componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-              >
-                <Avatar
-                  variant="rounded"
-                  sx={{ width: 32, height: 32, bgcolor: c.secondary, cursor: 'default' }}
-                >
-                  <PeopleAltOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
+                <Avatar variant="rounded" sx={{
+                  width: 32, height: 32, bgcolor: c.grey300,
+                  fontSize: 11, color: c.textPrimary, cursor: 'default',
+                }}>
+                  +{extraView}
                 </Avatar>
               </Tooltip>
             )}
           </>
-        )}
-
-        {/* Private: only the owner */}
-        {!showRightAvatar && viewPermission === 'private' && (
-          <>
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ mx: '8px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
-            />
-            <Tooltip
-              title={<Typography sx={{ fontSize: 12, color: '#fff' }}>Only you can view</Typography>}
-              placement="bottom"
-              arrow
-              componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-            >
-              <Avatar
-                variant="rounded"
-                sx={{ width: 32, height: 32, bgcolor: c.successMain, cursor: 'default' }}
-              >
-                <LockOutlinedIcon sx={{ fontSize: 16, color: '#fff' }} />
-              </Avatar>
-            </Tooltip>
-          </>
+        ) : viewPermission === 'specific' ? (
+          <Tooltip
+            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>No specific users added yet</Typography>}
+            placement="bottom" arrow
+            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+          >
+            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.warningMain, cursor: 'default' }}>
+              <PeopleOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
+            </Avatar>
+          </Tooltip>
+        ) : viewPermission === 'editors' ? (
+          <Tooltip
+            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>All users who can manage access can view</Typography>}
+            placement="bottom" arrow
+            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+          >
+            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.warningMain, cursor: 'default' }}>
+              <EditOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
+            </Avatar>
+          </Tooltip>
+        ) : (
+          /* everyone */
+          <Tooltip
+            title={<Typography sx={{ fontSize: 12, color: '#fff' }}>Everyone in your account can view</Typography>}
+            placement="bottom" arrow
+            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+          >
+            <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.secondary, cursor: 'default' }}>
+              <PeopleAltOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
+            </Avatar>
+          </Tooltip>
         )}
       </Box>
 
-      {/* Manage access button */}
+      {/* ── Manage access button ─────────────────────────────────────────── */}
       <Button
-        variant="outlined"
-        size="medium"
+        variant="outlined" size="medium"
         startIcon={<ManageAccountsOutlinedIcon sx={{ fontSize: '16px !important' }} />}
-        onClick={onManageAccess}
+        onClick={e => { e.stopPropagation(); onManageAccess() }}
         sx={{
-          color: c.textPrimary,
-          borderColor: c.grey300,
+          color: c.textPrimary, borderColor: c.grey300,
           fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
-          textTransform: 'none', borderRadius: '8px',
-          alignSelf: 'flex-start',
+          textTransform: 'none', borderRadius: '8px', alignSelf: 'flex-start',
           '&:hover': { borderColor: c.primary },
         }}
       >
@@ -382,7 +396,7 @@ export default function MediaLibraryPanel({
     setManageKey(key)
     setManageType(type)
     setManageOpen(true)
-    closeMenu()
+    // do NOT close the menu — dialog overlays it, menu stays when dialog closes
   }
 
   function handleSavePermissions(s: PermissionSettings) {
@@ -591,157 +605,248 @@ export default function MediaLibraryPanel({
         <Box sx={{ flex: 1, overflowY: 'auto', px: 2 }}>
 
           {/* Folder strip */}
-          {folder && (
-            <Box sx={{ mb: 1.5, pt: 0.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                <IconButton size="small" onClick={onCloseFolder} sx={{ color: c.actionActive, mr: '4px', p: '4px' }}>
-                  <ArrowBackIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-                <Typography sx={{
-                  fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                  fontSize: 14, color: c.textPrimary, lineHeight: 1.5,
-                }}>
-                  {folder}
-                </Typography>
+          {folder && (() => {
+            const fp = getPerms(folder)
+            return (
+              <Box sx={{ mb: 1.5, pt: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                  <IconButton size="small" onClick={onCloseFolder} sx={{ color: c.actionActive, mr: '4px', p: '4px' }}>
+                    <ArrowBackIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                  <Typography sx={{
+                    fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+                    fontSize: 14, color: c.textPrimary, lineHeight: 1.5,
+                  }}>
+                    {folder}
+                  </Typography>
+                </Box>
+                <Divider sx={{ borderColor: c.divider, mb: 1 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography sx={{
+                    fontFamily: '"Inter", sans-serif', fontWeight: 500,
+                    fontSize: 14, color: c.textPrimary, mr: '4px', flexShrink: 0,
+                  }}>
+                    Visible to:
+                  </Typography>
+                  <Button
+                    variant="text" size="small"
+                    startIcon={<VisibleIcon vp={fp.viewPermission} />}
+                    endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '13px !important' }} />}
+                    onClick={() => openManageAccess(folder, 'folder')}
+                    sx={{
+                      color: c.primary,
+                      fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+                      textTransform: 'none', p: '2px 4px', minWidth: 0,
+                    }}
+                  >
+                    {visibleLabel(fp.viewPermission)}
+                  </Button>
+                </Box>
               </Box>
-              <Divider sx={{ borderColor: c.divider, mb: 1 }} />
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography sx={{
-                  fontFamily: '"Inter", sans-serif', fontWeight: 500,
-                  fontSize: 14, color: c.textPrimary, mr: '4px',
-                }}>
-                  Visible to:
-                </Typography>
-                <Button
-                  variant="text" size="small"
-                  startIcon={<VisibilityOutlinedIcon sx={{ fontSize: '14px !important' }} />}
-                  endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '13px !important' }} />}
-                  sx={{
-                    color: c.primary,
-                    fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
-                    textTransform: 'none', p: '2px 4px', minWidth: 0,
-                  }}
-                >
-                  All users in SundaySky
-                </Button>
-              </Box>
-            </Box>
-          )}
+            )
+          })()}
 
           {/* Grid */}
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', pb: 2 }}>
 
-            {/* Folder items */}
-            {!folder && MEDIA_FOLDERS.map(f => (
-              <Box
-                key={f.name}
-                onClick={() => onOpenFolder(f.name)}
-                sx={{
-                  display: 'flex', flexDirection: 'column',
-                  cursor: 'pointer', borderRadius: '8px', overflow: 'visible',
-                  border: `1px solid ${c.grey300}`,
-                  transition: 'box-shadow 0.18s', position: 'relative',
-                  '&:hover': { boxShadow: '0 2px 10px rgba(3,25,79,0.14)' },
-                  '&:hover .hover-overlay': { opacity: 1 },
-                  '&:hover .hover-actions': { opacity: 1 },
-                }}
-              >
-                <Box sx={{ borderRadius: '8px 8px 0 0', overflow: 'hidden', position: 'relative' }}>
-                  <FolderThumb isAi={f.isAi} />
-                  <Box className="hover-overlay" sx={{
-                    position: 'absolute', inset: 0,
-                    bgcolor: 'rgba(3,25,79,0.38)', opacity: 0,
-                    transition: 'opacity 0.18s', pointerEvents: 'none',
-                    borderRadius: '8px 8px 0 0',
-                  }} />
-                </Box>
-                <Box className="hover-actions" sx={{
-                  position: 'absolute', top: 6, right: 6,
-                  display: 'flex', gap: '4px',
-                  opacity: 0, transition: 'opacity 0.18s', zIndex: 2,
-                }}>
-                  <HoverIconBtn onClick={e => openMenu(e, 'folder', f.name, 'Dec 10, 2025 9:00 AM')}>
-                    <MoreVertIcon sx={{ fontSize: 14 }} />
-                  </HoverIconBtn>
-                </Box>
-                <Box sx={{ px: 1, py: '6px', overflow: 'hidden' }}>
-                  <Typography sx={{
-                    fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                    fontSize: 12, color: c.textPrimary, lineHeight: 1.4,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {f.name}
-                  </Typography>
-                </Box>
-              </Box>
-            ))}
-
-            {/* Media items */}
-            {MEDIA_ITEMS.map(item => (
-              <Box
-                key={item.id}
-                sx={{
-                  position: 'relative', borderRadius: '8px', overflow: 'visible',
-                  cursor: 'pointer', border: `1px solid ${c.grey300}`,
-                  transition: 'box-shadow 0.18s',
-                  '&:hover': { boxShadow: '0 2px 10px rgba(3,25,79,0.14)' },
-                  '&:hover .hover-overlay': { opacity: 1 },
-                  '&:hover .hover-actions': { opacity: 1 },
-                }}
-              >
-                <Box sx={{ borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
-                  <Box sx={{ width: '100%', paddingTop: '68%', bgcolor: item.bg, position: 'relative' }}>
-                    <Box sx={{
+            {/* Folder items (root view) */}
+            {!folder && MEDIA_FOLDERS.map(f => {
+              const fvp = getPerms(f.name).viewPermission
+              return (
+                <Box
+                  key={f.name}
+                  onClick={() => onOpenFolder(f.name)}
+                  sx={{
+                    display: 'flex', flexDirection: 'column',
+                    cursor: 'pointer', borderRadius: '8px', overflow: 'visible',
+                    border: `1px solid ${c.grey300}`,
+                    transition: 'box-shadow 0.18s', position: 'relative',
+                    '&:hover': { boxShadow: '0 2px 10px rgba(3,25,79,0.14)' },
+                    '&:hover .hover-overlay': { opacity: 1 },
+                    '&:hover .hover-actions': { opacity: 1 },
+                  }}
+                >
+                  <Box sx={{ borderRadius: '8px 8px 0 0', overflow: 'hidden', position: 'relative' }}>
+                    <FolderThumb isAi={f.isAi} />
+                    <Box className="hover-overlay" sx={{
                       position: 'absolute', inset: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <PermMediaOutlinedIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 26 }} />
-                    </Box>
+                      bgcolor: 'rgba(3,25,79,0.38)', opacity: 0,
+                      transition: 'opacity 0.18s', pointerEvents: 'none',
+                      borderRadius: '8px 8px 0 0',
+                    }} />
                   </Box>
-                  <Box className="hover-overlay" sx={{
-                    position: 'absolute', inset: 0,
-                    bgcolor: 'rgba(3,25,79,0.38)', opacity: 0,
-                    transition: 'opacity 0.18s', pointerEvents: 'none',
-                    borderRadius: '8px',
-                  }} />
-                  <Box sx={{
-                    position: 'absolute', bottom: 4, left: 4,
-                    bgcolor: 'rgba(0,0,0,0.62)', borderRadius: '4px', px: '4px', py: '1px',
-                    pointerEvents: 'none',
+                  <Box className="hover-actions" sx={{
+                    position: 'absolute', top: 6, right: 6,
+                    display: 'flex', gap: '4px',
+                    opacity: 0, transition: 'opacity 0.18s', zIndex: 2,
                   }}>
+                    <HoverIconBtn onClick={e => openMenu(e, 'folder', f.name, 'Dec 10, 2025 9:00 AM')}>
+                      <MoreVertIcon sx={{ fontSize: 14 }} />
+                    </HoverIconBtn>
+                  </Box>
+                  <Box sx={{ px: 1, py: '6px', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
                     <Typography sx={{
                       fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                      fontSize: 11, color: '#fff', lineHeight: 1.4,
+                      fontSize: 12, color: c.textPrimary, lineHeight: 1.4,
+                      flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {item.duration}
+                      {f.name}
                     </Typography>
+                    {fvp !== 'everyone' && (
+                      <Tooltip
+                        title={<Typography sx={{ fontSize: 12, color: '#fff' }}>{visibleLabel(fvp)}</Typography>}
+                        placement="top" arrow
+                        componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                      >
+                        <Box sx={{ display: 'flex', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                          <VisibleIcon vp={fvp} />
+                        </Box>
+                      </Tooltip>
+                    )}
                   </Box>
                 </Box>
+              )
+            })}
 
-                <Box className="hover-actions" sx={{
-                  position: 'absolute', top: 6, right: 6,
-                  display: 'flex', gap: '4px',
-                  opacity: 0, transition: 'opacity 0.18s', zIndex: 2,
-                }}>
-                  <HoverIconBtn onClick={e => e.stopPropagation()}>
-                    <OpenInFullIcon sx={{ fontSize: 14 }} />
-                  </HoverIconBtn>
-                  <HoverIconBtn onClick={e => openMenu(e, 'media', item.name, item.added)}>
-                    <MoreVertIcon sx={{ fontSize: 14 }} />
-                  </HoverIconBtn>
-                </Box>
-
-                <Box sx={{ px: 1, py: '6px' }}>
-                  <Typography sx={{
-                    fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                    fontSize: 12, color: c.textPrimary, lineHeight: 1.4,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            {/* Subfolders inside a folder */}
+            {folder && (FOLDER_CONTENTS[folder] ?? []).map(sf => {
+              const sfvp = getPerms(sf.name).viewPermission
+              return (
+                <Box
+                  key={sf.name}
+                  onClick={() => onOpenFolder(sf.name)}
+                  sx={{
+                    display: 'flex', flexDirection: 'column',
+                    cursor: 'pointer', borderRadius: '8px', overflow: 'visible',
+                    border: `1px solid ${c.grey300}`,
+                    transition: 'box-shadow 0.18s', position: 'relative',
+                    '&:hover': { boxShadow: '0 2px 10px rgba(3,25,79,0.14)' },
+                    '&:hover .hover-overlay': { opacity: 1 },
+                    '&:hover .hover-actions': { opacity: 1 },
+                  }}
+                >
+                  <Box sx={{ borderRadius: '8px 8px 0 0', overflow: 'hidden', position: 'relative' }}>
+                    <FolderThumb isAi={sf.isAi} />
+                    <Box className="hover-overlay" sx={{
+                      position: 'absolute', inset: 0,
+                      bgcolor: 'rgba(3,25,79,0.38)', opacity: 0,
+                      transition: 'opacity 0.18s', pointerEvents: 'none',
+                      borderRadius: '8px 8px 0 0',
+                    }} />
+                  </Box>
+                  <Box className="hover-actions" sx={{
+                    position: 'absolute', top: 6, right: 6,
+                    display: 'flex', gap: '4px',
+                    opacity: 0, transition: 'opacity 0.18s', zIndex: 2,
                   }}>
-                    {item.name}
-                  </Typography>
+                    <HoverIconBtn onClick={e => openMenu(e, 'folder', sf.name, 'Jan 10, 2026 9:00 AM')}>
+                      <MoreVertIcon sx={{ fontSize: 14 }} />
+                    </HoverIconBtn>
+                  </Box>
+                  <Box sx={{ px: 1, py: '6px', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                    <Typography sx={{
+                      fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                      fontSize: 12, color: c.textPrimary, lineHeight: 1.4,
+                      flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {sf.name}
+                    </Typography>
+                    {sfvp !== 'everyone' && (
+                      <Tooltip
+                        title={<Typography sx={{ fontSize: 12, color: '#fff' }}>{visibleLabel(sfvp)}</Typography>}
+                        placement="top" arrow
+                        componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                      >
+                        <Box sx={{ display: 'flex', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                          <VisibleIcon vp={sfvp} />
+                        </Box>
+                      </Tooltip>
+                    )}
+                  </Box>
                 </Box>
-              </Box>
-            ))}
+              )
+            })}
+
+            {/* Media items */}
+            {MEDIA_ITEMS.map(item => {
+              const ivp = getPerms(item.name).viewPermission
+              return (
+                <Box
+                  key={item.id}
+                  sx={{
+                    position: 'relative', borderRadius: '8px', overflow: 'visible',
+                    cursor: 'pointer', border: `1px solid ${c.grey300}`,
+                    transition: 'box-shadow 0.18s',
+                    '&:hover': { boxShadow: '0 2px 10px rgba(3,25,79,0.14)' },
+                    '&:hover .hover-overlay': { opacity: 1 },
+                    '&:hover .hover-actions': { opacity: 1 },
+                  }}
+                >
+                  <Box sx={{ borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                    <Box sx={{ width: '100%', paddingTop: '68%', bgcolor: item.bg, position: 'relative' }}>
+                      <Box sx={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <PermMediaOutlinedIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 26 }} />
+                      </Box>
+                    </Box>
+                    <Box className="hover-overlay" sx={{
+                      position: 'absolute', inset: 0,
+                      bgcolor: 'rgba(3,25,79,0.38)', opacity: 0,
+                      transition: 'opacity 0.18s', pointerEvents: 'none',
+                      borderRadius: '8px',
+                    }} />
+                    <Box sx={{
+                      position: 'absolute', bottom: 4, left: 4,
+                      bgcolor: 'rgba(0,0,0,0.62)', borderRadius: '4px', px: '4px', py: '1px',
+                      pointerEvents: 'none',
+                    }}>
+                      <Typography sx={{
+                        fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                        fontSize: 11, color: '#fff', lineHeight: 1.4,
+                      }}>
+                        {item.duration}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box className="hover-actions" sx={{
+                    position: 'absolute', top: 6, right: 6,
+                    display: 'flex', gap: '4px',
+                    opacity: 0, transition: 'opacity 0.18s', zIndex: 2,
+                  }}>
+                    <HoverIconBtn onClick={e => e.stopPropagation()}>
+                      <OpenInFullIcon sx={{ fontSize: 14 }} />
+                    </HoverIconBtn>
+                    <HoverIconBtn onClick={e => openMenu(e, 'media', item.name, item.added)}>
+                      <MoreVertIcon sx={{ fontSize: 14 }} />
+                    </HoverIconBtn>
+                  </Box>
+
+                  <Box sx={{ px: 1, py: '6px', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                    <Typography sx={{
+                      fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                      fontSize: 12, color: c.textPrimary, lineHeight: 1.4,
+                      flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {item.name}
+                    </Typography>
+                    {ivp !== 'everyone' && (
+                      <Tooltip
+                        title={<Typography sx={{ fontSize: 12, color: '#fff' }}>{visibleLabel(ivp)}</Typography>}
+                        placement="top" arrow
+                        componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                      >
+                        <Box sx={{ display: 'flex', flexShrink: 0 }}>
+                          <VisibleIcon vp={ivp} />
+                        </Box>
+                      </Tooltip>
+                    )}
+                  </Box>
+                </Box>
+              )
+            })}
           </Box>
         </Box>
       </Box>
@@ -798,6 +903,9 @@ export default function MediaLibraryPanel({
         <PermissionSection
           settings={getPerms(menuTarget?.name ?? '')}
           onManageAccess={() =>
+            menuTarget && openManageAccess(menuTarget.name, menuTarget.type)
+          }
+          onViewClick={() =>
             menuTarget && openManageAccess(menuTarget.name, menuTarget.type)
           }
         />

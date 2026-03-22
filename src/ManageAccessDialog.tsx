@@ -4,7 +4,7 @@ import {
   Box, Typography, Button, IconButton,
   Select, MenuItem, Chip, Avatar, Tooltip,
   Autocomplete, TextField, Collapse, Alert,
-  Divider, InputAdornment,
+  Divider,
 } from '@mui/material'
 import CloseIcon                   from '@mui/icons-material/Close'
 import HelpOutlineIcon             from '@mui/icons-material/HelpOutline'
@@ -83,7 +83,7 @@ const VIEW_OPTIONS: {
   bgColor: string
 }[] = [
   { value: 'everyone', label: 'Everyone in your account', Icon: VisibilityOutlinedIcon, iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)' },
-  { value: 'editors',  label: 'Editors and owners',       Icon: EditOutlinedIcon,        iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
+  { value: 'editors',  label: 'Users who can manage access', Icon: EditOutlinedIcon,        iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
   { value: 'specific', label: 'Specific users',           Icon: PeopleOutlinedIcon,      iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
   { value: 'private',  label: 'Private (only you)',       Icon: VisibilityOffOutlinedIcon, iconColor: c.successMain, bgColor: 'rgba(17,135,71,0.10)' },
 ]
@@ -147,11 +147,15 @@ function UsersAutocomplete({
   onChange,
   placeholder,
   excludeIds = [],
+  error,
+  helperText,
 }: {
-  value:      User[]
-  onChange:   (v: User[]) => void
+  value:       User[]
+  onChange:    (v: User[]) => void
   placeholder?: string
   excludeIds?: string[]
+  error?:      boolean
+  helperText?: string
 }) {
   const options = ALL_USERS.filter(u => !excludeIds.includes(u.id))
 
@@ -170,9 +174,12 @@ function UsersAutocomplete({
           {...params}
           placeholder={value.length === 0 ? placeholder : ''}
           size="medium"
+          error={error}
+          helperText={helperText}
           sx={{
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: error ? c.errorMain : c.grey300 },
             '& .MuiInputBase-root': { borderRadius: '8px', flexWrap: 'wrap', gap: '4px', p: '8px 12px' },
+            '& .MuiFormHelperText-root': { fontFamily: '"Open Sans", sans-serif', fontSize: 12 },
           }}
         />
       )}
@@ -279,8 +286,9 @@ export default function ManageAccessDialog({
   const [viewPermission, setViewPermission] = useState<ViewPermission>(
     initialSettings?.viewPermission ?? 'everyone'
   )
-  const [viewUsers,   setViewUsers]   = useState<User[]>(initialSettings?.viewUsers   ?? [])
-  const [manageUsers, setManageUsers] = useState<User[]>(initialSettings?.manageUsers ?? [OWNER_USER])
+  const [viewUsers,       setViewUsers]       = useState<User[]>(initialSettings?.viewUsers   ?? [])
+  const [manageUsers,     setManageUsers]     = useState<User[]>(initialSettings?.manageUsers ?? [OWNER_USER])
+  const [viewUsersError,  setViewUsersError]  = useState(false)
 
   // Reset local state whenever dialog opens
   useEffect(() => {
@@ -289,9 +297,17 @@ export default function ManageAccessDialog({
       setViewPermission(s.viewPermission)
       setViewUsers(s.viewUsers)
       setManageUsers(s.manageUsers.length ? s.manageUsers : [OWNER_USER])
+      setViewUsersError(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Clear error when permission changes away from specific or users are added
+  useEffect(() => {
+    if (viewPermission !== 'specific' || viewUsers.length > 0) {
+      setViewUsersError(false)
+    }
+  }, [viewPermission, viewUsers])
 
   const opt = getViewOption(viewPermission)
 
@@ -301,6 +317,10 @@ export default function ManageAccessDialog({
   const showPrivateAlert   = viewPermission === 'private'
 
   function handleSave() {
+    if (viewPermission === 'specific' && viewUsers.length === 0) {
+      setViewUsersError(true)
+      return
+    }
     onSave({ viewPermission, viewUsers, manageUsers })
     onClose()
   }
@@ -312,7 +332,7 @@ export default function ManageAccessDialog({
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: 480,
+          width: 700,
           maxWidth: '98vw',
           borderRadius: '8px',
           boxShadow: '0px 0px 10px rgba(3,25,79,0.25)',
@@ -431,6 +451,8 @@ export default function ManageAccessDialog({
                 value={viewUsers}
                 onChange={setViewUsers}
                 placeholder="Select from users or groups list or type email address"
+                error={viewUsersError}
+                helperText={viewUsersError ? 'Select the specific users' : undefined}
               />
             </Box>
           </Collapse>
