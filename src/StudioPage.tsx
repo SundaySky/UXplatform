@@ -39,6 +39,7 @@ import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
 function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
   const c = '#0053E5'
+  const border = '1px solid #E0E0E0' // grey/300
 
   const Pill = ({ icon, label, onClick }: { icon: React.ReactNode; label?: string; onClick?: () => void }) => (
     <Box
@@ -46,7 +47,7 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       sx={{
         display: 'inline-flex', alignItems: 'center', gap: '5px',
         px: label ? '10px' : '7px', py: '5px',
-        borderRadius: '8px', border: `1px solid ${c}`,
+        borderRadius: '8px', border,
         cursor: 'pointer', bgcolor: '#fff', color: c,
         transition: 'background 0.15s',
         '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
@@ -78,7 +79,7 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       {/* Zoom — single bordered box */}
       <Box sx={{
         display: 'inline-flex', alignItems: 'center', gap: '2px',
-        px: '8px', py: '5px', borderRadius: '8px', border: `1px solid ${c}`,
+        px: '8px', py: '5px', borderRadius: '8px', border,
         bgcolor: '#fff', color: c, flexShrink: 0,
       }}>
         <Box sx={{ display: 'flex', cursor: 'pointer', '&:hover': { opacity: 0.6 } }}>
