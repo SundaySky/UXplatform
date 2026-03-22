@@ -38,37 +38,28 @@ import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
 function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
-  const c = '#0053E5' // primary blue
-  const divider = <Box sx={{ width: '1px', height: 20, bgcolor: 'rgba(0,0,0,0.10)', mx: '2px' }} />
+  const c = '#0053E5'
 
-  // Labelled button
-  const LBtn = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) => (
-    <Box onClick={onClick} sx={{
-      display: 'flex', alignItems: 'center', gap: '4px',
-      px: '8px', py: '5px', borderRadius: '16px', cursor: 'pointer',
-      color: c, transition: 'background 0.15s',
-      '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' },
-    }}>
+  const Pill = ({ icon, label, onClick }: { icon: React.ReactNode; label?: string; onClick?: () => void }) => (
+    <Box
+      onClick={onClick}
+      sx={{
+        display: 'inline-flex', alignItems: 'center', gap: '5px',
+        px: label ? '10px' : '7px', py: '5px',
+        borderRadius: '20px', border: `1px solid ${c}`,
+        cursor: 'pointer', bgcolor: '#fff', color: c,
+        transition: 'background 0.15s',
+        '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+        flexShrink: 0,
+      }}
+    >
       {icon}
-      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c, whiteSpace: 'nowrap', lineHeight: 1 }}>
-        {label}
-      </Typography>
+      {label && (
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c, whiteSpace: 'nowrap', lineHeight: 1 }}>
+          {label}
+        </Typography>
+      )}
     </Box>
-  )
-
-  // Icon-only button
-  const IBtn = ({ icon, tooltip }: { icon: React.ReactNode; tooltip: string }) => (
-    <Tooltip title={tooltip} placement="top" arrow
-      componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', color: '#fff', fontSize: 12, borderRadius: '6px' } }, arrow: { sx: { color: '#03194F' } } }}>
-      <Box sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 30, height: 30, borderRadius: '50%', cursor: 'pointer',
-        color: c, transition: 'background 0.15s',
-        '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' },
-      }}>
-        {icon}
-      </Box>
-    </Tooltip>
   )
 
   return (
@@ -76,47 +67,38 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       onMouseDown={e => e.stopPropagation()}
       sx={{
         display: 'inline-flex', alignItems: 'center',
-        bgcolor: '#fff',
-        border: '1px solid rgba(0,0,0,0.10)',
-        borderRadius: '24px',
-        px: '6px', py: '4px',
-        gap: '2px',
-        boxShadow: '0px 4px 16px rgba(3,25,79,0.14)',
+        bgcolor: '#fff', borderRadius: '28px',
+        px: '8px', py: '6px', gap: '6px',
+        boxShadow: '0px 4px 16px rgba(3,25,79,0.18)',
         userSelect: 'none',
       }}
     >
-      {/* Edit */}
-      <LBtn icon={<EditOutlinedIcon sx={{ fontSize: 15 }} />} label="Edit" onClick={onEditClick} />
+      <Pill icon={<EditOutlinedIcon sx={{ fontSize: 14 }} />} label="Edit" onClick={onEditClick} />
 
-      {divider}
-
-      {/* Zoom control */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', cursor: 'pointer', color: c, '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
-          <RemoveIcon sx={{ fontSize: 14 }} />
+      {/* Zoom — single bordered pill */}
+      <Box sx={{
+        display: 'inline-flex', alignItems: 'center', gap: '2px',
+        px: '8px', py: '5px', borderRadius: '20px', border: `1px solid ${c}`,
+        bgcolor: '#fff', color: c, flexShrink: 0,
+      }}>
+        <Box sx={{ display: 'flex', cursor: 'pointer', '&:hover': { opacity: 0.6 } }}>
+          <RemoveIcon sx={{ fontSize: 12 }} />
         </Box>
-        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 12, color: c, mx: '2px', minWidth: 30, textAlign: 'center' }}>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 12, color: c, mx: '3px', minWidth: 28, textAlign: 'center' }}>
           100%
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', cursor: 'pointer', color: c, '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
-          <AddIcon sx={{ fontSize: 14 }} />
+        <Box sx={{ display: 'flex', cursor: 'pointer', '&:hover': { opacity: 0.6 } }}>
+          <AddIcon sx={{ fontSize: 12 }} />
         </Box>
       </Box>
 
-      {divider}
-
-      {/* Style / Align / Color / Timing */}
-      <LBtn icon={<TitleIcon sx={{ fontSize: 15 }} />}                  label="Style" />
-      <LBtn icon={<AlignHorizontalLeftIcon sx={{ fontSize: 15 }} />}    label="Align" />
-      <LBtn icon={<PaletteIcon sx={{ fontSize: 15 }} />}                label="Color" />
-      <LBtn icon={<StarBorderIcon sx={{ fontSize: 15 }} />}             label="Timing" />
-
-      {divider}
-
-      {/* Icon-only: Copy, Preview, More */}
-      <IBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 15 }} />} tooltip="Copy" />
-      <IBtn icon={<VisibilityOutlinedIcon  sx={{ fontSize: 15 }} />} tooltip="Preview" />
-      <IBtn icon={<MoreHorizIcon           sx={{ fontSize: 17 }} />} tooltip="More" />
+      <Pill icon={<TitleIcon                sx={{ fontSize: 14 }} />} label="Style" />
+      <Pill icon={<AlignHorizontalLeftIcon  sx={{ fontSize: 14 }} />} label="Align" />
+      <Pill icon={<PaletteIcon              sx={{ fontSize: 14 }} />} label="Color" />
+      <Pill icon={<StarBorderIcon           sx={{ fontSize: 14 }} />} label="Timing" />
+      <Pill icon={<ContentCopyOutlinedIcon  sx={{ fontSize: 14 }} />} label="Copy" />
+      <Pill icon={<VisibilityOutlinedIcon   sx={{ fontSize: 14 }} />} />
+      <Pill icon={<MoreHorizIcon            sx={{ fontSize: 16 }} />} />
     </Box>
   )
 }
