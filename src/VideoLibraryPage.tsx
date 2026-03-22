@@ -25,6 +25,7 @@ import PeopleAltOutlinedIcon          from '@mui/icons-material/PeopleAltOutline
 import SyncIcon                       from '@mui/icons-material/Sync'
 import GroupOutlinedIcon              from '@mui/icons-material/GroupOutlined'
 import CommentOutlinedIcon            from '@mui/icons-material/CommentOutlined'
+import AddPhotoAlternateOutlinedIcon  from '@mui/icons-material/AddPhotoAlternateOutlined'
 
 // ─── Figma asset image — split template (HEADING PLACEHOLDER left + media right)
 const IMG_THUMB = '/thumb.svg'
@@ -207,23 +208,48 @@ type ThumbType = 'full' | 'photo' | 'split-template'
 
 function VideoThumbnail({ _type, headingText, subheadingText }: { _type?: ThumbType; headingText?: string; subheadingText?: string }) {
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: 171 }}>
+    <Box sx={{ position: 'relative', width: '100%', height: 171, overflow: 'hidden' }}>
       <Box component="img" src={IMG_THUMB} alt=""
         sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-      {headingText && (<>
-        <Box sx={{ position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%', bgcolor: '#fff' }} />
-        <Box sx={{ position: 'absolute', left: '3.5%', top: '15%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
-          <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '10cqw', color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word' }}>
-            {headingText}
-          </Typography>
-        </Box>
-        <Box sx={{ position: 'absolute', left: '3%', top: '41%', width: '44%', height: '9%', bgcolor: '#fff' }} />
-        <Box sx={{ position: 'absolute', left: '3.5%', top: '41.5%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
-          <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 400, fontSize: '4cqw', color: '#888', lineHeight: 1.4, wordBreak: 'break-word' }}>
-            {subheadingText ?? 'Sub-heading Placeholder'}
-          </Typography>
-        </Box>
-      </>)}
+
+      {/* Left half — white bg + pink accent line */}
+      <Box sx={{ position: 'absolute', inset: 0, width: '50%', bgcolor: '#fff', pointerEvents: 'none' }}>
+        <Box sx={{ height: 4, bgcolor: '#C084FC', width: '100%' }} />
+      </Box>
+
+      {/* Right half — drag media */}
+      <Box sx={{
+        position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%',
+        background: 'repeating-linear-gradient(-45deg,#EBEBEF 0px,#EBEBEF 8px,#E2E2E7 8px,#E2E2E7 16px)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: '4px', pointerEvents: 'none',
+      }}>
+        <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 28, color: '#BDBDBD' }} />
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 9, color: '#BDBDBD' }}>
+          Drag media here
+        </Typography>
+      </Box>
+
+      {/* Text overlays — flowing column, no fixed subheading position */}
+      <Box sx={{
+        position: 'absolute', left: '4%', top: '18%', width: '43%',
+        containerType: 'inline-size', pointerEvents: 'none',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '9cqw', color: '#03194F', lineHeight: 1.2, wordBreak: 'break-word' }}>
+          {headingText ?? 'Heading Placeholder'}
+        </Typography>
+        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 400, fontSize: '4cqw', color: 'rgba(0,0,0,0.7)', lineHeight: 1.4, wordBreak: 'break-word', mt: '6%' }}>
+          {subheadingText ?? 'Sub-heading Placeholder'}
+        </Typography>
+      </Box>
+
+      {/* Footnote */}
+      <Box sx={{ position: 'absolute', left: '4%', width: '43%', bottom: '5%', containerType: 'inline-size', pointerEvents: 'none' }}>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: '3cqw', letterSpacing: '0.4px', color: 'rgba(0,0,0,0.45)', lineHeight: 1.66 }}>
+          Footnote placeholder
+        </Typography>
+      </Box>
     </Box>
   )
 }
