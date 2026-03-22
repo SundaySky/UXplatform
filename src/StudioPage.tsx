@@ -35,6 +35,7 @@ import PaletteIcon                 from '@mui/icons-material/Palette'
 import StarBorderIcon              from '@mui/icons-material/StarBorder'
 import Tooltip                     from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
+import MediaLibraryPanel from './MediaLibraryPanel'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
 function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
@@ -681,6 +682,8 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
     if (triggerOpenComments && triggerOpenComments > 0) setCommentsOpen(true)
   }, [triggerOpenComments])
   const [activeNav,        setActiveNav]        = useState<string | null>(null)
+  const [mediaLibOpen,     setMediaLibOpen]     = useState(false)
+  const [mediaFolder,      setMediaFolder]      = useState<string | null>(null)
   const [headingSelected,  setHeadingSelected]  = useState(false)
   const [headingText,      setHeadingText]      = useState(videoTitle)
   const [editHeadingOpen,  setEditHeadingOpen]  = useState(false)
@@ -840,14 +843,36 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
                   label={label}
                   selected={activeNav === label}
                   onClick={() => {
-                    setActiveNav(label)
-                    if (onClickOverride) onClickOverride()
+                    if (label === 'Media') {
+                      if (activeNav === 'Media' && mediaLibOpen) {
+                        // Toggle off
+                        setMediaLibOpen(false)
+                        setActiveNav(null)
+                      } else {
+                        setMediaLibOpen(true)
+                        setMediaFolder(null)
+                        setActiveNav('Media')
+                      }
+                    } else {
+                      setActiveNav(label)
+                      setMediaLibOpen(false)
+                      if (onClickOverride) onClickOverride()
+                    }
                   }}
                 />
               ))}
             </Box>
           ))}
         </Box>
+
+        {/* Media Library Panel — slides in between nav and stage */}
+        <MediaLibraryPanel
+          open={mediaLibOpen}
+          onClose={() => { setMediaLibOpen(false); setActiveNav(null) }}
+          folder={mediaFolder}
+          onOpenFolder={name => setMediaFolder(name)}
+          onCloseFolder={() => setMediaFolder(null)}
+        />
 
         {/* Stage */}
         <Box sx={{ flex: 1, bgcolor: s.editorBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
