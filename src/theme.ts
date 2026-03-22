@@ -289,6 +289,7 @@ export const theme = createTheme({
           lineHeight:   '14px',
           letterSpacing: 0,
           borderRadius: 4,
+          color:        '#ffffff',
         },
       },
     },

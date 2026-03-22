@@ -23,7 +23,11 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={(_e, reason) => {
+        // Only allow closing via the explicit Close / X buttons — not backdrop or Escape
+        if (reason === 'backdropClick' || reason === 'escapeKeyDown') return
+        onClose()
+      }}
       maxWidth="sm"
       fullWidth
       PaperProps={{

@@ -17,12 +17,17 @@ import {
 } from '@mui/material'
 import ApprovalDialog     from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
+import ApproveVideoDialog    from './ApproveVideoDialog'
+import CancelApprovalDialog  from './CancelApprovalDialog'
 import VideoLibraryPage, { type VideoItem } from './VideoLibraryPage'
+import StudioPage, { TOTAL_COMMENT_COUNT, type CommentThread } from './StudioPage'
+import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 
 // MUI icons
 import MoreVertIcon              from '@mui/icons-material/MoreVert'
 import EditOutlinedIcon          from '@mui/icons-material/EditOutlined'
 import CreateOutlinedIcon        from '@mui/icons-material/CreateOutlined'
+import CommentOutlinedIcon       from '@mui/icons-material/CommentOutlined'
 import ShareOutlinedIcon         from '@mui/icons-material/ShareOutlined'
 import BarChartOutlinedIcon      from '@mui/icons-material/BarChartOutlined'
 import ArrowBackIcon             from '@mui/icons-material/ArrowBack'
@@ -46,9 +51,10 @@ import FileExportIcon            from '@mui/icons-material/DriveFileMoveOutlined
 import ArrowDownwardIcon         from '@mui/icons-material/ArrowDownwardOutlined'
 import WarningAmberOutlinedIcon  from '@mui/icons-material/WarningAmberOutlined'
 import CloseIcon                 from '@mui/icons-material/Close'
+import CheckIcon                 from '@mui/icons-material/Check'
 
 // ─── Figma asset: split-template preview (template left + media right)
-const imgVideoPreview = 'http://localhost:3845/assets/97e7204ec6cc59bf101e4028160eb82f669e8077.png'
+const imgVideoPreview = '/thumb.svg'
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const t = {
@@ -92,13 +98,18 @@ function formatApproverNames(approvers: string[]): string {
 // ─── "Updated" link label (primary blue text, DS: TruffleLink color=Primary) ──
 function UpdatedLabel() {
   return (
-    <Typography sx={{
-      fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
-      lineHeight: 1.5, color: t.primaryMain, flexShrink: 0,
-      cursor: 'pointer', '&:hover': { textDecoration: 'underline' },
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center',
+      bgcolor: t.labelInfoBg, borderRadius: '4px',
+      px: '6px', py: '2px', flexShrink: 0,
     }}>
-      Updated
-    </Typography>
+      <Typography sx={{
+        fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
+        lineHeight: 1.5, color: t.labelInfoText, whiteSpace: 'nowrap',
+      }}>
+        Updated
+      </Typography>
+    </Box>
   )
 }
 
@@ -130,11 +141,11 @@ function SundaySkyLogo() {
 
 // ─── Left Sidebar (video page) ────────────────────────────────────────────────
 function Sidebar({
-  isPending,
+  effectiveStatus,
   videoTitle,
   onNavigateToLibrary,
 }: {
-  isPending: boolean
+  effectiveStatus: 'draft' | 'pending'
   videoTitle: string
   onNavigateToLibrary: () => void
 }) {
@@ -143,7 +154,10 @@ function Sidebar({
       width: 266, flexShrink: 0, display: 'flex', flexDirection: 'column',
       height: '100%', bgcolor: 'background.paper', borderRight: `1px solid ${t.divider}`,
     }}>
-      <Box sx={{ px: 2.5, pt: 2, pb: 0 }}>
+      <Box
+        onClick={onNavigateToLibrary}
+        sx={{ px: 2.5, pt: 2, pb: 0, cursor: 'pointer', '&:hover': { opacity: 0.75 } }}
+      >
         <SundaySkyLogo />
       </Box>
 
@@ -205,7 +219,7 @@ function Sidebar({
             fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
             lineHeight: 1.5, color: t.textSecondary,
           }}>
-            {isPending ? 'Pending approval' : 'Draft'}
+            {effectiveStatus === 'pending' ? 'Pending approval' : 'Draft'}
           </Typography>
         </Box>
       </Box>
@@ -273,14 +287,144 @@ function Sidebar({
 
 // ─── Video preview card ───────────────────────────────────────────────────────
 function VideoPreviewCard({
-  isPending,
+  videoPhase,
+  effectiveStatus,
+  approvers,
   pendingTooltip,
   onSentForApproval,
+  onEdit,
+  onApproveVideo,
 }: {
-  isPending:       boolean
-  pendingTooltip:  string
+  videoPhase:        number
+  effectiveStatus:   'draft' | 'pending'
+  approvers:         string[]
+  pendingTooltip:    string
   onSentForApproval: () => void
+  onEdit:            (fromComments?: boolean) => void
+  onApproveVideo:    () => void
 }) {
+  function ActionButton() {
+    // ── Phase 0 + pending: after approval dialog sent ─────────────────────
+    if (videoPhase === 0 && effectiveStatus === 'pending') {
+      return (
+        <Tooltip
+          title={pendingTooltip}
+          placement="top"
+          arrow
+          componentsProps={{
+            tooltip: { sx: { bgcolor: t.secondaryMain, borderRadius: 2, px: '12px', pt: '10px', pb: '12px', fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: '#fff', maxWidth: 320 } },
+            arrow:   { sx: { color: t.secondaryMain } },
+          }}
+        >
+          <Button variant="outlined" size="small"
+            startIcon={<GroupIcon sx={{ fontSize: '16px !important', color: t.successMain }} />}
+            sx={{ bgcolor: t.successLight, borderColor: t.successBorder, color: t.successMain, '&:hover': { bgcolor: t.successLight, borderColor: t.successMain } }}
+          >
+            Pending approval
+          </Button>
+        </Tooltip>
+      )
+    }
+
+    // ── Phase 1: "1 of N approvers responded" — outlined warning + rich tooltip ─
+    if (videoPhase === 1) {
+      const total        = approvers.length
+      const respondedName = APPROVER_USERS[approvers[0]] ?? 'Sarah Johnson'
+      const pendingNames  = approvers.slice(1).map(k => APPROVER_USERS[k] ?? k)
+      return (
+        <Tooltip
+          placement="top"
+          arrow
+          title={
+            <Box sx={{ p: '2px' }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block', mb: '2px' }}>
+                • {respondedName} commented on Mar 15
+              </Typography>
+              {pendingNames.map((name, i) => (
+                <Typography key={i} sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block', mb: i === pendingNames.length - 1 ? '8px' : '2px' }}>
+                  • {name} hasn't responded yet
+                </Typography>
+              ))}
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>
+                Comments will be available to view once all approvers submit their approval or feedback.
+              </Typography>
+            </Box>
+          }
+          componentsProps={{
+            tooltip: { sx: { bgcolor: t.secondaryMain, borderRadius: 2, px: '12px', pt: '10px', pb: '12px', maxWidth: 280 } },
+            arrow:   { sx: { color: t.secondaryMain } },
+          }}
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<GroupIcon sx={{ fontSize: '16px !important', color: t.warningMain }} />}
+            sx={{
+              bgcolor: 'rgba(244,105,0,0.06)',
+              borderColor: 'rgba(244,105,0,0.5)',
+              color: t.warningMain,
+              '&:hover': { bgcolor: 'rgba(244,105,0,0.12)', borderColor: t.warningMain },
+            }}
+          >
+            1 of {total} approver{total !== 1 ? 's' : ''} responded
+          </Button>
+        </Tooltip>
+      )
+    }
+
+    // ── Phase 2: "View [x] approver comments and edit" — primary + chat icon ──
+    if (videoPhase === 2) {
+      return (
+        <Button variant="contained" size="small" color="primary"
+          startIcon={
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="16" height="16" fill="currentColor">
+              <path d="M256 32C114.6 32 0 125.1 0 240c0 49.6 21.4 95 57 130.7C44.5 421.1 2.7 466 2.2 466.5c-2.2 2.3-2.8 5.7-1.5 8.7S4.8 480 8 480c66.3 0 116-31.8 140.6-51.4C169.1 433.1 212.2 448 256 448c141.4 0 256-93.1 256-208S397.4 32 256 32z"/>
+            </svg>
+          }
+          onClick={() => onEdit(true)}
+        >
+          View {TOTAL_COMMENT_COUNT} approver comments and edit
+        </Button>
+      )
+    }
+
+    // ── Phase 3+: "Approve video" — outlined, checkmark, tooltip ─────────────
+    if (videoPhase >= 3) {
+      return (
+        <Tooltip
+          title="Allows you to share the video with viewers"
+          placement="top"
+          arrow
+          componentsProps={{
+            tooltip: { sx: { bgcolor: t.secondaryMain, borderRadius: 2, px: '12px', pt: '10px', pb: '12px', fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: '#fff', maxWidth: 320 } },
+            arrow:   { sx: { color: t.secondaryMain } },
+          }}
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            color="primary"
+            startIcon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
+            onClick={onApproveVideo}
+            sx={{ borderColor: t.primaryMain, color: t.primaryMain, '&:hover': { bgcolor: t.primarySelected } }}
+          >
+            Approve
+          </Button>
+        </Tooltip>
+      )
+    }
+
+    // ── Phase 0, draft: "Sent for approval" ──────────────────────────────────
+    return (
+      <Button variant="contained" size="small" color="primary"
+        startIcon={<GroupIcon sx={{ fontSize: '16px !important' }} />}
+        onClick={onSentForApproval}
+      >
+        Sent for approval
+      </Button>
+    )
+  }
+
   return (
     <Paper
       variant="outlined"
@@ -292,6 +436,7 @@ function VideoPreviewCard({
           variant="outlined"
           size="small"
           startIcon={<EditOutlinedIcon sx={{ fontSize: '16px !important' }} />}
+          onClick={() => onEdit(false)}
           sx={{
             borderColor: t.divider, color: t.textPrimary,
             '&:hover': { borderColor: t.primaryMain, backgroundColor: t.primarySelected },
@@ -300,59 +445,7 @@ function VideoPreviewCard({
           Edit
         </Button>
 
-        {isPending ? (
-          /* ── Pending approval — DS success style + tooltip ─────────────── */
-          <Tooltip
-            title={pendingTooltip}
-            placement="top"
-            arrow
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  bgcolor:      t.secondaryMain,
-                  borderRadius: 2,
-                  px:           '12px',
-                  pt:           '10px',
-                  pb:           '12px',
-                  fontFamily:   '"Open Sans", sans-serif',
-                  fontWeight:   400,
-                  fontSize:     14,
-                  lineHeight:   1.5,
-                  color:        '#fff',
-                  maxWidth:     320,
-                },
-              },
-              arrow: { sx: { color: t.secondaryMain } },
-            }}
-          >
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<GroupIcon sx={{ fontSize: '16px !important', color: t.successMain }} />}
-              sx={{
-                bgcolor:     t.successLight,
-                borderColor: t.successBorder,
-                color:       t.successMain,
-                '&:hover': {
-                  bgcolor:     t.successLight,
-                  borderColor: t.successMain,
-                },
-              }}
-            >
-              Pending approval
-            </Button>
-          </Tooltip>
-        ) : (
-          <Button
-            variant="contained"
-            size="small"
-            color="primary"
-            startIcon={<GroupIcon sx={{ fontSize: '16px !important' }} />}
-            onClick={onSentForApproval}
-          >
-            Sent for approval
-          </Button>
-        )}
+        <ActionButton />
       </Box>
 
       <Divider sx={{ borderColor: t.divider }} />
@@ -541,22 +634,20 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
 
 // ─── Tasks panel ─────────────────────────────────────────────────────────────
 // One task at a time · I'm done · navigate · start / clear session
-interface Task { id: number; label: string; done: boolean }
+interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
-  { id: 1, label: 'Review "Stay Safe During Missile Threats"',       done: false },
-  { id: 2, label: 'Approve "Recent TTS Pronunciation Advancements"', done: false },
-  { id: 3, label: 'Share "Discover Tel Aviv\'s Scenic Parks"',       done: false },
-  { id: 4, label: 'Update brand name in Template Library',           done: false },
-  { id: 5, label: 'Download draft for "Prepare for Winter Fun!"',    done: false },
-  { id: 6, label: 'Export script for "Understanding the Conflict"',  done: false },
+  { id: 1, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
+  { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene title is missing your company name."], done: false },
+  { id: 3, label: "Sarah told you she already submitted feedback.", done: false },
+  { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
 ]
 
 type SessionState = 'idle' | 'active' | 'complete'
 
-function TasksPanel() {
+function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) {
   const [tasks,       setTasks]       = useState<Task[]>(INITIAL_TASKS)
-  const [session,     setSession]     = useState<SessionState>('idle')
+  const [session,     setSession]     = useState<SessionState>('active')   // auto-start
   const [currentIdx,  setCurrentIdx]  = useState(0)
 
   const doneCount = tasks.filter(t => t.done).length
@@ -567,16 +658,18 @@ function TasksPanel() {
     setSession('active')
   }
 
-  // Clear resets ALL session state back to the original initial state
+  // Clear resets ALL session state and restarts from task 1
   const clearSession = () => {
     setTasks(INITIAL_TASKS.map(t => ({ ...t, done: false })))
     setCurrentIdx(0)
-    setSession('idle')
+    setSession('active')
   }
 
   const markDone = () => {
     const updated = tasks.map((task, i) => i === currentIdx ? { ...task, done: true } : task)
     setTasks(updated)
+    // Notify parent so it can update phase + navigate to library
+    onTaskDone?.(currentIdx)
     const allDone = updated.every(t => t.done)
     if (allDone) { setSession('complete'); return }
     // Advance to the next undone task (wraps forward)
@@ -597,6 +690,7 @@ function TasksPanel() {
       <Box sx={{
         px: 2, pt: 2, pb: 1.5, borderBottom: '1px solid #E0E0E0',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexShrink: 0,
       }}>
         <Box>
           <Typography sx={{
@@ -612,61 +706,15 @@ function TasksPanel() {
             {doneCount} / {tasks.length} done
           </Typography>
         </Box>
-
-        {/* Start button (idle) or Clear icon (active/complete) */}
-        {session === 'idle' ? (
-          <Button
-            size="small" variant="contained"
-            onClick={startSession}
-            sx={{
-              fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 12,
-              textTransform: 'none', borderRadius: '20px', px: 1.5, py: 0.5, minWidth: 0,
-            }}
-          >
-            Start
-          </Button>
-        ) : (
-          <Tooltip title="Clear session — resets all tasks">
-            <IconButton size="small" onClick={clearSession} sx={{ color: t.textSecondary }}>
-              <RefreshIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-          </Tooltip>
-        )}
+        <Tooltip title="Restart — resets all tasks">
+          <IconButton size="small" onClick={clearSession} sx={{ color: t.textSecondary }}>
+            <RefreshIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
 
-      {/* ── Body ─────────────────────────────────────────────────────────── */}
-      {session === 'idle' && (
-        /* Preview list — before session starts */
-        <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 2, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <Typography sx={{
-            fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
-            color: t.textSecondary, lineHeight: 1.5,
-          }}>
-            Press <strong>Start</strong> to work through your tasks one by one.
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {tasks.map((task, i) => (
-              <Box key={task.id} sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                <Typography sx={{
-                  fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 11,
-                  color: t.textSecondary, lineHeight: 1.5, flexShrink: 0, mt: '1px',
-                }}>
-                  {i + 1}.
-                </Typography>
-                <Typography sx={{
-                  fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
-                  color: t.textSecondary, lineHeight: 1.5,
-                }}>
-                  {task.label}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      )}
-
+      {/* ── All done state ────────────────────────────────────────────────── */}
       {session === 'complete' && (
-        /* All done state */
         <Box sx={{
           flex: 1, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', gap: 2, px: 2.5,
@@ -682,25 +730,24 @@ function TasksPanel() {
             fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
             color: t.textSecondary, textAlign: 'center', lineHeight: 1.5,
           }}>
-            Great work. Press Clear to start a new session.
+            Great work. Click restart to run through again.
           </Typography>
           <Button
             size="small" variant="outlined" onClick={clearSession}
             startIcon={<RefreshIcon sx={{ fontSize: 14 }} />}
-            sx={{
-              fontFamily: '"Open Sans", sans-serif', textTransform: 'none',
-              borderRadius: '20px', fontSize: 12,
-            }}
+            sx={{ fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '20px', fontSize: 12 }}
           >
-            Clear session
+            Restart
           </Button>
         </Box>
       )}
 
+      {/* ── Active task ───────────────────────────────────────────────────── */}
       {session === 'active' && currentTask && (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
           {/* Progress bar */}
-          <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
+          <Box sx={{ px: 2, pt: 1.5, pb: 1, flexShrink: 0 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: '6px' }}>
               <Typography sx={{
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 11,
@@ -708,10 +755,7 @@ function TasksPanel() {
               }}>
                 Task {currentIdx + 1} of {tasks.length}
               </Typography>
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 11,
-                color: t.textSecondary,
-              }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 11, color: t.textSecondary }}>
                 {doneCount} done
               </Typography>
             </Box>
@@ -724,10 +768,11 @@ function TasksPanel() {
             </Box>
           </Box>
 
-          {/* Current task card */}
-          <Box sx={{ flex: 1, px: 2, pt: 1, pb: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Scrollable content: task card + button + dots nav */}
+          <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pb: 2, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+            {/* Task card */}
             <Box sx={{
-              flex: 1,
               bgcolor: currentTask.done ? '#E5F7E0' : '#FFFFFF',
               border: `1px solid ${currentTask.done ? t.successMain : '#E0E0E0'}`,
               borderRadius: '10px', p: 2,
@@ -745,27 +790,38 @@ function TasksPanel() {
                   </Typography>
                 </Box>
               )}
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13,
-                color: t.textPrimary, lineHeight: 1.5,
-                textDecoration: currentTask.done ? 'line-through' : 'none',
-                color: currentTask.done ? t.textSecondary : t.textPrimary,
-              }}>
-                {currentTask.label}
-              </Typography>
+              {(Array.isArray(currentTask.label) ? currentTask.label : [currentTask.label]).map((para, i) => (
+                <Typography key={i} sx={{
+                  fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13,
+                  lineHeight: 1.5, mt: i > 0 ? '8px' : 0,
+                  color: currentTask.done ? t.textSecondary : t.textPrimary,
+                  textDecoration: currentTask.done ? 'line-through' : 'none',
+                }}>
+                  {para}
+                </Typography>
+              ))}
             </Box>
 
-            {/* Prev / Next navigation */}
-            <Box sx={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              pt: 1, pb: 0.5,
-            }}>
-              <IconButton
-                size="small"
-                disabled={currentIdx === 0}
-                onClick={() => setCurrentIdx(i => i - 1)}
-                sx={{ color: t.actionActive }}
-              >
+            {/* I'm done — right below the task card */}
+            <Button
+              fullWidth
+              variant="contained"
+              disabled={currentTask.done}
+              onClick={markDone}
+              sx={{
+                fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+                fontSize: 13, textTransform: 'none', borderRadius: '8px',
+                bgcolor: currentTask.done ? t.successMain : t.primaryMain,
+                '&:hover': { bgcolor: currentTask.done ? t.successMain : '#0042BB' },
+                '&.Mui-disabled': { bgcolor: '#E5F7E0', color: t.successMain },
+              }}
+            >
+              {currentTask.done ? '✓  Done' : "I'm done"}
+            </Button>
+
+            {/* Dot navigation */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: '2px' }}>
+              <IconButton size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={{ color: t.actionActive }}>
                 <ArrowBackIcon sx={{ fontSize: 18 }} />
               </IconButton>
               <Box sx={{ display: 'flex', gap: '5px' }}>
@@ -781,36 +837,10 @@ function TasksPanel() {
                   />
                 ))}
               </Box>
-              <IconButton
-                size="small"
-                disabled={currentIdx === tasks.length - 1}
-                onClick={() => setCurrentIdx(i => i + 1)}
-                sx={{ color: t.actionActive }}
-              >
+              <IconButton size="small" disabled={currentIdx === tasks.length - 1} onClick={() => setCurrentIdx(i => i + 1)} sx={{ color: t.actionActive }}>
                 <ArrowForwardIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Box>
-          </Box>
-
-          {/* I'm done button — pinned at bottom */}
-          <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
-            <Button
-              fullWidth
-              variant="contained"
-              disabled={currentTask.done}
-              onClick={markDone}
-              sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                fontSize: 13, textTransform: 'none', borderRadius: '8px',
-                bgcolor: currentTask.done ? t.successMain : t.primaryMain,
-                '&:hover': { bgcolor: currentTask.done ? t.successMain : '#0042BB' },
-                '&.Mui-disabled': {
-                  bgcolor: '#E5F7E0', color: t.successMain,
-                },
-              }}
-            >
-              {currentTask.done ? '✓  Done' : "I'm done"}
-            </Button>
           </Box>
         </Box>
       )}
@@ -819,32 +849,126 @@ function TasksPanel() {
 }
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
-export default function App() {
-  const [currentPage,    setCurrentPage]    = useState<'video' | 'library'>('library')
-  const [selectedVideo,  setSelectedVideo]  = useState<VideoItem | null>(null)
-  const [pageState,      setPageState]      = useState<'draft' | 'pending'>('draft')
-  const [dialogStep,     setDialogStep]     = useState<'closed' | 'form' | 'confirmed'>('closed')
-  const [sentApprovers,  setSentApprovers]  = useState<string[]>([])
+// Phase 0 = initial draft
+// Phase 1 = task 1 done: "1 of 2 approvers responded", Pending approval
+// Phase 2 = task 2 done: "View 10 approver comments and edit", Pending approval
+// Phase 3 = task 3 done: "Approve video", Draft
+// Phase 4 = task 4 done: complete
+const PHASE_STATUS: Record<number, 'draft' | 'pending'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'draft', 4: 'draft' }
 
-  const isPending = pageState === 'pending'
+// Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
+type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean }
+const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: 'draft', sentApprovers: [] }
+
+export default function App() {
+  const [currentPage,    setCurrentPage]    = useState<'video' | 'library' | 'studio'>('library')
+  const [selectedVideo,  setSelectedVideo]  = useState<VideoItem | null>(null)
+  const [videoStates,    setVideoStates]    = useState<Record<string, VideoState>>({})
+  const [dialogStep,     setDialogStep]     = useState<'closed' | 'form' | 'confirmed'>('closed')
+  const [approveDialogOpen,        setApproveDialogOpen]        = useState(false)
+  const [cancelApprovalDialogOpen, setCancelApprovalDialogOpen] = useState(false)
+  const [openCommentsOnStudio,  setOpenCommentsOnStudio]  = useState(false)
+  const [openCommentsCounter,   setOpenCommentsCounter]   = useState(0)
+
+  // Derive current video's state from the map (defaults to fresh draft)
+  const currentKey = selectedVideo?.title || 'Stay Safe During Missile Threats'
+  const currentVState: VideoState = videoStates[currentKey] ?? DEFAULT_VIDEO_STATE
+  const videoPhase     = currentVState.phase
+  const pageState      = currentVState.pageState
+  const sentApprovers  = currentVState.sentApprovers
+
+  // Helper to partially update a video's state entry
+  function updateVideoState(key: string, patch: Partial<VideoState>) {
+    setVideoStates(prev => ({
+      ...prev,
+      [key]: { ...(prev[key] ?? DEFAULT_VIDEO_STATE), ...patch },
+    }))
+  }
+
+  // Phase drives status; also allow the approval dialog to flip phase-0 to pending
+  const effectiveStatus: 'draft' | 'pending' =
+    videoPhase > 0 ? PHASE_STATUS[videoPhase] : pageState
+  const isPending = effectiveStatus === 'pending'
+
+  // ── Phase-based notifications ────────────────────────────────────────────────
+  const videoTitleForNotif  = selectedVideo?.title ?? 'Stay Safe During Missile Threats'
+  const approver1Name       = sentApprovers.length > 0 ? (APPROVER_USERS[sentApprovers[0]] ?? 'Sarah Johnson') : 'Sarah Johnson'
+  const pendingApprovers    = sentApprovers.slice(1)
+  const pendingApproversStr = pendingApprovers.length > 0
+    ? formatApproverNames(pendingApprovers)
+    : 'remaining approvers'
+  const allApproversStr     = sentApprovers.length > 0
+    ? formatApproverNames(sentApprovers)
+    : 'Sarah Johnson and Emma Rodriguez'
+
+  const notifications: NotificationItem[] = []
+
+  if (videoPhase >= 3) {
+    notifications.push({
+      id: 3,
+      iconColor: '#045E2D',
+      parts: [
+        { text: `"${videoTitleForNotif}"` },
+        { text: ` was approved by ${allApproversStr}. You can now ` },
+        { text: 'approve it >', isLink: true },
+      ],
+      date: 'Mar 17, 9:05 AM',
+      unread: videoPhase === 3,
+      onLinkClick: () => setCurrentPage('video'),
+    })
+  }
+
+  if (videoPhase >= 2) {
+    notifications.push({
+      id: 2,
+      iconColor: '#F46900',
+      parts: [
+        { text: `${allApproversStr} have reviewed "${videoTitleForNotif}". There are ${TOTAL_COMMENT_COUNT} comments. ` },
+        { text: 'View them now', isLink: true },
+      ],
+      date: 'Mar 16, 10:14 AM',
+      unread: videoPhase === 2,
+      onLinkClick: () => {
+        setOpenCommentsOnStudio(true)
+        setOpenCommentsCounter(c => c + 1)
+        setCurrentPage('studio')
+      },
+    })
+  }
+
+  if (videoPhase >= 1) {
+    notifications.push({
+      id: 1,
+      iconColor: '#F46900',
+      parts: [
+        { text: `${approver1Name} reviewed "${videoTitleForNotif}". Waiting for ${pendingApproversStr}'s approval.` },
+      ],
+      date: 'Mar 15, 3:42 PM',
+      unread: videoPhase === 1,
+    })
+  }
 
   const handleSelectVideo = (video: VideoItem) => {
     setSelectedVideo(video)
-    // Derive initial page state from the video's status
-    setPageState(video.statuses.includes('Pending approval') ? 'pending' : 'draft')
     setDialogStep('closed')
-    setSentApprovers([])
     setCurrentPage('video')
+    // Initialise video state if it hasn't been set yet
+    setVideoStates(prev => {
+      if (prev[video.title]) return prev
+      return {
+        ...prev,
+        [video.title]: { phase: 0, pageState: 'draft', sentApprovers: [] },
+      }
+    })
   }
 
   const handleApprovalSend = (approvers: string[]) => {
-    setSentApprovers(approvers)
+    updateVideoState(currentKey, { sentApprovers: approvers, pageState: 'pending' })
     setDialogStep('confirmed')
   }
 
   const handleConfirmationClose = () => {
     setDialogStep('closed')
-    setPageState('pending')
   }
 
   // Tooltip text on "Pending approval" button
@@ -855,15 +979,29 @@ export default function App() {
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
-      {/* ── Main app area (library or video page) ──────────────────────────── */}
+      {/* ── Main app area ───────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {currentPage === 'library' ? (
-          <VideoLibraryPage onSelectVideo={handleSelectVideo} />
+          <VideoLibraryPage onSelectVideo={handleSelectVideo} notifications={notifications} videoStates={videoStates} />
+
+        ) : currentPage === 'studio' ? (
+          /* ── Studio / Editor page ─────────────────────────────────────────── */
+          <StudioPage
+            videoTitle={selectedVideo?.title ?? 'Video'}
+            approverNames={sentApprovers.length > 0 ? formatApproverNames(sentApprovers) : 'Sarah Johnson and Emma Rodriguez'}
+            onNavigateToVideoPage={() => setCurrentPage('video')}
+            onNavigateToLibrary={() => setCurrentPage('library')}
+            onRequestReapproval={() => updateVideoState(currentKey, { phase: 0, pageState: 'pending' })}
+            openCommentsOnMount={openCommentsOnStudio}
+            triggerOpenComments={openCommentsCounter}
+            notifications={notifications}
+          />
+
         ) : (
-          /* ── Video page ──────────────────────────────────────────────────── */
+          /* ── Video page ───────────────────────────────────────────────────── */
           <Box sx={{ display: 'flex', width: '100%', height: '100%', bgcolor: t.bgDefault, overflow: 'hidden' }}>
             <Sidebar
-              isPending={isPending}
+              effectiveStatus={effectiveStatus}
               videoTitle={selectedVideo?.title ?? 'Video'}
               onNavigateToLibrary={() => setCurrentPage('library')}
             />
@@ -874,16 +1012,18 @@ export default function App() {
                 <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: 28, lineHeight: 1.5, color: t.textPrimary }}>
                   Video Page
                 </Typography>
-                <OutlinedInput
-                  placeholder="Search Video Library"
-                  size="small"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 18, color: t.textSecondary }} />
-                    </InputAdornment>
-                  }
-                  sx={{ width: 240, bgcolor: 'background.paper', fontSize: 14, fontFamily: '"Open Sans", sans-serif' }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <OutlinedInput
+                    placeholder="Search Video Library"
+                    size="small"
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: t.textSecondary }} />
+                      </InputAdornment>
+                    }
+                    sx={{ width: 240, bgcolor: 'background.paper', fontSize: 14, fontFamily: '"Open Sans", sans-serif' }}
+                  />
+                </Box>
               </Box>
 
               {/* Content */}
@@ -895,12 +1035,23 @@ export default function App() {
                 }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <VideoPreviewCard
-                      isPending={isPending}
+                      videoPhase={videoPhase}
+                      effectiveStatus={effectiveStatus}
+                      approvers={sentApprovers.length > 0 ? sentApprovers : ['sjohnson', 'erodriguez']}
                       pendingTooltip={pendingTooltip}
                       onSentForApproval={() => setDialogStep('form')}
+                      onEdit={(fromComments?: boolean) => {
+                        if (isPending && !fromComments) {
+                          setCancelApprovalDialogOpen(true)
+                        } else {
+                          setOpenCommentsOnStudio(fromComments ?? false)
+                          setCurrentPage('studio')
+                        }
+                      }}
+                      onApproveVideo={() => setApproveDialogOpen(true)}
                     />
                   </Box>
-                  <ReviewOptionsPanel isPending={isPending} />
+                  <ReviewOptionsPanel isPending={effectiveStatus === 'pending'} />
                 </Box>
               </Box>
             </Box>
@@ -909,7 +1060,13 @@ export default function App() {
       </Box>
 
       {/* ── Tasks panel — always visible, outside the app ──────────────────── */}
-      <TasksPanel />
+      <TasksPanel
+        onTaskDone={(idx) => {
+          const key = currentKey || 'Stay Safe During Missile Threats'
+          updateVideoState(key, { phase: idx + 1 })
+          setCurrentPage('library')
+        }}
+      />
 
       {/* ── Dialogs ────────────────────────────────────────────────────────── */}
       <ApprovalDialog
@@ -921,6 +1078,21 @@ export default function App() {
         open={dialogStep === 'confirmed'}
         onClose={handleConfirmationClose}
         approverCount={sentApprovers.length}
+      />
+      <ApproveVideoDialog
+        open={approveDialogOpen}
+        onClose={() => setApproveDialogOpen(false)}
+        onApprove={() => updateVideoState(currentKey, { phase: 4 })}
+      />
+      <CancelApprovalDialog
+        open={cancelApprovalDialogOpen}
+        onClose={() => setCancelApprovalDialogOpen(false)}
+        onConfirm={() => {
+          // Reset this video to draft + clear all approval state
+          updateVideoState(currentKey, { phase: 0, pageState: 'draft', sentApprovers: [] })
+          setOpenCommentsOnStudio(false)
+          setCurrentPage('studio')
+        }}
       />
     </Box>
   )

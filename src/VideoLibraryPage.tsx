@@ -1,10 +1,19 @@
+import { useState } from 'react'
 import {
-  Box, Typography, Button, Avatar, IconButton,
+  Box, Typography, Button, Avatar, IconButton, Tooltip,
   InputAdornment, OutlinedInput,
+  Menu, MenuItem, ListItemIcon, ListItemText, Divider,
 } from '@mui/material'
+import { NotificationBell, type NotificationItem } from './NotificationsPanel'
+import { TOTAL_COMMENT_COUNT } from './StudioPage'
 import MoreVertIcon                   from '@mui/icons-material/MoreVert'
 import SearchIcon                     from '@mui/icons-material/Search'
-import NotificationsNoneIcon          from '@mui/icons-material/NotificationsNone'
+import PlayArrowIcon                  from '@mui/icons-material/PlayArrow'
+import EditOutlinedIcon               from '@mui/icons-material/EditOutlined'
+import ContentCopyIcon                from '@mui/icons-material/ContentCopy'
+import ShareOutlinedIcon              from '@mui/icons-material/ShareOutlined'
+import DownloadOutlinedIcon           from '@mui/icons-material/DownloadOutlined'
+import DeleteOutlineIcon              from '@mui/icons-material/DeleteOutline'
 import VideoLibraryOutlinedIcon       from '@mui/icons-material/VideoLibraryOutlined'
 import DashboardCustomizeOutlinedIcon from '@mui/icons-material/DashboardCustomizeOutlined'
 import PermMediaOutlinedIcon          from '@mui/icons-material/PermMediaOutlined'
@@ -14,9 +23,11 @@ import FolderOutlinedIcon             from '@mui/icons-material/FolderOutlined'
 import AddIcon                        from '@mui/icons-material/Add'
 import PeopleAltOutlinedIcon          from '@mui/icons-material/PeopleAltOutlined'
 import SyncIcon                       from '@mui/icons-material/Sync'
+import GroupOutlinedIcon              from '@mui/icons-material/GroupOutlined'
+import CommentOutlinedIcon            from '@mui/icons-material/CommentOutlined'
 
 // ─── Figma asset image — split template (HEADING PLACEHOLDER left + media right)
-const IMG_THUMB = 'http://localhost:3845/assets/97e7204ec6cc59bf101e4028160eb82f669e8077.png'
+const IMG_THUMB = '/thumb.svg'
 
 // ─── DS tokens ────────────────────────────────────────────────────────────────
 const t = {
@@ -42,6 +53,42 @@ const t = {
   // "Downloaded for Sharing" uses success green
   downloadedBg:   '#E5F7E0',
   downloadedColor:'#118747',
+}
+
+// ─── Per-video live state (mirrored from App) ─────────────────────────────────
+export interface LiveVideoState {
+  phase:         number
+  pageState:     'draft' | 'pending'
+  sentApprovers: string[]
+}
+
+const PHASE_TO_PENDING: Record<number, boolean> = { 0: false, 1: true, 2: true, 3: false, 4: false }
+
+const APPROVER_NAMES: Record<string, string> = {
+  sjohnson:   'Sarah Johnson',
+  mchen:      'Michael Chen',
+  erodriguez: 'Emma Rodriguez',
+  jwilson:    'James Wilson',
+}
+function approverName(key: string) { return APPROVER_NAMES[key] ?? key }
+function formatNames(keys: string[]) {
+  const names = keys.map(approverName)
+  if (names.length === 0) return ''
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+function resolveStatuses(
+  video: VideoItem,
+  videoStates?: Record<string, LiveVideoState>,
+): StatusKey[] {
+  const state = videoStates?.[video.title]
+  if (!state) return video.statuses
+  const { phase, pageState } = state
+  if (phase >= 4)  return ['Approved for sharing']
+  const isPending = phase > 0 ? PHASE_TO_PENDING[phase] : pageState === 'pending'
+  return [isPending ? 'Pending approval' : 'Draft']
 }
 
 // ─── Status chip config ───────────────────────────────────────────────────────
@@ -102,6 +149,57 @@ function PersonalizedChip() {
   )
 }
 
+// ─── Approval status icon — inline, to the right of status chips ──────────────
+// Phase 0 pending  → grey group icon  "Awaiting response from [names]"
+// Phase 1          → orange group icon  "1 of 2 responded. Waiting for [name]"
+// Phase 2          → blue comment icon  "[N] comments from approvers ready to view"
+function ApprovalStatusIcon({ state, totalComments }: { state: LiveVideoState; totalComments: number }) {
+  const { phase, pageState, sentApprovers } = state
+
+  if (phase === 0 && pageState === 'draft') return null
+  if (phase >= 3) return null
+
+  let IconEl: React.ElementType
+  let color: string
+  let tip: string
+
+  if (phase === 0 && pageState === 'pending') {
+    IconEl    = GroupOutlinedIcon
+    color     = t.successMain
+    const names = sentApprovers.length > 0 ? formatNames(sentApprovers) : 'approvers'
+    tip       = `Awaiting response from ${names}`
+  } else if (phase === 1) {
+    IconEl    = GroupOutlinedIcon
+    color     = t.warningMain
+    const total     = sentApprovers.length
+    const pending   = sentApprovers.slice(1)
+    const remaining = pending.length > 0 ? formatNames(pending) : 'remaining approver'
+    tip = `1 of ${total} approver${total !== 1 ? 's' : ''} responded. Waiting for ${remaining}`
+  } else if (phase === 2) {
+    IconEl    = CommentOutlinedIcon
+    color     = t.primaryMain
+    tip       = `${totalComments} comments from approvers ready to view`
+  } else {
+    return null
+  }
+
+  return (
+    <Tooltip
+      title={tip}
+      placement="top"
+      arrow
+      componentsProps={{
+        tooltip: { sx: { bgcolor: t.secondaryMain, borderRadius: '8px', px: '10px', py: '8px', fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, lineHeight: 1.5, color: '#fff', maxWidth: 240 } },
+        arrow:   { sx: { color: t.secondaryMain } },
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, cursor: 'default' }}>
+        <IconEl sx={{ fontSize: 16, color }} />
+      </Box>
+    </Tooltip>
+  )
+}
+
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
 type ThumbType = 'full' | 'photo' | 'split-template'
 
@@ -127,47 +225,89 @@ export interface VideoItem {
   thumb:        ThumbType
 }
 
-function VideoCard({ video, onClick }: { video: VideoItem; onClick?: () => void }) {
+const CARD_MENU_ITEMS = [
+  { icon: <EditOutlinedIcon    sx={{ fontSize: 16 }} />, label: 'Edit'           },
+  { icon: <ContentCopyIcon     sx={{ fontSize: 16 }} />, label: 'Duplicate'      },
+  { icon: <FolderOutlinedIcon  sx={{ fontSize: 16 }} />, label: 'Move to folder' },
+  { icon: <ShareOutlinedIcon   sx={{ fontSize: 16 }} />, label: 'Share'          },
+  { icon: <DownloadOutlinedIcon sx={{ fontSize: 16 }} />, label: 'Download'      },
+]
+
+function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState }) {
+  const [hovered,     setHovered]     = useState(false)
+  const [menuAnchor,  setMenuAnchor]  = useState<HTMLElement | null>(null)
+
+  const openMenu  = (e: React.MouseEvent<HTMLElement>) => { e.stopPropagation(); setMenuAnchor(e.currentTarget) }
+  const closeMenu = (e?: React.MouseEvent)             => { e?.stopPropagation(); setMenuAnchor(null) }
+
   return (
-    // Figma: bg-white flex flex-col items-start p-[8px] rounded-[8px]
     <Box
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       sx={{
         bgcolor: '#FFFFFF', borderRadius: '8px', p: '8px',
         display: 'flex', flexDirection: 'column',
         cursor: onClick ? 'pointer' : 'default',
-        transition: 'box-shadow 0.15s',
-        '&:hover': onClick ? { boxShadow: '0px 2px 10px rgba(3,25,79,0.14)' } : {},
-        width: '100%', boxSizing: 'border-box',
+        transition: 'box-shadow 0.18s',
+        boxShadow: hovered ? '0px 6px 20px rgba(3,25,79,0.16)' : '0px 0px 0px 1px rgba(0,83,229,0.08)',
+        width: '100%', height: '100%', boxSizing: 'border-box',
       }}
     >
-      {/* Figma: Thumbnail — bg-[#fafafa] border-divider rounded-[8px] overflow-hidden */}
+      {/* Thumbnail with hover play overlay */}
       <Box sx={{
         borderRadius: '8px', overflow: 'hidden',
         border: `1px solid ${t.divider}`, bgcolor: '#FAFAFA',
-        width: '100%',
+        width: '100%', position: 'relative',
       }}>
         <VideoThumbnail />
+        {/* Play overlay — fades in on card hover */}
+        <Box sx={{
+          position: 'absolute', inset: 0,
+          bgcolor: 'rgba(3,25,79,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          opacity: hovered ? 1 : 0,
+          transition: 'opacity 0.18s',
+          borderRadius: '7px',
+        }}>
+          <Box sx={{
+            width: 44, height: 44, borderRadius: '50%',
+            bgcolor: 'rgba(255,255,255,0.18)',
+            border: '2px solid rgba(255,255,255,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <PlayArrowIcon sx={{ color: '#fff', fontSize: 28, ml: '2px' }} />
+          </Box>
+        </Box>
       </Box>
 
-      {/* Figma: video Card Content — pt-[8px] gap-[4px] */}
+      {/* Card content */}
       <Box sx={{ pt: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-        {/* Title + overflow menu */}
+        {/* Title + 3-dots */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <Typography sx={{
             fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14,
             lineHeight: 1.5, color: t.textPrimary, flex: 1,
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
+            overflow: 'hidden', minHeight: '42px',
           }}>
             {video.title}
           </Typography>
-          <IconButton size="small" sx={{ color: t.actionActive, mt: '-2px', ml: '4px', flexShrink: 0 }}>
+          <IconButton
+            size="small"
+            onClick={openMenu}
+            sx={{
+              color: hovered ? t.primaryMain : t.actionActive,
+              mt: '-2px', ml: '4px', flexShrink: 0,
+              opacity: hovered ? 1 : 0,
+              transition: 'opacity 0.18s, color 0.18s',
+            }}
+          >
             <MoreVertIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Box>
 
-        {/* Edited by — Figma: caption 12px tracking-0.4px */}
+        {/* Edited by */}
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
           lineHeight: 1.66, color: t.textSecondary, letterSpacing: '0.4px',
@@ -175,12 +315,56 @@ function VideoCard({ video, onClick }: { video: VideoItem; onClick?: () => void 
           {video.editedBy}
         </Typography>
 
-        {/* Status chips — Figma: "Left indiations" row */}
+        {/* Status chips + inline approval icon */}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
           {video.statuses.map(s => <StatusLabel key={s} status={s} />)}
           {video.personalized && <PersonalizedChip />}
+          {liveState && <ApprovalStatusIcon state={liveState} totalComments={TOTAL_COMMENT_COUNT} />}
         </Box>
       </Box>
+
+      {/* 3-dots dropdown menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={() => closeMenu()}
+        onClick={e => e.stopPropagation()}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            borderRadius: '8px', minWidth: 192,
+            boxShadow: '0px 4px 20px rgba(3,25,79,0.15)',
+            mt: '4px',
+          },
+        }}
+      >
+        {CARD_MENU_ITEMS.map(({ icon, label }) => (
+          <MenuItem
+            key={label}
+            onClick={e => { closeMenu(e) }}
+            sx={{ gap: '10px', py: '8px', px: '16px' }}
+          >
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}>{icon}</ListItemIcon>
+            <ListItemText primaryTypographyProps={{
+              fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary,
+            }}>
+              {label}
+            </ListItemText>
+          </MenuItem>
+        ))}
+        <Divider sx={{ my: '4px', borderColor: t.divider }} />
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <ListItemIcon sx={{ minWidth: 'unset', color: t.errorMain }}>
+            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+          </ListItemIcon>
+          <ListItemText primaryTypographyProps={{
+            fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.errorMain,
+          }}>
+            Delete
+          </ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   )
 }
@@ -189,22 +373,33 @@ function VideoCard({ video, onClick }: { video: VideoItem; onClick?: () => void 
 function FolderCard({ name, count }: { name: string; count: number }) {
   return (
     <Box sx={{
-      display: 'flex', alignItems: 'center', gap: 1.5,
-      px: 2, py: 1.5, borderRadius: 2,
-      bgcolor: t.bgPaper, border: `1px solid ${t.divider}`,
-      cursor: 'pointer', '&:hover': { bgcolor: t.primarySelected },
+      display: 'flex', alignItems: 'center', gap: '12px',
+      px: '16px', py: '12px', borderRadius: '8px',
+      bgcolor: t.bgPaper,
+      cursor: 'pointer',
+      '&:hover': { bgcolor: t.primarySelected },
+      minWidth: 0,
     }}>
-      <FolderOutlinedIcon sx={{ fontSize: 24, color: t.primaryMain }} />
-      <Box>
+      {/* Folder icon in a rounded square bg */}
+      <Box sx={{
+        width: 36, height: 36, borderRadius: '6px',
+        bgcolor: t.bgDefault,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <FolderOutlinedIcon sx={{ fontSize: 20, color: t.primaryMain }} />
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14,
           lineHeight: 1.5, color: t.textPrimary,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {name}
         </Typography>
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
-          lineHeight: 1.5, color: t.textSecondary, letterSpacing: '0.4px',
+          lineHeight: 1.5, color: t.textSecondary,
         }}>
           {count} {count === 1 ? 'item' : 'items'}
         </Typography>
@@ -237,10 +432,11 @@ function AppSidebar() {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       height: '100%', overflow: 'hidden',
     }}>
-      {/* Logo area — Figma: LogoforMenu h=104px */}
+      {/* Logo area — Figma: LogoforMenu h=104px — click scrolls content to top */}
       <Box sx={{
         height: 104, width: 112, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        cursor: 'pointer', '&:hover': { opacity: 0.8 },
       }}>
         {[{ chars: 'SUN', color: '#fff' }, { chars: 'DAY', color: '#fff' }, { chars: 'SKY', color: t.primaryMain }]
           .map(({ chars, color }) => (
@@ -310,7 +506,7 @@ const RECENT_VIDEOS: VideoItem[] = [
     title:        'Recent TTS Pronunciation Advancements',   // ← links to video page
     subtitle:     'Explore New Tools for Enhanced Communication',
     editedBy:     'Edited in the past 7 days by you',
-    statuses:     ['Pending approval'],
+    statuses:     ['Draft'],
     personalized: true,
     thumb:        'full',
   },
@@ -418,9 +614,11 @@ const FOLDERS = [
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-interface Props { onSelectVideo: (video: VideoItem) => void }
-
-export default function VideoLibraryPage({ onSelectVideo }: Props) {
+export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates }: {
+  onSelectVideo:  (v: VideoItem) => void
+  notifications?: NotificationItem[]
+  videoStates?:   Record<string, LiveVideoState>
+}) {
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: '#FFFFFF', overflow: 'hidden' }}>
       <AppSidebar />
@@ -462,9 +660,7 @@ export default function VideoLibraryPage({ onSelectVideo }: Props) {
               }
               sx={{ width: 200, bgcolor: t.bgPaper, fontSize: 14, fontFamily: '"Open Sans", sans-serif' }}
             />
-            <IconButton size="small" sx={{ color: t.actionActive }}>
-              <NotificationsNoneIcon />
-            </IconButton>
+            <NotificationBell notifications={notifications} />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography sx={{
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
@@ -514,7 +710,11 @@ export default function VideoLibraryPage({ onSelectVideo }: Props) {
               {RECENT_VIDEOS.map((v, i) => (
                 // Figma: each card w-[320px] min-w-[320px] shrink-0
                 <Box key={v.title + i} sx={{ width: 320, minWidth: 320, flexShrink: 0 }}>
-                  <VideoCard video={v} onClick={() => onSelectVideo(v)} />
+                  <VideoCard
+                    video={{ ...v, statuses: resolveStatuses(v, videoStates) }}
+                    liveState={videoStates?.[v.title]}
+                    onClick={() => onSelectVideo(v)}
+                  />
                 </Box>
               ))}
             </Box>
@@ -552,9 +752,15 @@ export default function VideoLibraryPage({ onSelectVideo }: Props) {
           }}>
             Videos ({ALL_VIDEOS.length})
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 2, pb: 4 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 2, pb: 4, alignItems: 'stretch' }}>
             {ALL_VIDEOS.map((v, i) => (
-              <VideoCard key={v.title + '-all-' + i} video={v} onClick={() => onSelectVideo(v)} />
+              <Box key={v.title + '-all-' + i} sx={{ display: 'flex' }}>
+                <VideoCard
+                  video={{ ...v, statuses: resolveStatuses(v, videoStates) }}
+                  liveState={videoStates?.[v.title]}
+                  onClick={() => onSelectVideo(v)}
+                />
+              </Box>
             ))}
           </Box>
 

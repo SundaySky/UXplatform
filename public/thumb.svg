@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <!-- Left panel: white with text -->
+  <rect width="320" height="360" fill="#FFFFFF"/>
+  <!-- Top accent bar -->
+  <rect width="320" height="4" fill="#E040FB"/>
+  <!-- Logo placeholder -->
+  <rect x="20" y="24" width="48" height="16" rx="3" fill="#E8E8E8"/>
+  <!-- Heading text placeholder -->
+  <text x="20" y="90" font-family="sans-serif" font-weight="700" font-size="28" fill="#1A1A2E">HEADING</text>
+  <text x="20" y="126" font-family="sans-serif" font-weight="700" font-size="28" fill="#1A1A2E">PLACEHOLDER</text>
+  <!-- Sub-heading line -->
+  <text x="20" y="160" font-family="sans-serif" font-size="13" fill="#888">Sub-heading Placeholder</text>
+  <!-- Bottom text line placeholder -->
+  <rect x="20" y="310" width="120" height="8" rx="3" fill="#E8E8E8"/>
+  <rect x="20" y="326" width="80" height="8" rx="3" fill="#E8E8E8"/>
+
+  <!-- Right panel: grey media area -->
+  <rect x="320" y="0" width="320" height="360" fill="#D0D0D0"/>
+  <!-- Media icon -->
+  <g transform="translate(415, 145)">
+    <rect width="130" height="75" rx="6" fill="#B0B0B0"/>
+    <polygon points="45,15 45,60 90,37.5" fill="#888"/>
+  </g>
+</svg>
