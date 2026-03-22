@@ -26,28 +26,50 @@ import CloseIcon                   from '@mui/icons-material/Close'
 import ArrowForwardIosIcon         from '@mui/icons-material/ArrowForwardIos'
 import VisibilityOutlinedIcon      from '@mui/icons-material/VisibilityOutlined'
 import EditOutlinedIcon            from '@mui/icons-material/EditOutlined'
-import OpenWithIcon                from '@mui/icons-material/OpenWith'
 import AlignHorizontalLeftIcon     from '@mui/icons-material/AlignHorizontalLeft'
-import TimerOutlinedIcon           from '@mui/icons-material/TimerOutlined'
-import StarIcon                    from '@mui/icons-material/Star'
 import ContentCopyOutlinedIcon     from '@mui/icons-material/ContentCopyOutlined'
-import DeleteOutlineIcon           from '@mui/icons-material/DeleteOutline'
 import MoreHorizIcon               from '@mui/icons-material/MoreHoriz'
+import RemoveIcon                  from '@mui/icons-material/Remove'
+import TitleIcon                   from '@mui/icons-material/Title'
+import PaletteIcon                 from '@mui/icons-material/Palette'
+import StarBorderIcon              from '@mui/icons-material/StarBorder'
 import Tooltip                     from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 
-// ─── Placeholder floating toolbar ────────────────────────────────────────────
-function PlaceholderToolbar({ onClose, onEditClick }: { onClose: () => void; onEditClick: () => void }) {
-  const tools: Array<{ label: string; icon: React.ReactNode; color?: string; dividerAfter?: boolean; onClick?: () => void }> = [
-    { label: 'Edit',     icon: <EditOutlinedIcon sx={{ fontSize: 16 }} />, onClick: onEditClick },
-    { label: 'Scale to', icon: <OpenWithIcon     sx={{ fontSize: 16 }} />, dividerAfter: true },
-    { label: 'Align',    icon: <AlignHorizontalLeftIcon sx={{ fontSize: 16 }} />, dividerAfter: true },
-    { label: 'Duration', icon: <ArrowForwardIosIcon   sx={{ fontSize: 14 }} />, dividerAfter: true },
-    { label: 'Timing',   icon: <StarIcon sx={{ fontSize: 16 }} /> },
-    { label: 'Copy',     icon: <ContentCopyOutlinedIcon sx={{ fontSize: 16 }} />, dividerAfter: true },
-    { label: 'Delete',   icon: <DeleteOutlineIcon sx={{ fontSize: 16 }} />, color: '#E53935' },
-    { label: 'More',     icon: <MoreHorizIcon    sx={{ fontSize: 18 }} /> },
-  ]
+// ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
+function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
+  const c = '#0053E5' // primary blue
+  const divider = <Box sx={{ width: '1px', height: 20, bgcolor: 'rgba(0,0,0,0.10)', mx: '2px' }} />
+
+  // Labelled button
+  const LBtn = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) => (
+    <Box onClick={onClick} sx={{
+      display: 'flex', alignItems: 'center', gap: '4px',
+      px: '8px', py: '5px', borderRadius: '16px', cursor: 'pointer',
+      color: c, transition: 'background 0.15s',
+      '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' },
+    }}>
+      {icon}
+      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c, whiteSpace: 'nowrap', lineHeight: 1 }}>
+        {label}
+      </Typography>
+    </Box>
+  )
+
+  // Icon-only button
+  const IBtn = ({ icon, tooltip }: { icon: React.ReactNode; tooltip: string }) => (
+    <Tooltip title={tooltip} placement="top" arrow
+      componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', color: '#fff', fontSize: 12, borderRadius: '6px' } }, arrow: { sx: { color: '#03194F' } } }}>
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 30, height: 30, borderRadius: '50%', cursor: 'pointer',
+        color: c, transition: 'background 0.15s',
+        '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' },
+      }}>
+        {icon}
+      </Box>
+    </Tooltip>
+  )
 
   return (
     <Box
@@ -57,54 +79,66 @@ function PlaceholderToolbar({ onClose, onEditClick }: { onClose: () => void; onE
         bgcolor: '#fff',
         border: '1px solid rgba(0,0,0,0.10)',
         borderRadius: '24px',
-        px: '6px', py: '6px',
+        px: '6px', py: '4px',
         gap: '2px',
         boxShadow: '0px 4px 16px rgba(3,25,79,0.14)',
         userSelect: 'none',
       }}
     >
-      {tools.map((tool) => (
-        <Box key={tool.label} sx={{ display: 'flex', alignItems: 'center' }}>
-          <Tooltip title={tool.label} placement="top" arrow>
-            <Box
-              onClick={tool.onClick}
-              sx={{
-                display: 'flex', alignItems: 'center', gap: '5px',
-                px: '10px', py: '5px',
-                borderRadius: '16px',
-                cursor: 'pointer',
-                color: tool.color ?? '#0053E5',
-                transition: 'background 0.15s',
-                '&:hover': { bgcolor: tool.color ? 'rgba(229,57,53,0.08)' : 'rgba(0,83,229,0.08)' },
-              }}
-            >
-              {tool.icon}
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                fontSize: 13, color: tool.color ?? '#0053E5', whiteSpace: 'nowrap',
-              }}>
-                {tool.label === 'Delete' || tool.label === 'More' ? null : tool.label}
-              </Typography>
-            </Box>
-          </Tooltip>
-          {tool.dividerAfter && (
-            <Box sx={{ width: '1px', height: '20px', bgcolor: 'rgba(0,0,0,0.10)', mx: '2px' }} />
-          )}
+      {/* Edit */}
+      <LBtn icon={<EditOutlinedIcon sx={{ fontSize: 15 }} />} label="Edit" onClick={onEditClick} />
+
+      {divider}
+
+      {/* Zoom control */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', cursor: 'pointer', color: c, '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+          <RemoveIcon sx={{ fontSize: 14 }} />
         </Box>
-      ))}
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 12, color: c, mx: '2px', minWidth: 30, textAlign: 'center' }}>
+          100%
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', cursor: 'pointer', color: c, '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+          <AddIcon sx={{ fontSize: 14 }} />
+        </Box>
+      </Box>
+
+      {divider}
+
+      {/* Style / Align / Color / Timing */}
+      <LBtn icon={<TitleIcon sx={{ fontSize: 15 }} />}                  label="Style" />
+      <LBtn icon={<AlignHorizontalLeftIcon sx={{ fontSize: 15 }} />}    label="Align" />
+      <LBtn icon={<PaletteIcon sx={{ fontSize: 15 }} />}                label="Color" />
+      <LBtn icon={<StarBorderIcon sx={{ fontSize: 15 }} />}             label="Timing" />
+
+      {divider}
+
+      {/* Icon-only: Copy, Preview, More */}
+      <IBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 15 }} />} tooltip="Copy" />
+      <IBtn icon={<VisibilityOutlinedIcon  sx={{ fontSize: 15 }} />} tooltip="Preview" />
+      <IBtn icon={<MoreHorizIcon           sx={{ fontSize: 17 }} />} tooltip="More" />
     </Box>
   )
 }
 
 // ─── Edit Heading dialog ──────────────────────────────────────────────────────
-function EditHeadingDialog({ open, videoTitle, onClose }: { open: boolean; videoTitle: string; onClose: () => void }) {
-  const [text,        setText]        = useState(videoTitle)
-  const [byAudience,  setByAudience]  = useState(false)
+function EditHeadingDialog({ open, currentText, onClose }: {
+  open: boolean
+  currentText: string
+  onClose: (newText: string) => void
+}) {
+  const [text,       setText]       = useState(currentText)
+  const [byAudience, setByAudience] = useState(false)
+
+  // Re-sync when dialog re-opens with new content
+  useEffect(() => { if (open) setText(currentText) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleClose = () => onClose(text)
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth={false}
       PaperProps={{
         elevation: 8,
@@ -122,8 +156,8 @@ function EditHeadingDialog({ open, videoTitle, onClose }: { open: boolean; video
         <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 700, fontSize: 22, color: '#1A1A2E' }}>
           Heading
         </Typography>
-        <IconButton size="small" onClick={onClose} sx={{ color: '#888' }}>
-          <MoreHorizIcon />
+        <IconButton size="small" onClick={handleClose} sx={{ color: '#888' }}>
+          <CloseIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </Box>
 
@@ -282,7 +316,7 @@ export interface CommentThread { id: number; author: string; comments: CommentIt
 // Export total comment count for use in the "View [x] approver comments" button
 export const TOTAL_COMMENT_COUNT = 3 // Sarah: 2 comments + Emma: 1 comment
 
-const INITIAL_THREADS: CommentThread[] = [
+export const INITIAL_THREADS: CommentThread[] = [
   {
     id: 1, author: 'Sarah Johnson',
     comments: [
@@ -664,8 +698,8 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
   const [activeNav,        setActiveNav]        = useState<string | null>(null)
   const [headingSelected,  setHeadingSelected]  = useState(false)
   const [headingText,      setHeadingText]      = useState(videoTitle)
-  const [headingEditing,   setHeadingEditing]   = useState(false)
-  const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? INITIAL_THREADS)
+  const [editHeadingOpen,  setEditHeadingOpen]  = useState(false)
+  const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,  setSnackbarMsg]  = useState<string | null>(null)
 
   // Unread = not yet checked or resolved
@@ -849,12 +883,12 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
 
             {/* Canvas */}
             <Box
-              onClick={() => { setHeadingSelected(false); setHeadingEditing(false) }}
+              onClick={() => setHeadingSelected(false)}
               sx={{
                 maxWidth: 680, width: '100%', position: 'relative',
                 borderRadius: '8px', overflow: 'visible',
-                border: `1px solid ${(headingSelected || headingEditing) ? '#0053E5' : s.divider}`,
-                boxShadow: (headingSelected || headingEditing)
+                border: `1px solid ${headingSelected ? '#0053E5' : s.divider}`,
+                boxShadow: headingSelected
                   ? '0px 0px 0px 2px rgba(0,83,229,0.20), 0px 2px 12px rgba(3,25,79,0.10)'
                   : '0px 2px 12px rgba(3,25,79,0.10)',
                 transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -871,84 +905,47 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
                   width: '44%', height: '27%', bgcolor: '#fff',
                 }} />
 
-                {/* Video title text — scales with canvas width via container query */}
-                {!headingEditing && (
-                  <Box sx={{
-                    position: 'absolute', left: '3.5%', top: '15%', width: '43%',
-                    pointerEvents: 'none', containerType: 'inline-size',
+                {/* Video title text — scales with canvas width */}
+                <Box sx={{
+                  position: 'absolute', left: '3.5%', top: '15%', width: '43%',
+                  pointerEvents: 'none', containerType: 'inline-size',
+                }}>
+                  <Typography sx={{
+                    fontFamily: 'sans-serif', fontWeight: 700,
+                    fontSize: '10cqw',
+                    color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word',
                   }}>
-                    <Typography sx={{
-                      fontFamily: 'sans-serif', fontWeight: 700,
-                      fontSize: '10cqw',
-                      color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word',
-                    }}>
-                      {headingText}
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* Inline text editor — shown when editing */}
-                {headingEditing && (
-                  <Box
-                    onClick={e => e.stopPropagation()}
-                    onMouseDown={e => e.stopPropagation()}
-                    sx={{
-                      position: 'absolute', left: '3%', top: '13%', width: '44%',
-                      containerType: 'inline-size',
-                    }}
-                  >
-                    <TextField
-                      autoFocus
-                      multiline
-                      fullWidth
-                      value={headingText}
-                      onChange={e => setHeadingText(e.target.value)}
-                      onBlur={() => setHeadingEditing(false)}
-                      variant="standard"
-                      InputProps={{
-                        disableUnderline: true,
-                        sx: {
-                          fontFamily: 'sans-serif', fontWeight: 700,
-                          fontSize: '10cqw',
-                          color: '#1A1A2E', lineHeight: 1.3, alignItems: 'flex-start',
-                          bgcolor: '#fff', px: '4px', pt: '2px',
-                          border: '2px solid #0053E5', borderRadius: '4px',
-                        },
-                      }}
-                    />
-                  </Box>
-                )}
+                    {headingText}
+                  </Typography>
+                </Box>
               </Box>
 
-              {/* Clickable selection overlay — hidden while editing */}
-              {!headingEditing && (
-                <Box
-                  onClick={e => { e.stopPropagation(); setHeadingSelected(prev => !prev) }}
-                  sx={{
-                    position: 'absolute', left: '3%', top: '14%',
-                    width: '44%', height: '27%',
-                    cursor: 'pointer', borderRadius: '4px',
-                    border: headingSelected ? '2px solid #0053E5' : '2px solid transparent',
-                    bgcolor: headingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
-                    transition: 'background 0.15s, border-color 0.15s',
-                    '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
-                  }}
-                />
-              )}
+              {/* Clickable selection overlay */}
+              <Box
+                onClick={e => { e.stopPropagation(); setHeadingSelected(prev => !prev) }}
+                sx={{
+                  position: 'absolute', left: '3%', top: '14%',
+                  width: '44%', height: '27%',
+                  cursor: 'pointer', borderRadius: '4px',
+                  border: headingSelected ? '2px solid #0053E5' : '2px solid transparent',
+                  bgcolor: headingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
+                  transition: 'background 0.15s, border-color 0.15s',
+                  '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
+                }}
+              />
 
-              {/* Toolbar — floats just above the heading box */}
-              {headingSelected && !headingEditing && (
+              {/* Toolbar — floats just above the heading selection box */}
+              {headingSelected && (
                 <Box sx={{
                   position: 'absolute',
                   left: '50%',
-                  top: 'calc(14% - 8px)',
+                  top: 'calc(14% - 10px)',
                   transform: 'translate(-50%, -100%)',
                   zIndex: 20,
                   pointerEvents: 'auto',
                 }}>
                   <PlaceholderToolbar
-                    onClose={() => setHeadingSelected(false)}
-                    onEditClick={() => { setHeadingEditing(true); setHeadingSelected(false) }}
+                    onEditClick={() => { setEditHeadingOpen(true); setHeadingSelected(false) }}
                   />
                 </Box>
               )}
@@ -1035,6 +1032,13 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
           </Box>
         </Box>
       </Box>
+
+      {/* ── Edit Heading dialog ───────────────────────────────────────────── */}
+      <EditHeadingDialog
+        open={editHeadingOpen}
+        currentText={headingText}
+        onClose={(newText) => { setHeadingText(newText); setEditHeadingOpen(false) }}
+      />
 
       {/* ── Comments panel — draggable + resizable ────────────────────────── */}
       <CommentsPanel

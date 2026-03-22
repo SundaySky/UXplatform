@@ -20,7 +20,7 @@ import ConfirmationDialog from './ConfirmationDialog'
 import ApproveVideoDialog    from './ApproveVideoDialog'
 import CancelApprovalDialog  from './CancelApprovalDialog'
 import VideoLibraryPage, { type VideoItem } from './VideoLibraryPage'
-import StudioPage, { TOTAL_COMMENT_COUNT, type CommentThread } from './StudioPage'
+import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS, type CommentThread } from './StudioPage'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 
 // MUI icons
@@ -995,6 +995,7 @@ export default function App() {
             openCommentsOnMount={openCommentsOnStudio}
             triggerOpenComments={openCommentsCounter}
             notifications={notifications}
+            initialThreads={videoPhase >= 1 ? INITIAL_THREADS : []}
           />
 
         ) : (
