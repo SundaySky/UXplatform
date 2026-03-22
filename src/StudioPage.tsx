@@ -638,7 +638,7 @@ function CommentsPanel({
 }
 
 // ─── Scene thumbnail ──────────────────────────────────────────────────────────
-function SceneThumbnail({ index, selected }: { index: number; selected: boolean }) {
+function SceneThumbnail({ index, selected, headingText }: { index: number; selected: boolean; headingText?: string }) {
   return (
     <Box sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
       <Typography sx={{
@@ -652,9 +652,20 @@ function SceneThumbnail({ index, selected }: { index: number; selected: boolean 
         bgcolor: '#FAFAFA',
         border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
         borderRadius: '8px', overflow: 'hidden',
+        position: 'relative',
       }}>
         <Box component="img" src={IMG_THUMB} alt=""
           sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        {headingText && (
+          <>
+            <Box sx={{ position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%', bgcolor: '#fff' }} />
+            <Box sx={{ position: 'absolute', left: '3.5%', top: '15%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
+              <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '10cqw', color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                {headingText}
+              </Typography>
+            </Box>
+          </>
+        )}
       </Box>
     </Box>
   )
@@ -663,17 +674,19 @@ function SceneThumbnail({ index, selected }: { index: number; selected: boolean 
 // ─── Studio page ──────────────────────────────────────────────────────────────
 interface Props {
   videoTitle:             string
+  initialHeadingText?:    string
   approverNames:          string
   onNavigateToVideoPage:  () => void
   onNavigateToLibrary:    () => void
   onRequestReapproval:    () => void
+  onHeadingChange?:       (text: string) => void
   openCommentsOnMount?:   boolean
   triggerOpenComments?:   number
   notifications?:         NotificationItem[]
   initialThreads?:        CommentThread[]
 }
 
-export default function StudioPage({ videoTitle, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -682,7 +695,7 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
   }, [triggerOpenComments])
   const [activeNav,        setActiveNav]        = useState<string | null>(null)
   const [headingSelected,  setHeadingSelected]  = useState(false)
-  const [headingText,      setHeadingText]      = useState(videoTitle)
+  const [headingText,      setHeadingText]      = useState(initialHeadingText ?? videoTitle)
   const [editHeadingOpen,  setEditHeadingOpen]  = useState(false)
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,  setSnackbarMsg]  = useState<string | null>(null)
@@ -995,7 +1008,7 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
               '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
             }}>
               {[0, 1, 2, 3].map(i => (
-                <SceneThumbnail key={i} index={i} selected={i === 0} />
+                <SceneThumbnail key={i} index={i} selected={i === 0} headingText={i === 0 ? headingText : undefined} />
               ))}
               {/* Add scene */}
               <Box sx={{
@@ -1022,7 +1035,7 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
       <EditHeadingDialog
         open={editHeadingOpen}
         currentText={headingText}
-        onClose={(newText) => { setHeadingText(newText); setEditHeadingOpen(false) }}
+        onClose={(newText) => { setHeadingText(newText); setEditHeadingOpen(false); onHeadingChange?.(newText) }}
       />
 
       {/* ── Comments panel — draggable + resizable ────────────────────────── */}

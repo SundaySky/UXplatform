@@ -60,6 +60,7 @@ export interface LiveVideoState {
   phase:         number
   pageState:     'draft' | 'pending'
   sentApprovers: string[]
+  headingText?:  string
 }
 
 const PHASE_TO_PENDING: Record<number, boolean> = { 0: false, 1: true, 2: true, 3: false, 4: false }
@@ -203,14 +204,22 @@ function ApprovalStatusIcon({ state, totalComments }: { state: LiveVideoState; t
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
 type ThumbType = 'full' | 'photo' | 'split-template'
 
-function VideoThumbnail({ _type }: { _type?: ThumbType }) {
+function VideoThumbnail({ _type, headingText }: { _type?: ThumbType; headingText?: string }) {
   return (
-    <Box
-      component="img"
-      src={IMG_THUMB}
-      alt=""
-      sx={{ width: '100%', height: 171, objectFit: 'cover', display: 'block' }}
-    />
+    <Box sx={{ position: 'relative', width: '100%', height: 171 }}>
+      <Box component="img" src={IMG_THUMB} alt=""
+        sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      {headingText && (
+        <>
+          <Box sx={{ position: 'absolute', left: '3%', top: '14%', width: '44%', height: '27%', bgcolor: '#fff' }} />
+          <Box sx={{ position: 'absolute', left: '3.5%', top: '15%', width: '43%', containerType: 'inline-size', pointerEvents: 'none' }}>
+            <Typography sx={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '10cqw', color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word' }}>
+              {headingText}
+            </Typography>
+          </Box>
+        </>
+      )}
+    </Box>
   )
 }
 
@@ -260,7 +269,7 @@ function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: 
         border: `1px solid ${t.divider}`, bgcolor: '#FAFAFA',
         width: '100%', position: 'relative',
       }}>
-        <VideoThumbnail />
+        <VideoThumbnail headingText={liveState?.headingText ?? video.title} />
         {/* Play overlay — fades in on card hover */}
         <Box sx={{
           position: 'absolute', inset: 0,
