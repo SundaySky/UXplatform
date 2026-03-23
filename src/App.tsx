@@ -357,7 +357,7 @@ function VideoPreviewCard({
                   {name} hasn't responded yet
                 </Typography>
               ))}
-              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block' }}>
                 Comments will be available once all approvers have responded.
               </Typography>
             </Box>
