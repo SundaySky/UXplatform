@@ -50,7 +50,9 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
           fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20,
           lineHeight: 1.5, color: ds.textPrimary, flex: 1,
         }}>
-          Approval request sent, you'll be notified when approvers respond
+          {isMulti
+            ? "Approval request sent. You'll be notified by email when approvers respond."
+            : "Approval request sent, you'll be notified when the approver respond"}
         </Typography>
         {/* DS: Size=Medium, Color=Default IconButton */}
         <IconButton size="medium" color="default" onClick={onClose}>
@@ -61,14 +63,19 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <DialogContent sx={{ px: '32px', pt: '0 !important', pb: '8px' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Both variants share this first paragraph */}
+          {isMulti && (
+            <Typography sx={{
+              fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
+              lineHeight: 1.5, color: ds.textPrimary,
+            }}>
+              Comments will be available once everyone has responded.
+            </Typography>
+          )}
           <Typography sx={{
             fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
             lineHeight: 1.5, color: ds.textPrimary,
           }}>
-            {isMulti
-              ? 'Comments will be available after everyone has responded. You can also share the link below.'
-              : 'You can also share the link below.'}
+            You can also share the video using the link.
           </Typography>
         </Box>
       </DialogContent>
