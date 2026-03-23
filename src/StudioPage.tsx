@@ -33,9 +33,16 @@ import RemoveIcon                  from '@mui/icons-material/Remove'
 import TitleIcon                   from '@mui/icons-material/Title'
 import PaletteIcon                 from '@mui/icons-material/Palette'
 import StarBorderIcon              from '@mui/icons-material/StarBorder'
-import Tooltip                     from '@mui/material/Tooltip'
+import LockOutlinedIcon           from '@mui/icons-material/LockOutlined'
+import PeopleAltOutlinedIcon      from '@mui/icons-material/PeopleAltOutlined'
+import ManageAccountsIcon         from '@mui/icons-material/ManageAccounts'
+import LockPersonIcon             from '@mui/icons-material/LockPerson'
+import Tooltip                    from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
+import AvatarLibraryPanel from './AvatarLibraryPanel'
+import VideoPermissionDialog, { type VideoViewPermission, type VideoPermissionSettings } from './VideoPermissionDialog'
+import { OWNER_USER } from './ManageAccessDialog'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
 function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
@@ -684,11 +691,16 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
   const [activeNav,        setActiveNav]        = useState<string | null>(null)
   const [mediaLibOpen,     setMediaLibOpen]     = useState(false)
   const [mediaFolder,      setMediaFolder]      = useState<string | null>(null)
+  const [avatarLibOpen,    setAvatarLibOpen]    = useState(false)
+  const [avatarReqCount,   setAvatarReqCount]   = useState(4) // mock: adam has 4 pending
   const [headingSelected,  setHeadingSelected]  = useState(false)
   const [headingText,      setHeadingText]      = useState(videoTitle)
   const [editHeadingOpen,  setEditHeadingOpen]  = useState(false)
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
-  const [snackbarMsg,  setSnackbarMsg]  = useState<string | null>(null)
+  const [snackbarMsg,      setSnackbarMsg]      = useState<string | null>(null)
+  const [videoPermOpen,    setVideoPermOpen]    = useState(false)
+  const [videoPerm,        setVideoPerm]        = useState<VideoViewPermission>('everyone')
+  const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(undefined)
 
   // Unread = not yet checked or resolved
   const unreadCount = threads.reduce((n, t) => n + t.comments.filter(c => !c.checkedNow && !c.resolved).length, 0)
@@ -699,7 +711,18 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
       items: [
         { icon: <BrandingWatermarkOutlinedIcon sx={{ fontSize: 18 }} />, label: 'Brand' },
         { icon: <PaletteOutlinedIcon          sx={{ fontSize: 18 }} />, label: 'Theme' },
-        { icon: <PersonOutlinedIcon           sx={{ fontSize: 18 }} />, label: 'Avatar' },
+        {
+          icon: (
+            <Badge
+              badgeContent={avatarReqCount > 0 ? avatarReqCount : undefined}
+              color="error"
+              sx={{ '& .MuiBadge-badge': { fontSize: 9, minWidth: 14, height: 14, padding: 0 } }}
+            >
+              <PersonOutlinedIcon sx={{ fontSize: 18 }} />
+            </Badge>
+          ),
+          label: 'Avatar',
+        },
       ],
     },
     {
@@ -770,13 +793,36 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
                 </Typography>
               ))}
           </Box>
-          {/* Video name */}
-          <Typography sx={{
-            fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18,
-            color: '#fff', lineHeight: 1.2, letterSpacing: '0.15px',
-          }}>
-            {videoTitle}
-          </Typography>
+          {/* Video name + permission icon */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Typography sx={{
+              fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18,
+              color: '#fff', lineHeight: 1.2, letterSpacing: '0.15px',
+            }}>
+              {videoTitle}
+            </Typography>
+            {videoPerm !== 'everyone' && (
+              <Tooltip
+                title={
+                  <Typography sx={{ fontSize: 12, color: '#fff' }}>
+                    {videoPerm === 'private' ? 'Only you' : videoPerm === 'editors' ? 'Editors only' : videoPerm === 'owners' ? 'Video owners only' : 'Specific users'}
+                  </Typography>
+                }
+                placement="bottom" arrow
+                componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1, '& .MuiTooltip-arrow': { color: '#03194F' } } } }}
+              >
+                <IconButton size="small" onClick={() => setVideoPermOpen(true)} sx={{ p: 0, color: videoPerm === 'private' ? '#118747' : videoPerm === 'owners' ? '#0053E5' : '#F46900' }}>
+                  {videoPerm === 'private'
+                    ? <LockOutlinedIcon sx={{ fontSize: 18 }} />
+                    : videoPerm === 'editors'
+                      ? <EditOutlinedIcon sx={{ fontSize: 18 }} />
+                      : videoPerm === 'owners'
+                        ? <ManageAccountsIcon sx={{ fontSize: 18 }} />
+                        : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
           {/* Language badge */}
           <Box sx={{
             display: 'flex', alignItems: 'center', gap: '4px',
@@ -800,12 +846,33 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
           <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.7)' }}>
             <RedoIcon sx={{ fontSize: 18 }} />
           </IconButton>
-          <Box sx={{ width: 1, height: 20, bgcolor: 'rgba(255,255,255,0.2)', mx: 0.5 }} />
-          <Avatar sx={{ width: 32, height: 32, bgcolor: '#BDBDBD', fontSize: 12, fontFamily: '"Open Sans"' }}>
-            OP
+          <Box sx={{ width: '1px', height: 20, bgcolor: 'rgba(255,255,255,0.2)', mx: 0.5 }} />
+          {/* Manage permissions button */}
+          <Tooltip
+            title="Manage permission"
+            placement="bottom"
+            arrow
+            componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1, '& .MuiTooltip-arrow': { color: '#03194F' } } } }}
+          >
+            <IconButton
+              size="small"
+              onClick={() => setVideoPermOpen(true)}
+              sx={{
+                bgcolor: '#03194F',
+                borderRadius: '8px',
+                p: '5px',
+                border: '1px solid rgba(255,255,255,0.5)',
+                '&:hover': { bgcolor: 'rgba(3,25,79,0.7)' },
+              }}
+            >
+              <LockPersonIcon sx={{ fontSize: 20, color: '#fff' }} />
+            </IconButton>
+          </Tooltip>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: OWNER_USER.color, fontSize: 12, fontFamily: '"Open Sans"', fontWeight: 600 }}>
+            {OWNER_USER.initials}
           </Avatar>
           <NotificationBell dark notifications={notifications} />
-          <Box sx={{ width: 1, height: 20, bgcolor: 'rgba(255,255,255,0.2)', mx: 0.5 }} />
+          <Box sx={{ width: '1px', height: 20, bgcolor: 'rgba(255,255,255,0.2)', mx: 0.5 }} />
           {/* Video Page button */}
           <Button
             size="small"
@@ -814,7 +881,7 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
             sx={{
               background: GRADIENT_BTN, color: '#fff',
               fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
-              textTransform: 'none', borderRadius: '8px', px: 2,
+              textTransform: 'none', borderRadius: '8px', px: 2, whiteSpace: 'nowrap',
               '&:hover': { opacity: 0.88, background: GRADIENT_BTN },
             }}
           >
@@ -836,14 +903,23 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
           {NAV_SECTIONS.map(({ section, items }) => (
             <Box key={section}>
               <NavSection label={section} />
-              {items.map(({ icon, label, onClickOverride }) => (
+              {items.map(({ icon, label, onClickOverride }: { icon: React.ReactNode; label: string; onClickOverride?: () => void }) => (
                 <NavItem
                   key={label}
                   icon={icon}
                   label={label}
                   selected={activeNav === label}
                   onClick={() => {
-                    if (label === 'Media') {
+                    if (label === 'Avatar') {
+                      if (activeNav === 'Avatar' && avatarLibOpen) {
+                        setAvatarLibOpen(false)
+                        setActiveNav(null)
+                      } else {
+                        setAvatarLibOpen(true)
+                        setMediaLibOpen(false)
+                        setActiveNav('Avatar')
+                      }
+                    } else if (label === 'Media') {
                       if (activeNav === 'Media' && mediaLibOpen) {
                         // Toggle off
                         setMediaLibOpen(false)
@@ -851,11 +927,13 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
                       } else {
                         setMediaLibOpen(true)
                         setMediaFolder(null)
+                        setAvatarLibOpen(false)
                         setActiveNav('Media')
                       }
                     } else {
                       setActiveNav(label)
                       setMediaLibOpen(false)
+                      setAvatarLibOpen(false)
                       if (onClickOverride) onClickOverride()
                     }
                   }}
@@ -872,6 +950,13 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
           folder={mediaFolder}
           onOpenFolder={name => setMediaFolder(name)}
           onCloseFolder={() => setMediaFolder(null)}
+        />
+
+        {/* Avatar Library Panel — slides in between nav and stage */}
+        <AvatarLibraryPanel
+          open={avatarLibOpen}
+          onClose={() => { setAvatarLibOpen(false); setActiveNav(null) }}
+          onTotalRequestsChange={setAvatarReqCount}
         />
 
         {/* Stage */}
@@ -1066,6 +1151,14 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
 
 
       {/* ── Success snackbar ───────────────────────────────────────────────── */}
+      {/* ── Video permission dialog ─────────────────────────────────────── */}
+      <VideoPermissionDialog
+        open={videoPermOpen}
+        onClose={() => setVideoPermOpen(false)}
+        initialSettings={videoPermSettings}
+        onSave={s => { setVideoPerm(s.viewPermission); setVideoPermSettings(s); setVideoPermOpen(false) }}
+      />
+
       <Snackbar
         open={!!snackbarMsg}
         autoHideDuration={5000}

@@ -3,6 +3,7 @@ import {
   Box, Typography, IconButton, Button, Divider,
   OutlinedInput, InputAdornment, Menu, MenuItem,
   Avatar, Tooltip, InputBase,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material'
 import CloseIcon                    from '@mui/icons-material/Close'
 import HelpOutlineIcon              from '@mui/icons-material/HelpOutline'
@@ -17,9 +18,9 @@ import SearchIcon                   from '@mui/icons-material/Search'
 import KeyboardArrowDownIcon        from '@mui/icons-material/KeyboardArrowDown'
 import FilterListIcon               from '@mui/icons-material/FilterList'
 import ArrowBackIcon                from '@mui/icons-material/ArrowBack'
+import ArrowForwardIcon            from '@mui/icons-material/ArrowForward'
 import FolderRoundedIcon            from '@mui/icons-material/FolderRounded'
-import VisibilityOutlinedIcon       from '@mui/icons-material/VisibilityOutlined'
-import VisibilityOffOutlinedIcon    from '@mui/icons-material/VisibilityOffOutlined'
+
 import PermMediaOutlinedIcon        from '@mui/icons-material/PermMediaOutlined'
 import OpenInFullIcon               from '@mui/icons-material/OpenInFull'
 import MoreVertIcon                 from '@mui/icons-material/MoreVert'
@@ -114,6 +115,36 @@ function visibleLabel(vp: ViewPermission) {
   }
 }
 
+// ─── Effective permission (child + parent → most restrictive) ─────────────────
+function getEffectiveVp(ownVp: ViewPermission, parentVp: ViewPermission): ViewPermission {
+  if (parentVp === 'everyone') return ownVp
+  if (ownVp === 'private' || parentVp === 'private') return 'private'
+  if (parentVp === 'editors' && ownVp === 'everyone') return 'editors'
+  if (parentVp === 'specific' && (ownVp === 'everyone' || ownVp === 'editors')) return 'specific'
+  return ownVp
+}
+
+// ─── Conflict detection ───────────────────────────────────────────────────────
+function hasPermissionConflict(
+  newVp: ViewPermission,
+  newViewUsers: User[],
+  parentVp: ViewPermission,
+  parentViewUsers: User[],
+): boolean {
+  if (parentVp === 'everyone') return false
+  if (newVp === 'private')    return false   // most restrictive → always safe
+  if (parentVp === 'private') return true    // parent is private, child can't be non-private
+  if (parentVp === 'editors') return newVp === 'everyone'
+  if (parentVp === 'specific') {
+    if (newVp === 'everyone' || newVp === 'editors') return true
+    if (newVp === 'specific') {
+      const parentIds = new Set(parentViewUsers.map(u => u.id))
+      return newViewUsers.some(u => !parentIds.has(u.id))
+    }
+  }
+  return false
+}
+
 function VisibleIcon({ vp }: { vp: ViewPermission }) {
   const sx = { fontSize: '14px !important' }
   switch (vp) {
@@ -122,6 +153,29 @@ function VisibleIcon({ vp }: { vp: ViewPermission }) {
     case 'specific': return <PeopleOutlinedIcon    sx={{ ...sx, color: c.warningMain }} />
     case 'private':  return <LockOutlinedIcon      sx={{ ...sx, color: c.successMain }} />
   }
+}
+
+// ─── Permission badge ─────────────────────────────────────────────────────────
+function PermBadge({ vp, strikethrough }: { vp: ViewPermission; strikethrough?: boolean }) {
+  return (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      px: '8px', py: '3px', borderRadius: '12px',
+      bgcolor: strikethrough ? 'rgba(0,0,0,0.04)' : 'rgba(0,83,229,0.08)',
+      border: '1px solid',
+      borderColor: strikethrough ? 'rgba(0,0,0,0.12)' : 'rgba(0,83,229,0.2)',
+    }}>
+      {vp !== 'everyone' && <VisibleIcon vp={vp} />}
+      <Typography sx={{
+        fontFamily: '"Open Sans", sans-serif', fontSize: 12, fontWeight: 500,
+        color: strikethrough ? c.textSecondary : c.textPrimary,
+        textDecoration: strikethrough ? 'line-through' : 'none',
+        lineHeight: 1,
+      }}>
+        {visibleLabel(vp)}
+      </Typography>
+    </Box>
+  )
 }
 
 // ─── Folder thumbnail ─────────────────────────────────────────────────────────
@@ -323,6 +377,128 @@ function PermissionSection({
   )
 }
 
+// ─── Conflict dialog ──────────────────────────────────────────────────────────
+function ConflictDialog({
+  open, onClose, onFixParent,
+  parentName, childName, childType,
+  parentVp, newVp, childOwnVp,
+  parentViewUsers: _parentViewUsers, newViewUsers: _newViewUsers,
+}: {
+  open:            boolean
+  onClose:         () => void
+  onFixParent:     () => void
+  parentName:      string
+  childName:       string
+  childType:       'media' | 'folder'
+  parentVp:        ViewPermission
+  newVp:           ViewPermission
+  childOwnVp:      ViewPermission
+  parentViewUsers: User[]
+  newViewUsers:    User[]
+}) {
+  const childIcon = childType === 'folder'
+    ? <FolderRoundedIcon sx={{ fontSize: 16, color: c.warningMain }} />
+    : <PermMediaOutlinedIcon sx={{ fontSize: 16, color: c.textSecondary }} />
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)', zIndex: 1400 } }}
+    >
+      <DialogTitle sx={{ p: '20px 16px 12px 28px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LockOutlinedIcon sx={{ color: c.errorMain, fontSize: 22 }} />
+          <Typography sx={{
+            fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+            fontSize: 18, color: c.textPrimary,
+          }}>
+            Permission conflict with parent folder
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <Divider sx={{ borderColor: c.divider }} />
+      <DialogContent sx={{ p: '20px 28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Multi-line description */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary, lineHeight: 1.7 }}>
+            "{childName}" can't be saved with the selected permission.
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary, lineHeight: 1.7 }}>
+            Its parent folder "{parentName}" has more restrictive settings.
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary, lineHeight: 1.7 }}>
+            Update the parent folder's permission to proceed.
+          </Typography>
+        </Box>
+
+        {/* Permission tree */}
+        <Box sx={{
+          p: '14px 16px', bgcolor: 'rgba(0,0,0,0.03)',
+          borderRadius: '8px', border: '1px solid', borderColor: c.divider,
+          display: 'flex', flexDirection: 'column', gap: '10px',
+        }}>
+          {/* Parent row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <FolderRoundedIcon sx={{ fontSize: 16, color: '#F4A118' }} />
+            <Typography sx={{
+              fontFamily: '"Open Sans", sans-serif', fontSize: 13,
+              fontWeight: 600, color: c.textPrimary, flex: '1 1 auto', minWidth: 0,
+            }}>
+              {parentName}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <PermBadge vp={parentVp} strikethrough />
+              <ArrowForwardIcon sx={{ fontSize: 14, color: c.textSecondary }} />
+              <PermBadge vp={newVp} />
+            </Box>
+          </Box>
+
+          {/* Child row — only shown when child has a different own permission than the parent */}
+          {childOwnVp !== parentVp && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', pl: '24px', flexWrap: 'wrap' }}>
+              <Typography sx={{ color: c.grey300, fontSize: 14, lineHeight: 1, userSelect: 'none' }}>└</Typography>
+              {childIcon}
+              <Typography sx={{
+                fontFamily: '"Open Sans", sans-serif', fontSize: 13,
+                fontWeight: 500, color: c.textSecondary, flex: '1 1 auto', minWidth: 0,
+              }}>
+                {childName}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <PermBadge vp={childOwnVp} strikethrough />
+                <ArrowForwardIcon sx={{ fontSize: 14, color: c.textSecondary }} />
+                <PermBadge vp={newVp} />
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </DialogContent>
+      <Divider sx={{ borderColor: c.divider }} />
+      <DialogActions sx={{ px: '28px', py: '14px', gap: '8px' }}>
+        <Button
+          variant="text" onClick={onClose}
+          sx={{ color: c.primary, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600 }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained" onClick={onFixParent}
+          sx={{
+            bgcolor: c.primary, textTransform: 'none',
+            fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+            borderRadius: '8px', '&:hover': { bgcolor: '#0047CC' },
+          }}
+        >
+          Change "{parentName}" to {visibleLabel(newVp)}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function MediaLibraryPanel({
   open,
@@ -350,9 +526,19 @@ export default function MediaLibraryPanel({
   const [permissions, setPermissions] = useState<Record<string, PermissionSettings>>({})
 
   // Manage access dialog
-  const [manageOpen,  setManageOpen]  = useState(false)
-  const [manageKey,   setManageKey]   = useState<string | null>(null)
-  const [manageType,  setManageType]  = useState<'media' | 'folder'>('media')
+  const [manageOpen,      setManageOpen]      = useState(false)
+  const [manageKey,       setManageKey]       = useState<string | null>(null)
+  const [manageType,      setManageType]      = useState<'media' | 'folder'>('media')
+  const [manageParentKey, setManageParentKey] = useState<string | null>(null)
+
+  // Permission conflict dialog
+  const [conflictOpen, setConflictOpen] = useState(false)
+  const [conflictInfo, setConflictInfo] = useState<{
+    parentKey:   string
+    childKey:    string
+    childType:   'media' | 'folder'
+    newSettings: PermissionSettings
+  } | null>(null)
 
   function getPerms(key: string): PermissionSettings {
     return permissions[key] ?? defaultPermissions()
@@ -375,21 +561,44 @@ export default function MediaLibraryPanel({
     setMenuTarget(null)
   }
 
-  function openManageAccess(key: string, type: 'media' | 'folder') {
+  function openManageAccess(key: string, type: 'media' | 'folder', parentKey?: string | null) {
     setManageKey(key)
     setManageType(type)
+    setManageParentKey(parentKey ?? null)
     setManageOpen(true)
     // do NOT close the menu — dialog overlays it, menu stays when dialog closes
   }
 
   function handleSavePermissions(s: PermissionSettings) {
-    if (manageKey) {
-      setPermissions(prev => ({ ...prev, [manageKey]: s }))
+    if (!manageKey) return
+    // Check for conflict with parent folder
+    if (manageParentKey) {
+      const parentPerms = getPerms(manageParentKey)
+      if (hasPermissionConflict(s.viewPermission, s.viewUsers, parentPerms.viewPermission, parentPerms.viewUsers)) {
+        setConflictInfo({ parentKey: manageParentKey, childKey: manageKey, childType: manageType, newSettings: s })
+        setConflictOpen(true)
+        return // keep ManageAccessDialog open for correction
+      }
     }
+    setPermissions(prev => ({ ...prev, [manageKey]: s }))
+    setManageOpen(false)
   }
 
-  // When navigating inside a private folder, all nested items inherit the lock indicator
-  const parentIsPrivate = folder !== null && getPerms(folder).viewPermission === 'private'
+  function handleFixParent() {
+    if (!conflictInfo) return
+    const newVp = conflictInfo.newSettings.viewPermission
+    setPermissions(prev => ({
+      ...prev,
+      [conflictInfo.parentKey]: { ...getPerms(conflictInfo.parentKey), viewPermission: newVp },
+      [conflictInfo.childKey]:  conflictInfo.newSettings,
+    }))
+    setConflictOpen(false)
+    setConflictInfo(null)
+    setManageOpen(false)
+  }
+
+  // Effective parent permission for nested items
+  const parentVp: ViewPermission = folder !== null ? getPerms(folder).viewPermission : 'everyone'
 
   return (
     <Box sx={{
@@ -661,10 +870,9 @@ export default function MediaLibraryPanel({
                       borderRadius: '8px 8px 0 0',
                     }} />
                   </Box>
-                  <Box className="hover-actions" sx={{
+                  <Box sx={{
                     position: 'absolute', top: 6, right: 6,
-                    display: 'flex', gap: '4px',
-                    opacity: 0, transition: 'opacity 0.18s', zIndex: 2,
+                    display: 'flex', gap: '4px', zIndex: 2,
                   }}>
                     <HoverIconBtn onClick={e => openMenu(e, 'folder', f.name, 'Dec 10, 2025 9:00 AM')}>
                       <MoreVertIcon sx={{ fontSize: 14 }} />
@@ -696,10 +904,9 @@ export default function MediaLibraryPanel({
 
             {/* Subfolders inside a folder */}
             {folder && (FOLDER_CONTENTS[folder] ?? []).map(sf => {
-              const sfvp = getPerms(sf.name).viewPermission
-              // If parent folder is private, inherited lock shows regardless of subfolder's own permission
-              const sfIconVp = parentIsPrivate ? 'private' : sfvp
-              const sfShowIcon = parentIsPrivate || sfvp !== 'everyone'
+              const sfvp    = getPerms(sf.name).viewPermission
+              const sfIconVp  = getEffectiveVp(sfvp, parentVp)
+              const sfShowIcon = sfIconVp !== 'everyone'
               return (
                 <Box
                   key={sf.name}
@@ -723,10 +930,9 @@ export default function MediaLibraryPanel({
                       borderRadius: '8px 8px 0 0',
                     }} />
                   </Box>
-                  <Box className="hover-actions" sx={{
+                  <Box sx={{
                     position: 'absolute', top: 6, right: 6,
-                    display: 'flex', gap: '4px',
-                    opacity: 0, transition: 'opacity 0.18s', zIndex: 2,
+                    display: 'flex', gap: '4px', zIndex: 2,
                   }}>
                     <HoverIconBtn onClick={e => openMenu(e, 'folder', sf.name, 'Jan 10, 2026 9:00 AM')}>
                       <MoreVertIcon sx={{ fontSize: 14 }} />
@@ -758,9 +964,9 @@ export default function MediaLibraryPanel({
 
             {/* Media items */}
             {MEDIA_ITEMS.map(item => {
-              const ivp = getPerms(item.name).viewPermission
-              const itemIconVp  = parentIsPrivate ? 'private' : ivp
-              const itemShowIcon = parentIsPrivate || ivp !== 'everyone'
+              const ivp          = getPerms(item.name).viewPermission
+              const itemIconVp   = getEffectiveVp(ivp, parentVp)
+              const itemShowIcon = itemIconVp !== 'everyone'
               return (
                 <Box
                   key={item.id}
@@ -890,16 +1096,23 @@ export default function MediaLibraryPanel({
 
         <Divider sx={{ borderColor: c.divider, mx: -1 }} />
 
-        {/* Permission section */}
-        <PermissionSection
-          settings={getPerms(menuTarget?.name ?? '')}
-          onManageAccess={() =>
-            menuTarget && openManageAccess(menuTarget.name, menuTarget.type)
-          }
-          onViewClick={() =>
-            menuTarget && openManageAccess(menuTarget.name, menuTarget.type)
-          }
-        />
+        {/* Permission section — display shows effective (inherited) permission */}
+        {(() => {
+          const ownPerms    = getPerms(menuTarget?.name ?? '')
+          const effectiveVp = getEffectiveVp(ownPerms.viewPermission, parentVp)
+          const displayPerms: PermissionSettings = { ...ownPerms, viewPermission: effectiveVp }
+          return (
+            <PermissionSection
+              settings={displayPerms}
+              onManageAccess={() =>
+                menuTarget && openManageAccess(menuTarget.name, menuTarget.type, folder)
+              }
+              onViewClick={() =>
+                menuTarget && openManageAccess(menuTarget.name, menuTarget.type, folder)
+              }
+            />
+          )
+        })()}
 
         <Divider sx={{ borderColor: c.divider, mx: -1 }} />
 
@@ -930,9 +1143,33 @@ export default function MediaLibraryPanel({
         open={manageOpen}
         onClose={() => setManageOpen(false)}
         itemType={manageType}
-        initialSettings={manageKey ? getPerms(manageKey) : undefined}
+        initialSettings={manageKey ? (() => {
+          const own = getPerms(manageKey)
+          if (!manageParentKey) return own
+          const effectiveVp = getEffectiveVp(own.viewPermission, getPerms(manageParentKey).viewPermission)
+          return { ...own, viewPermission: effectiveVp }
+        })() : undefined}
         onSave={handleSavePermissions}
+        parentVp={manageParentKey ? getPerms(manageParentKey).viewPermission : undefined}
+        parentViewUsers={manageParentKey ? getPerms(manageParentKey).viewUsers : undefined}
       />
+
+      {/* ── Permission conflict dialog ────────────────────────────────────────── */}
+      {conflictInfo && (
+        <ConflictDialog
+          open={conflictOpen}
+          onClose={() => setConflictOpen(false)}
+          onFixParent={handleFixParent}
+          parentName={conflictInfo.parentKey}
+          childName={conflictInfo.childKey}
+          childType={conflictInfo.childType}
+          parentVp={getPerms(conflictInfo.parentKey).viewPermission}
+          newVp={conflictInfo.newSettings.viewPermission}
+          childOwnVp={getPerms(conflictInfo.childKey).viewPermission}
+          parentViewUsers={getPerms(conflictInfo.parentKey).viewUsers}
+          newViewUsers={conflictInfo.newSettings.viewUsers}
+        />
+      )}
     </Box>
   )
 }

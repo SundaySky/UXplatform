@@ -14,7 +14,6 @@ import PeopleOutlinedIcon          from '@mui/icons-material/PeopleOutlined'
 import EditOutlinedIcon            from '@mui/icons-material/EditOutlined'
 import CheckIcon                   from '@mui/icons-material/Check'
 import InfoOutlinedIcon            from '@mui/icons-material/InfoOutlined'
-import ManageAccountsOutlinedIcon  from '@mui/icons-material/ManageAccountsOutlined'
 import KeyboardArrowDownIcon       from '@mui/icons-material/KeyboardArrowDown'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -75,7 +74,7 @@ export const ALL_USERS: User[] = [
 ]
 
 // ─── View permission options ──────────────────────────────────────────────────
-const VIEW_OPTIONS: {
+export const VIEW_OPTIONS: {
   value: ViewPermission
   label: string
   Icon: React.ElementType
@@ -83,12 +82,12 @@ const VIEW_OPTIONS: {
   bgColor: string
 }[] = [
   { value: 'everyone', label: 'Everyone in your account',  Icon: PeopleAltOutlinedIcon, iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)' },
-  { value: 'editors',  label: 'Users who can manage access', Icon: EditOutlinedIcon,   iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
+  { value: 'editors',  label: 'Editors only',                Icon: EditOutlinedIcon,   iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
   { value: 'specific', label: 'Specific users',            Icon: PeopleOutlinedIcon,  iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
   { value: 'private',  label: 'Private (only you)',        Icon: LockOutlinedIcon,    iconColor: c.successMain, bgColor: 'rgba(17,135,71,0.10)' },
 ]
 
-function getViewOption(v: ViewPermission) {
+export function getViewOption(v: ViewPermission) {
   return VIEW_OPTIONS.find(o => o.value === v) ?? VIEW_OPTIONS[0]
 }
 
@@ -142,7 +141,7 @@ export function UserAvatarWithTooltip({
 }
 
 // ─── Users autocomplete ───────────────────────────────────────────────────────
-function UsersAutocomplete({
+export function UsersAutocomplete({
   value,
   onChange,
   placeholder,
@@ -212,11 +211,13 @@ function UsersAutocomplete({
         ))
       }
       renderOption={(props, option, { selected }) => {
+        const { key, ...listProps } = props as typeof props & { key: string }
         const disabledEntry = disabledUsers.find(d => d.id === option.id)
         const row = (
           <Box
+            key={key}
             component="li"
-            {...props}
+            {...listProps}
             sx={{
               display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1,
               cursor: disabledEntry ? 'not-allowed' : 'pointer',
@@ -245,7 +246,7 @@ function UsersAutocomplete({
         if (disabledEntry) {
           return (
             <Tooltip
-              key={option.id}
+              key={key}
               title={disabledEntry.reason}
               placement="right"
               componentsProps={{
@@ -306,12 +307,16 @@ export default function ManageAccessDialog({
   itemType,
   onSave,
   initialSettings,
+  parentVp,
+  parentViewUsers: _parentViewUsers = [],
 }: {
-  open:             boolean
-  onClose:          () => void
-  itemType:         'media' | 'folder'
-  onSave:           (s: PermissionSettings) => void
-  initialSettings?: PermissionSettings
+  open:              boolean
+  onClose:           () => void
+  itemType:          'media' | 'folder'
+  onSave:            (s: PermissionSettings) => void
+  initialSettings?:  PermissionSettings
+  parentVp?:         ViewPermission
+  parentViewUsers?:  User[]
 }) {
   const defaultSettings: PermissionSettings = {
     viewPermission: 'everyone',
@@ -319,12 +324,11 @@ export default function ManageAccessDialog({
     manageUsers:    [OWNER_USER],
   }
 
-  const [viewPermission, setViewPermission] = useState<ViewPermission>(
-    initialSettings?.viewPermission ?? 'everyone'
-  )
-  const [viewUsers,       setViewUsers]       = useState<User[]>(initialSettings?.viewUsers   ?? [])
-  const [manageUsers,     setManageUsers]     = useState<User[]>(initialSettings?.manageUsers ?? [OWNER_USER])
-  const [viewUsersError,  setViewUsersError]  = useState(false)
+  const [viewPermission,       setViewPermission]       = useState<ViewPermission>(initialSettings?.viewPermission ?? 'everyone')
+  const [viewUsers,            setViewUsers]            = useState<User[]>(initialSettings?.viewUsers   ?? [])
+  const [manageUsers,          setManageUsers]          = useState<User[]>(initialSettings?.manageUsers ?? [OWNER_USER])
+  const [viewUsersError,       setViewUsersError]       = useState(false)
+  const [showDiscardConfirm,   setShowDiscardConfirm]   = useState(false)
 
   // Reset local state whenever dialog opens
   useEffect(() => {
@@ -334,9 +338,25 @@ export default function ManageAccessDialog({
       setViewUsers(s.viewUsers)
       setManageUsers(s.manageUsers.length ? s.manageUsers : [OWNER_USER])
       setViewUsersError(false)
+      setShowDiscardConfirm(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Dirty check — compare current state to what was loaded on open
+  const initVp          = initialSettings?.viewPermission ?? 'everyone'
+  const initViewUsers   = initialSettings?.viewUsers      ?? []
+  const initManageUsers = initialSettings?.manageUsers?.length ? initialSettings.manageUsers : [OWNER_USER]
+  function sameIds(a: User[], b: User[]) {
+    if (a.length !== b.length) return false
+    const bs = new Set(b.map(u => u.id))
+    return a.every(u => bs.has(u.id))
+  }
+  const isDirty = viewPermission !== initVp || !sameIds(viewUsers, initViewUsers) || !sameIds(manageUsers, initManageUsers)
+
+  function handleClose() {
+    if (isDirty) { setShowDiscardConfirm(true) } else { onClose() }
+  }
 
   // Clear error when permission changes away from specific or users are added
   useEffect(() => {
@@ -345,12 +365,21 @@ export default function ManageAccessDialog({
     }
   }, [viewPermission, viewUsers])
 
-  const opt = getViewOption(viewPermission)
-
   const showSpecificPicker = viewPermission === 'specific'
   const showManageSection  = viewPermission !== 'private'
   const showFolderAllAlert = itemType === 'folder' && (viewPermission === 'specific' || viewPermission === 'editors')
   const showPrivateAlert   = viewPermission === 'private'
+
+  // Whether a given permission option conflicts with the parent folder
+  const wouldConflict = (optVp: ViewPermission): boolean => {
+    if (!parentVp || parentVp === 'everyone') return false
+    if (optVp === 'private') return false
+    if (parentVp === 'private') return true
+    if (parentVp === 'editors') return optVp === 'everyone'
+    if (parentVp === 'specific') return optVp === 'everyone' || optVp === 'editors'
+    return false
+  }
+  const isCurrentConflict = wouldConflict(viewPermission)
 
   function handleSave() {
     if (viewPermission === 'specific' && viewUsers.length === 0) {
@@ -358,13 +387,13 @@ export default function ManageAccessDialog({
       return
     }
     onSave({ viewPermission, viewUsers, manageUsers })
-    onClose()
+    // Closing is the caller's responsibility (parent may need to show a conflict dialog first)
   }
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth={false}
       PaperProps={{
         sx: {
@@ -387,7 +416,7 @@ export default function ManageAccessDialog({
           <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
             <HelpOutlineIcon />
           </IconButton>
-          <IconButton size="medium" onClick={onClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
+          <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -472,6 +501,14 @@ export default function ManageAccessDialog({
                   }}>
                     {o.label}
                   </Typography>
+                  {wouldConflict(o.value) && (
+                    <Typography sx={{
+                      fontFamily: '"Open Sans", sans-serif', fontSize: 11,
+                      color: c.warningMain, lineHeight: 1.4, mt: '2px',
+                    }}>
+                      Requires updating the parent folder's permission
+                    </Typography>
+                  )}
                 </Box>
                 {viewPermission === o.value && (
                   <CheckIcon sx={{ ml: 'auto', color: c.primary, fontSize: 18 }} />
@@ -532,6 +569,23 @@ export default function ManageAccessDialog({
               All items in this folder will use these settings
             </Alert>
           </Collapse>
+
+          {/* Parent conflict alert */}
+          <Collapse in={isCurrentConflict} unmountOnExit>
+            <Alert
+              severity="warning"
+              icon={<InfoOutlinedIcon fontSize="small" />}
+              sx={{
+                mt: 1.5, borderRadius: '8px',
+                fontFamily: '"Open Sans", sans-serif', fontSize: 13,
+                bgcolor: 'rgba(244,105,0,0.08)',
+                color: c.textPrimary,
+                '& .MuiAlert-icon': { color: c.warningMain },
+              }}
+            >
+              This conflicts with the parent folder's permission. Saving will prompt you to update the parent folder.
+            </Alert>
+          </Collapse>
         </Box>
 
         {/* ── Who can manage access ─────────────────────────────────────────── */}
@@ -563,7 +617,7 @@ export default function ManageAccessDialog({
         <Button
           variant="text"
           size="large"
-          onClick={onClose}
+          onClick={handleClose}
           sx={{
             color: c.primary,
             fontFamily: '"Open Sans", sans-serif',
@@ -590,6 +644,49 @@ export default function ManageAccessDialog({
           Save
         </Button>
       </DialogActions>
+
+      {/* ── Discard changes confirmation ────────────────────────────────────── */}
+      <Dialog
+        open={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)' } }}
+      >
+        <DialogTitle sx={{ p: '20px 20px 12px' }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 18, color: c.textPrimary }}>
+            Discard changes?
+          </Typography>
+        </DialogTitle>
+        <Divider sx={{ borderColor: c.divider }} />
+        <DialogContent sx={{ p: '16px 20px' }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textSecondary, lineHeight: 1.6 }}>
+            All your changes will be lost and the permissions will remain unchanged.
+          </Typography>
+        </DialogContent>
+        <Divider sx={{ borderColor: c.divider }} />
+        <DialogActions sx={{ px: '20px', py: '12px', gap: '8px' }}>
+          <Button
+            variant="text"
+            onClick={() => setShowDiscardConfirm(false)}
+            sx={{ color: c.primary, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600 }}
+          >
+            Keep editing
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => { setShowDiscardConfirm(false); onClose() }}
+            sx={{
+              bgcolor: c.errorMain, textTransform: 'none',
+              fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+              borderRadius: '8px', boxShadow: 'none',
+              '&:hover': { bgcolor: '#C41E34', boxShadow: 'none' },
+            }}
+          >
+            Discard
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   )
 }
