@@ -151,7 +151,7 @@ function Sidebar({
   videoTitle,
   onNavigateToLibrary,
 }: {
-  effectiveStatus: 'draft' | 'pending'
+  effectiveStatus: 'draft' | 'pending' | 'approved'
   videoTitle: string
   onNavigateToLibrary: () => void
 }) {
@@ -225,7 +225,7 @@ function Sidebar({
             fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
             lineHeight: 1.5, color: t.textSecondary,
           }}>
-            {effectiveStatus === 'pending' ? 'Pending approval' : 'Draft'}
+            {effectiveStatus === 'pending' ? 'Pending approval' : effectiveStatus === 'approved' ? 'Approved for sharing' : 'Draft'}
           </Typography>
         </Box>
       </Box>
@@ -305,7 +305,7 @@ function VideoPreviewCard({
   onApproveVideo,
 }: {
   videoPhase:        number
-  effectiveStatus:   'draft' | 'pending'
+  effectiveStatus:   'draft' | 'pending' | 'approved'
   approvers:         string[]
   pendingTooltip:    string
   headingText?:      string
@@ -420,7 +420,7 @@ function VideoPreviewCard({
             onClick={onApproveVideo}
             sx={{ borderColor: t.primaryMain, color: t.primaryMain, '&:hover': { bgcolor: t.primarySelected } }}
           >
-            Approve video
+            Approve for sharing
           </Button>
         </Tooltip>
       )
@@ -1020,9 +1020,9 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 // Phase 0 = initial draft
 // Phase 1 = task 1 done: "1 of 2 approvers responded", Pending approval
 // Phase 2 = task 2 done: "View 10 approver comments and edit", Pending approval
-// Phase 3 = task 3 done: "Approve video", Draft
-// Phase 4 = task 4 done: complete
-const PHASE_STATUS: Record<number, 'draft' | 'pending'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'draft', 4: 'draft' }
+// Phase 3 = task 3 done: "Approve for sharing", Draft
+// Phase 4 = task 4 done: Approved for sharing
+const PHASE_STATUS: Record<number, 'draft' | 'pending' | 'approved'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'draft', 4: 'approved' }
 
 // Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
 type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string }
@@ -1054,7 +1054,7 @@ export default function App() {
   }
 
   // Phase drives status; also allow the approval dialog to flip phase-0 to pending
-  const effectiveStatus: 'draft' | 'pending' =
+  const effectiveStatus: 'draft' | 'pending' | 'approved' =
     videoPhase > 0 ? PHASE_STATUS[videoPhase] : pageState
   const isPending = effectiveStatus === 'pending'
 
