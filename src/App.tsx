@@ -690,7 +690,7 @@ const INITIAL_TASKS: Task[] = [
   { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene title is missing your company name."], done: false },
   { id: 3, label: "Sarah told you she already submitted feedback.", done: false },
   { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
-  { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets—except for Mike, your manager.", done: false },
+  { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
   { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
 ]
 
