@@ -690,8 +690,8 @@ const INITIAL_TASKS: Task[] = [
   { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene title is missing your company name."], done: false },
   { id: 3, label: "Sarah told you she already submitted feedback.", done: false },
   { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
-  { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets—except for Mike, your manager.", done: false },
-  { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
+  { id: 5, label: ["You are creating a video for a top-secret new product launching later this year.", "You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets—except for Mike, your manager."], done: false },
+  { id: 6, label: ["The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content.", "They've asked you to ensure that other users in the organization cannot access or use this avatar."], done: false },
 ]
 
 type SessionState = 'idle' | 'active' | 'survey' | 'complete'
@@ -942,8 +942,8 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
               bgcolor: currentTask.done ? '#E5F7E0' : '#FFFFFF',
               border: `1px solid ${currentTask.done ? t.successMain : '#E0E0E0'}`,
               borderRadius: '10px', p: 2, mt: '10px',
-              height: 180,
-              overflow: 'hidden',
+              minHeight: 220,
+              overflow: 'visible',
               display: 'flex', flexDirection: 'column', gap: '8px',
               transition: 'background-color 0.2s, border-color 0.2s',
             }}>
