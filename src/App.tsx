@@ -472,7 +472,7 @@ function VideoPreviewCard({
           }}
         >
           <Button
-            variant="outlined"
+            variant="contained"
             size="small"
             color="primary"
             startIcon={<CheckIcon sx={{ fontSize: '16px !important' }} />}

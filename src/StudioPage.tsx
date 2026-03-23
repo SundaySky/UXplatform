@@ -619,29 +619,27 @@ function CommentsPanel({
           )}
         </Box>
 
-        {/* ── Footer: "Resent for approval" — only when there are unresolved comments ── */}
-        {unresolvedCount > 0 && (
-          <Box sx={{
-            px: 2, py: '12px',
-            borderTop: `1px solid ${s.dividerGrey}`,
-            flexShrink: 0,
-            display: 'flex', justifyContent: 'flex-end',
-          }}>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleRequestApproval}
-              sx={{
-                fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
-                textTransform: 'none', borderRadius: '8px',
-                bgcolor: s.primary, '&:hover': { bgcolor: '#0042BB' },
-                px: 2,
-              }}
-            >
-              Resent for approval
-            </Button>
-          </Box>
-        )}
+        {/* ── Footer: "Resend for approval" — always visible ── */}
+        <Box sx={{
+          px: 2, py: '12px',
+          borderTop: `1px solid ${s.dividerGrey}`,
+          flexShrink: 0,
+          display: 'flex', justifyContent: 'flex-end',
+        }}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleRequestApproval}
+            sx={{
+              fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+              textTransform: 'none', borderRadius: '8px',
+              bgcolor: s.primary, '&:hover': { bgcolor: '#0042BB' },
+              px: 2,
+            }}
+          >
+            Resend for approval
+          </Button>
+        </Box>
       </Box>
 
       {/* ── Unresolved warning dialog ─────────────────────────────────────── */}
