@@ -218,12 +218,12 @@ function Sidebar({
       }}>
         <Box sx={{
           display: 'inline-flex', alignItems: 'baseline', gap: '2px',
-          bgcolor:      t.grey200,
+          bgcolor: effectiveStatus === 'approved' ? '#EFF7FE' : t.grey200,
           borderRadius: '4px', px: '6px', pt: '2px', pb: '3px',
         }}>
           <Typography sx={{
             fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
-            lineHeight: 1.5, color: t.textSecondary,
+            lineHeight: 1.5, color: effectiveStatus === 'approved' ? '#284862' : t.textSecondary,
           }}>
             {effectiveStatus === 'pending' ? 'Pending approval' : effectiveStatus === 'approved' ? 'Approved for sharing' : 'Draft'}
           </Typography>
@@ -1020,9 +1020,9 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 // Phase 0 = initial draft
 // Phase 1 = task 1 done: "1 of 2 approvers responded", Pending approval
 // Phase 2 = task 2 done: "View 10 approver comments and edit", Pending approval
-// Phase 3 = task 3 done: "Approve for sharing", Draft
+// Phase 3 = task 3 done: "Approve for sharing", Approved for sharing
 // Phase 4 = task 4 done: Approved for sharing
-const PHASE_STATUS: Record<number, 'draft' | 'pending' | 'approved'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'draft', 4: 'approved' }
+const PHASE_STATUS: Record<number, 'draft' | 'pending' | 'approved'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'approved', 4: 'approved' }
 
 // Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
 type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string }
