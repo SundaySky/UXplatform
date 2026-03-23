@@ -472,7 +472,7 @@ function CommentsPanel({
             fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 16,
             color: s.textPrimary, lineHeight: 1.5,
           }}>
-            Approval's comments
+            Comments
           </Typography>
           <IconButton
             size="small"
