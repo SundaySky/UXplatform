@@ -350,11 +350,11 @@ function VideoPreviewCard({
           title={
             <Box sx={{ p: '2px' }}>
               <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block', mb: '2px' }}>
-                {respondedName} left feedback on Mar 15
+                • {respondedName} left feedback on Mar 15
               </Typography>
               {pendingNames.map((name, i) => (
                 <Typography key={i} sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block', mb: i === pendingNames.length - 1 ? '8px' : '2px' }}>
-                  {name} hasn't responded yet
+                  • {name} hasn't responded yet
                 </Typography>
               ))}
               <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block' }}>
