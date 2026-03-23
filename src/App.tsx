@@ -661,7 +661,7 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
 
           {/* Body text */}
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: t.textPrimary }}>
-            Requests have been sent to approvers. You can also share the link below.
+            Requests have been sent to approvers. You can also share the video using the link.
           </Typography>
 
           {/* Copy share link */}
