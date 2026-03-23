@@ -179,7 +179,7 @@ export default function VideoPermissionDialog({
   // Show/hide logic
   const showSpecific      = viewPermission === 'specific'
   const showPrivateAlert  = viewPermission === 'private'
-  const showEditSection   = viewPermission !== 'private' && viewPermission !== 'owners' && viewPermission !== 'videoEditors'
+  const showEditSection   = viewPermission !== 'private' && viewPermission !== 'owners'
   const showOwnerSection  = viewPermission !== 'private'
   const showNoDuplicate   = viewPermission !== 'private' && viewPermission !== 'owners' && viewPermission !== 'videoEditors'
 
