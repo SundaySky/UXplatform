@@ -11,6 +11,7 @@ import BrandingWatermarkOutlinedIcon from '@mui/icons-material/BrandingWatermark
 import PaletteOutlinedIcon         from '@mui/icons-material/PaletteOutlined'
 import PersonOutlinedIcon          from '@mui/icons-material/PersonOutlined'
 import PermMediaOutlinedIcon       from '@mui/icons-material/PermMediaOutlined'
+import AddPhotoAlternateOutlinedIcon from '@mui/icons-material/AddPhotoAlternateOutlined'
 import MusicNoteOutlinedIcon       from '@mui/icons-material/MusicNoteOutlined'
 import MicOutlinedIcon             from '@mui/icons-material/MicOutlined'
 import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
@@ -112,9 +113,10 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
   )
 }
 
-// ─── Edit Heading dialog ──────────────────────────────────────────────────────
-function EditHeadingDialog({ open, currentText, onClose }: {
+// ─── Edit Heading / Sub-heading dialog ───────────────────────────────────────
+function EditHeadingDialog({ open, title, currentText, onClose }: {
   open: boolean
+  title?: string
   currentText: string
   onClose: (newText: string) => void
 }) {
@@ -145,7 +147,7 @@ function EditHeadingDialog({ open, currentText, onClose }: {
         px: 3, pt: 3, pb: 2,
       }}>
         <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 700, fontSize: 22, color: '#1A1A2E' }}>
-          Heading
+          {title ?? 'Heading'}
         </Typography>
         <IconButton size="small" onClick={handleClose} sx={{ color: '#888' }}>
           <CloseIcon sx={{ fontSize: 18 }} />
@@ -177,6 +179,7 @@ function EditHeadingDialog({ open, currentText, onClose }: {
             fullWidth
             multiline
             minRows={2}
+            autoFocus
             value={text}
             onChange={e => setText(e.target.value)}
             variant="standard"
@@ -324,7 +327,7 @@ export const INITIAL_THREADS: CommentThread[] = [
 ]
 
 // ─── Unresolved warning dialog (Figma node 19050-66136) ───────────────────────
-function UnresolvedWarningDialog({ open, count, onClose }: { open: boolean; count: number; onClose: () => void }) {
+function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: boolean; count: number; onClose: () => void; onConfirm: () => void }) {
   const [explanation, setExplanation] = useState('')
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
@@ -347,13 +350,19 @@ function UnresolvedWarningDialog({ open, count, onClose }: { open: boolean; coun
           fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
           lineHeight: 1.5, color: 'rgba(0,0,0,0.87)', mb: 2,
         }}>
-          There are {count} unresolved {count === 1 ? 'comment' : 'comments'}
+          There are {count} unresolved {count === 1 ? 'comment' : 'comments'}.{' '}
+          <Box component="span"
+            sx={{ color: '#0053E5', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+            onClick={onClose}
+          >
+            View comments
+          </Box>
         </Typography>
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
           lineHeight: 1.5, color: 'rgba(0,0,0,0.87)', mb: 1,
         }}>
-          Explain unresolved comments before requesting reapproval
+          Explain why you're requesting sign-off again without changes
         </Typography>
         <TextField
           fullWidth multiline rows={3}
@@ -365,13 +374,13 @@ function UnresolvedWarningDialog({ open, count, onClose }: { open: boolean; coun
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, gap: '8px' }}>
-        <Button variant="text" color="primary" size="large"
+        <Button variant="text" color="primary" size="large" onClick={onClose}
           sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14, textTransform: 'none' }}>
-          Copy share link
+          Cancel
         </Button>
-        <Button variant="contained" color="primary" size="large" onClick={onClose}
+        <Button variant="contained" color="primary" size="large" onClick={onConfirm}
           sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14, textTransform: 'none' }}>
-          Close
+          Send for approvers
         </Button>
       </DialogActions>
     </Dialog>
@@ -397,7 +406,7 @@ function CommentsPanel({
 
   // Position on open
   useEffect(() => {
-    if (open) setPos({ x: Math.max(0, window.innerWidth - 330), y: 80 })
+    if (open) setPos({ x: Math.max(0, window.innerWidth - 330 - 266), y: 80 })
   }, [open])
 
   // On close: move checkedNow → resolved (for next session)
@@ -471,7 +480,7 @@ function CommentsPanel({
             fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 16,
             color: s.textPrimary, lineHeight: 1.5,
           }}>
-            Approval's comments
+            Comments
           </Typography>
           <IconButton
             size="small"
@@ -640,15 +649,16 @@ function CommentsPanel({
         open={warningOpen}
         count={unresolvedCount}
         onClose={() => setWarningOpen(false)}
+        onConfirm={() => { setWarningOpen(false); onRequestApproval() }}
       />
     </>
   )
 }
 
 // ─── Scene thumbnail ──────────────────────────────────────────────────────────
-function SceneThumbnail({ index, selected }: { index: number; selected: boolean }) {
+function SceneThumbnail({ index, selected, headingText, subheadingText, footnoteText, onClick }: { index: number; selected: boolean; headingText?: string; subheadingText?: string; footnoteText?: string; onClick?: () => void }) {
   return (
-    <Box sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+    <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
       <Typography sx={{
         fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
         color: s.textSecondary, letterSpacing: '0.4px',
@@ -660,28 +670,109 @@ function SceneThumbnail({ index, selected }: { index: number; selected: boolean 
         bgcolor: '#FAFAFA',
         border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
         borderRadius: '8px', overflow: 'hidden',
+        position: 'relative',
       }}>
         <Box component="img" src={IMG_THUMB} alt=""
           sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+
+        {/* Cover left half of SVG — white bg + pink accent line */}
+        <Box sx={{ position: 'absolute', inset: 0, width: '50%', bgcolor: '#fff', pointerEvents: 'none' }}>
+          <Box sx={{ height: 3, bgcolor: '#C084FC', width: '100%' }} />
+        </Box>
+
+        {/* Right side — drag media */}
+        <Box sx={{
+          position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%',
+          background: 'repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 6px, #E2E2E7 6px, #E2E2E7 12px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: '4px', pointerEvents: 'none',
+        }}>
+          <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 22, color: '#BDBDBD' }} />
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 7, color: '#BDBDBD' }}>
+            Drag media here
+          </Typography>
+        </Box>
+
+        {/* Heading + sub-heading — flowing column */}
+        <Box sx={{ position: 'absolute', left: '4%', top: '18%', width: '44%', containerType: 'inline-size', pointerEvents: 'none', display: 'flex', flexDirection: 'column' }}>
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '9cqw', color: s.navy, lineHeight: 1.2, wordBreak: 'break-word' }}>
+            {headingText ?? ''}
+          </Typography>
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 400, fontSize: '4cqw', color: s.textPrimary, lineHeight: 1.4, wordBreak: 'break-word', mt: '5%' }}>
+            {subheadingText ?? 'Sub-heading Placeholder'}
+          </Typography>
+        </Box>
+
+        {/* Footnote */}
+        <Box sx={{ position: 'absolute', left: '4%', width: '44%', bottom: '5%', containerType: 'inline-size', pointerEvents: 'none' }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: '2.5cqw', letterSpacing: '0.4px', color: s.textSecondary, lineHeight: 1.66 }}>
+            {footnoteText ?? 'Footnote placeholder'}
+          </Typography>
+        </Box>
       </Box>
     </Box>
   )
 }
 
+// ─── Per-scene content lookup ─────────────────────────────────────────────────
+function sceneContentFor(title?: string): [string, string][] {
+  const map: Record<string, [string, string][]> = {
+    'Stay Safe During Missile Threats': [
+      ['Find Your Nearest Shelter', 'Know your safest options before an alert sounds'],
+      ['When the Siren Sounds', 'Drop, take cover, and protect your head immediately'],
+      ['After the All-Clear', 'Wait for official confirmation before leaving your shelter'],
+    ],
+    'Recent TTS Pronunciation Advancements': [
+      ['Improved Accuracy', 'New models achieve 97% accuracy on complex terminology'],
+      ['Natural Voice Flow', 'Context-aware prosody creates more human-like speech'],
+      ['Try It Yourself', 'Access the updated TTS toolkit in your dashboard today'],
+    ],
+    'Prepare for Winter Fun!': [
+      ['Gear Up Together', 'Essential equipment for every age and skill level'],
+      ['Safety First', 'Check conditions and prep your first-aid kit before heading out'],
+      ['Make Memories', 'Capture the moments that last a lifetime'],
+    ],
+    'Understanding the American-Israel-Iran Conflict: Peace & Safety': [
+      ['Key Players & Interests', 'A closer look at the stakeholders shaping the region'],
+      ['The Path to De-escalation', 'Diplomatic efforts and international frameworks in play'],
+      ['What It Means for You', 'How regional stability affects global security and daily life'],
+    ],
+    "Discover Tel Aviv's Scenic Parks": [
+      ['Yarkon Park', '3,800 dunams of greenery in the heart of the city'],
+      ['Urban Wildlife', 'Meet the birds, fish, and flora that call these parks home'],
+      ['Plan Your Visit', 'Opening hours, facilities, and the best times to explore'],
+    ],
+    'Onboarding Steps': [
+      ['Set Up Your Profile', 'Personalise your account and team settings in minutes'],
+      ['Explore Key Features', 'A guided tour of the tools you\'ll use every day'],
+      ['You\'re Ready to Go', 'Connect with your team and start your first project'],
+    ],
+  }
+  return map[title ?? ''] ?? [
+    ['Scene Overview', 'Key insights for this section of your video'],
+    ['Deeper Dive', 'Supporting details and context worth highlighting'],
+    ['Key Takeaway', 'What your audience should remember most'],
+  ]
+}
+
 // ─── Studio page ──────────────────────────────────────────────────────────────
 interface Props {
-  videoTitle:             string
-  approverNames:          string
-  onNavigateToVideoPage:  () => void
-  onNavigateToLibrary:    () => void
-  onRequestReapproval:    () => void
+  videoTitle:               string
+  initialHeadingText?:      string
+  initialSubheadingText?:   string
+  approverNames:            string
+  onNavigateToVideoPage:    () => void
+  onNavigateToLibrary:      () => void
+  onRequestReapproval:      () => void
+  onHeadingChange?:         (text: string) => void
+  onSubheadingChange?:      (text: string) => void
   openCommentsOnMount?:   boolean
   triggerOpenComments?:   number
   notifications?:         NotificationItem[]
   initialThreads?:        CommentThread[]
 }
 
-export default function StudioPage({ videoTitle, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -693,9 +784,24 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
   const [mediaFolder,      setMediaFolder]      = useState<string | null>(null)
   const [avatarLibOpen,    setAvatarLibOpen]    = useState(false)
   const [avatarReqCount,   setAvatarReqCount]   = useState(4) // mock: adam has 4 pending
-  const [headingSelected,  setHeadingSelected]  = useState(false)
-  const [headingText,      setHeadingText]      = useState(videoTitle)
-  const [editHeadingOpen,  setEditHeadingOpen]  = useState(false)
+  const [selectedScene,    setSelectedScene]    = useState(0)
+  const [headingSelected,     setHeadingSelected]     = useState(false)
+  const [headingText,         setHeadingText]         = useState(initialHeadingText ?? videoTitle)
+  const [editHeadingOpen,     setEditHeadingOpen]     = useState(false)
+  const [subheadingSelected,  setSubheadingSelected]  = useState(false)
+  const [subheadingText,      setSubheadingText]      = useState(initialSubheadingText ?? 'Sub-heading Placeholder')
+  const [editSubheadingOpen,  setEditSubheadingOpen]  = useState(false)
+  const [footnoteSelected,    setFootnoteSelected]    = useState(false)
+  const [footnoteText,        setFootnoteText]        = useState('Footnote placeholder')
+  const [editFootnoteOpen,    setEditFootnoteOpen]    = useState(false)
+
+  const SCENE_COUNT = 4
+  const goToScene = (idx: number) => {
+    setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
+    setHeadingSelected(false)
+    setSubheadingSelected(false)
+    setFootnoteSelected(false)
+  }
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,      setSnackbarMsg]      = useState<string | null>(null)
   const [videoPermOpen,    setVideoPermOpen]    = useState(false)
@@ -971,21 +1077,22 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
           }}>
             {/* Prev arrow */}
             <IconButton
-              disabled
+              disabled={selectedScene === 0}
+              onClick={() => goToScene(selectedScene - 1)}
               size="small"
-              sx={{ position: 'absolute', left: 16, color: s.actionDisabled }}
+              sx={{ position: 'absolute', left: 16, color: selectedScene === 0 ? s.actionDisabled : s.primary }}
             >
               <ChevronLeftIcon />
             </IconButton>
 
             {/* Canvas */}
             <Box
-              onClick={() => setHeadingSelected(false)}
+              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false) }}
               sx={{
                 maxWidth: 680, width: '100%', position: 'relative',
                 borderRadius: '8px', overflow: 'visible',
-                border: `1px solid ${headingSelected ? '#0053E5' : s.divider}`,
-                boxShadow: headingSelected
+                border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? '#0053E5' : s.divider}`,
+                boxShadow: headingSelected || subheadingSelected || footnoteSelected
                   ? '0px 0px 0px 2px rgba(0,83,229,0.20), 0px 2px 12px rgba(3,25,79,0.10)'
                   : '0px 2px 12px rgba(3,25,79,0.10)',
                 transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -996,60 +1103,116 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
                 <Box component="img" src={IMG_THUMB} alt={videoTitle}
                   sx={{ width: '100%', display: 'block' }} />
 
-                {/* White cover to hide the SVG's static "HEADING / PLACEHOLDER" text */}
-                <Box sx={{
-                  position: 'absolute', left: '3%', top: '14%',
-                  width: '44%', height: '27%', bgcolor: '#fff',
-                }} />
+                {/* Cover left half of SVG — white bg + pink accent line */}
+                <Box sx={{ position: 'absolute', inset: 0, width: '50%', bgcolor: '#fff', pointerEvents: 'none' }}>
+                  <Box sx={{ height: 5, bgcolor: '#C084FC', width: '100%' }} />
+                </Box>
 
-                {/* Video title text — scales with canvas width */}
+                {/* Right side — drag media area */}
                 <Box sx={{
-                  position: 'absolute', left: '3.5%', top: '15%', width: '43%',
-                  pointerEvents: 'none', containerType: 'inline-size',
+                  position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%',
+                  background: 'repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 12px, #E2E2E7 12px, #E2E2E7 24px)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: '8px', pointerEvents: 'none',
                 }}>
-                  <Typography sx={{
-                    fontFamily: 'sans-serif', fontWeight: 700,
-                    fontSize: '10cqw',
-                    color: '#1A1A2E', lineHeight: 1.3, wordBreak: 'break-word',
-                  }}>
-                    {headingText}
+                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 52, color: '#BDBDBD' }} />
+                  </Box>
+                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 13, color: '#BDBDBD', letterSpacing: '0.15px' }}>
+                    Drag media here
+                  </Typography>
+                </Box>
+
+                {/* Heading + sub-heading — flowing column, scene 0 = video title, others = derived content */}
+                {(() => {
+                  const derived = sceneContentFor(videoTitle)
+                  const sceneHeadings = [
+                    { h: headingText, s: subheadingText },
+                    { h: derived[0][0], s: derived[0][1] },
+                    { h: derived[1][0], s: derived[1][1] },
+                    { h: derived[2][0], s: derived[2][1] },
+                  ]
+                  const scene = sceneHeadings[selectedScene] ?? sceneHeadings[0]
+                  return (
+                    <Box sx={{
+                      position: 'absolute', left: '4%', top: '20%', width: '44%',
+                      containerType: 'inline-size', display: 'flex', flexDirection: 'column',
+                    }}>
+                      <Box
+                        onClick={e => { e.stopPropagation(); setHeadingSelected(p => !p); setSubheadingSelected(false); setFootnoteSelected(false) }}
+                        sx={{
+                          cursor: 'pointer', borderRadius: '4px', px: '2px',
+                          border: headingSelected ? '2px solid #0053E5' : '2px solid transparent',
+                          bgcolor: headingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
+                          '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
+                          pointerEvents: selectedScene === 0 ? 'auto' : 'none',
+                        }}
+                      >
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '10cqw', color: s.navy, lineHeight: 1.2, wordBreak: 'break-word' }}>
+                          {scene.h}
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={e => { e.stopPropagation(); setSubheadingSelected(p => !p); setHeadingSelected(false); setFootnoteSelected(false) }}
+                        sx={{
+                          cursor: 'pointer', borderRadius: '4px', px: '2px', mt: '4%',
+                          border: subheadingSelected ? '2px solid #0053E5' : '2px solid transparent',
+                          bgcolor: subheadingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
+                          '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
+                          pointerEvents: selectedScene === 0 ? 'auto' : 'none',
+                        }}
+                      >
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 400, fontSize: '4.5cqw', color: s.textPrimary, lineHeight: 1.4, wordBreak: 'break-word' }}>
+                          {scene.s}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )
+                })()}
+
+                {/* Footnote — bottom-left, all scenes */}
+                <Box
+                  onClick={e => { e.stopPropagation(); setFootnoteSelected(p => !p); setHeadingSelected(false); setSubheadingSelected(false) }}
+                  sx={{
+                    position: 'absolute', left: '4%', width: '44%', bottom: '5%',
+                    cursor: 'pointer', borderRadius: '4px', px: '4px', py: '2px',
+                    border: footnoteSelected ? '2px solid #0053E5' : '2px solid transparent',
+                    bgcolor: footnoteSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
+                    '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
+                    containerType: 'inline-size',
+                  }}
+                >
+                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: '2.5cqw', letterSpacing: '0.4px', color: s.textSecondary, lineHeight: 1.66 }}>
+                    {footnoteText}
                   </Typography>
                 </Box>
               </Box>
 
-              {/* Clickable selection overlay */}
-              <Box
-                onClick={e => { e.stopPropagation(); setHeadingSelected(prev => !prev) }}
-                sx={{
-                  position: 'absolute', left: '3%', top: '14%',
-                  width: '44%', height: '27%',
-                  cursor: 'pointer', borderRadius: '4px',
-                  border: headingSelected ? '2px solid #0053E5' : '2px solid transparent',
-                  bgcolor: headingSelected ? 'rgba(0,83,229,0.06)' : 'transparent',
-                  transition: 'background 0.15s, border-color 0.15s',
-                  '&:hover': { border: '2px solid #0053E5', bgcolor: 'rgba(0,83,229,0.04)' },
-                }}
-              />
-
-              {/* Toolbar — floats just above the heading selection box */}
+              {/* Toolbars — outside overflow:hidden so they render above the canvas edge */}
               {headingSelected && (
-                <Box sx={{
-                  position: 'absolute',
-                  left: '50%',
-                  top: 'calc(14% - 10px)',
-                  transform: 'translate(-50%, -100%)',
-                  zIndex: 20,
-                  pointerEvents: 'auto',
-                }}>
-                  <PlaceholderToolbar
-                    onEditClick={() => { setEditHeadingOpen(true); setHeadingSelected(false) }}
-                  />
+                <Box sx={{ position: 'absolute', left: '25%', top: '30%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
+                  <PlaceholderToolbar onEditClick={() => { setEditHeadingOpen(true) }} />
+                </Box>
+              )}
+              {subheadingSelected && (
+                <Box sx={{ position: 'absolute', left: '25%', top: '55%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
+                  <PlaceholderToolbar onEditClick={() => { setEditSubheadingOpen(true) }} />
+                </Box>
+              )}
+              {footnoteSelected && (
+                <Box sx={{ position: 'absolute', left: '50%', bottom: '3%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
+                  <PlaceholderToolbar onEditClick={() => { setEditFootnoteOpen(true) }} />
                 </Box>
               )}
             </Box>
 
             {/* Next arrow */}
-            <IconButton size="small" sx={{ position: 'absolute', right: 16, color: s.primary }}>
+            <IconButton
+              disabled={selectedScene === SCENE_COUNT - 1}
+              onClick={() => goToScene(selectedScene + 1)}
+              size="small"
+              sx={{ position: 'absolute', right: 16, color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary }}
+            >
               <ChevronRightIcon />
             </IconButton>
           </Box>
@@ -1096,7 +1259,7 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
                 color: s.primaryLight, letterSpacing: '0.4px', ml: 1.5,
               }}>
-                Scene 1 / 4
+                Scene {selectedScene + 1} / {SCENE_COUNT}
               </Typography>
             </Box>
 
@@ -1107,7 +1270,10 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
               '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
             }}>
               {[0, 1, 2, 3].map(i => (
-                <SceneThumbnail key={i} index={i} selected={i === 0} />
+                <SceneThumbnail key={i} index={i} selected={i === selectedScene}
+                  headingText={i === 0 ? headingText : (sceneContentFor(videoTitle)[i-1]?.[0] ?? 'Scene ' + (i+1))}
+                  subheadingText={i === 0 ? subheadingText : (sceneContentFor(videoTitle)[i-1]?.[1] ?? '')}
+                  footnoteText={footnoteText} onClick={() => goToScene(i)} />
               ))}
               {/* Add scene */}
               <Box sx={{
@@ -1133,8 +1299,21 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
       {/* ── Edit Heading dialog ───────────────────────────────────────────── */}
       <EditHeadingDialog
         open={editHeadingOpen}
+        title="Heading"
         currentText={headingText}
-        onClose={(newText) => { setHeadingText(newText); setEditHeadingOpen(false) }}
+        onClose={(newText) => { setHeadingText(newText); setEditHeadingOpen(false); onHeadingChange?.(newText) }}
+      />
+      <EditHeadingDialog
+        open={editSubheadingOpen}
+        title="Sub-heading"
+        currentText={subheadingText}
+        onClose={(newText) => { setSubheadingText(newText); setEditSubheadingOpen(false); onSubheadingChange?.(newText) }}
+      />
+      <EditHeadingDialog
+        open={editFootnoteOpen}
+        title="Footnote"
+        currentText={footnoteText}
+        onClose={(newText) => { setFootnoteText(newText); setEditFootnoteOpen(false) }}
       />
 
       {/* ── Comments panel — draggable + resizable ────────────────────────── */}

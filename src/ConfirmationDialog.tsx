@@ -66,19 +66,10 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
             fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
             lineHeight: 1.5, color: ds.textPrimary,
           }}>
-            You can also share the link below if you prefer.
+            {isMulti
+              ? 'Comments will be available after everyone has responded. You can also share the link below.'
+              : 'You can also share the link below.'}
           </Typography>
-
-          {/* Multi-approver only: second paragraph (node 19013:35274) */}
-          {isMulti && (
-            <Typography sx={{
-              fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
-              lineHeight: 1.5, color: ds.textPrimary,
-            }}>
-              All comments will be available once all approvers have responded or
-              submitted their approval.
-            </Typography>
-          )}
         </Box>
       </DialogContent>
 

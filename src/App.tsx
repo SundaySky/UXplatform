@@ -14,6 +14,11 @@ import {
   InputAdornment,
   OutlinedInput,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material'
 import ApprovalDialog     from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
@@ -27,7 +32,8 @@ import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MoreVertIcon              from '@mui/icons-material/MoreVert'
 import EditOutlinedIcon          from '@mui/icons-material/EditOutlined'
 import CreateOutlinedIcon        from '@mui/icons-material/CreateOutlined'
-import CommentOutlinedIcon       from '@mui/icons-material/CommentOutlined'
+import CommentOutlinedIcon            from '@mui/icons-material/CommentOutlined'
+import AddPhotoAlternateOutlinedIcon  from '@mui/icons-material/AddPhotoAlternateOutlined'
 import ShareOutlinedIcon         from '@mui/icons-material/ShareOutlined'
 import BarChartOutlinedIcon      from '@mui/icons-material/BarChartOutlined'
 import ArrowBackIcon             from '@mui/icons-material/ArrowBack'
@@ -291,6 +297,9 @@ function VideoPreviewCard({
   effectiveStatus,
   approvers,
   pendingTooltip,
+  headingText,
+  subheadingText,
+  videoTitle,
   onSentForApproval,
   onEdit,
   onApproveVideo,
@@ -299,6 +308,9 @@ function VideoPreviewCard({
   effectiveStatus:   'draft' | 'pending'
   approvers:         string[]
   pendingTooltip:    string
+  headingText?:      string
+  subheadingText?:   string
+  videoTitle?:       string
   onSentForApproval: () => void
   onEdit:            (fromComments?: boolean) => void
   onApproveVideo:    () => void
@@ -338,15 +350,15 @@ function VideoPreviewCard({
           title={
             <Box sx={{ p: '2px' }}>
               <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block', mb: '2px' }}>
-                • {respondedName} commented on Mar 15
+                {respondedName} left feedback on Mar 15
               </Typography>
               {pendingNames.map((name, i) => (
                 <Typography key={i} sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: '#fff', lineHeight: 1.6, display: 'block', mb: i === pendingNames.length - 1 ? '8px' : '2px' }}>
-                  • {name} hasn't responded yet
+                  {name} hasn't responded yet
                 </Typography>
               ))}
               <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>
-                Comments will be available to view once all approvers submit their approval or feedback.
+                Comments will be available once all approvers have responded.
               </Typography>
             </Box>
           }
@@ -383,7 +395,7 @@ function VideoPreviewCard({
           }
           onClick={() => onEdit(true)}
         >
-          View {TOTAL_COMMENT_COUNT} approver comments and edit
+          View {TOTAL_COMMENT_COUNT} comments in Studio
         </Button>
       )
     }
@@ -408,7 +420,7 @@ function VideoPreviewCard({
             onClick={onApproveVideo}
             sx={{ borderColor: t.primaryMain, color: t.primaryMain, '&:hover': { bgcolor: t.primarySelected } }}
           >
-            Approve
+            Approve video
           </Button>
         </Tooltip>
       )
@@ -450,13 +462,50 @@ function VideoPreviewCard({
 
       <Divider sx={{ borderColor: t.divider }} />
 
-      {/* Preview — single full-width Figma asset image (matches real app proportions) */}
-      <Box
-        component="img"
-        src={imgVideoPreview}
-        alt="Recent TTS Pronunciation Advancements preview"
-        sx={{ width: '100%', display: 'block', objectFit: 'cover' }}
-      />
+      {/* Preview — first scene with heading/sub-heading overlaid */}
+      <Box sx={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+        <Box component="img" src={imgVideoPreview} alt={videoTitle ?? 'Video preview'}
+          sx={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+
+        {/* Left half — white bg + pink accent line */}
+        <Box sx={{ position: 'absolute', inset: 0, width: '50%', bgcolor: '#fff', pointerEvents: 'none' }}>
+          <Box sx={{ height: 5, bgcolor: '#C084FC', width: '100%' }} />
+        </Box>
+
+        {/* Right half — drag media */}
+        <Box sx={{
+          position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%',
+          background: 'repeating-linear-gradient(-45deg,#EBEBEF 0px,#EBEBEF 10px,#E2E2E7 10px,#E2E2E7 20px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: '6px', pointerEvents: 'none',
+        }}>
+          <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 36, color: '#BDBDBD' }} />
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 11, color: '#BDBDBD' }}>
+            Drag media here
+          </Typography>
+        </Box>
+
+        {/* Text overlays — flowing column */}
+        <Box sx={{
+          position: 'absolute', left: '4%', top: '20%', width: '43%',
+          containerType: 'inline-size', pointerEvents: 'none',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '9cqw', color: '#03194F', lineHeight: 1.2, wordBreak: 'break-word' }}>
+            {headingText ?? videoTitle ?? ''}
+          </Typography>
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 400, fontSize: '4cqw', color: 'rgba(0,0,0,0.7)', lineHeight: 1.4, wordBreak: 'break-word', mt: '6%' }}>
+            {subheadingText ?? 'Sub-heading Placeholder'}
+          </Typography>
+        </Box>
+
+        {/* Footnote */}
+        <Box sx={{ position: 'absolute', left: '4%', width: '43%', bottom: '5%', containerType: 'inline-size', pointerEvents: 'none' }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: '2.5cqw', letterSpacing: '0.4px', color: 'rgba(0,0,0,0.45)', lineHeight: 1.66 }}>
+            Footnote placeholder
+          </Typography>
+        </Box>
+      </Box>
 
       <Divider sx={{ borderColor: t.divider }} />
 
@@ -616,7 +665,7 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
 
           {/* Body text */}
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: t.textPrimary }}>
-            Approval requests were sent to the approvers' email addresses. You can also share the link below if you prefer to send it another way.
+            Requests have been sent to approvers. You can also share the link below.
           </Typography>
 
           {/* Copy share link */}
@@ -645,12 +694,18 @@ const INITIAL_TASKS: Task[] = [
   { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
 ]
 
-type SessionState = 'idle' | 'active' | 'complete'
+type SessionState = 'idle' | 'active' | 'survey' | 'complete'
 
 function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) {
   const [tasks,       setTasks]       = useState<Task[]>(INITIAL_TASKS)
   const [session,     setSession]     = useState<SessionState>('active')   // auto-start
   const [currentIdx,  setCurrentIdx]  = useState(0)
+  const [surveyStep,  setSurveyStep]  = useState<1 | 2>(1)
+  const [surveyQ1,    setSurveyQ1]    = useState<number | null>(null)
+  const [surveyQ2,    setSurveyQ2]    = useState<number | null>(null)
+  const [surveyWhy1,  setSurveyWhy1]  = useState('')
+  const [surveyWhy2,  setSurveyWhy2]  = useState('')
+  const [pendingNext, setPendingNext] = useState<number | null>(null) // idx to go to after survey
 
   const doneCount = tasks.filter(t => t.done).length
 
@@ -658,6 +713,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
     setTasks(INITIAL_TASKS.map(t => ({ ...t, done: false })))
     setCurrentIdx(0)
     setSession('active')
+    setSurveyStep(1); setSurveyQ1(null); setSurveyQ2(null); setSurveyWhy1(''); setSurveyWhy2(''); setPendingNext(null)
   }
 
   // Clear resets ALL session state and restarts from task 1
@@ -665,19 +721,42 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
     setTasks(INITIAL_TASKS.map(t => ({ ...t, done: false })))
     setCurrentIdx(0)
     setSession('active')
+    setSurveyStep(1); setSurveyQ1(null); setSurveyQ2(null); setSurveyWhy1(''); setSurveyWhy2(''); setPendingNext(null)
   }
 
   const markDone = () => {
     const updated = tasks.map((task, i) => i === currentIdx ? { ...task, done: true } : task)
     setTasks(updated)
-    // Notify parent so it can update phase + navigate to library
     onTaskDone?.(currentIdx)
     const allDone = updated.every(t => t.done)
-    if (allDone) { setSession('complete'); return }
-    // Advance to the next undone task (wraps forward)
-    let next = currentIdx + 1
-    while (next < updated.length && updated[next].done) next++
-    if (next < updated.length) setCurrentIdx(next)
+    if (allDone) {
+      setPendingNext(null)
+    } else {
+      let next = currentIdx + 1
+      while (next < updated.length && updated[next].done) next++
+      setPendingNext(next < updated.length ? next : null)
+    }
+    setSurveyStep(1); setSurveyQ1(null); setSurveyQ2(null); setSurveyWhy1(''); setSurveyWhy2('')
+    setSession('survey')
+  }
+
+  const advanceSurvey = () => {
+    if (surveyStep === 1) {
+      setSurveyStep(2)
+      setSurveyQ2(null); setSurveyWhy2('')
+    } else {
+      submitSurvey()
+    }
+  }
+
+  const submitSurvey = () => {
+    if (pendingNext !== null) {
+      setCurrentIdx(pendingNext)
+      setSession('active')
+    } else {
+      setSession('complete')
+    }
+    setSurveyStep(1); setSurveyQ1(null); setSurveyQ2(null); setSurveyWhy1(''); setSurveyWhy2(''); setPendingNext(null)
   }
 
   const currentTask = tasks[currentIdx]
@@ -744,6 +823,91 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
         </Box>
       )}
 
+      {/* ── Survey dialog ─────────────────────────────────────────────────── */}
+      {(() => {
+        const isQ1 = surveyStep === 1
+        const qLabel = isQ1
+          ? 'Overall, how easy or difficult was this task?'
+          : 'How confident are you that you completed the task correctly?'
+        const qValue = isQ1 ? surveyQ1 : surveyQ2
+        const setQ    = isQ1 ? setSurveyQ1 : setSurveyQ2
+        const qWhy   = isQ1 ? surveyWhy1 : surveyWhy2
+        const setWhy = isQ1 ? setSurveyWhy1 : setSurveyWhy2
+        return (
+          <Dialog
+            open={session === 'survey'}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{ sx: { borderRadius: '12px', p: 1 } }}
+          >
+            <DialogTitle sx={{ pb: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, color: t.textSecondary }}>
+                Question {surveyStep} of 2
+              </Typography>
+              <IconButton size="small" onClick={submitSurvey} sx={{ color: 'rgba(0,0,0,0.56)', mr: -1 }}>
+                <CloseIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </DialogTitle>
+
+            <DialogContent sx={{ pt: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: '#323338', lineHeight: 1.5 }}>
+                {qLabel}
+              </Typography>
+
+              {/* 7-point scale */}
+              <Box sx={{ display: 'flex', gap: '4px' }}>
+                {[1,2,3,4,5,6,7].map(n => (
+                  <Box
+                    key={n}
+                    onClick={() => setQ(n)}
+                    sx={{
+                      flex: 1, height: 36, borderRadius: '6px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: `1.5px solid ${qValue === n ? t.primaryMain : '#E0E0E0'}`,
+                      bgcolor: qValue === n ? t.primaryMain : '#FFFFFF',
+                      transition: 'all 0.15s',
+                      '&:hover': { borderColor: t.primaryMain, bgcolor: qValue === n ? t.primaryMain : '#EEF3FD' },
+                    }}
+                  >
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: qValue === n ? '#FFFFFF' : '#323338' }}>
+                      {n}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: '-8px' }}>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 11, color: t.textSecondary }}>Very Difficult</Typography>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 11, color: t.textSecondary }}>Very Easy</Typography>
+              </Box>
+
+              {/* Why */}
+              <TextField
+                label="Why?"
+                placeholder="Tell us more (optional)"
+                multiline
+                rows={2}
+                size="small"
+                value={qWhy}
+                onChange={e => setWhy(e.target.value)}
+                sx={{ '& .MuiInputBase-root': { fontFamily: '"Open Sans", sans-serif', fontSize: 13 } }}
+              />
+            </DialogContent>
+
+            <DialogActions sx={{ px: 3, pb: 2.5, pt: 0.5 }}>
+              <Button
+                fullWidth
+                variant="contained"
+                disabled={qValue === null}
+                onClick={advanceSurvey}
+                sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, textTransform: 'none', borderRadius: '8px' }}
+              >
+                {surveyStep === 1 ? 'Next' : pendingNext !== null ? 'Next task' : 'Finish'}
+              </Button>
+            </DialogActions>
+          </Dialog>
+        )
+      })()}
+
       {/* ── Active task ───────────────────────────────────────────────────── */}
       {session === 'active' && currentTask && (
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -771,13 +935,15 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
           </Box>
 
           {/* Scrollable content: task card + button + dots nav */}
-          <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pb: 2, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pb: 2, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Task card */}
+            {/* Task card — fixed min-height so button doesn't shift between tasks */}
             <Box sx={{
               bgcolor: currentTask.done ? '#E5F7E0' : '#FFFFFF',
               border: `1px solid ${currentTask.done ? t.successMain : '#E0E0E0'}`,
-              borderRadius: '10px', p: 2,
+              borderRadius: '10px', p: 2, mt: '10px',
+              height: 300,
+              overflow: 'hidden',
               display: 'flex', flexDirection: 'column', gap: '8px',
               transition: 'background-color 0.2s, border-color 0.2s',
             }}>
@@ -804,7 +970,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
               ))}
             </Box>
 
-            {/* I'm done — right below the task card */}
+            {/* I'm done */}
             <Button
               fullWidth
               variant="contained"
@@ -812,7 +978,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
               onClick={markDone}
               sx={{
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                fontSize: 13, textTransform: 'none', borderRadius: '8px',
+                fontSize: 13, textTransform: 'none', borderRadius: '8px', mt: '10px',
                 bgcolor: currentTask.done ? t.successMain : t.primaryMain,
                 '&:hover': { bgcolor: currentTask.done ? t.successMain : '#0042BB' },
                 '&.Mui-disabled': { bgcolor: '#E5F7E0', color: t.successMain },
@@ -822,7 +988,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
             </Button>
 
             {/* Dot navigation */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: '2px' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: '2px', mt: '4px' }}>
               <IconButton size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={{ color: t.actionActive }}>
                 <ArrowBackIcon sx={{ fontSize: 18 }} />
               </IconButton>
@@ -859,7 +1025,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 const PHASE_STATUS: Record<number, 'draft' | 'pending'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'draft', 4: 'draft' }
 
 // Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
-type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean }
+type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string }
 const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: 'draft', sentApprovers: [] }
 
 export default function App() {
@@ -990,10 +1156,14 @@ export default function App() {
           /* ── Studio / Editor page ─────────────────────────────────────────── */
           <StudioPage
             videoTitle={selectedVideo?.title ?? 'Video'}
+            initialHeadingText={currentVState.headingText}
+            initialSubheadingText={currentVState.subheadingText}
             approverNames={sentApprovers.length > 0 ? formatApproverNames(sentApprovers) : 'Sarah Johnson and Emma Rodriguez'}
             onNavigateToVideoPage={() => setCurrentPage('video')}
             onNavigateToLibrary={() => setCurrentPage('library')}
             onRequestReapproval={() => updateVideoState(currentKey, { phase: 0, pageState: 'pending' })}
+            onHeadingChange={(text) => updateVideoState(currentKey, { headingText: text })}
+            onSubheadingChange={(text) => updateVideoState(currentKey, { subheadingText: text })}
             openCommentsOnMount={openCommentsOnStudio}
             triggerOpenComments={openCommentsCounter}
             notifications={notifications}
@@ -1042,9 +1212,12 @@ export default function App() {
                       effectiveStatus={effectiveStatus}
                       approvers={sentApprovers.length > 0 ? sentApprovers : ['sjohnson', 'erodriguez']}
                       pendingTooltip={pendingTooltip}
+                      headingText={currentVState.headingText}
+                      subheadingText={currentVState.subheadingText}
+                      videoTitle={selectedVideo?.title}
                       onSentForApproval={() => setDialogStep('form')}
                       onEdit={(fromComments?: boolean) => {
-                        if (isPending && !fromComments) {
+                        if (isPending && videoPhase !== 2 && !fromComments) {
                           setCancelApprovalDialogOpen(true)
                         } else {
                           setOpenCommentsOnStudio(fromComments ?? false)
@@ -1054,7 +1227,7 @@ export default function App() {
                       onApproveVideo={() => setApproveDialogOpen(true)}
                     />
                   </Box>
-                  <ReviewOptionsPanel isPending={effectiveStatus === 'pending'} />
+                  <ReviewOptionsPanel isPending={effectiveStatus === 'pending' && videoPhase !== 2} />
                 </Box>
               </Box>
             </Box>

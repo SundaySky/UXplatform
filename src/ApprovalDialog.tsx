@@ -175,7 +175,7 @@ export default function ApprovalDialog({ open, onClose, onSend }: Props) {
                             {USERS.find(u => u.value === val)?.label}
                           </Typography>
                         : <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 400, color: ds.textDisabled, fontStyle: 'italic' }}>
-                            Choose approver {i + 1}
+                            Select approver {i + 1}
                           </Typography>
                     }
                     sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: ds.divider } }}
