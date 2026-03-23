@@ -19,6 +19,8 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Menu,
+  MenuItem,
 } from '@mui/material'
 import ApprovalDialog     from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
@@ -27,6 +29,7 @@ import CancelApprovalDialog  from './CancelApprovalDialog'
 import VideoLibraryPage, { type VideoItem } from './VideoLibraryPage'
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS, type CommentThread } from './StudioPage'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
+import VideoPermissionDialog, { VideoAccessBar, type VideoPermissionSettings } from './VideoPermissionDialog'
 
 // MUI icons
 import MoreVertIcon              from '@mui/icons-material/MoreVert'
@@ -58,6 +61,7 @@ import ArrowDownwardIcon         from '@mui/icons-material/ArrowDownwardOutlined
 import WarningAmberOutlinedIcon  from '@mui/icons-material/WarningAmberOutlined'
 import CloseIcon                 from '@mui/icons-material/Close'
 import CheckIcon                 from '@mui/icons-material/Check'
+import DeleteOutlineIcon         from '@mui/icons-material/DeleteOutline'
 
 // ─── Figma asset: split-template preview (template left + media right)
 const imgVideoPreview = '/thumb.svg'
@@ -150,11 +154,16 @@ function Sidebar({
   effectiveStatus,
   videoTitle,
   onNavigateToLibrary,
+  videoPermSettings,
+  onManageAccess,
 }: {
   effectiveStatus: 'draft' | 'pending' | 'approved'
   videoTitle: string
   onNavigateToLibrary: () => void
+  videoPermSettings?: VideoPermissionSettings
+  onManageAccess: () => void
 }) {
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   return (
     <Box sx={{
       width: 266, flexShrink: 0, display: 'flex', flexDirection: 'column',
@@ -196,9 +205,48 @@ function Sidebar({
         }}>
           {videoTitle}
         </Typography>
-        <IconButton size="small" sx={{ mt: 0.3, color: t.actionActive, flexShrink: 0 }}>
+        <IconButton size="small" onClick={e => setMenuAnchor(e.currentTarget)} sx={{ mt: 0.3, color: t.actionActive, flexShrink: 0 }}>
           <MoreVertIcon fontSize="small" />
         </IconButton>
+        {/* Three-dot menu */}
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={() => setMenuAnchor(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          PaperProps={{ sx: { borderRadius: '8px', minWidth: 240, boxShadow: '0px 4px 20px rgba(3,25,79,0.15)', mt: '4px' } }}
+        >
+          {/* Video access bar header */}
+          <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: t.textPrimary, mb: '10px' }}>
+              {videoTitle}
+            </Typography>
+            <VideoAccessBar
+              settings={videoPermSettings}
+              onManageAccess={() => { setMenuAnchor(null); onManageAccess() }}
+              onChangePermission={() => { setMenuAnchor(null); onManageAccess() }}
+            />
+          </Box>
+          <Divider sx={{ my: '4px', borderColor: t.divider }} />
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><EditOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Details</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><FileExportIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Move to folder</ListItemText>
+          </MenuItem>
+          <Divider sx={{ my: '4px', borderColor: t.divider }} />
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.errorMain }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.errorMain }}>Delete</ListItemText>
+          </MenuItem>
+        </Menu>
       </Box>
 
       {/* Status chip — "Video/template status bank"
@@ -229,6 +277,17 @@ function Sidebar({
           </Typography>
         </Box>
       </Box>
+
+      {/* Permission bar */}
+      <Box sx={{ px: 2.5, pt: 1.5, pb: 0.5 }}>
+        <VideoAccessBar
+          settings={videoPermSettings}
+          onManageAccess={onManageAccess}
+          onChangePermission={onManageAccess}
+        />
+      </Box>
+
+      <Divider sx={{ borderColor: t.divider, mx: 2.5, my: 1 }} />
 
       {/* Nav items */}
       <Box sx={{ px: 2, py: 1 }}>
@@ -1033,6 +1092,8 @@ export default function App() {
   const [cancelApprovalDialogOpen, setCancelApprovalDialogOpen] = useState(false)
   const [openCommentsOnStudio,  setOpenCommentsOnStudio]  = useState(false)
   const [openCommentsCounter,   setOpenCommentsCounter]   = useState(0)
+  const [videoPermDialogOpen,   setVideoPermDialogOpen]   = useState(false)
+  const [videoPermSettings,     setVideoPermSettings]     = useState<VideoPermissionSettings | undefined>(undefined)
 
   // Derive current video's state from the map (defaults to fresh draft)
   const currentKey = selectedVideo?.title || 'Stay Safe During Missile Threats'
@@ -1173,6 +1234,8 @@ export default function App() {
               effectiveStatus={effectiveStatus}
               videoTitle={selectedVideo?.title ?? 'Video'}
               onNavigateToLibrary={() => setCurrentPage('library')}
+              videoPermSettings={videoPermSettings}
+              onManageAccess={() => setVideoPermDialogOpen(true)}
             />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -1238,6 +1301,14 @@ export default function App() {
           updateVideoState(key, { phase: idx + 1 })
           setCurrentPage('library')
         }}
+      />
+
+      {/* ── Video permission dialog (video page) ───────────────────────────── */}
+      <VideoPermissionDialog
+        open={videoPermDialogOpen}
+        onClose={() => setVideoPermDialogOpen(false)}
+        onSave={s => { setVideoPermSettings(s); setVideoPermDialogOpen(false) }}
+        initialSettings={videoPermSettings}
       />
 
       {/* ── Dialogs ────────────────────────────────────────────────────────── */}

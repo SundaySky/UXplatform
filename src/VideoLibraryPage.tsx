@@ -4,6 +4,7 @@ import {
   InputAdornment, OutlinedInput,
   Menu, MenuItem, ListItemIcon, ListItemText, Divider,
 } from '@mui/material'
+import VideoPermissionDialog, { VideoAccessBar, type VideoPermissionSettings } from './VideoPermissionDialog'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import { TOTAL_COMMENT_COUNT } from './StudioPage'
 import MoreVertIcon                   from '@mui/icons-material/MoreVert'
@@ -274,8 +275,10 @@ const CARD_MENU_ITEMS = [
 ]
 
 function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState }) {
-  const [hovered,     setHovered]     = useState(false)
-  const [menuAnchor,  setMenuAnchor]  = useState<HTMLElement | null>(null)
+  const [hovered,          setHovered]          = useState(false)
+  const [menuAnchor,       setMenuAnchor]        = useState<HTMLElement | null>(null)
+  const [videoPermOpen,    setVideoPermOpen]     = useState(false)
+  const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(undefined)
 
   const openMenu  = (e: React.MouseEvent<HTMLElement>) => { e.stopPropagation(); setMenuAnchor(e.currentTarget) }
   const closeMenu = (e?: React.MouseEvent)             => { e?.stopPropagation(); setMenuAnchor(null) }
@@ -373,12 +376,24 @@ function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: 
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{
           sx: {
-            borderRadius: '8px', minWidth: 192,
+            borderRadius: '8px', minWidth: 240,
             boxShadow: '0px 4px 20px rgba(3,25,79,0.15)',
             mt: '4px',
           },
         }}
       >
+        {/* Permission bar header */}
+        <Box sx={{ px: 2, pt: 1.5, pb: 1 }} onClick={e => e.stopPropagation()}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: t.textPrimary, mb: '10px' }}>
+            {video.title}
+          </Typography>
+          <VideoAccessBar
+            settings={videoPermSettings}
+            onManageAccess={() => { closeMenu(); setVideoPermOpen(true) }}
+            onChangePermission={() => { closeMenu(); setVideoPermOpen(true) }}
+          />
+        </Box>
+        <Divider sx={{ my: '4px', borderColor: t.divider }} />
         {CARD_MENU_ITEMS.map(({ icon, label }) => (
           <MenuItem
             key={label}
@@ -405,6 +420,14 @@ function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: 
           </ListItemText>
         </MenuItem>
       </Menu>
+
+      {/* Per-card permission dialog */}
+      <VideoPermissionDialog
+        open={videoPermOpen}
+        onClose={() => setVideoPermOpen(false)}
+        onSave={s => { setVideoPermSettings(s); setVideoPermOpen(false) }}
+        initialSettings={videoPermSettings}
+      />
     </Box>
   )
 }

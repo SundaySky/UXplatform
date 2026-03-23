@@ -4,6 +4,7 @@ import {
   Box, Typography, Button, IconButton,
   Select, MenuItem, Collapse, Alert,
   Divider, Checkbox, FormControlLabel,
+  Tooltip,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
 import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
@@ -12,6 +13,8 @@ import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
 import ManageAccountsIcon     from '@mui/icons-material/ManageAccounts'
 import PersonOutlinedIcon     from '@mui/icons-material/PersonOutlined'
 import CreateOutlinedIcon     from '@mui/icons-material/CreateOutlined'
+import GroupsIcon             from '@mui/icons-material/Groups'
+import SettingsOutlinedIcon   from '@mui/icons-material/SettingsOutlined'
 
 // Composite icon: person + pen side by side (two distinct shapes)
 export function UserPenIcon({ sx }: { sx?: { fontSize?: number | string; color?: string; [k: string]: unknown } }) {
@@ -85,6 +88,171 @@ const VIDEO_VIEW_OPTIONS: {
 
 function getVideoViewOption(v: VideoViewPermission) {
   return VIDEO_VIEW_OPTIONS.find(o => o.value === v) ?? VIDEO_VIEW_OPTIONS[0]
+}
+
+// ─── VideoAccessBar ───────────────────────────────────────────────────────────
+const navyTipSx = {
+  bgcolor: '#03194F',
+  borderRadius: '8px',
+  px: 1.5, py: 1,
+  maxWidth: 240,
+  '& .MuiTooltip-arrow': { color: '#03194F' },
+}
+
+export function VideoAccessBar({
+  settings,
+  onManageAccess,
+  onChangePermission,
+}: {
+  settings?: VideoPermissionSettings
+  onManageAccess: () => void
+  onChangePermission?: () => void
+}) {
+  const s = settings ?? {
+    viewPermission: 'everyone' as const,
+    viewUsers: [],
+    editUsers: [],
+    ownerUsers: [OWNER_USER],
+    noDuplicate: false,
+  }
+  const { viewPermission, viewUsers, editUsers, ownerUsers } = s
+  const permOption = getVideoViewOption(viewPermission)
+
+  type RightEntry =
+    | { kind: 'everyone' }
+    | { kind: 'user'; user: User; role: 'editor' | 'viewer' }
+
+  const right: RightEntry[] = []
+  if (viewPermission === 'everyone') {
+    right.push({ kind: 'everyone' })
+  } else if (viewPermission === 'specific') {
+    editUsers.forEach(u => right.push({ kind: 'user', user: u, role: 'editor' }))
+    viewUsers.forEach(u => right.push({ kind: 'user', user: u, role: 'viewer' }))
+  } else if (viewPermission === 'videoEditors') {
+    editUsers.forEach(u => right.push({ kind: 'user', user: u, role: 'editor' }))
+  }
+
+  const displayOwners = viewPermission === 'private' ? [OWNER_USER] : ownerUsers
+
+  const UserChip = ({ bg, initials, tip }: { bg: string; initials: string; tip: React.ReactNode }) => (
+    <Tooltip title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+      <Box sx={{
+        width: 32, height: 32, borderRadius: '6px', bgcolor: bg, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default',
+      }}>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 12, color: '#fff', lineHeight: 1 }}>
+          {initials}
+        </Typography>
+      </Box>
+    </Tooltip>
+  )
+
+  const TipContent = ({ name, desc }: { name: string; desc: string }) => (
+    <Box>
+      <Typography sx={{ fontWeight: 600, fontSize: 12, color: '#fff', lineHeight: 1.4 }}>{name}</Typography>
+      <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>{desc}</Typography>
+    </Box>
+  )
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* "Visible [icon] [label] ▾" */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: c.textSecondary }}>
+          Visible
+        </Typography>
+        <Box
+          onClick={onChangePermission}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: '4px',
+            cursor: onChangePermission ? 'pointer' : 'default',
+            '&:hover': onChangePermission ? { opacity: 0.75 } : {},
+          }}
+        >
+          <permOption.Icon sx={{ fontSize: 15, color: permOption.iconColor }} />
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary }}>
+            {permOption.label}
+          </Typography>
+          {onChangePermission && <KeyboardArrowDownIcon sx={{ fontSize: 14, color: c.textPrimary }} />}
+        </Box>
+      </Box>
+
+      {/* Avatar row */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        {/* Owners (left of divider) */}
+        {displayOwners.map(owner => (
+          <UserChip
+            key={owner.id}
+            bg={owner.color}
+            initials={owner.initials}
+            tip={<TipContent
+              name={`${owner.name}${owner.id === OWNER_USER.id ? ' (You)' : ''}`}
+              desc="Can manage access, delete, and rename."
+            />}
+          />
+        ))}
+
+        {/* Divider */}
+        {right.length > 0 && (
+          <Box sx={{ width: '1px', height: 24, bgcolor: c.grey300, mx: '2px', flexShrink: 0 }} />
+        )}
+
+        {/* Right side: everyone icon or user chips */}
+        {right.map((entry, i) => {
+          if (entry.kind === 'everyone') {
+            return (
+              <Tooltip
+                key="everyone"
+                title={<Typography sx={{ fontSize: 12, color: '#fff', lineHeight: 1.4 }}>Everyone in your account can view</Typography>}
+                placement="top"
+                arrow
+                componentsProps={{ tooltip: { sx: navyTipSx } }}
+              >
+                <Box sx={{
+                  width: 32, height: 32, borderRadius: '6px',
+                  bgcolor: 'rgba(0,83,229,0.10)', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default',
+                }}>
+                  <GroupsIcon sx={{ fontSize: 18, color: c.primary }} />
+                </Box>
+              </Tooltip>
+            )
+          }
+          const label = entry.role === 'editor' ? 'Can edit the video' : 'Can view the video'
+          return (
+            <UserChip
+              key={entry.user.id + i}
+              bg={entry.user.color}
+              initials={entry.user.initials}
+              tip={<TipContent name={entry.user.name} desc={label} />}
+            />
+          )
+        })}
+      </Box>
+
+      {/* Manage access button */}
+      <Button
+        variant="outlined"
+        size="small"
+        fullWidth
+        startIcon={<SettingsOutlinedIcon sx={{ fontSize: 15 }} />}
+        onClick={onManageAccess}
+        sx={{
+          borderRadius: '8px',
+          borderColor: c.grey300,
+          color: c.textPrimary,
+          fontFamily: '"Open Sans", sans-serif',
+          fontSize: 13,
+          fontWeight: 400,
+          textTransform: 'none',
+          py: '6px',
+          '&:hover': { borderColor: c.primary, bgcolor: 'rgba(0,83,229,0.04)' },
+        }}
+      >
+        Manage access
+      </Button>
+    </Box>
+  )
 }
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Box, Typography, IconButton, Button, Avatar,
   Badge, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Snackbar, Alert, Divider, Checkbox, Switch,
+  TextField, Snackbar, Alert, Divider, Checkbox, Switch, Popover,
 } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import UndoIcon                    from '@mui/icons-material/Undo'
@@ -42,7 +42,7 @@ import Tooltip                    from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
 import AvatarLibraryPanel from './AvatarLibraryPanel'
-import VideoPermissionDialog, { UserPenIcon, type VideoViewPermission, type VideoPermissionSettings } from './VideoPermissionDialog'
+import VideoPermissionDialog, { UserPenIcon, VideoAccessBar, type VideoViewPermission, type VideoPermissionSettings } from './VideoPermissionDialog'
 import { OWNER_USER } from './ManageAccessDialog'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
@@ -804,9 +804,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   }
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,      setSnackbarMsg]      = useState<string | null>(null)
-  const [videoPermOpen,    setVideoPermOpen]    = useState(false)
-  const [videoPerm,        setVideoPerm]        = useState<VideoViewPermission>('everyone')
+  const [videoPermOpen,     setVideoPermOpen]     = useState(false)
+  const [videoPerm,         setVideoPerm]         = useState<VideoViewPermission>('everyone')
   const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(undefined)
+  const [permBarAnchor,     setPermBarAnchor]     = useState<HTMLElement | null>(null)
 
   // Unread = not yet checked or resolved
   const unreadCount = threads.reduce((n, t) => n + t.comments.filter(c => !c.checkedNow && !c.resolved).length, 0)
@@ -907,29 +908,35 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             }}>
               {videoTitle}
             </Typography>
-            {videoPerm !== 'everyone' && (
-              <Tooltip
-                title={
-                  <Typography sx={{ fontSize: 12, color: '#fff' }}>
-                    {videoPerm === 'private' ? 'Only you' : videoPerm === 'editors' ? 'Who can manage access' : videoPerm === 'owners' ? 'Video owners only' : videoPerm === 'videoEditors' ? 'Video editors' : 'Specific users'}
-                  </Typography>
-                }
-                placement="bottom" arrow
-                componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1, '& .MuiTooltip-arrow': { color: '#03194F' } } } }}
-              >
-                <IconButton size="small" onClick={() => setVideoPermOpen(true)} sx={{ p: 0, color: videoPerm === 'private' ? '#118747' : videoPerm === 'owners' ? '#0053E5' : videoPerm === 'videoEditors' ? '#00897B' : '#F46900' }}>
-                  {videoPerm === 'private'
-                    ? <LockOutlinedIcon   sx={{ fontSize: 18 }} />
-                    : videoPerm === 'editors'
-                      ? <PersonOutlinedIcon sx={{ fontSize: 18 }} />
-                      : videoPerm === 'owners'
-                        ? <ManageAccountsIcon sx={{ fontSize: 18 }} />
-                        : videoPerm === 'videoEditors'
-                          ? <UserPenIcon sx={{ fontSize: 18 }} />
-                          : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
-                </IconButton>
-              </Tooltip>
-            )}
+            <IconButton
+              size="small"
+              onClick={e => setPermBarAnchor(e.currentTarget)}
+              sx={{ p: 0, color: videoPerm === 'private' ? '#118747' : videoPerm === 'owners' ? '#0053E5' : videoPerm === 'videoEditors' ? '#00897B' : videoPerm === 'everyone' ? 'rgba(255,255,255,0.6)' : '#F46900' }}
+            >
+              {videoPerm === 'private'
+                ? <LockOutlinedIcon      sx={{ fontSize: 18 }} />
+                : videoPerm === 'editors'
+                  ? <PersonOutlinedIcon  sx={{ fontSize: 18 }} />
+                  : videoPerm === 'owners'
+                    ? <ManageAccountsIcon sx={{ fontSize: 18 }} />
+                    : videoPerm === 'videoEditors'
+                      ? <UserPenIcon sx={{ fontSize: 18 }} />
+                      : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
+            </IconButton>
+            <Popover
+              open={Boolean(permBarAnchor)}
+              anchorEl={permBarAnchor}
+              onClose={() => setPermBarAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+              PaperProps={{ sx: { borderRadius: '12px', mt: '8px', boxShadow: '0px 4px 20px rgba(3,25,79,0.18)', p: '16px', minWidth: 240 } }}
+            >
+              <VideoAccessBar
+                settings={videoPermSettings}
+                onManageAccess={() => { setPermBarAnchor(null); setVideoPermOpen(true) }}
+                onChangePermission={() => { setPermBarAnchor(null); setVideoPermOpen(true) }}
+              />
+            </Popover>
           </Box>
           {/* Language badge */}
           <Box sx={{
