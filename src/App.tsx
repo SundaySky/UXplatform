@@ -418,7 +418,6 @@ function VideoPreviewCard({
             color="primary"
             startIcon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
             onClick={onApproveVideo}
-            sx={{ borderColor: t.primaryMain, color: t.primaryMain, '&:hover': { bgcolor: t.primarySelected } }}
           >
             Approve for sharing
           </Button>
@@ -426,14 +425,13 @@ function VideoPreviewCard({
       )
     }
 
-    // ── Phase 0, draft: "Sent for approval" ──────────────────────────────────
+    // ── Phase 0, draft: "Send for approval" ──────────────────────────────────
     return (
       <Button variant="outlined" size="small" color="primary"
         startIcon={<GroupIcon sx={{ fontSize: '16px !important' }} />}
         onClick={onSentForApproval}
-        sx={{ borderColor: t.primaryMain, color: t.primaryMain, '&:hover': { bgcolor: t.primarySelected } }}
       >
-        Sent for approval
+        Send for approval
       </Button>
     )
   }
@@ -448,12 +446,9 @@ function VideoPreviewCard({
         <Button
           variant="outlined"
           size="small"
+          color="primary"
           startIcon={<EditOutlinedIcon sx={{ fontSize: '16px !important' }} />}
           onClick={() => onEdit(false)}
-          sx={{
-            borderColor: t.divider, color: t.textPrimary,
-            '&:hover': { borderColor: t.primaryMain, backgroundColor: t.primarySelected },
-          }}
         >
           Edit
         </Button>

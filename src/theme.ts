@@ -180,13 +180,14 @@ export const theme = createTheme({
             backgroundColor: '#0046C2',
           },
         },
-        // Outlined
+        // Outlined — Figma: white bg, grey/300 border, primary/main text
         outlinedPrimary: {
-          borderColor: tokens['divider'],
-          color:       tokens['text/primary'],
+          backgroundColor: tokens['common/white'],
+          borderColor:     tokens['grey/300'],
+          color:           tokens['primary/main'],
           '&:hover': {
             backgroundColor: tokens['primary/selected'],
-            borderColor:     tokens['divider'],
+            borderColor:     tokens['grey/300'],
           },
         },
       },
