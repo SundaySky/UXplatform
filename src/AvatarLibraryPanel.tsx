@@ -14,8 +14,8 @@ import DeleteOutlinedIcon     from '@mui/icons-material/DeleteOutlined'
 import SettingsOutlinedIcon   from '@mui/icons-material/SettingsOutlined'
 import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
 import GroupsIcon             from '@mui/icons-material/Groups'
-import LockPersonOutlinedIcon from '@mui/icons-material/LockPersonOutlined'
-import PersonOffOutlinedIcon  from '@mui/icons-material/PersonOffOutlined'
+import PeopleOutlinedIcon     from '@mui/icons-material/PeopleOutlined'
+import LockOutlinedIcon       from '@mui/icons-material/LockOutlined'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
 import SwapHorizIcon          from '@mui/icons-material/SwapHoriz'
 
@@ -46,6 +46,7 @@ const c = {
   divider:       'rgba(0,83,229,0.12)',
   grey300:       '#CFD6EA',
   errorMain:     '#E62843',
+  successMain:   '#118747',
 }
 
 const navyTooltipSx = {
@@ -105,11 +106,10 @@ const STOCK_AVATARS: AvatarItem[] = [
 
 // ─── Permission icon with correct color baked in ──────────────────────────
 function PermissionIcon({ perm, size = 16 }: { perm: AvatarUsagePermission; size?: number }) {
-  const color = perm === 'everyone' ? c.primary : '#F46900'
-  const sx    = { fontSize: size, color }
-  if (perm === 'everyone') return <GroupsIcon sx={sx} />
-  if (perm === 'specific') return <PersonOffOutlinedIcon sx={sx} />
-  return <LockPersonOutlinedIcon sx={sx} />
+  const sx = { fontSize: size }
+  if (perm === 'everyone') return <GroupsIcon         sx={{ ...sx, color: c.primary }} />
+  if (perm === 'specific') return <PeopleOutlinedIcon sx={{ ...sx, color: '#F46900' }} />
+  return <LockOutlinedIcon sx={{ ...sx, color: c.successMain }} />
 }
 
 function permLabel(perm: AvatarUsagePermission) {
@@ -342,10 +342,10 @@ function AvatarCard({
             arrow
             componentsProps={{ tooltip: { sx: navyTooltipSx } }}
           >
-            <Box sx={{ display: 'flex', color: '#F46900', cursor: 'default' }}>
+            <Box sx={{ display: 'flex', cursor: 'default' }}>
               {perm === 'private'
-                ? <LockPersonOutlinedIcon sx={{ fontSize: 14 }} />
-                : <PersonOffOutlinedIcon  sx={{ fontSize: 14 }} />}
+                ? <LockOutlinedIcon      sx={{ fontSize: 14, color: c.successMain }} />
+                : <PeopleOutlinedIcon    sx={{ fontSize: 14, color: '#F46900' }} />}
             </Box>
           </Tooltip>
         )}

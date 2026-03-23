@@ -24,10 +24,10 @@ import FolderRoundedIcon            from '@mui/icons-material/FolderRounded'
 import PermMediaOutlinedIcon        from '@mui/icons-material/PermMediaOutlined'
 import OpenInFullIcon               from '@mui/icons-material/OpenInFull'
 import MoreVertIcon                 from '@mui/icons-material/MoreVert'
-import PeopleAltOutlinedIcon        from '@mui/icons-material/PeopleAltOutlined'
+import GroupsIcon                   from '@mui/icons-material/Groups'
+import ManageAccountsIcon           from '@mui/icons-material/ManageAccounts'
 import PeopleOutlinedIcon           from '@mui/icons-material/PeopleOutlined'
 import ManageAccountsOutlinedIcon   from '@mui/icons-material/ManageAccountsOutlined'
-import EditOutlinedIcon             from '@mui/icons-material/EditOutlined'
 import LockOutlinedIcon             from '@mui/icons-material/LockOutlined'
 
 import ManageAccessDialog, {
@@ -109,7 +109,7 @@ interface MenuTarget {
 function visibleLabel(vp: ViewPermission) {
   switch (vp) {
     case 'everyone': return 'Everyone in your account'
-    case 'editors':  return 'Editors and owners'
+    case 'editors':  return 'Who can manage access'
     case 'specific': return 'Specific users'
     case 'private':  return 'Only you'
   }
@@ -148,8 +148,8 @@ function hasPermissionConflict(
 function VisibleIcon({ vp }: { vp: ViewPermission }) {
   const sx = { fontSize: '14px !important' }
   switch (vp) {
-    case 'everyone': return <PeopleAltOutlinedIcon sx={{ ...sx, color: c.primary }} />
-    case 'editors':  return <EditOutlinedIcon      sx={{ ...sx, color: c.warningMain }} />
+    case 'everyone': return <GroupsIcon          sx={{ ...sx, color: c.primary }} />
+    case 'editors':  return <ManageAccountsIcon  sx={{ ...sx, color: c.primary }} />
     case 'specific': return <PeopleOutlinedIcon    sx={{ ...sx, color: c.warningMain }} />
     case 'private':  return <LockOutlinedIcon      sx={{ ...sx, color: c.successMain }} />
   }
@@ -323,7 +323,7 @@ function PermissionSection({
                   componentsProps={{ tooltip: { sx: navyTooltipSx } }}
                 >
                   <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.secondary, cursor: 'default' }}>
-                    <PeopleAltOutlinedIcon sx={{ fontSize: 18, color: '#fff' }} />
+                    <GroupsIcon sx={{ fontSize: 18, color: '#fff' }} />
                   </Avatar>
                 </Tooltip>
               </>
@@ -904,9 +904,10 @@ export default function MediaLibraryPanel({
 
             {/* Subfolders inside a folder */}
             {folder && (FOLDER_CONTENTS[folder] ?? []).map(sf => {
-              const sfvp    = getPerms(sf.name).viewPermission
-              const sfIconVp  = getEffectiveVp(sfvp, parentVp)
-              const sfShowIcon = sfIconVp !== 'everyone'
+              const sfvp       = getPerms(sf.name).viewPermission
+              const sfIconVp   = getEffectiveVp(sfvp, parentVp)
+              // Only show icon when this subfolder's permission differs from its parent
+              const sfShowIcon = sfIconVp !== parentVp
               return (
                 <Box
                   key={sf.name}
@@ -966,7 +967,8 @@ export default function MediaLibraryPanel({
             {MEDIA_ITEMS.map(item => {
               const ivp          = getPerms(item.name).viewPermission
               const itemIconVp   = getEffectiveVp(ivp, parentVp)
-              const itemShowIcon = itemIconVp !== 'everyone'
+              // Only show icon when this item's permission differs from its parent folder
+              const itemShowIcon = itemIconVp !== parentVp
               return (
                 <Box
                   key={item.id}

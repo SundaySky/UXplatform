@@ -10,6 +10,21 @@ import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
 import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
 import ManageAccountsIcon     from '@mui/icons-material/ManageAccounts'
+import PersonOutlinedIcon     from '@mui/icons-material/PersonOutlined'
+import CreateOutlinedIcon     from '@mui/icons-material/CreateOutlined'
+
+// Composite icon: person + pen side by side (two distinct shapes)
+export function UserPenIcon({ sx }: { sx?: { fontSize?: number | string; color?: string; [k: string]: unknown } }) {
+  const rawSize = sx?.fontSize ?? 20
+  const numSize = typeof rawSize === 'string' ? parseInt(rawSize) : (rawSize as number)
+  const color   = (sx?.color as string | undefined) ?? 'inherit'
+  return (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: '2px', lineHeight: 0 }}>
+      <PersonOutlinedIcon sx={{ fontSize: numSize, color }} />
+      <CreateOutlinedIcon sx={{ fontSize: Math.round(numSize * 0.72), color }} />
+    </Box>
+  )
+}
 
 import {
   type ViewPermission,
@@ -20,7 +35,7 @@ import {
 } from './ManageAccessDialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-export type VideoViewPermission = ViewPermission | 'owners'
+export type VideoViewPermission = ViewPermission | 'owners' | 'videoEditors'
 
 export interface VideoPermissionSettings {
   viewPermission: VideoViewPermission
@@ -40,6 +55,7 @@ const c = {
   errorMain:     '#E62843',
   warningMain:   '#F46900',
   successMain:   '#118747',
+  teal:          '#00897B',
 }
 
 const VIDEO_VIEW_OPTIONS: {
@@ -49,7 +65,14 @@ const VIDEO_VIEW_OPTIONS: {
   iconColor: string
   bgColor: string
 }[] = [
-  ...VIEW_OPTIONS.filter(o => o.value !== 'private'),
+  ...VIEW_OPTIONS.filter(o => o.value !== 'private' && o.value !== 'editors'),
+  {
+    value: 'videoEditors' as const,
+    label: 'Video editors',
+    Icon: UserPenIcon,
+    iconColor: c.teal,
+    bgColor: 'rgba(0,137,123,0.10)',
+  },
   {
     value: 'owners',
     label: 'Video owners only',
@@ -156,9 +179,9 @@ export default function VideoPermissionDialog({
   // Show/hide logic
   const showSpecific      = viewPermission === 'specific'
   const showPrivateAlert  = viewPermission === 'private'
-  const showEditSection   = viewPermission !== 'private' && viewPermission !== 'owners'
+  const showEditSection   = viewPermission !== 'private' && viewPermission !== 'owners' && viewPermission !== 'videoEditors'
   const showOwnerSection  = viewPermission !== 'private'
-  const showNoDuplicate   = viewPermission !== 'private' && viewPermission !== 'owners'
+  const showNoDuplicate   = viewPermission !== 'private' && viewPermission !== 'owners' && viewPermission !== 'videoEditors'
 
   return (
     <Dialog

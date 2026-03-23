@@ -8,10 +8,11 @@ import {
 } from '@mui/material'
 import CloseIcon                   from '@mui/icons-material/Close'
 import HelpOutlineIcon             from '@mui/icons-material/HelpOutline'
-import PeopleAltOutlinedIcon       from '@mui/icons-material/PeopleAltOutlined'
+import GroupsIcon                  from '@mui/icons-material/Groups'
+import ManageAccountsIcon          from '@mui/icons-material/ManageAccounts'
 import LockOutlinedIcon            from '@mui/icons-material/LockOutlined'
 import PeopleOutlinedIcon          from '@mui/icons-material/PeopleOutlined'
-import EditOutlinedIcon            from '@mui/icons-material/EditOutlined'
+import PersonOutlinedIcon          from '@mui/icons-material/PersonOutlined'
 import CheckIcon                   from '@mui/icons-material/Check'
 import InfoOutlinedIcon            from '@mui/icons-material/InfoOutlined'
 import KeyboardArrowDownIcon       from '@mui/icons-material/KeyboardArrowDown'
@@ -81,9 +82,9 @@ export const VIEW_OPTIONS: {
   iconColor: string
   bgColor: string
 }[] = [
-  { value: 'everyone', label: 'Everyone in your account',  Icon: PeopleAltOutlinedIcon, iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)' },
-  { value: 'editors',  label: 'Editors only',                Icon: EditOutlinedIcon,   iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
+  { value: 'everyone', label: 'Everyone in your account',  Icon: GroupsIcon,          iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)' },
   { value: 'specific', label: 'Specific users',            Icon: PeopleOutlinedIcon,  iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
+  { value: 'editors',  label: 'Who can manage access',    Icon: ManageAccountsIcon,  iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)'  },
   { value: 'private',  label: 'Private (only you)',        Icon: LockOutlinedIcon,    iconColor: c.successMain, bgColor: 'rgba(17,135,71,0.10)' },
 ]
 

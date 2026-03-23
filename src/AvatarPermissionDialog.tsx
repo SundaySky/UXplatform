@@ -7,8 +7,8 @@ import {
 import CloseIcon              from '@mui/icons-material/Close'
 import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
 import GroupsIcon             from '@mui/icons-material/Groups'
-import LockPersonOutlinedIcon from '@mui/icons-material/LockPersonOutlined'
-import PersonOffOutlinedIcon  from '@mui/icons-material/PersonOffOutlined'
+import PeopleOutlinedIcon     from '@mui/icons-material/PeopleOutlined'
+import LockOutlinedIcon       from '@mui/icons-material/LockOutlined'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import DoNotDisturbOnOutlinedIcon from '@mui/icons-material/DoNotDisturbOnOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
@@ -70,14 +70,14 @@ const USAGE_OPTIONS: {
   {
     value: 'specific',
     label: 'Specific users',
-    icon:  <PersonOffOutlinedIcon sx={{ fontSize: 18 }} />,
+    icon:  <PeopleOutlinedIcon sx={{ fontSize: 18 }} />,
     color: '#F46900',
   },
   {
     value: 'private',
     label: 'Private (only you)',
-    icon:  <LockPersonOutlinedIcon sx={{ fontSize: 18 }} />,
-    color: '#F46900',
+    icon:  <LockOutlinedIcon sx={{ fontSize: 18 }} />,
+    color: '#118747',
   },
 ]
 

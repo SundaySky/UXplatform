@@ -41,7 +41,7 @@ import Tooltip                    from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
 import AvatarLibraryPanel from './AvatarLibraryPanel'
-import VideoPermissionDialog, { type VideoViewPermission, type VideoPermissionSettings } from './VideoPermissionDialog'
+import VideoPermissionDialog, { UserPenIcon, type VideoViewPermission, type VideoPermissionSettings } from './VideoPermissionDialog'
 import { OWNER_USER } from './ManageAccessDialog'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
@@ -805,20 +805,22 @@ export default function StudioPage({ videoTitle, approverNames, onNavigateToVide
               <Tooltip
                 title={
                   <Typography sx={{ fontSize: 12, color: '#fff' }}>
-                    {videoPerm === 'private' ? 'Only you' : videoPerm === 'editors' ? 'Editors only' : videoPerm === 'owners' ? 'Video owners only' : 'Specific users'}
+                    {videoPerm === 'private' ? 'Only you' : videoPerm === 'editors' ? 'Who can manage access' : videoPerm === 'owners' ? 'Video owners only' : videoPerm === 'videoEditors' ? 'Video editors' : 'Specific users'}
                   </Typography>
                 }
                 placement="bottom" arrow
                 componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1, '& .MuiTooltip-arrow': { color: '#03194F' } } } }}
               >
-                <IconButton size="small" onClick={() => setVideoPermOpen(true)} sx={{ p: 0, color: videoPerm === 'private' ? '#118747' : videoPerm === 'owners' ? '#0053E5' : '#F46900' }}>
+                <IconButton size="small" onClick={() => setVideoPermOpen(true)} sx={{ p: 0, color: videoPerm === 'private' ? '#118747' : videoPerm === 'owners' ? '#0053E5' : videoPerm === 'videoEditors' ? '#00897B' : '#F46900' }}>
                   {videoPerm === 'private'
-                    ? <LockOutlinedIcon sx={{ fontSize: 18 }} />
+                    ? <LockOutlinedIcon   sx={{ fontSize: 18 }} />
                     : videoPerm === 'editors'
-                      ? <EditOutlinedIcon sx={{ fontSize: 18 }} />
+                      ? <PersonOutlinedIcon sx={{ fontSize: 18 }} />
                       : videoPerm === 'owners'
                         ? <ManageAccountsIcon sx={{ fontSize: 18 }} />
-                        : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
+                        : videoPerm === 'videoEditors'
+                          ? <UserPenIcon sx={{ fontSize: 18 }} />
+                          : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
                 </IconButton>
               </Tooltip>
             )}
