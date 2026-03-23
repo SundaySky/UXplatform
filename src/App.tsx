@@ -742,7 +742,7 @@ interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
   { id: 1, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
-  { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene title is missing your company name."], done: false },
+  { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene heading is missing 2026 at the end."], done: false },
   { id: 3, label: "Sarah told you she already submitted feedback.", done: false },
   { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
   { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },

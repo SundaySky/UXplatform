@@ -315,7 +315,7 @@ export const INITIAL_THREADS: CommentThread[] = [
     id: 1, author: 'Sarah Johnson',
     comments: [
       { text: 'Opening scene - add the name of the company to the title', checkedNow: false, resolved: false },
-      { text: 'Do we have rights to use this image? Please confirm or replace', checkedNow: false, resolved: false },
+      { text: 'Opening scene "We may need a different version of this image depending on rights—can you check?"', checkedNow: false, resolved: false },
     ],
   },
   {
