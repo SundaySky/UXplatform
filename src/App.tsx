@@ -428,9 +428,10 @@ function VideoPreviewCard({
 
     // ── Phase 0, draft: "Sent for approval" ──────────────────────────────────
     return (
-      <Button variant="contained" size="small" color="primary"
+      <Button variant="outlined" size="small" color="primary"
         startIcon={<GroupIcon sx={{ fontSize: '16px !important' }} />}
         onClick={onSentForApproval}
+        sx={{ borderColor: t.primaryMain, color: t.primaryMain, '&:hover': { bgcolor: t.primarySelected } }}
       >
         Sent for approval
       </Button>
