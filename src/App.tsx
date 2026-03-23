@@ -395,7 +395,7 @@ function VideoPreviewCard({
           }
           onClick={() => onEdit(true)}
         >
-          View {TOTAL_COMMENT_COUNT} approver comments and edit
+          View {TOTAL_COMMENT_COUNT} comments in Studio
         </Button>
       )
     }
