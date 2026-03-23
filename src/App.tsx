@@ -942,8 +942,8 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
               bgcolor: currentTask.done ? '#E5F7E0' : '#FFFFFF',
               border: `1px solid ${currentTask.done ? t.successMain : '#E0E0E0'}`,
               borderRadius: '10px', p: 2, mt: '10px',
-              minHeight: 220,
-              overflow: 'visible',
+              height: 300,
+              overflow: 'hidden',
               display: 'flex', flexDirection: 'column', gap: '8px',
               transition: 'background-color 0.2s, border-color 0.2s',
             }}>
