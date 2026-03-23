@@ -48,9 +48,9 @@ const t = {
   errorLight:     '#FFEBEE',
   warningMain:    '#F46900',
   warningLight:   '#FFF5CE',
-  // "Approved for sharing" / "Downloaded" use primary blue
-  approvedBg:     '#EAF1FF',
-  approvedColor:  '#0053E5',
+  // "Approved for sharing" uses info blue; "Downloaded" uses primary blue
+  approvedBg:     '#EFF7FE',
+  approvedColor:  '#284862',
   // "Downloaded for Sharing" uses success green
   downloadedBg:   '#E5F7E0',
   downloadedColor:'#118747',
@@ -89,7 +89,7 @@ function resolveStatuses(
   const state = videoStates?.[video.title]
   if (!state) return video.statuses
   const { phase, pageState } = state
-  if (phase >= 4)  return ['Approved for sharing']
+  if (phase >= 3)  return ['Approved for sharing']
   const isPending = phase > 0 ? PHASE_TO_PENDING[phase] : pageState === 'pending'
   return [isPending ? 'Pending approval' : 'Draft']
 }
