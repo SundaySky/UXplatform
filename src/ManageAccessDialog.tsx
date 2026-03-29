@@ -5,6 +5,7 @@ import {
   Chip, Avatar, Tooltip,
   Autocomplete, TextField, Alert,
   Divider, Menu, MenuItem, ToggleButton, ToggleButtonGroup,
+  Checkbox, FormControlLabel, InputAdornment,
 } from '@mui/material'
 import CloseIcon             from '@mui/icons-material/Close'
 import HelpOutlineIcon       from '@mui/icons-material/HelpOutline'
@@ -13,6 +14,7 @@ import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import CheckIcon             from '@mui/icons-material/Check'
 import InfoOutlinedIcon      from '@mui/icons-material/InfoOutlined'
+import ArrowBackIcon         from '@mui/icons-material/ArrowBack'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type PermissionTab = 'teams' | 'private'
@@ -294,6 +296,104 @@ function PersonRow({
   )
 }
 
+// ─── Add Users Autocomplete (with role pill inside input) ─────────────────────
+function AddUsersAutocomplete({
+  value, onChange, excludeIds, addRole, onRoleClick,
+}: {
+  value:       User[]
+  onChange:    (v: User[]) => void
+  excludeIds:  string[]
+  addRole:     UserRole
+  onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
+}) {
+  const options = ALL_USERS.filter(u => !excludeIds.includes(u.id))
+  return (
+    <Autocomplete<User, true>
+      multiple
+      value={value}
+      onChange={(_, v) => onChange(v)}
+      options={options}
+      getOptionLabel={u => u.name}
+      isOptionEqualToValue={(a, b) => a.id === b.id}
+      disableCloseOnSelect
+      popupIcon={null}
+      renderInput={params => (
+        <TextField
+          {...params}
+          placeholder={value.length === 0 ? 'Add users' : ''}
+          inputProps={{ ...params.inputProps, autoComplete: 'new-password' }}
+          InputProps={{
+            ...params.InputProps,
+            endAdornment: (
+              <InputAdornment position="end" sx={{ mr: '-2px', flexShrink: 0 }}>
+                <Button
+                  size="small"
+                  endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: '-6px' }} />}
+                  onClick={e => { e.stopPropagation(); onRoleClick(e) }}
+                  sx={{
+                    fontFamily: '"Open Sans", sans-serif',
+                    fontSize: 12, fontWeight: 500,
+                    color: c.textPrimary,
+                    textTransform: 'none',
+                    bgcolor: 'rgba(0,0,0,0.06)',
+                    borderRadius: '20px',
+                    px: '10px', py: '4px',
+                    minWidth: 0, whiteSpace: 'nowrap',
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.10)' },
+                  }}
+                >
+                  {addRole === 'editor' ? 'Can edit' : 'Can view'}
+                </Button>
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': { borderRadius: '8px', pr: '8px !important' },
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
+            '& .MuiInputBase-root': { flexWrap: 'wrap', gap: '4px', p: '8px 12px' },
+          }}
+        />
+      )}
+      renderTags={(tagValue, getTagProps) =>
+        tagValue.map((user, index) => (
+          <Chip
+            {...getTagProps({ index })}
+            key={user.id}
+            label={user.name}
+            size="small"
+            avatar={<Avatar sx={{ bgcolor: user.color, fontSize: '9px !important', fontWeight: 600, color: '#fff !important' }}>{user.initials}</Avatar>}
+            sx={{
+              fontFamily: '"Open Sans", sans-serif', fontSize: 12,
+              bgcolor: user.color, color: '#fff', borderRadius: '20px',
+              '& .MuiChip-label': { px: '6px' },
+              '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } },
+              height: 24,
+            }}
+          />
+        ))
+      }
+      renderOption={(props, option) => {
+        const { key, ...listProps } = props as typeof props & { key: string }
+        return (
+          <Box key={key} component="li" {...listProps} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1 }}>
+            <UserAvatar user={option} size={36} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: c.textPrimary, lineHeight: 1.4 }}>
+                {option.name}
+              </Typography>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, color: c.textSecondary, lineHeight: 1.3 }}>
+                {option.email}
+              </Typography>
+            </Box>
+          </Box>
+        )
+      }}
+      ListboxProps={{ sx: { p: '4px', maxHeight: 240, '& .MuiAutocomplete-option': { borderRadius: '6px', '&.Mui-focused': { bgcolor: 'rgba(0,83,229,0.06)' } } } }}
+      slotProps={{ paper: { sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.18)', mt: '4px' } } }}
+    />
+  )
+}
+
 // ─── Main Dialog ──────────────────────────────────────────────────────────────
 export default function ManageAccessDialog({
   open,
@@ -311,6 +411,7 @@ export default function ManageAccessDialog({
   const ownerRoleLabel = itemType === 'folder' ? 'Folder owner' : 'Asset owner'
   const dflt: PermissionSettings = { tab: 'teams', everyoneRole: 'viewer', users: [], ownerUsers: [OWNER_USER] }
 
+  // Main view state
   const [tab,          setTab]          = useState<PermissionTab>(initialSettings?.tab ?? 'teams')
   const [everyoneRole, setEveryoneRole] = useState<EveryoneRole>(initialSettings?.everyoneRole ?? 'viewer')
   const [users,        setUsers]        = useState<PermissionUser[]>(initialSettings?.users ?? [])
@@ -318,6 +419,14 @@ export default function ManageAccessDialog({
   const [menuAnchor,   setMenuAnchor]   = useState<null | HTMLElement>(null)
   const [menuTarget,   setMenuTarget]   = useState<'owner' | 'everyone' | string | null>(null)
   const [showDiscard,  setShowDiscard]  = useState(false)
+
+  // Add users sub-view state
+  const [addOpen,    setAddOpen]    = useState(false)
+  const [addUsers,   setAddUsers]   = useState<User[]>([])
+  const [addRole,    setAddRole]    = useState<UserRole>('editor')
+  const [addNotify,  setAddNotify]  = useState(true)
+  const [addAllowDup, setAddAllowDup] = useState(false)
+  const [addRoleAnchor, setAddRoleAnchor] = useState<null | HTMLElement>(null)
 
   useEffect(() => {
     if (open) {
@@ -329,6 +438,12 @@ export default function ManageAccessDialog({
       setMenuAnchor(null)
       setMenuTarget(null)
       setShowDiscard(false)
+      setAddOpen(false)
+      setAddUsers([])
+      setAddRole('editor')
+      setAddNotify(true)
+      setAddAllowDup(false)
+      setAddRoleAnchor(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -349,8 +464,24 @@ export default function ManageAccessDialog({
     !sameUsers(users, initS.users) ||
     !sameIds(ownerUsers, initS.ownerUsers)
 
-  function handleClose() { if (isDirty) setShowDiscard(true); else onClose() }
+  function handleClose() {
+    if (addOpen) { setAddOpen(false); return }
+    if (isDirty) setShowDiscard(true); else onClose()
+  }
   function handleSave() { onSave({ tab, everyoneRole, users, ownerUsers }) }
+
+  function handleAddUsers() {
+    if (addUsers.length === 0) return
+    const existingIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)])
+    const newOnes = addUsers
+      .filter(u => !existingIds.has(u.id))
+      .map(u => ({ user: u, role: addRole }))
+    if (newOnes.length > 0) setUsers(prev => [...prev, ...newOnes])
+    setAddOpen(false)
+    setAddUsers([])
+    setAddRole('editor')
+    setAddAllowDup(false)
+  }
 
   function openMenuFn(e: React.MouseEvent<HTMLElement>, target: 'owner' | 'everyone' | string) {
     setMenuAnchor(e.currentTarget); setMenuTarget(target)
@@ -372,18 +503,26 @@ export default function ManageAccessDialog({
   const menuTextSx = { fontFamily: '"Open Sans"', fontSize: 14, color: c.textPrimary }
   const menuErrSx  = { fontFamily: '"Open Sans"', fontSize: 14, color: c.errorMain }
 
+  const excludeIdsForAdd = [OWNER_USER.id, ...users.map(pu => pu.user.id)]
+
   return (
     <>
       <Dialog
         open={open}
         onClose={handleClose}
         maxWidth={false}
-        PaperProps={{ sx: { width: 560, maxWidth: '98vw', borderRadius: '12px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)' } }}
+        PaperProps={{ sx: { width: 560, maxWidth: '98vw', borderRadius: '12px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)', overflow: 'hidden' } }}
       >
-        <DialogTitle sx={{ p: '20px 16px 16px 28px' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {/* ── Title ────────────────────────────────────────────────────────── */}
+        <DialogTitle sx={{ p: '20px 16px 16px 28px', flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {addOpen && (
+              <IconButton size="medium" onClick={() => setAddOpen(false)} sx={{ color: 'rgba(0,0,0,0.54)', ml: '-8px', mr: '4px' }}>
+                <ArrowBackIcon />
+              </IconButton>
+            )}
             <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
-              Manage access
+              {addOpen ? 'Add users' : 'Manage access'}
             </Typography>
             <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
               <HelpOutlineIcon />
@@ -396,127 +535,197 @@ export default function ManageAccessDialog({
 
         <Divider sx={{ borderColor: c.divider }} />
 
-        <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Tab selector */}
-          <ToggleButtonGroup
-            value={tab}
-            exclusive
-            onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
-            sx={{
-              bgcolor: 'rgba(0,0,0,0.06)', borderRadius: '10px', p: '3px', alignSelf: 'flex-start',
-              '& .MuiToggleButtonGroup-grouped': { border: 'none !important', borderRadius: '8px !important', m: 0 },
-            }}
-          >
-            {(['teams', 'private'] as const).map(v => (
-              <ToggleButton key={v} value={v} sx={{
-                fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
-                textTransform: 'none', px: 2, py: 0.75, color: c.textSecondary,
-                '&.Mui-selected': {
-                  bgcolor: '#fff', color: c.textPrimary, fontWeight: 600,
-                  boxShadow: '0px 1px 4px rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#fff' },
-                },
-              }}>
-                {v === 'teams' ? 'Teams and people' : 'Only me'}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+        {/* ── Sliding content ───────────────────────────────────────────────── */}
+        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+          <Box sx={{
+            display: 'flex',
+            transform: addOpen ? 'translateX(-50%)' : 'translateX(0)',
+            transition: 'transform 0.26s cubic-bezier(0.4,0,0.2,1)',
+            width: '200%',
+          }}>
+            {/* ── Panel 1: Manage access ──────────────────────────────────── */}
+            <Box sx={{ width: '50%', flexShrink: 0, p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Tab selector */}
+              <ToggleButtonGroup
+                value={tab}
+                exclusive
+                onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
+                sx={{
+                  bgcolor: 'rgba(0,0,0,0.06)', borderRadius: '10px', p: '3px', alignSelf: 'flex-start',
+                  '& .MuiToggleButtonGroup-grouped': { border: 'none !important', borderRadius: '8px !important', m: 0 },
+                }}
+              >
+                {(['teams', 'private'] as const).map(v => (
+                  <ToggleButton key={v} value={v} sx={{
+                    fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
+                    textTransform: 'none', px: 2, py: 0.75, color: c.textSecondary,
+                    '&.Mui-selected': {
+                      bgcolor: '#fff', color: c.textPrimary, fontWeight: 600,
+                      boxShadow: '0px 1px 4px rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#fff' },
+                    },
+                  }}>
+                    {v === 'teams' ? 'Teams and people' : 'Only me'}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
 
-          {/* Who can access */}
-          <Box>
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: c.textPrimary, mb: '12px', display: 'block' }}>
-              Who can access
-            </Typography>
+              {/* Who can access */}
+              <Box>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: c.textPrimary, mb: '12px', display: 'block' }}>
+                  Who can access
+                </Typography>
 
-            <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: '10px', overflow: 'hidden' }}>
-              {/* Owner row */}
-              <PersonRow
-                avatar={
-                  <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: OWNER_USER.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
-                    {OWNER_USER.initials}
-                  </Avatar>
-                }
-                name={`${OWNER_USER.name} (You)`}
-                email={OWNER_USER.email}
-                roleLabel={ownerRoleLabel}
-                onRoleClick={e => openMenuFn(e, 'owner')}
-              />
-
-              {/* Added users */}
-              {users.map(pu => (
-                <Box key={pu.user.id}>
-                  <Divider />
+                <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: '10px', overflow: 'hidden' }}>
+                  {/* Owner row */}
                   <PersonRow
                     avatar={
-                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: pu.user.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
-                        {pu.user.initials}
+                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: OWNER_USER.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
+                        {OWNER_USER.initials}
                       </Avatar>
                     }
-                    name={pu.user.name}
-                    email={pu.user.email}
-                    roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
-                    onRoleClick={e => openMenuFn(e, pu.user.id)}
+                    name={`${OWNER_USER.name} (You)`}
+                    email={OWNER_USER.email}
+                    roleLabel={ownerRoleLabel}
+                    onRoleClick={e => openMenuFn(e, 'owner')}
                   />
-                </Box>
-              ))}
 
-              {/* Everyone row — teams tab only */}
-              {tab === 'teams' && (
-                <>
-                  <Divider />
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
-                    <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(0,83,229,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <GroupsIcon sx={{ fontSize: 20, color: c.primary }} />
+                  {/* Added users — teams tab only */}
+                  {tab === 'teams' && users.map(pu => (
+                    <Box key={pu.user.id}>
+                      <Divider />
+                      <PersonRow
+                        avatar={
+                          <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: pu.user.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
+                            {pu.user.initials}
+                          </Avatar>
+                        }
+                        name={pu.user.name}
+                        email={pu.user.email}
+                        roleLabel={pu.role === 'editor' ? 'Can edit' : 'Can view'}
+                        onRoleClick={e => openMenuFn(e, pu.user.id)}
+                      />
                     </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
-                        Everyone in your account
-                      </Typography>
-                    </Box>
-                    <RoleButton
-                      label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
-                      onClick={e => openMenuFn(e, 'everyone')}
-                    />
-                  </Box>
-                </>
-              )}
+                  ))}
+
+                  {/* Everyone row — teams tab only */}
+                  {tab === 'teams' && (
+                    <>
+                      <Divider />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+                        <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(0,83,229,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <GroupsIcon sx={{ fontSize: 20, color: c.primary }} />
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
+                            Everyone in your account
+                          </Typography>
+                        </Box>
+                        <RoleButton
+                          label={everyoneRole === 'editor' ? 'Can edit' : everyoneRole === 'viewer' ? 'Can view' : 'Restricted'}
+                          onClick={e => openMenuFn(e, 'everyone')}
+                        />
+                      </Box>
+                    </>
+                  )}
+                </Box>
+
+                {/* Only me alert */}
+                {tab === 'private' && (
+                  <Alert severity="info" icon={<InfoOutlinedIcon fontSize="small" />}
+                    sx={{ mt: 1.5, borderRadius: '8px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, bgcolor: 'rgba(0,83,229,0.06)', color: c.textPrimary, '& .MuiAlert-icon': { color: c.primary } }}
+                  >
+                    {itemType === 'folder'
+                      ? "Only you can view this folder\u2019s media and all the folders inside it"
+                      : 'Only you can view this media'}
+                  </Alert>
+                )}
+              </Box>
             </Box>
 
-            {/* Only me alert */}
-            {tab === 'private' && (
-              <Alert severity="info" icon={<InfoOutlinedIcon fontSize="small" />}
-                sx={{ mt: 1.5, borderRadius: '8px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, bgcolor: 'rgba(0,83,229,0.06)', color: c.textPrimary, '& .MuiAlert-icon': { color: c.primary } }}
-              >
-                {itemType === 'folder'
-                  ? "Only you can view this folder\u2019s media and all the folders inside it"
-                  : 'Only you can view this media'}
-              </Alert>
-            )}
-
-            {/* Add user */}
-            {tab === 'teams' && (
-              <Button
-                startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
-                sx={{ mt: '10px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, color: c.primary, textTransform: 'none', p: '4px 8px', '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' } }}
-              >
-                Add user
-              </Button>
-            )}
+            {/* ── Panel 2: Add users ──────────────────────────────────────── */}
+            <Box sx={{ width: '50%', flexShrink: 0, p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <AddUsersAutocomplete
+                value={addUsers}
+                onChange={setAddUsers}
+                excludeIds={excludeIdsForAdd}
+                addRole={addRole}
+                onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
+              />
+              {addRole === 'viewer' && (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={addAllowDup}
+                      onChange={e => setAddAllowDup(e.target.checked)}
+                      size="small"
+                      sx={{ '&.Mui-checked': { color: c.primary } }}
+                    />
+                  }
+                  label="Allow to duplicate"
+                  sx={{ ml: 0, '& .MuiFormControlLabel-label': { fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary } }}
+                />
+              )}
+            </Box>
           </Box>
         </DialogContent>
 
         <Divider sx={{ borderColor: c.divider }} />
+
+        {/* ── Actions ───────────────────────────────────────────────────────── */}
         <DialogActions sx={{ px: '28px', py: '16px', gap: '8px' }}>
-          <Button variant="text" size="large" onClick={handleClose}
-            sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
-            Cancel
-          </Button>
-          <Button variant="contained" size="large" onClick={handleSave}
-            sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
-            Save
-          </Button>
+          {!addOpen ? (
+            <>
+              {/* + Add user on the left (teams tab only) */}
+              {tab === 'teams' && (
+                <Button
+                  startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                  onClick={() => setAddOpen(true)}
+                  sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, color: c.primary, textTransform: 'none', p: '4px 8px', mr: 'auto', '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' } }}
+                >
+                  Add user
+                </Button>
+              )}
+              <Box sx={{ flex: 1 }} />
+              <Button variant="text" size="large" onClick={handleClose}
+                sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+                Cancel
+              </Button>
+              <Button variant="contained" size="large" onClick={handleSave}
+                sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
+                Save
+              </Button>
+            </>
+          ) : (
+            <>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={addNotify}
+                    onChange={e => setAddNotify(e.target.checked)}
+                    size="medium"
+                    sx={{ '&.Mui-checked': { color: c.primary } }}
+                  />
+                }
+                label="Notify via email"
+                sx={{ mr: 'auto', '& .MuiFormControlLabel-label': { fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary } }}
+              />
+              <Button variant="text" size="large" onClick={() => setAddOpen(false)}
+                sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained" size="large"
+                disabled={addUsers.length === 0}
+                onClick={handleAddUsers}
+                sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}
+              >
+                Add users
+              </Button>
+            </>
+          )}
         </DialogActions>
 
-        {/* Role dropdown menu */}
+        {/* Role dropdown for main view */}
         <Menu
           anchorEl={menuAnchor}
           open={Boolean(menuAnchor)}
@@ -544,11 +753,11 @@ export default function ManageAccessDialog({
           {menuUser && [
             <MenuItem key="ed" onClick={() => { changeUserRole(menuTarget as string, 'editor'); closeMenuFn() }} sx={menuItemSx}>
               {menuUser.role === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Editor</Typography>
+              <Typography sx={menuTextSx}>Can edit</Typography>
             </MenuItem>,
             <MenuItem key="vi" onClick={() => { changeUserRole(menuTarget as string, 'viewer'); closeMenuFn() }} sx={menuItemSx}>
               {menuUser.role === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Viewer</Typography>
+              <Typography sx={menuTextSx}>Can view</Typography>
             </MenuItem>,
             <Divider key="d1" sx={{ my: '4px !important' }} />,
             <MenuItem key="to" onClick={closeMenuFn} sx={menuItemSx}>
@@ -556,7 +765,7 @@ export default function ManageAccessDialog({
             </MenuItem>,
             <Divider key="d2" sx={{ my: '4px !important' }} />,
             <MenuItem key="rm" onClick={() => { removeUser(menuTarget as string); closeMenuFn() }} sx={menuItemSx}>
-              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove</Typography>
+              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove permission</Typography>
             </MenuItem>,
           ]}
 
@@ -564,11 +773,11 @@ export default function ManageAccessDialog({
           {menuTarget === 'everyone' && [
             <MenuItem key="ed" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Editor</Typography>
+              <Typography sx={menuTextSx}>Can edit</Typography>
             </MenuItem>,
             <MenuItem key="vi" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Viewer</Typography>
+              <Typography sx={menuTextSx}>Can view</Typography>
             </MenuItem>,
             <Divider key="d1" sx={{ my: '4px !important' }} />,
             <MenuItem key="re" onClick={() => { setEveryoneRole('restricted'); closeMenuFn() }} sx={menuItemSx}>
@@ -576,6 +785,25 @@ export default function ManageAccessDialog({
               <Typography sx={menuTextSx}>Restricted</Typography>
             </MenuItem>,
           ]}
+        </Menu>
+
+        {/* Role dropdown for add view */}
+        <Menu
+          anchorEl={addRoleAnchor}
+          open={Boolean(addRoleAnchor)}
+          onClose={() => setAddRoleAnchor(null)}
+          PaperProps={{ sx: { borderRadius: '10px', boxShadow: '0px 4px 20px rgba(3,25,79,0.18)', minWidth: 160, p: '4px' } }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <MenuItem onClick={() => { setAddRole('editor'); setAddRoleAnchor(null) }} sx={menuItemSx}>
+            {addRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+            <Typography sx={menuTextSx}>Can edit</Typography>
+          </MenuItem>
+          <MenuItem onClick={() => { setAddRole('viewer'); setAddRoleAnchor(null) }} sx={menuItemSx}>
+            {addRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+            <Typography sx={menuTextSx}>Can view</Typography>
+          </MenuItem>
         </Menu>
       </Dialog>
 
