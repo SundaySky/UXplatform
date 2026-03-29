@@ -56,13 +56,13 @@ export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props
           fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
           lineHeight: 1.5, color: ds.textPrimary, mb: 1.5,
         }}>
-          To edit this video, you'll need to cancel the current approval process.
+          To edit this video, you'll need to cancel the current approval.
         </Typography>
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
           lineHeight: 1.5, color: ds.textPrimary,
         }}>
-          All existing approvals will be cleared.
+          Any changes will make the shared version outdated, and you'll need to request approval again.
         </Typography>
       </DialogContent>
 

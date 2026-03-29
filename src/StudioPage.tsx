@@ -389,7 +389,7 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
 
 // ─── Comments panel ────────────────────────────────────────────────────────────
 function CommentsPanel({
-  open, onClose, threads, setThreads, approverNames, onRequestApproval,
+  open, onClose, threads, setThreads, approverNames, onRequestApproval, awaitingApprovers,
 }: {
   open: boolean
   onClose: () => void
@@ -397,6 +397,7 @@ function CommentsPanel({
   setThreads: React.Dispatch<React.SetStateAction<CommentThread[]>>
   approverNames: string
   onRequestApproval: () => void
+  awaitingApprovers?: boolean
 }) {
   const [pos,         setPos]         = useState({ x: 0, y: 80 })
   const [tab,         setTab]         = useState<'unresolved' | 'completed'>('unresolved')
@@ -501,7 +502,7 @@ function CommentsPanel({
             gap: 0,
           }}>
             {[
-              { key: 'unresolved', label: `Unresolved (${unresolvedCount})` },
+              { key: 'unresolved', label: awaitingApprovers ? 'Unresolved' : `Unresolved (${unresolvedCount})` },
               { key: 'completed',  label: 'Completed' },
             ].map(({ key, label }) => (
               <Box
@@ -549,8 +550,21 @@ function CommentsPanel({
           </Box>
         )}
 
+        {/* ── Awaiting all approvers state ──────────────────────────────── */}
+        {awaitingApprovers && tab === 'unresolved' && (
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2, py: 3 }}>
+            <Typography sx={{
+              fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
+              lineHeight: 1.5, color: s.textPrimary, textAlign: 'center',
+            }}>
+              1 of 2 approvers responded<br />
+              Comments will appear here once all approvers have responded.
+            </Typography>
+          </Box>
+        )}
+
         {/* ── Comment threads ───────────────────────────────────────────── */}
-        <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: '4px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: '4px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '16px', ...( awaitingApprovers && tab === 'unresolved' ? { display: 'none' } : {}) }}>
           {threads.map(thread => {
             const visibleComments = tab === 'unresolved'
               ? thread.comments.filter(c => !c.resolved)
@@ -619,27 +633,29 @@ function CommentsPanel({
           )}
         </Box>
 
-        {/* ── Footer: "Resend for approval" — always visible ── */}
-        <Box sx={{
-          px: 2, py: '12px',
-          borderTop: `1px solid ${s.dividerGrey}`,
-          flexShrink: 0,
-          display: 'flex', justifyContent: 'flex-end',
-        }}>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleRequestApproval}
-            sx={{
-              fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
-              textTransform: 'none', borderRadius: '8px',
-              bgcolor: s.primary, '&:hover': { bgcolor: '#0042BB' },
-              px: 2,
-            }}
-          >
-            Resend for approval
-          </Button>
-        </Box>
+        {/* ── Footer: "Resend for approval" — hidden while awaiting all approvers ── */}
+        {!awaitingApprovers && (
+          <Box sx={{
+            px: 2, py: '12px',
+            borderTop: `1px solid ${s.dividerGrey}`,
+            flexShrink: 0,
+            display: 'flex', justifyContent: 'flex-end',
+          }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleRequestApproval}
+              sx={{
+                fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+                textTransform: 'none', borderRadius: '8px',
+                bgcolor: s.primary, '&:hover': { bgcolor: '#0042BB' },
+                px: 2,
+              }}
+            >
+              Resend for approval
+            </Button>
+          </Box>
+        )}
       </Box>
 
       {/* ── Unresolved warning dialog ─────────────────────────────────────── */}
@@ -768,9 +784,10 @@ interface Props {
   triggerOpenComments?:   number
   notifications?:         NotificationItem[]
   initialThreads?:        CommentThread[]
+  awaitingApprovers?:     boolean
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, awaitingApprovers }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -1328,6 +1345,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         threads={threads}
         setThreads={setThreads}
         approverNames={approverNames}
+        awaitingApprovers={awaitingApprovers}
         onRequestApproval={() => {
           setSnackbarMsg(`Version sent for additional approval by ${approverNames}`)
           onRequestReapproval()
