@@ -37,6 +37,7 @@ import StarBorderIcon              from '@mui/icons-material/StarBorder'
 import LockOutlinedIcon           from '@mui/icons-material/LockOutlined'
 import PeopleAltOutlinedIcon      from '@mui/icons-material/PeopleAltOutlined'
 import LockPersonIcon             from '@mui/icons-material/LockPerson'
+import GroupsIcon                 from '@mui/icons-material/Groups'
 import Tooltip                    from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
@@ -108,6 +109,117 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       <Pill icon={<ContentCopyOutlinedIcon  sx={{ fontSize: 14 }} />} label="Copy" />
       <Pill icon={<VisibilityOutlinedIcon   sx={{ fontSize: 14 }} />} />
       <Pill icon={<MoreHorizIcon            sx={{ fontSize: 16 }} />} />
+    </Box>
+  )
+}
+
+// ─── Video Permission Strip ───────────────────────────────────────────────────
+function VideoPermissionStrip({
+  settings,
+  onManageClick,
+}: {
+  settings?: VideoPermissionSettings
+  onManageClick: () => void
+}) {
+  const s = settings ?? {
+    tab: 'teams' as const,
+    everyoneRole: 'viewer' as const,
+    users: [] as any[],
+    ownerUsers: [OWNER_USER],
+    noDuplicate: false,
+  }
+  const { tab, everyoneRole, users, ownerUsers } = s
+
+  const navyTipSx = {
+    bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1,
+    '& .MuiTooltip-arrow': { color: '#03194F' },
+  }
+
+  const miniAvatar = (key: string, bg: string, content: React.ReactNode, tip: string) => (
+    <Tooltip key={key} title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+      <Box sx={{
+        width: 24, height: 24, borderRadius: '4px', bgcolor: bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        {content}
+      </Box>
+    </Tooltip>
+  )
+
+  const avatarItems: React.ReactNode[] = []
+
+  // Add owner avatars (up to 3)
+  ownerUsers.slice(0, 3).forEach(u =>
+    avatarItems.push(
+      miniAvatar(u.id, u.color,
+        <Typography sx={{ fontSize: 9, color: '#fff', fontWeight: 700, lineHeight: 1 }}>{u.initials}</Typography>,
+        `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Can manage access`,
+      )
+    )
+  )
+
+  // Add editors if teams mode (up to 2)
+  if (tab === 'teams') {
+    users.filter(pu => pu.role === 'editor').slice(0, 2).forEach(pu =>
+      avatarItems.push(
+        miniAvatar(pu.user.id, pu.user.color,
+          <Typography sx={{ fontSize: 9, color: '#fff', fontWeight: 700, lineHeight: 1 }}>{pu.user.initials}</Typography>,
+          `${pu.user.name} — Can edit`,
+        )
+      )
+    )
+  }
+
+  // Add "Everyone in your account" indicator if not restricted
+  if (tab === 'teams' && everyoneRole !== 'restricted') {
+    avatarItems.push(
+      miniAvatar('everyone', 'rgba(0,83,229,0.10)',
+        <GroupsIcon sx={{ fontSize: 13, color: '#0053E5' }} />,
+        `Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`,
+      )
+    )
+  }
+
+  // Add lock icon for private
+  if (tab === 'private') {
+    avatarItems.push(
+      miniAvatar('lock', 'rgba(17,135,71,0.12)',
+        <LockOutlinedIcon sx={{ fontSize: 13, color: '#118747' }} />,
+        'Only you can see this video',
+      )
+    )
+  }
+
+  return (
+    <Box
+      onClick={onManageClick}
+      sx={{
+        display: 'flex', alignItems: 'center', gap: '12px',
+        px: 2, py: 1.5, borderRadius: '8px',
+        border: '1px solid rgba(0,83,229,0.12)', bgcolor: 'rgba(0,83,229,0.04)',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        '&:hover': {
+          bgcolor: 'rgba(0,83,229,0.08)',
+          borderColor: 'rgba(0,83,229,0.20)',
+        },
+      }}
+    >
+      <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        {avatarItems}
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', ml: 'auto' }}>
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 13,
+          color: tab === 'private' ? '#118747' : '#0053E5',
+        }}>
+          {tab === 'private' ? 'Only me' : 'Teams and people'}
+        </Typography>
+        {tab === 'private'
+          ? <LockOutlinedIcon sx={{ fontSize: 16, color: '#118747' }} />
+          : <GroupsIcon sx={{ fontSize: 16, color: '#0053E5' }} />
+        }
+      </Box>
     </Box>
   )
 }
@@ -1213,6 +1325,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             >
               <ChevronRightIcon />
             </IconButton>
+          </Box>
+
+          {/* Video permission strip */}
+          <Box sx={{ mx: 3, mb: 1.5, flexShrink: 0 }}>
+            <VideoPermissionStrip
+              settings={videoPermSettings}
+              onManageClick={() => setVideoPermOpen(true)}
+            />
           </Box>
 
           {/* Narration bar */}
