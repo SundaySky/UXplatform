@@ -29,7 +29,8 @@ import CancelApprovalDialog  from './CancelApprovalDialog'
 import VideoLibraryPage, { type VideoItem } from './VideoLibraryPage'
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from './StudioPage'
 import { type NotificationItem } from './NotificationsPanel'
-import VideoPermissionDialog, { VideoAccessBar, type VideoPermissionSettings } from './VideoPermissionDialog'
+import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
+import { OWNER_USER, type User, type PermissionUser } from './ManageAccessDialog'
 
 // MUI icons
 import MoreVertIcon              from '@mui/icons-material/MoreVert'
@@ -59,6 +60,8 @@ import WarningAmberOutlinedIcon  from '@mui/icons-material/WarningAmberOutlined'
 import CloseIcon                 from '@mui/icons-material/Close'
 import CheckIcon                 from '@mui/icons-material/Check'
 import DeleteOutlineIcon         from '@mui/icons-material/DeleteOutline'
+import GroupsIcon               from '@mui/icons-material/Groups'
+import LockOutlinedIcon         from '@mui/icons-material/LockOutlined'
 
 // ─── Figma asset: split-template preview (template left + media right)
 const imgVideoPreview = '/thumb.svg'
@@ -132,6 +135,126 @@ function CircularIconAvatar({ icon }: { icon: React.ReactNode }) {
   )
 }
 
+// ─── Video permission strip (video page metadata row) ─────────────────────────
+function VideoPermissionStrip({
+  settings,
+  onManageClick,
+}: {
+  settings?: VideoPermissionSettings
+  onManageClick: () => void
+}) {
+  const s = settings ?? {
+    tab: 'teams' as const, everyoneRole: 'viewer' as const,
+    users: [] as PermissionUser[], ownerUsers: [OWNER_USER], noDuplicate: false,
+  }
+  const { tab, everyoneRole, users, ownerUsers } = s
+  const isPrivate   = tab === 'private'
+  const showEveryone = tab === 'teams' && everyoneRole !== 'restricted'
+
+  const navyTipSx = {
+    bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1,
+    '& .MuiTooltip-arrow': { color: '#03194F' },
+  }
+
+  // Mini avatar chip — optionally with name label
+  function AvatarChip({ user, label, tip }: { user: User; label?: string; tip: string }) {
+    return (
+      <Tooltip title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+          <Box sx={{
+            width: 20, height: 20, borderRadius: '4px', bgcolor: user.color,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Typography sx={{ fontSize: 8, color: '#fff', fontWeight: 700, lineHeight: 1, fontFamily: '"Open Sans", sans-serif' }}>
+              {user.initials}
+            </Typography>
+          </Box>
+          {label && (
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: t.textPrimary, lineHeight: 1.4 }}>
+              {label}
+            </Typography>
+          )}
+        </Box>
+      </Tooltip>
+    )
+  }
+
+  const rowIcon = isPrivate
+    ? <LockOutlinedIcon sx={{ fontSize: 19, color: '#118747' }} />
+    : <GroupsIcon       sx={{ fontSize: 19, color: t.primaryMain }} />
+
+  return (
+    <Box
+      onClick={onManageClick}
+      sx={{
+        display: 'flex', alignItems: 'flex-start', gap: '6px', px: 2, py: 1.5,
+        cursor: 'pointer',
+        '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' },
+      }}
+    >
+      <CircularIconAvatar icon={rowIcon} />
+
+      <Box sx={{ minWidth: 0 }}>
+        {/* Label row */}
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
+          lineHeight: 1.5, color: t.textSecondary, display: 'block', mb: '4px',
+        }}>
+          {isPrivate ? 'Video permission — Only you can see this video' : 'Video permission'}
+        </Typography>
+
+        {/* Indicators */}
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          {/* Owner(s) — show name for first owner only */}
+          {ownerUsers.slice(0, 3).map((u, i) => (
+            <AvatarChip
+              key={u.id}
+              user={u}
+              label={i === 0 ? `${u.name} (Owner)` : undefined}
+              tip={`${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Can manage access`}
+            />
+          ))}
+
+          {/* Non-owner users for restricted/specific-user mode */}
+          {tab === 'teams' && !showEveryone && users.slice(0, 3).map(pu => (
+            <AvatarChip
+              key={pu.user.id}
+              user={pu.user}
+              tip={`${pu.user.name} — Can ${pu.role === 'editor' ? 'edit' : 'view'}`}
+            />
+          ))}
+
+          {/* Separator */}
+          {showEveryone && (
+            <Box sx={{ width: '1px', height: 16, bgcolor: t.divider, flexShrink: 0 }} />
+          )}
+
+          {/* Everyone indicator */}
+          {showEveryone && (
+            <Tooltip
+              title={`Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`}
+              placement="top" arrow
+              componentsProps={{ tooltip: { sx: navyTipSx } }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                <Box sx={{
+                  width: 20, height: 20, borderRadius: '4px', bgcolor: 'rgba(0,83,229,0.10)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <GroupsIcon sx={{ fontSize: 13, color: t.primaryMain }} />
+                </Box>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: t.textPrimary, lineHeight: 1.4 }}>
+                  Everyone in your account
+                </Typography>
+              </Box>
+            </Tooltip>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  )
+}
+
 // ─── Wordmark ─────────────────────────────────────────────────────────────────
 function SundaySkyLogo() {
   return (
@@ -151,14 +274,10 @@ function Sidebar({
   effectiveStatus,
   videoTitle,
   onNavigateToLibrary,
-  videoPermSettings,
-  onManageAccess,
 }: {
   effectiveStatus: 'draft' | 'pending' | 'approved'
   videoTitle: string
   onNavigateToLibrary: () => void
-  videoPermSettings?: VideoPermissionSettings
-  onManageAccess: () => void
 }) {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   return (
@@ -214,16 +333,11 @@ function Sidebar({
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           PaperProps={{ sx: { borderRadius: '8px', minWidth: 240, boxShadow: '0px 4px 20px rgba(3,25,79,0.15)', mt: '4px' } }}
         >
-          {/* Video access bar header */}
+          {/* Menu header */}
           <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: t.textPrimary, mb: '10px' }}>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: t.textPrimary }}>
               {videoTitle}
             </Typography>
-            <VideoAccessBar
-              settings={videoPermSettings}
-              onManageAccess={() => { setMenuAnchor(null); onManageAccess() }}
-              onChangePermission={() => { setMenuAnchor(null); onManageAccess() }}
-            />
           </Box>
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
           <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
@@ -273,15 +387,6 @@ function Sidebar({
             {effectiveStatus === 'pending' ? 'Pending approval' : effectiveStatus === 'approved' ? 'Approved for sharing' : 'Draft'}
           </Typography>
         </Box>
-      </Box>
-
-      {/* Permission bar */}
-      <Box sx={{ px: 2.5, pt: 1.5, pb: 0.5 }}>
-        <VideoAccessBar
-          settings={videoPermSettings}
-          onManageAccess={onManageAccess}
-          onChangePermission={onManageAccess}
-        />
       </Box>
 
       <Divider sx={{ borderColor: t.divider, mx: 2.5, my: 1 }} />
@@ -359,17 +464,21 @@ function VideoPreviewCard({
   onSentForApproval,
   onEdit,
   onApproveVideo,
+  videoPermSettings,
+  onManageAccess,
 }: {
-  videoPhase:        number
-  effectiveStatus:   'draft' | 'pending' | 'approved'
-  approvers:         string[]
-  pendingTooltip:    string
-  headingText?:      string
-  subheadingText?:   string
-  videoTitle?:       string
-  onSentForApproval: () => void
-  onEdit:            (fromComments?: boolean) => void
-  onApproveVideo:    () => void
+  videoPhase:          number
+  effectiveStatus:     'draft' | 'pending' | 'approved'
+  approvers:           string[]
+  pendingTooltip:      string
+  headingText?:        string
+  subheadingText?:     string
+  videoTitle?:         string
+  onSentForApproval:   () => void
+  onEdit:              (fromComments?: boolean) => void
+  onApproveVideo:      () => void
+  videoPermSettings?:  VideoPermissionSettings
+  onManageAccess:      () => void
 }) {
   function ActionButton() {
     // ── Phase 0 + pending: after approval dialog sent ─────────────────────
@@ -575,6 +684,14 @@ function VideoPreviewCard({
           </Typography>
         </Box>
       </Box>
+
+      <Divider sx={{ borderColor: t.divider }} />
+
+      {/* Video permission strip */}
+      <VideoPermissionStrip
+        settings={videoPermSettings}
+        onManageClick={onManageAccess}
+      />
 
       <Divider sx={{ borderColor: t.divider }} />
 
@@ -1224,8 +1341,6 @@ export default function App() {
               effectiveStatus={effectiveStatus}
               videoTitle={selectedVideo?.title ?? 'Video'}
               onNavigateToLibrary={() => setCurrentPage('library')}
-              videoPermSettings={videoPermSettings}
-              onManageAccess={() => setVideoPermDialogOpen(true)}
             />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -1274,6 +1389,8 @@ export default function App() {
                         }
                       }}
                       onApproveVideo={() => setApproveDialogOpen(true)}
+                      videoPermSettings={videoPermSettings}
+                      onManageAccess={() => setVideoPermDialogOpen(true)}
                     />
                   </Box>
                   <ReviewOptionsPanel isPending={effectiveStatus === 'pending' && videoPhase !== 2} />

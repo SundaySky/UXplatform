@@ -453,6 +453,7 @@ export default function VideoPermissionDialog({
         open={open}
         onClose={handleClose}
         maxWidth={false}
+        onClick={e => e.stopPropagation()}
         PaperProps={{ sx: { width: 560, maxWidth: '98vw', borderRadius: '12px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)', overflow: 'hidden' } }}
       >
         {/* ── Title ─────────────────────────────────────────────────────────── */}
