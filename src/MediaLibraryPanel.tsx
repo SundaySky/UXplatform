@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Box, Typography, IconButton, Button, Divider,
   OutlinedInput, InputAdornment, Menu, MenuItem,
-  Avatar, Tooltip, InputBase,
+  Tooltip, InputBase,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material'
 import CloseIcon                    from '@mui/icons-material/Close'
@@ -27,13 +27,11 @@ import MoreVertIcon                 from '@mui/icons-material/MoreVert'
 import GroupsIcon                   from '@mui/icons-material/Groups'
 import ManageAccountsIcon           from '@mui/icons-material/ManageAccounts'
 import PeopleOutlinedIcon           from '@mui/icons-material/PeopleOutlined'
-import ManageAccountsOutlinedIcon   from '@mui/icons-material/ManageAccountsOutlined'
 import LockOutlinedIcon             from '@mui/icons-material/LockOutlined'
 
 import ManageAccessDialog, {
   type PermissionSettings,
   type User,
-  UserAvatarWithTooltip,
   OWNER_USER,
 } from './ManageAccessDialog'
 
@@ -242,159 +240,6 @@ function HoverIconBtn({
     >
       {children}
     </IconButton>
-  )
-}
-
-// ─── Permission section inside the three-dot menu ────────────────────────────
-function PermissionSection({
-  settings,
-  onManageAccess,
-  onViewClick,
-}: {
-  settings:       PermissionSettings
-  onManageAccess: () => void
-  onViewClick?:   () => void
-}) {
-  const viewPermission = toVp(settings)
-  const viewUsers      = toViewUsers(settings)
-  const ownerUsers     = settings.ownerUsers
-  const handleViewClick = onViewClick ?? onManageAccess
-
-  // Owner users: show up to 3, then +N overflow
-  const MAX_MANAGE = 3
-  const visibleManage = ownerUsers.slice(0, MAX_MANAGE)
-  const extraManage   = ownerUsers.length - MAX_MANAGE
-
-  // View users (specific): show up to 2, then +N overflow
-  const MAX_VIEW = 2
-  const visibleViewUsers  = viewPermission === 'specific' ? viewUsers.slice(0, MAX_VIEW) : []
-  const extraView         = viewPermission === 'specific' ? Math.max(0, viewUsers.length - MAX_VIEW) : 0
-
-  return (
-    <Box sx={{ px: 1, py: 0.75, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-      {/* ── Visible row ─────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-        <Typography sx={{
-          fontFamily: '"Inter", sans-serif', fontWeight: 500,
-          fontSize: 14, color: c.textPrimary, flexShrink: 0,
-        }}>
-          Visible
-        </Typography>
-        <Button
-          variant="text" size="small"
-          startIcon={<VisibleIcon vp={viewPermission} />}
-          endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '13px !important' }} />}
-          onClick={e => { e.stopPropagation(); handleViewClick() }}
-          sx={{
-            color: c.primary,
-            fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 13,
-            textTransform: 'none', p: '2px 4px', minWidth: 0,
-          }}
-        >
-          {visibleLabel(viewPermission)}
-        </Button>
-      </Box>
-
-      {/* ── Avatars row ─────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-
-        {viewPermission === 'private' ? (
-          /* Private: only show the owner (me) — no other avatars, no indicator */
-          <UserAvatarWithTooltip
-            user={OWNER_USER}
-            role="Can manage access, delete, and rename."
-            size={32}
-          />
-        ) : (
-          <>
-            {/* Left: manage-access users */}
-            {visibleManage.map(u => (
-              <UserAvatarWithTooltip
-                key={u.id} user={u}
-                role="Can manage access, delete, and rename."
-                size={32}
-              />
-            ))}
-            {extraManage > 0 && (
-              <Tooltip
-                title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraManage} more</Typography>}
-                placement="bottom" arrow
-                componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-              >
-                <Avatar variant="rounded" sx={{
-                  width: 32, height: 32, bgcolor: c.grey300,
-                  fontSize: 11, color: c.textPrimary, cursor: 'default',
-                }}>
-                  +{extraManage}
-                </Avatar>
-              </Tooltip>
-            )}
-
-            {/* Right: only for everyone (icon) or specific with view users */}
-            {viewPermission === 'everyone' && (
-              <>
-                <Divider
-                  orientation="vertical" flexItem
-                  sx={{ mx: '4px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
-                />
-                <Tooltip
-                  title={<Typography sx={{ fontSize: 12, color: '#fff' }}>Everyone in your account can view</Typography>}
-                  placement="bottom" arrow
-                  componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-                >
-                  <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: c.secondary, cursor: 'default' }}>
-                    <GroupsIcon sx={{ fontSize: 18, color: '#fff' }} />
-                  </Avatar>
-                </Tooltip>
-              </>
-            )}
-
-            {viewPermission === 'specific' && visibleViewUsers.length > 0 && (
-              <>
-                <Divider
-                  orientation="vertical" flexItem
-                  sx={{ mx: '4px', borderColor: c.divider, height: 24, alignSelf: 'center' }}
-                />
-                {visibleViewUsers.map(u => (
-                  <UserAvatarWithTooltip key={u.id} user={u} role="Can view" size={32} />
-                ))}
-                {extraView > 0 && (
-                  <Tooltip
-                    title={<Typography sx={{ fontSize: 12, color: '#fff' }}>+{extraView} more can view</Typography>}
-                    placement="bottom" arrow
-                    componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-                  >
-                    <Avatar variant="rounded" sx={{
-                      width: 32, height: 32, bgcolor: c.grey300,
-                      fontSize: 11, color: c.textPrimary, cursor: 'default',
-                    }}>
-                      +{extraView}
-                    </Avatar>
-                  </Tooltip>
-                )}
-              </>
-            )}
-            {/* editors / specific-with-no-users: no right-side indicator */}
-          </>
-        )}
-      </Box>
-
-      {/* ── Manage access button ─────────────────────────────────────────── */}
-      <Button
-        variant="outlined" size="medium"
-        startIcon={<ManageAccountsOutlinedIcon sx={{ fontSize: '16px !important' }} />}
-        onClick={e => { e.stopPropagation(); onManageAccess() }}
-        sx={{
-          color: c.textPrimary, borderColor: c.grey300,
-          fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
-          textTransform: 'none', borderRadius: '8px', alignSelf: 'flex-start',
-          '&:hover': { borderColor: c.primary },
-        }}
-      >
-        Manage access
-      </Button>
-    </Box>
   )
 }
 
@@ -1116,26 +961,6 @@ export default function MediaLibraryPanel({
             Added: {menuTarget?.added ?? ''}
           </Typography>
         </Box>
-
-        <Divider sx={{ borderColor: c.divider, mx: -1 }} />
-
-        {/* Permission section — display shows effective (inherited) permission */}
-        {(() => {
-          const ownPerms    = getPerms(menuTarget?.name ?? '')
-          const effectiveVp = getEffectiveVp(toVp(ownPerms), parentVp)
-          const displayPerms = fromVp(effectiveVp, ownPerms)
-          return (
-            <PermissionSection
-              settings={displayPerms}
-              onManageAccess={() =>
-                menuTarget && openManageAccess(menuTarget.name, menuTarget.type, folder)
-              }
-              onViewClick={() =>
-                menuTarget && openManageAccess(menuTarget.name, menuTarget.type, folder)
-              }
-            />
-          )
-        })()}
 
         <Divider sx={{ borderColor: c.divider, mx: -1 }} />
 
