@@ -2,53 +2,41 @@ import { useState, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, Button, IconButton,
-  Select, MenuItem, Collapse, Alert,
-  Divider, Checkbox, FormControlLabel,
-  Tooltip,
+  Alert, Divider, Menu, MenuItem,
+  ToggleButton, ToggleButtonGroup, Checkbox, Tooltip,
 } from '@mui/material'
-import CloseIcon              from '@mui/icons-material/Close'
-import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
-import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
-import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
-import ManageAccountsIcon     from '@mui/icons-material/ManageAccounts'
-import PersonOutlinedIcon     from '@mui/icons-material/PersonOutlined'
-import CreateOutlinedIcon     from '@mui/icons-material/CreateOutlined'
-import GroupsIcon             from '@mui/icons-material/Groups'
-import SettingsOutlinedIcon   from '@mui/icons-material/SettingsOutlined'
-
-// Composite icon: person + pen side by side (two distinct shapes)
-export function UserPenIcon({ sx }: { sx?: { fontSize?: number | string; color?: string; [k: string]: unknown } }) {
-  const rawSize = sx?.fontSize ?? 20
-  const numSize = typeof rawSize === 'string' ? parseInt(rawSize) : (rawSize as number)
-  const color   = (sx?.color as string | undefined) ?? 'inherit'
-  return (
-    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: '2px', lineHeight: 0 }}>
-      <PersonOutlinedIcon sx={{ fontSize: numSize, color }} />
-      <CreateOutlinedIcon sx={{ fontSize: Math.round(numSize * 0.72), color }} />
-    </Box>
-  )
-}
+import CloseIcon             from '@mui/icons-material/Close'
+import HelpOutlineIcon       from '@mui/icons-material/HelpOutline'
+import GroupsIcon            from '@mui/icons-material/Groups'
+import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import CheckIcon             from '@mui/icons-material/Check'
+import InfoOutlinedIcon      from '@mui/icons-material/InfoOutlined'
+import LockOutlinedIcon      from '@mui/icons-material/LockOutlined'
+import SettingsOutlinedIcon  from '@mui/icons-material/SettingsOutlined'
+import Avatar                from '@mui/material/Avatar'
 
 import {
-  type ViewPermission,
+  type PermissionTab,
+  type EveryoneRole,
+  type UserRole,
+  type PermissionUser,
   type User,
-  VIEW_OPTIONS,
-  UsersAutocomplete,
   OWNER_USER,
 } from './ManageAccessDialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-export type VideoViewPermission = ViewPermission | 'owners' | 'videoEditors'
+export type { PermissionTab, EveryoneRole, UserRole, PermissionUser }
 
 export interface VideoPermissionSettings {
-  viewPermission: VideoViewPermission
-  viewUsers:      User[]
-  editUsers:      User[]
-  ownerUsers:     User[]
-  noDuplicate:    boolean
+  tab:          PermissionTab
+  everyoneRole: EveryoneRole
+  users:        PermissionUser[]
+  ownerUsers:   User[]
+  noDuplicate:  boolean
 }
 
-// ─── Video-specific view options (extends shared VIEW_OPTIONS + 'owners') ─────
+// ─── Design tokens ─────────────────────────────────────────────────────────────
 const c = {
   primary:       '#0053E5',
   textPrimary:   'rgba(0,0,0,0.87)',
@@ -56,41 +44,9 @@ const c = {
   divider:       'rgba(0,83,229,0.12)',
   grey300:       '#CFD6EA',
   errorMain:     '#E62843',
-  warningMain:   '#F46900',
   successMain:   '#118747',
-  teal:          '#00897B',
 }
 
-const VIDEO_VIEW_OPTIONS: {
-  value: VideoViewPermission
-  label: string
-  Icon: React.ElementType
-  iconColor: string
-  bgColor: string
-}[] = [
-  ...VIEW_OPTIONS.filter(o => o.value !== 'private' && o.value !== 'editors'),
-  {
-    value: 'videoEditors' as const,
-    label: 'Video editors',
-    Icon: UserPenIcon,
-    iconColor: c.teal,
-    bgColor: 'rgba(0,137,123,0.10)',
-  },
-  {
-    value: 'owners',
-    label: 'Video owners only',
-    Icon: ManageAccountsIcon,
-    iconColor: c.primary,
-    bgColor: 'rgba(0,83,229,0.10)',
-  },
-  VIEW_OPTIONS.find(o => o.value === 'private')!,
-]
-
-function getVideoViewOption(v: VideoViewPermission) {
-  return VIDEO_VIEW_OPTIONS.find(o => o.value === v) ?? VIDEO_VIEW_OPTIONS[0]
-}
-
-// ─── VideoAccessBar ───────────────────────────────────────────────────────────
 const navyTipSx = {
   bgcolor: '#03194F',
   borderRadius: '8px',
@@ -99,47 +55,35 @@ const navyTipSx = {
   '& .MuiTooltip-arrow': { color: '#03194F' },
 }
 
+// ─── VideoAccessBar ───────────────────────────────────────────────────────────
 export function VideoAccessBar({
   settings,
   onManageAccess,
   onChangePermission,
 }: {
-  settings?: VideoPermissionSettings
-  onManageAccess: () => void
+  settings?:           VideoPermissionSettings
+  onManageAccess:      () => void
   onChangePermission?: () => void
 }) {
   const s = settings ?? {
-    viewPermission: 'everyone' as const,
-    viewUsers: [],
-    editUsers: [],
-    ownerUsers: [OWNER_USER],
-    noDuplicate: false,
+    tab:          'teams' as const,
+    everyoneRole: 'viewer' as const,
+    users:        [] as PermissionUser[],
+    ownerUsers:   [OWNER_USER],
+    noDuplicate:  false,
   }
-  const { viewPermission, viewUsers, editUsers, ownerUsers } = s
-  const permOption = getVideoViewOption(viewPermission)
+  const { tab, everyoneRole, users, ownerUsers } = s
 
-  type RightEntry =
-    | { kind: 'everyone' }
-    | { kind: 'user'; user: User; role: 'editor' | 'viewer' }
+  const permLabel    = tab === 'private' ? 'Only me' : 'Teams and people'
+  const PermIconComp = tab === 'private' ? LockOutlinedIcon : GroupsIcon
+  const permColor    = tab === 'private' ? c.successMain : c.primary
 
-  const right: RightEntry[] = []
-  if (viewPermission === 'everyone') {
-    right.push({ kind: 'everyone' })
-  } else if (viewPermission === 'specific') {
-    editUsers.forEach(u => right.push({ kind: 'user', user: u, role: 'editor' }))
-    viewUsers.forEach(u => right.push({ kind: 'user', user: u, role: 'viewer' }))
-  } else if (viewPermission === 'videoEditors') {
-    editUsers.forEach(u => right.push({ kind: 'user', user: u, role: 'editor' }))
-  }
-
-  const displayOwners = viewPermission === 'private' ? [OWNER_USER] : ownerUsers
+  const showEveryone = tab === 'teams' && everyoneRole !== 'restricted'
+  const rightUsers   = tab === 'teams' && everyoneRole === 'restricted' ? users : []
 
   const UserChip = ({ bg, initials, tip }: { bg: string; initials: string; tip: React.ReactNode }) => (
     <Tooltip title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-      <Box sx={{
-        width: 32, height: 32, borderRadius: '6px', bgcolor: bg, flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default',
-      }}>
+      <Box sx={{ width: 32, height: 32, borderRadius: '6px', bgcolor: bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }}>
         <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 12, color: '#fff', lineHeight: 1 }}>
           {initials}
         </Typography>
@@ -156,9 +100,9 @@ export function VideoAccessBar({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {/* "Visible [icon] [label] ▾" */}
+      {/* Visible [icon] [label] ▾ */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: c.textSecondary }}>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 13, color: c.textPrimary }}>
           Visible
         </Typography>
         <Box
@@ -169,9 +113,9 @@ export function VideoAccessBar({
             '&:hover': onChangePermission ? { opacity: 0.75 } : {},
           }}
         >
-          <permOption.Icon sx={{ fontSize: 15, color: permOption.iconColor }} />
+          <PermIconComp sx={{ fontSize: 15, color: permColor }} />
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary }}>
-            {permOption.label}
+            {permLabel}
           </Typography>
           {onChangePermission && <KeyboardArrowDownIcon sx={{ fontSize: 14, color: c.textPrimary }} />}
         </Box>
@@ -179,55 +123,38 @@ export function VideoAccessBar({
 
       {/* Avatar row */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-        {/* Owners (left of divider) */}
-        {displayOwners.map(owner => (
+        {ownerUsers.map(owner => (
           <UserChip
             key={owner.id}
             bg={owner.color}
             initials={owner.initials}
-            tip={<TipContent
-              name={`${owner.name}${owner.id === OWNER_USER.id ? ' (You)' : ''}`}
-              desc="Can manage access, delete, and rename."
-            />}
+            tip={<TipContent name={`${owner.name}${owner.id === OWNER_USER.id ? ' (You)' : ''}`} desc="Can manage access, delete, and rename." />}
           />
         ))}
 
-        {/* Divider */}
-        {right.length > 0 && (
+        {(showEveryone || rightUsers.length > 0) && (
           <Box sx={{ width: '1px', height: 24, bgcolor: c.grey300, mx: '2px', flexShrink: 0 }} />
         )}
 
-        {/* Right side: everyone icon or user chips */}
-        {right.map((entry, i) => {
-          if (entry.kind === 'everyone') {
-            return (
-              <Tooltip
-                key="everyone"
-                title={<Typography sx={{ fontSize: 12, color: '#fff', lineHeight: 1.4 }}>Everyone in your account can view</Typography>}
-                placement="top"
-                arrow
-                componentsProps={{ tooltip: { sx: navyTipSx } }}
-              >
-                <Box sx={{
-                  width: 32, height: 32, borderRadius: '6px',
-                  bgcolor: 'rgba(0,83,229,0.10)', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default',
-                }}>
-                  <GroupsIcon sx={{ fontSize: 18, color: c.primary }} />
-                </Box>
-              </Tooltip>
-            )
-          }
-          const label = entry.role === 'editor' ? 'Can edit the video' : 'Can view the video'
-          return (
-            <UserChip
-              key={entry.user.id + i}
-              bg={entry.user.color}
-              initials={entry.user.initials}
-              tip={<TipContent name={entry.user.name} desc={label} />}
-            />
-          )
-        })}
+        {showEveryone && (
+          <Tooltip
+            title={<Typography sx={{ fontSize: 12, color: '#fff', lineHeight: 1.4 }}>Everyone in your account can {everyoneRole === 'editor' ? 'edit' : 'view'}</Typography>}
+            placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}
+          >
+            <Box sx={{ width: 32, height: 32, borderRadius: '6px', bgcolor: 'rgba(0,83,229,0.10)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }}>
+              <GroupsIcon sx={{ fontSize: 18, color: c.primary }} />
+            </Box>
+          </Tooltip>
+        )}
+
+        {rightUsers.map((pu, i) => (
+          <UserChip
+            key={pu.user.id + i}
+            bg={pu.user.color}
+            initials={pu.user.initials}
+            tip={<TipContent name={pu.user.name} desc={pu.role === 'editor' ? 'Can edit the video' : 'Can view the video'} />}
+          />
+        ))}
       </Box>
 
       {/* Manage access button */}
@@ -255,17 +182,56 @@ export function VideoAccessBar({
   )
 }
 
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const labelSx = {
-  fontFamily: '"Open Sans", sans-serif',
-  fontWeight: 600,
-  fontSize: 14,
-  color: c.textPrimary,
-  mb: '8px',
-  display: 'block',
-} as const
+// ─── Internal UI helpers ───────────────────────────────────────────────────────
+function RoleButton({ label, onClick }: { label: string; onClick: (e: React.MouseEvent<HTMLElement>) => void }) {
+  return (
+    <Button
+      size="small"
+      endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: '-6px' }} />}
+      onClick={e => { e.stopPropagation(); onClick(e) }}
+      sx={{
+        fontFamily: '"Open Sans", sans-serif',
+        fontSize: 12, fontWeight: 500,
+        color: c.textPrimary,
+        textTransform: 'none',
+        bgcolor: 'rgba(0,0,0,0.06)',
+        borderRadius: '20px',
+        px: '10px', py: '4px',
+        minWidth: 0, whiteSpace: 'nowrap', flexShrink: 0,
+        '&:hover': { bgcolor: 'rgba(0,0,0,0.10)' },
+      }}
+    >
+      {label}
+    </Button>
+  )
+}
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function PersonRow({
+  avatar, name, email, roleLabel, onRoleClick,
+}: {
+  avatar:      React.ReactNode
+  name:        string
+  email:       string
+  roleLabel:   string
+  onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
+}) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+      {avatar}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary, lineHeight: 1.3 }}>
+          {name}
+        </Typography>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.3 }}>
+          {email}
+        </Typography>
+      </Box>
+      <RoleButton label={roleLabel} onClick={onRoleClick} />
+    </Box>
+  )
+}
+
+// ─── Main Dialog ──────────────────────────────────────────────────────────────
 export default function VideoPermissionDialog({
   open,
   onClose,
@@ -277,306 +243,289 @@ export default function VideoPermissionDialog({
   onSave:           (s: VideoPermissionSettings) => void
   initialSettings?: VideoPermissionSettings
 }) {
-  const defaultOwners = [OWNER_USER]
+  const dflt: VideoPermissionSettings = {
+    tab: 'teams', everyoneRole: 'viewer', users: [], ownerUsers: [OWNER_USER], noDuplicate: false,
+  }
 
-  const [viewPermission,     setViewPermission]     = useState<VideoViewPermission>(initialSettings?.viewPermission ?? 'everyone')
-  const [viewUsers,          setViewUsers]          = useState<User[]>(initialSettings?.viewUsers ?? [])
-  const [editUsers,          setEditUsers]          = useState<User[]>(initialSettings?.editUsers ?? [])
-  const [ownerUsers,         setOwnerUsers]         = useState<User[]>(initialSettings?.ownerUsers ?? defaultOwners)
-  const [noDuplicate,        setNoDuplicate]        = useState(initialSettings?.noDuplicate ?? false)
-  const [viewUsersError,     setViewUsersError]     = useState(false)
-  const [ownerUsersError,    setOwnerUsersError]    = useState(false)
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [tab,          setTab]          = useState<PermissionTab>(initialSettings?.tab ?? 'teams')
+  const [everyoneRole, setEveryoneRole] = useState<EveryoneRole>(initialSettings?.everyoneRole ?? 'viewer')
+  const [users,        setUsers]        = useState<PermissionUser[]>(initialSettings?.users ?? [])
+  const [ownerUsers,   setOwnerUsers]   = useState<User[]>(initialSettings?.ownerUsers ?? [OWNER_USER])
+  const [noDuplicate,  setNoDuplicate]  = useState(initialSettings?.noDuplicate ?? false)
+  const [menuAnchor,   setMenuAnchor]   = useState<null | HTMLElement>(null)
+  const [menuTarget,   setMenuTarget]   = useState<'owner' | 'everyone' | string | null>(null)
+  const [showDiscard,  setShowDiscard]  = useState(false)
 
-  // Reset when dialog opens
   useEffect(() => {
     if (open) {
-      const s = initialSettings
-      setViewPermission(s?.viewPermission ?? 'everyone')
-      setViewUsers(s?.viewUsers ?? [])
-      setEditUsers(s?.editUsers ?? [])
-      setOwnerUsers(s?.ownerUsers ?? defaultOwners)
-      setNoDuplicate(s?.noDuplicate ?? false)
-      setViewUsersError(false)
-      setOwnerUsersError(false)
-      setShowDiscardConfirm(false)
+      const s = initialSettings ?? dflt
+      setTab(s.tab)
+      setEveryoneRole(s.everyoneRole)
+      setUsers(s.users)
+      setOwnerUsers(s.ownerUsers.length ? s.ownerUsers : [OWNER_USER])
+      setNoDuplicate(s.noDuplicate)
+      setMenuAnchor(null)
+      setMenuTarget(null)
+      setShowDiscard(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // Clear errors reactively
-  useEffect(() => {
-    if (viewPermission !== 'specific' || viewUsers.length > 0) setViewUsersError(false)
-  }, [viewPermission, viewUsers])
-
-  useEffect(() => {
-    if (ownerUsers.length > 0) setOwnerUsersError(false)
-  }, [ownerUsers])
-
-  // Dirty check
   function sameIds(a: User[], b: User[]) {
     if (a.length !== b.length) return false
     const bs = new Set(b.map(u => u.id))
     return a.every(u => bs.has(u.id))
   }
-  const initVp    = initialSettings?.viewPermission ?? 'everyone'
-  const initNoDup = initialSettings?.noDuplicate    ?? false
+  function sameUsers(a: PermissionUser[], b: PermissionUser[]) {
+    if (a.length !== b.length) return false
+    return a.every((pu, i) => pu.user.id === b[i].user.id && pu.role === b[i].role)
+  }
+  const initS = initialSettings ?? dflt
   const isDirty =
-    viewPermission !== initVp ||
-    noDuplicate    !== initNoDup ||
-    !sameIds(viewUsers,  initialSettings?.viewUsers  ?? []) ||
-    !sameIds(editUsers,  initialSettings?.editUsers  ?? []) ||
-    !sameIds(ownerUsers, initialSettings?.ownerUsers ?? defaultOwners)
+    tab !== initS.tab ||
+    everyoneRole !== initS.everyoneRole ||
+    noDuplicate !== initS.noDuplicate ||
+    !sameUsers(users, initS.users) ||
+    !sameIds(ownerUsers, initS.ownerUsers)
 
-  function handleClose() {
-    if (isDirty) { setShowDiscardConfirm(true) } else { onClose() }
+  function handleClose() { if (isDirty) setShowDiscard(true); else onClose() }
+  function handleSave() { onSave({ tab, everyoneRole, users, ownerUsers, noDuplicate }) }
+
+  function openMenuFn(e: React.MouseEvent<HTMLElement>, target: 'owner' | 'everyone' | string) {
+    setMenuAnchor(e.currentTarget); setMenuTarget(target)
+  }
+  function closeMenuFn() { setMenuAnchor(null); setMenuTarget(null) }
+
+  function changeUserRole(userId: string, role: UserRole) {
+    setUsers(prev => prev.map(pu => pu.user.id === userId ? { ...pu, role } : pu))
+  }
+  function removeUser(userId: string) {
+    setUsers(prev => prev.filter(pu => pu.user.id !== userId))
   }
 
-  function handleSave() {
-    if (viewPermission === 'specific' && viewUsers.length === 0) {
-      setViewUsersError(true)
-      return
-    }
-    if (showOwnerSection && ownerUsers.length === 0) {
-      setOwnerUsersError(true)
-      return
-    }
-    onSave({ viewPermission, viewUsers, editUsers, ownerUsers, noDuplicate })
-  }
+  const menuUser = (menuTarget && menuTarget !== 'owner' && menuTarget !== 'everyone')
+    ? (users.find(pu => pu.user.id === menuTarget) ?? null)
+    : null
 
-  // Show/hide logic
-  const showSpecific      = viewPermission === 'specific'
-  const showPrivateAlert  = viewPermission === 'private'
-  const showEditSection   = viewPermission !== 'private' && viewPermission !== 'owners'
-  const showOwnerSection  = viewPermission !== 'private'
-  const showNoDuplicate   = viewPermission !== 'private' && viewPermission !== 'owners' && viewPermission !== 'videoEditors'
+  const menuItemSx = { gap: 1.5, py: 0.75, borderRadius: '6px' }
+  const menuTextSx = { fontFamily: '"Open Sans"', fontSize: 14, color: c.textPrimary }
+  const menuErrSx  = { fontFamily: '"Open Sans"', fontSize: 14, color: c.errorMain }
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth={false}
-      PaperProps={{
-        sx: {
-          width: 700,
-          maxWidth: '98vw',
-          borderRadius: '8px',
-          boxShadow: '0px 0px 10px rgba(3,25,79,0.25)',
-        },
-      }}
-    >
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <DialogTitle sx={{ p: '20px 16px 12px 28px' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography sx={{
-            fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-            fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1,
-          }}>
-            Manage permissions
-          </Typography>
-          <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
-            <HelpOutlineIcon />
-          </IconButton>
-          <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+    <>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 560, maxWidth: '98vw', borderRadius: '12px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)' } }}
+      >
+        <DialogTitle sx={{ p: '20px 16px 16px 28px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
+              Manage access
+            </Typography>
+            <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
+              <HelpOutlineIcon />
+            </IconButton>
+            <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
 
-      <Divider sx={{ borderColor: c.divider }} />
+        <Divider sx={{ borderColor: c.divider }} />
 
-      {/* ── Content ────────────────────────────────────────────────────────── */}
-      <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Tab selector */}
+          <ToggleButtonGroup
+            value={tab}
+            exclusive
+            onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
+            sx={{
+              bgcolor: 'rgba(0,0,0,0.06)', borderRadius: '10px', p: '3px', alignSelf: 'flex-start',
+              '& .MuiToggleButtonGroup-grouped': { border: 'none !important', borderRadius: '8px !important', m: 0 },
+            }}
+          >
+            {(['teams', 'private'] as const).map(v => (
+              <ToggleButton key={v} value={v} sx={{
+                fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
+                textTransform: 'none', px: 2, py: 0.75, color: c.textSecondary,
+                '&.Mui-selected': {
+                  bgcolor: '#fff', color: c.textPrimary, fontWeight: 600,
+                  boxShadow: '0px 1px 4px rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#fff' },
+                },
+              }}>
+                {v === 'teams' ? 'Teams and people' : 'Only me'}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
 
-        {/* ── GROUP 1: View + Edit ─────────────────────────────────────────── */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-          {/* Who can view */}
+          {/* Who can access */}
           <Box>
-            <Typography sx={labelSx}>Who can view this video</Typography>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: c.textPrimary, mb: '12px', display: 'block' }}>
+              Who can access
+            </Typography>
 
-            <Select
-              value={viewPermission}
-              onChange={e => setViewPermission(e.target.value as VideoViewPermission)}
-              fullWidth
-              size="medium"
-              IconComponent={KeyboardArrowDownIcon}
-              renderValue={v => {
-                const o = getVideoViewOption(v as VideoViewPermission)
-                return (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{
-                      width: 32, height: 32, borderRadius: '8px',
-                      bgcolor: o.bgColor,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0,
-                    }}>
-                      <o.Icon sx={{ fontSize: 18, color: o.iconColor }} />
-                    </Box>
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary }}>
-                      {o.label}
-                    </Typography>
-                  </Box>
-                )
-              }}
-              sx={{
-                borderRadius: '8px',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: c.primary },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: c.primary },
-                '& .MuiSelect-icon': { color: 'rgba(0,0,0,0.54)' },
-              }}
-            >
-              {VIDEO_VIEW_OPTIONS.map(o => (
-                <MenuItem key={o.value} value={o.value} sx={{ gap: 1.5, borderRadius: '8px', mx: '4px' }}>
-                  <Box sx={{
-                    width: 32, height: 32, borderRadius: '8px',
-                    bgcolor: o.bgColor,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <o.Icon sx={{ fontSize: 18, color: o.iconColor }} />
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary }}>
-                      {o.label}
-                    </Typography>
-                  </Box>
-                </MenuItem>
+            <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: '10px', overflow: 'hidden' }}>
+              {/* Owner row */}
+              <PersonRow
+                avatar={
+                  <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: OWNER_USER.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
+                    {OWNER_USER.initials}
+                  </Avatar>
+                }
+                name={`${OWNER_USER.name} (You)`}
+                email={OWNER_USER.email}
+                roleLabel="Video owner"
+                onRoleClick={e => openMenuFn(e, 'owner')}
+              />
+
+              {/* Added users */}
+              {users.map(pu => (
+                <Box key={pu.user.id}>
+                  <Divider />
+                  <PersonRow
+                    avatar={
+                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: pu.user.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
+                        {pu.user.initials}
+                      </Avatar>
+                    }
+                    name={pu.user.name}
+                    email={pu.user.email}
+                    roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
+                    onRoleClick={e => openMenuFn(e, pu.user.id)}
+                  />
+                </Box>
               ))}
-            </Select>
 
-            {/* Specific user picker */}
-            <Collapse in={showSpecific} unmountOnExit>
-              <Box sx={{ mt: 1.5 }}>
-                <UsersAutocomplete
-                  value={viewUsers}
-                  onChange={setViewUsers}
-                  placeholder="Add people..."
-                  error={viewUsersError}
-                  helperText={viewUsersError ? 'Add at least one user' : undefined}
-                />
-              </Box>
-            </Collapse>
+              {/* Everyone row — teams tab only */}
+              {tab === 'teams' && (
+                <>
+                  <Divider />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+                    <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(0,83,229,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <GroupsIcon sx={{ fontSize: 20, color: c.primary }} />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
+                        Everyone in your account
+                      </Typography>
+                    </Box>
+                    <RoleButton
+                      label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
+                      onClick={e => openMenuFn(e, 'everyone')}
+                    />
+                  </Box>
+                </>
+              )}
+            </Box>
 
-            {/* Private alert */}
-            <Collapse in={showPrivateAlert} unmountOnExit>
-              <Alert
-                severity="success"
-                icon={<InfoOutlinedIcon fontSize="small" />}
-                sx={{
-                  mt: 1.5, borderRadius: '8px',
-                  fontFamily: '"Open Sans", sans-serif', fontSize: 13,
-                  bgcolor: 'rgba(17,135,71,0.06)', color: c.textPrimary,
-                  '& .MuiAlert-icon': { color: c.successMain },
-                }}
+            {/* Only me alert */}
+            {tab === 'private' && (
+              <Alert severity="success" icon={<InfoOutlinedIcon fontSize="small" />}
+                sx={{ mt: 1.5, borderRadius: '8px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, bgcolor: 'rgba(17,135,71,0.06)', color: c.textPrimary, '& .MuiAlert-icon': { color: c.successMain } }}
               >
                 Only you can see this video.
               </Alert>
-            </Collapse>
+            )}
 
-            {/* No duplicate checkbox — hidden for private / owners */}
-            <Collapse in={showNoDuplicate} unmountOnExit>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={noDuplicate}
-                    onChange={e => setNoDuplicate(e.target.checked)}
-                    size="small"
-                    sx={{ color: c.grey300, '&.Mui-checked': { color: c.primary } }}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: c.textPrimary }}>
-                    Don't allow to duplicate video for view only
-                  </Typography>
-                }
-                sx={{ mt: 1, ml: '-4px' }}
-              />
-            </Collapse>
+            {/* Add user */}
+            {tab === 'teams' && (
+              <Button
+                startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                sx={{ mt: '10px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, color: c.primary, textTransform: 'none', p: '4px 8px', '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' } }}
+              >
+                Add user
+              </Button>
+            )}
           </Box>
+        </DialogContent>
 
-          {/* Who can edit — hidden when private or owners-only */}
-          <Collapse in={showEditSection} unmountOnExit>
-            <Box>
-              <Typography sx={labelSx}>Who can edit this video</Typography>
-              <UsersAutocomplete
-                value={editUsers}
-                onChange={setEditUsers}
-                placeholder="Select users, groups, or enter an email"
-                excludeIds={viewUsers.map(u => u.id)}
-              />
-            </Box>
-          </Collapse>
-        </Box>
+        <Divider sx={{ borderColor: c.divider }} />
+        <DialogActions sx={{ px: '28px', py: '16px', gap: '8px' }}>
+          <Button variant="text" size="large" onClick={handleClose}
+            sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="large" onClick={handleSave}
+            sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
+            Save
+          </Button>
+        </DialogActions>
 
-        {/* ── Section divider + GROUP 2 — hidden when private ─────────────── */}
-        <Collapse in={showOwnerSection} unmountOnExit>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <Divider sx={{ borderColor: c.divider }} />
-
-            {/* Video owner */}
-            <Box>
-              <Typography sx={labelSx}>Video owner</Typography>
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontSize: 12,
-                color: c.textSecondary, mb: '10px', mt: '-4px',
-              }}>
-                Can edit the video change permissions, delete and rename
-              </Typography>
-              <UsersAutocomplete
-                value={ownerUsers}
-                onChange={setOwnerUsers}
-                placeholder="Add video owners..."
-                error={ownerUsersError}
-                helperText={ownerUsersError ? 'At least one owner is required' : undefined}
-              />
-            </Box>
-          </Box>
-        </Collapse>
-
-      </DialogContent>
-
-      {/* ── Actions ────────────────────────────────────────────────────────── */}
-      <Divider sx={{ borderColor: c.divider }} />
-      <DialogActions sx={{ px: '28px', py: '16px', gap: '8px' }}>
-        <Button
-          variant="text"
-          size="large"
-          onClick={handleClose}
-          sx={{
-            color: c.primary,
-            fontFamily: '"Open Sans", sans-serif',
-            textTransform: 'none',
-            fontWeight: 600,
-          }}
+        {/* Role dropdown menu */}
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={closeMenuFn}
+          PaperProps={{ sx: { borderRadius: '10px', boxShadow: '0px 4px 20px rgba(3,25,79,0.18)', minWidth: 230, p: '4px' } }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          size="large"
-          onClick={handleSave}
-          sx={{
-            bgcolor: c.primary,
-            fontFamily: '"Open Sans", sans-serif',
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: '8px',
-            boxShadow: 'none',
-            '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' },
-          }}
-        >
-          Save
-        </Button>
-      </DialogActions>
+          {/* Owner menu */}
+          {menuTarget === 'owner' && [
+            <MenuItem key="ol" disableRipple sx={{ ...menuItemSx, cursor: 'default', '&:hover': { bgcolor: 'transparent' } }}>
+              <CheckIcon sx={{ fontSize: 16, color: c.primary }} />
+              <Typography sx={menuTextSx}>Video owner</Typography>
+            </MenuItem>,
+            <MenuItem key="ms" onClick={closeMenuFn} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Make sole owner</Typography>
+            </MenuItem>,
+            <Divider key="d1" sx={{ my: '4px !important' }} />,
+            <MenuItem key="ro" disabled={ownerUsers.length <= 1} onClick={closeMenuFn} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove ownership</Typography>
+            </MenuItem>,
+          ]}
 
-      {/* ── Discard confirmation ────────────────────────────────────────────── */}
-      <Dialog
-        open={showDiscardConfirm}
-        onClose={() => setShowDiscardConfirm(false)}
-        maxWidth="xs"
-        fullWidth
+          {/* Added user menu */}
+          {menuUser && [
+            <MenuItem key="ed" onClick={() => { changeUserRole(menuTarget as string, 'editor'); closeMenuFn() }} sx={menuItemSx}>
+              {menuUser.role === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Editor</Typography>
+            </MenuItem>,
+            <MenuItem key="vi" onClick={() => { changeUserRole(menuTarget as string, 'viewer'); closeMenuFn() }} sx={menuItemSx}>
+              {menuUser.role === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Viewer</Typography>
+            </MenuItem>,
+            <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
+              <Checkbox checked={!noDuplicate} size="small" disableRipple sx={{ p: 0, '&.Mui-checked': { color: c.primary } }} />
+              <Typography sx={menuTextSx}>Allow to duplicate videos</Typography>
+            </MenuItem>,
+            <Divider key="d1" sx={{ my: '4px !important' }} />,
+            <MenuItem key="to" onClick={closeMenuFn} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Transfer ownership</Typography>
+            </MenuItem>,
+            <Divider key="d2" sx={{ my: '4px !important' }} />,
+            <MenuItem key="rm" onClick={() => { removeUser(menuTarget as string); closeMenuFn() }} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove</Typography>
+            </MenuItem>,
+          ]}
+
+          {/* Everyone menu */}
+          {menuTarget === 'everyone' && [
+            <MenuItem key="ed" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Editor</Typography>
+            </MenuItem>,
+            <MenuItem key="vi" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Viewer</Typography>
+            </MenuItem>,
+            <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
+              <Checkbox checked={!noDuplicate} size="small" disableRipple sx={{ p: 0, '&.Mui-checked': { color: c.primary } }} />
+              <Typography sx={menuTextSx}>Allow to duplicate videos</Typography>
+            </MenuItem>,
+            <Divider key="d1" sx={{ my: '4px !important' }} />,
+            <MenuItem key="re" onClick={() => { setEveryoneRole('restricted'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'restricted' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Restricted</Typography>
+            </MenuItem>,
+          ]}
+        </Menu>
+      </Dialog>
+
+      {/* Discard confirmation */}
+      <Dialog open={showDiscard} onClose={() => setShowDiscard(false)} maxWidth="xs" fullWidth
         PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)' } }}
       >
         <DialogTitle sx={{ p: '20px 20px 12px' }}>
@@ -592,28 +541,16 @@ export default function VideoPermissionDialog({
         </DialogContent>
         <Divider sx={{ borderColor: c.divider }} />
         <DialogActions sx={{ px: '20px', py: '12px', gap: '8px' }}>
-          <Button
-            variant="text"
-            onClick={() => setShowDiscardConfirm(false)}
-            sx={{ color: c.primary, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600 }}
-          >
+          <Button variant="text" onClick={() => setShowDiscard(false)}
+            sx={{ color: c.primary, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600 }}>
             Keep editing
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => { setShowDiscardConfirm(false); onClose() }}
-            sx={{
-              bgcolor: c.errorMain, textTransform: 'none',
-              fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-              borderRadius: '8px', boxShadow: 'none',
-              '&:hover': { bgcolor: '#C41E34', boxShadow: 'none' },
-            }}
-          >
+          <Button variant="contained" onClick={() => { setShowDiscard(false); onClose() }}
+            sx={{ bgcolor: c.errorMain, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#C41E34', boxShadow: 'none' } }}>
             Discard
           </Button>
         </DialogActions>
       </Dialog>
-
-    </Dialog>
+    </>
   )
 }

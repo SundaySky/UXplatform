@@ -2,23 +2,22 @@ import { useState, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, Button, IconButton,
-  Select, MenuItem, Chip, Avatar, Tooltip,
-  Autocomplete, TextField, Collapse, Alert,
-  Divider,
+  Chip, Avatar, Tooltip,
+  Autocomplete, TextField, Alert,
+  Divider, Menu, MenuItem, ToggleButton, ToggleButtonGroup,
 } from '@mui/material'
-import CloseIcon                   from '@mui/icons-material/Close'
-import HelpOutlineIcon             from '@mui/icons-material/HelpOutline'
-import GroupsIcon                  from '@mui/icons-material/Groups'
-import ManageAccountsIcon          from '@mui/icons-material/ManageAccounts'
-import LockOutlinedIcon            from '@mui/icons-material/LockOutlined'
-import PeopleOutlinedIcon          from '@mui/icons-material/PeopleOutlined'
-import PersonOutlinedIcon          from '@mui/icons-material/PersonOutlined'
-import CheckIcon                   from '@mui/icons-material/Check'
-import InfoOutlinedIcon            from '@mui/icons-material/InfoOutlined'
-import KeyboardArrowDownIcon       from '@mui/icons-material/KeyboardArrowDown'
+import CloseIcon             from '@mui/icons-material/Close'
+import HelpOutlineIcon       from '@mui/icons-material/HelpOutline'
+import GroupsIcon            from '@mui/icons-material/Groups'
+import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import CheckIcon             from '@mui/icons-material/Check'
+import InfoOutlinedIcon      from '@mui/icons-material/InfoOutlined'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-export type ViewPermission = 'everyone' | 'editors' | 'specific' | 'private'
+export type PermissionTab = 'teams' | 'private'
+export type EveryoneRole  = 'editor' | 'viewer' | 'restricted'
+export type UserRole      = 'editor' | 'viewer'
 
 export interface User {
   id:       string
@@ -28,10 +27,16 @@ export interface User {
   color:    string
 }
 
+export interface PermissionUser {
+  user: User
+  role: UserRole
+}
+
 export interface PermissionSettings {
-  viewPermission: ViewPermission
-  viewUsers:      User[]   // used when viewPermission === 'specific'
-  manageUsers:    User[]   // who can manage access
+  tab:          PermissionTab
+  everyoneRole: EveryoneRole
+  users:        PermissionUser[]
+  ownerUsers:   User[]
 }
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
@@ -57,14 +62,14 @@ const navyTooltipSx = {
 
 // ─── Users ─────────────────────────────────────────────────────────────────────
 export const OWNER_USER: User = {
-  id: 'ja', initials: 'JA', name: 'Johan Appleseed', email: 'appleseedj@Sundaysky.com', color: '#0053E5',
+  id: 'ja', initials: 'JA', name: 'John Appleseed', email: 'appleseedj@Sundaysky.com', color: '#0053E5',
 }
 
 export const ALL_USERS: User[] = [
   OWNER_USER,
-  { id: 'jq', initials: 'JQ', name: 'Jarvis Quindarius',    email: 'theoj@Sundaysky.com',        color: '#7B1FA2' },
+  { id: 'jq', initials: 'JQ', name: 'Jarvis Quindarius',     email: 'theoj@Sundaysky.com',       color: '#7B1FA2' },
   { id: 'kw', initials: 'KW', name: 'Klara Brightlingstone', email: 'wintherl@Sundaysky.com',     color: '#E65100' },
-  { id: 'mr', initials: 'MR', name: 'Mckayla Runolfsson',   email: 'runolfsson_m@Sundaysky.com', color: '#1565C0' },
+  { id: 'mr', initials: 'MR', name: 'Mckayla Runolfsson',    email: 'runolfsson_m@Sundaysky.com', color: '#1565C0' },
   { id: 'eb', initials: 'EB', name: 'Eli Bogan',             email: 'bogane@Sundaysky.com',       color: '#2E7D32' },
   { id: 'ke', initials: 'KE', name: 'Kenton Emard',          email: 'emardk@Sundaysky.com',       color: '#AD1457' },
   { id: 'ss', initials: 'SS', name: 'Shea Streich',          email: 'streichs@Sundaysky.com',     color: '#00695C' },
@@ -74,25 +79,7 @@ export const ALL_USERS: User[] = [
   { id: 'jc', initials: 'JC', name: 'Jeramy Crona',          email: 'cronaj@Sundaysky.com',       color: '#6D4C41' },
 ]
 
-// ─── View permission options ──────────────────────────────────────────────────
-export const VIEW_OPTIONS: {
-  value: ViewPermission
-  label: string
-  Icon: React.ElementType
-  iconColor: string
-  bgColor: string
-}[] = [
-  { value: 'everyone', label: 'Everyone in your account',  Icon: GroupsIcon,          iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)' },
-  { value: 'specific', label: 'Specific users',            Icon: PeopleOutlinedIcon,  iconColor: c.warningMain, bgColor: 'rgba(244,105,0,0.10)' },
-  { value: 'editors',  label: 'Who can manage access',    Icon: ManageAccountsIcon,  iconColor: c.primary,     bgColor: 'rgba(0,83,229,0.10)'  },
-  { value: 'private',  label: 'Private (only you)',        Icon: LockOutlinedIcon,    iconColor: c.successMain, bgColor: 'rgba(17,135,71,0.10)' },
-]
-
-export function getViewOption(v: ViewPermission) {
-  return VIEW_OPTIONS.find(o => o.value === v) ?? VIEW_OPTIONS[0]
-}
-
-// ─── User avatar helper ───────────────────────────────────────────────────────
+// ─── User avatar ──────────────────────────────────────────────────────────────
 function UserAvatar({ user, size = 32 }: { user: User; size?: number }) {
   return (
     <Avatar
@@ -141,7 +128,7 @@ export function UserAvatarWithTooltip({
   )
 }
 
-// ─── Users autocomplete ───────────────────────────────────────────────────────
+// ─── Users autocomplete (kept for AvatarPermissionDialog + future "Add user" dialog) ──
 export function UsersAutocomplete({
   value,
   onChange,
@@ -166,7 +153,6 @@ export function UsersAutocomplete({
       multiple
       value={value}
       onChange={(_, newValue) => {
-        // Filter out any disabled users that slipped through
         onChange(newValue.filter(u => !disabledUsers.find(d => d.id === u.id)))
       }}
       options={options}
@@ -182,6 +168,7 @@ export function UsersAutocomplete({
           size="medium"
           error={error}
           helperText={helperText}
+          inputProps={{ ...params.inputProps, autoComplete: 'new-password' }}
           sx={{
             '& .MuiOutlinedInput-notchedOutline': { borderColor: error ? c.errorMain : c.grey300 },
             '& .MuiInputBase-root': { borderRadius: '8px', flexWrap: 'wrap', gap: '4px', p: '8px 12px' },
@@ -194,18 +181,21 @@ export function UsersAutocomplete({
           <Chip
             {...getTagProps({ index })}
             key={user.id}
-            label={user.name}
+            label={`${user.name}${user.id === OWNER_USER.id ? ' (You)' : ''}`}
             size="small"
             avatar={
-              <Avatar sx={{ bgcolor: user.color, fontSize: '9px !important', fontWeight: 600 }}>
+              <Avatar sx={{ bgcolor: user.color, fontSize: '9px !important', fontWeight: 600, color: '#fff !important' }}>
                 {user.initials}
               </Avatar>
             }
             sx={{
               fontFamily: '"Open Sans", sans-serif',
               fontSize: 12,
-              bgcolor: 'rgba(0,0,0,0.06)',
+              bgcolor: user.color,
+              color: '#fff',
+              borderRadius: '20px',
               '& .MuiChip-label': { px: '6px' },
+              '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } },
               height: 24,
             }}
           />
@@ -227,38 +217,20 @@ export function UsersAutocomplete({
           >
             <UserAvatar user={option} size={36} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 500,
-                fontSize: 14, color: c.textPrimary, lineHeight: 1.4,
-              }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: c.textPrimary, lineHeight: 1.4 }}>
                 {option.name}
               </Typography>
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                fontSize: 12, color: c.textSecondary, lineHeight: 1.3,
-              }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, color: c.textSecondary, lineHeight: 1.3 }}>
                 {disabledEntry ? disabledEntry.reason : option.email}
               </Typography>
             </Box>
             {selected && <CheckIcon sx={{ color: c.primary, fontSize: 18, flexShrink: 0 }} />}
           </Box>
         )
-
         if (disabledEntry) {
           return (
-            <Tooltip
-              key={key}
-              title={disabledEntry.reason}
-              placement="right"
-              componentsProps={{
-                tooltip: {
-                  sx: {
-                    bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1,
-                    fontSize: 12, color: '#fff',
-                    '& .MuiTooltip-arrow': { color: '#03194F' },
-                  },
-                },
-              }}
+            <Tooltip key={key} title={disabledEntry.reason} placement="right"
+              componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1, fontSize: 12, color: '#fff', '& .MuiTooltip-arrow': { color: '#03194F' } } } }}
               arrow
             >
               <span style={{ display: 'block' }}>{row}</span>
@@ -267,39 +239,60 @@ export function UsersAutocomplete({
         }
         return row
       }}
-      ListboxProps={{
-        sx: {
-          p: '4px',
-          maxHeight: 240,
-          '& .MuiAutocomplete-option': {
-            borderRadius: '6px',
-            '&.Mui-focused': { bgcolor: `rgba(0,83,229,0.06)` },
-            '&[aria-selected="true"]': { bgcolor: `rgba(0,83,229,0.08) !important` },
-          },
-        },
-      }}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: '8px',
-            boxShadow: '0px 0px 10px rgba(3,25,79,0.18)',
-            mt: '4px',
-          },
-        },
-      }}
+      ListboxProps={{ sx: { p: '4px', maxHeight: 240, '& .MuiAutocomplete-option': { borderRadius: '6px', '&.Mui-focused': { bgcolor: 'rgba(0,83,229,0.06)' }, '&[aria-selected="true"]': { bgcolor: 'rgba(0,83,229,0.08) !important' } } } }}
+      slotProps={{ paper: { sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.18)', mt: '4px' } } }}
     />
   )
 }
 
-// ─── Label shared style ───────────────────────────────────────────────────────
-const labelSx = {
-  fontFamily: '"Open Sans", sans-serif',
-  fontWeight: 600,
-  fontSize: 14,
-  color: c.textPrimary,
-  mb: '8px',
-  display: 'block',
-} as const
+// ─── Internal UI helpers ───────────────────────────────────────────────────────
+function RoleButton({ label, onClick }: { label: string; onClick: (e: React.MouseEvent<HTMLElement>) => void }) {
+  return (
+    <Button
+      size="small"
+      endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: '-6px' }} />}
+      onClick={e => { e.stopPropagation(); onClick(e) }}
+      sx={{
+        fontFamily: '"Open Sans", sans-serif',
+        fontSize: 12, fontWeight: 500,
+        color: c.textPrimary,
+        textTransform: 'none',
+        bgcolor: 'rgba(0,0,0,0.06)',
+        borderRadius: '20px',
+        px: '10px', py: '4px',
+        minWidth: 0, whiteSpace: 'nowrap', flexShrink: 0,
+        '&:hover': { bgcolor: 'rgba(0,0,0,0.10)' },
+      }}
+    >
+      {label}
+    </Button>
+  )
+}
+
+function PersonRow({
+  avatar, name, email, roleLabel, onRoleClick,
+}: {
+  avatar:      React.ReactNode
+  name:        string
+  email:       string
+  roleLabel:   string
+  onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
+}) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+      {avatar}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary, lineHeight: 1.3 }}>
+          {name}
+        </Typography>
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.3 }}>
+          {email}
+        </Typography>
+      </Box>
+      <RoleButton label={roleLabel} onClick={onRoleClick} />
+    </Box>
+  )
+}
 
 // ─── Main Dialog ──────────────────────────────────────────────────────────────
 export default function ManageAccessDialog({
@@ -308,350 +301,286 @@ export default function ManageAccessDialog({
   itemType,
   onSave,
   initialSettings,
-  parentVp,
-  parentViewUsers: _parentViewUsers = [],
 }: {
-  open:              boolean
-  onClose:           () => void
-  itemType:          'media' | 'folder'
-  onSave:            (s: PermissionSettings) => void
-  initialSettings?:  PermissionSettings
-  parentVp?:         ViewPermission
-  parentViewUsers?:  User[]
+  open:             boolean
+  onClose:          () => void
+  itemType:         'media' | 'folder'
+  onSave:           (s: PermissionSettings) => void
+  initialSettings?: PermissionSettings
 }) {
-  const defaultSettings: PermissionSettings = {
-    viewPermission: 'everyone',
-    viewUsers:      [],
-    manageUsers:    [OWNER_USER],
-  }
+  const ownerRoleLabel = itemType === 'folder' ? 'Folder owner' : 'Asset owner'
+  const dflt: PermissionSettings = { tab: 'teams', everyoneRole: 'viewer', users: [], ownerUsers: [OWNER_USER] }
 
-  const [viewPermission,       setViewPermission]       = useState<ViewPermission>(initialSettings?.viewPermission ?? 'everyone')
-  const [viewUsers,            setViewUsers]            = useState<User[]>(initialSettings?.viewUsers   ?? [])
-  const [manageUsers,          setManageUsers]          = useState<User[]>(initialSettings?.manageUsers ?? [OWNER_USER])
-  const [viewUsersError,       setViewUsersError]       = useState(false)
-  const [showDiscardConfirm,   setShowDiscardConfirm]   = useState(false)
+  const [tab,          setTab]          = useState<PermissionTab>(initialSettings?.tab ?? 'teams')
+  const [everyoneRole, setEveryoneRole] = useState<EveryoneRole>(initialSettings?.everyoneRole ?? 'viewer')
+  const [users,        setUsers]        = useState<PermissionUser[]>(initialSettings?.users ?? [])
+  const [ownerUsers,   setOwnerUsers]   = useState<User[]>(initialSettings?.ownerUsers ?? [OWNER_USER])
+  const [menuAnchor,   setMenuAnchor]   = useState<null | HTMLElement>(null)
+  const [menuTarget,   setMenuTarget]   = useState<'owner' | 'everyone' | string | null>(null)
+  const [showDiscard,  setShowDiscard]  = useState(false)
 
-  // Reset local state whenever dialog opens
   useEffect(() => {
     if (open) {
-      const s = initialSettings ?? defaultSettings
-      setViewPermission(s.viewPermission)
-      setViewUsers(s.viewUsers)
-      setManageUsers(s.manageUsers.length ? s.manageUsers : [OWNER_USER])
-      setViewUsersError(false)
-      setShowDiscardConfirm(false)
+      const s = initialSettings ?? dflt
+      setTab(s.tab)
+      setEveryoneRole(s.everyoneRole)
+      setUsers(s.users)
+      setOwnerUsers(s.ownerUsers.length ? s.ownerUsers : [OWNER_USER])
+      setMenuAnchor(null)
+      setMenuTarget(null)
+      setShowDiscard(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // Dirty check — compare current state to what was loaded on open
-  const initVp          = initialSettings?.viewPermission ?? 'everyone'
-  const initViewUsers   = initialSettings?.viewUsers      ?? []
-  const initManageUsers = initialSettings?.manageUsers?.length ? initialSettings.manageUsers : [OWNER_USER]
   function sameIds(a: User[], b: User[]) {
     if (a.length !== b.length) return false
     const bs = new Set(b.map(u => u.id))
     return a.every(u => bs.has(u.id))
   }
-  const isDirty = viewPermission !== initVp || !sameIds(viewUsers, initViewUsers) || !sameIds(manageUsers, initManageUsers)
+  function sameUsers(a: PermissionUser[], b: PermissionUser[]) {
+    if (a.length !== b.length) return false
+    return a.every((pu, i) => pu.user.id === b[i].user.id && pu.role === b[i].role)
+  }
+  const initS = initialSettings ?? dflt
+  const isDirty =
+    tab !== initS.tab ||
+    everyoneRole !== initS.everyoneRole ||
+    !sameUsers(users, initS.users) ||
+    !sameIds(ownerUsers, initS.ownerUsers)
 
-  function handleClose() {
-    if (isDirty) { setShowDiscardConfirm(true) } else { onClose() }
+  function handleClose() { if (isDirty) setShowDiscard(true); else onClose() }
+  function handleSave() { onSave({ tab, everyoneRole, users, ownerUsers }) }
+
+  function openMenuFn(e: React.MouseEvent<HTMLElement>, target: 'owner' | 'everyone' | string) {
+    setMenuAnchor(e.currentTarget); setMenuTarget(target)
+  }
+  function closeMenuFn() { setMenuAnchor(null); setMenuTarget(null) }
+
+  function changeUserRole(userId: string, role: UserRole) {
+    setUsers(prev => prev.map(pu => pu.user.id === userId ? { ...pu, role } : pu))
+  }
+  function removeUser(userId: string) {
+    setUsers(prev => prev.filter(pu => pu.user.id !== userId))
   }
 
-  // Clear error when permission changes away from specific or users are added
-  useEffect(() => {
-    if (viewPermission !== 'specific' || viewUsers.length > 0) {
-      setViewUsersError(false)
-    }
-  }, [viewPermission, viewUsers])
+  const menuUser = (menuTarget && menuTarget !== 'owner' && menuTarget !== 'everyone')
+    ? (users.find(pu => pu.user.id === menuTarget) ?? null)
+    : null
 
-  const showSpecificPicker = viewPermission === 'specific'
-  const showManageSection  = viewPermission !== 'private'
-  const showFolderAllAlert = itemType === 'folder' && (viewPermission === 'specific' || viewPermission === 'editors')
-  const showPrivateAlert   = viewPermission === 'private'
-
-  // Whether a given permission option conflicts with the parent folder
-  const wouldConflict = (optVp: ViewPermission): boolean => {
-    if (!parentVp || parentVp === 'everyone') return false
-    if (optVp === 'private') return false
-    if (parentVp === 'private') return true
-    if (parentVp === 'editors') return optVp === 'everyone'
-    if (parentVp === 'specific') return optVp === 'everyone' || optVp === 'editors'
-    return false
-  }
-  const isCurrentConflict = wouldConflict(viewPermission)
-
-  function handleSave() {
-    if (viewPermission === 'specific' && viewUsers.length === 0) {
-      setViewUsersError(true)
-      return
-    }
-    onSave({ viewPermission, viewUsers, manageUsers })
-    // Closing is the caller's responsibility (parent may need to show a conflict dialog first)
-  }
+  const menuItemSx = { gap: 1.5, py: 0.75, borderRadius: '6px' }
+  const menuTextSx = { fontFamily: '"Open Sans"', fontSize: 14, color: c.textPrimary }
+  const menuErrSx  = { fontFamily: '"Open Sans"', fontSize: 14, color: c.errorMain }
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth={false}
-      PaperProps={{
-        sx: {
-          width: 700,
-          maxWidth: '98vw',
-          borderRadius: '8px',
-          boxShadow: '0px 0px 10px rgba(3,25,79,0.25)',
-        },
-      }}
-    >
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <DialogTitle sx={{ p: '20px 16px 12px 28px' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography sx={{
-            fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-            fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1,
-          }}>
-            Manage permissions
-          </Typography>
-          <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
-            <HelpOutlineIcon />
-          </IconButton>
-          <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+    <>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 560, maxWidth: '98vw', borderRadius: '12px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)' } }}
+      >
+        <DialogTitle sx={{ p: '20px 16px 16px 28px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
+              Manage access
+            </Typography>
+            <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
+              <HelpOutlineIcon />
+            </IconButton>
+            <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
 
-      <Divider sx={{ borderColor: c.divider }} />
+        <Divider sx={{ borderColor: c.divider }} />
 
-      {/* ── Content ────────────────────────────────────────────────────────── */}
-      <DialogContent sx={{ p: '20px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-        {/* ── Who can view ─────────────────────────────────────────────────── */}
-        <Box>
-          <Typography sx={labelSx}>
-            Who can view this {itemType}
-          </Typography>
-
-          {/* Permission select */}
-          <Select
-            value={viewPermission}
-            onChange={e => setViewPermission(e.target.value as ViewPermission)}
-            fullWidth
-            size="medium"
-            IconComponent={KeyboardArrowDownIcon}
-            renderValue={v => {
-              const o = getViewOption(v as ViewPermission)
-              return (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{
-                    width: 32, height: 32, borderRadius: '8px',
-                    bgcolor: o.bgColor,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <o.Icon sx={{ fontSize: 18, color: o.iconColor }} />
-                  </Box>
-                  <Typography sx={{
-                    fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary,
-                  }}>
-                    {o.label}
-                  </Typography>
-                </Box>
-              )
-            }}
+        <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Tab selector */}
+          <ToggleButtonGroup
+            value={tab}
+            exclusive
+            onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
             sx={{
-              borderRadius: '8px',
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
-              '& .MuiSelect-select': { py: '10px', px: '12px' },
-              '& .MuiSelect-icon': { color: 'rgba(0,0,0,0.56)', right: 10 },
-            }}
-            MenuProps={{
-              PaperProps: {
-                sx: {
-                  borderRadius: '8px',
-                  boxShadow: '0px 0px 10px rgba(3,25,79,0.18)',
-                  mt: '4px',
-                  p: '4px',
-                },
-              },
+              bgcolor: 'rgba(0,0,0,0.06)', borderRadius: '10px', p: '3px', alignSelf: 'flex-start',
+              '& .MuiToggleButtonGroup-grouped': { border: 'none !important', borderRadius: '8px !important', m: 0 },
             }}
           >
-            {VIEW_OPTIONS.map(o => (
-              <MenuItem
-                key={o.value}
-                value={o.value}
-                sx={{
-                  borderRadius: '6px', py: 1.5, px: 1.5,
-                  '&.Mui-selected': { bgcolor: 'rgba(0,83,229,0.08)' },
-                  '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' },
-                }}
-              >
-                <Box sx={{
-                  width: 32, height: 32, borderRadius: '8px',
-                  bgcolor: o.bgColor,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  mr: 1.5, flexShrink: 0,
-                }}>
-                  <o.Icon sx={{ fontSize: 18, color: o.iconColor }} />
-                </Box>
-                <Box>
-                  <Typography sx={{
-                    fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary,
-                  }}>
-                    {o.label}
-                  </Typography>
-                  {wouldConflict(o.value) && (
-                    <Typography sx={{
-                      fontFamily: '"Open Sans", sans-serif', fontSize: 11,
-                      color: c.warningMain, lineHeight: 1.4, mt: '2px',
-                    }}>
-                      Requires updating the parent folder's permission
-                    </Typography>
-                  )}
-                </Box>
-                {viewPermission === o.value && (
-                  <CheckIcon sx={{ ml: 'auto', color: c.primary, fontSize: 18 }} />
-                )}
-              </MenuItem>
+            {(['teams', 'private'] as const).map(v => (
+              <ToggleButton key={v} value={v} sx={{
+                fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
+                textTransform: 'none', px: 2, py: 0.75, color: c.textSecondary,
+                '&.Mui-selected': {
+                  bgcolor: '#fff', color: c.textPrimary, fontWeight: 600,
+                  boxShadow: '0px 1px 4px rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#fff' },
+                },
+              }}>
+                {v === 'teams' ? 'Teams and people' : 'Only me'}
+              </ToggleButton>
             ))}
-          </Select>
+          </ToggleButtonGroup>
 
-          {/* Specific users picker */}
-          <Collapse in={showSpecificPicker} unmountOnExit>
-            <Box sx={{ mt: 1.5 }}>
-              <UsersAutocomplete
-                value={viewUsers}
-                onChange={setViewUsers}
-                placeholder="Select from users or groups list or type email address"
-                disabledUsers={manageUsers.map(u => ({
-                  id: u.id,
-                  reason: `${u.name} already has manage access`,
-                }))}
-                error={viewUsersError}
-                helperText={viewUsersError ? 'Select the specific users' : undefined}
-              />
-            </Box>
-          </Collapse>
-
-          {/* Private alert — for folders */}
-          <Collapse in={showPrivateAlert} unmountOnExit>
-            <Alert
-              severity="info"
-              icon={<InfoOutlinedIcon fontSize="small" />}
-              sx={{
-                mt: 1.5, borderRadius: '8px',
-                fontFamily: '"Open Sans", sans-serif', fontSize: 13,
-                bgcolor: 'rgba(0,83,229,0.06)',
-                color: c.textPrimary,
-                '& .MuiAlert-icon': { color: c.primary },
-              }}
-            >
-              {itemType === 'folder'
-                ? "Only you can view this folder\u2019s media and all the folders inside it"
-                : 'Only you can view this media'}
-            </Alert>
-          </Collapse>
-
-          {/* "All items" alert — for folders with specific/editors */}
-          <Collapse in={showFolderAllAlert} unmountOnExit>
-            <Alert
-              severity="info"
-              icon={<InfoOutlinedIcon fontSize="small" />}
-              sx={{
-                mt: 1.5, borderRadius: '8px',
-                fontFamily: '"Open Sans", sans-serif', fontSize: 13,
-                bgcolor: 'rgba(0,83,229,0.06)',
-                color: c.textPrimary,
-                '& .MuiAlert-icon': { color: c.primary },
-              }}
-            >
-              All items in this folder will use these settings
-            </Alert>
-          </Collapse>
-
-          {/* Parent conflict alert */}
-          <Collapse in={isCurrentConflict} unmountOnExit>
-            <Alert
-              severity="warning"
-              icon={<InfoOutlinedIcon fontSize="small" />}
-              sx={{
-                mt: 1.5, borderRadius: '8px',
-                fontFamily: '"Open Sans", sans-serif', fontSize: 13,
-                bgcolor: 'rgba(244,105,0,0.08)',
-                color: c.textPrimary,
-                '& .MuiAlert-icon': { color: c.warningMain },
-              }}
-            >
-              This conflicts with the parent folder's permission. Saving will prompt you to update the parent folder.
-            </Alert>
-          </Collapse>
-        </Box>
-
-        {/* ── Who can manage access ─────────────────────────────────────────── */}
-        <Collapse in={showManageSection} unmountOnExit>
+          {/* Who can access */}
           <Box>
-            <Typography sx={labelSx}>
-              Who can manage access
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: c.textPrimary, mb: '12px', display: 'block' }}>
+              Who can access
             </Typography>
-            <UsersAutocomplete
-              value={manageUsers}
-              onChange={v => {
-                // Always keep owner in the list
-                const hasOwner = v.some(u => u.id === OWNER_USER.id)
-                setManageUsers(hasOwner ? v : [OWNER_USER, ...v])
-              }}
-              placeholder="Add users who can manage access..."
-              disabledUsers={viewPermission === 'specific' ? viewUsers.map(u => ({
-                id: u.id,
-                reason: `${u.name} already has view access`,
-              })) : []}
-            />
+
+            <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: '10px', overflow: 'hidden' }}>
+              {/* Owner row */}
+              <PersonRow
+                avatar={
+                  <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: OWNER_USER.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
+                    {OWNER_USER.initials}
+                  </Avatar>
+                }
+                name={`${OWNER_USER.name} (You)`}
+                email={OWNER_USER.email}
+                roleLabel={ownerRoleLabel}
+                onRoleClick={e => openMenuFn(e, 'owner')}
+              />
+
+              {/* Added users */}
+              {users.map(pu => (
+                <Box key={pu.user.id}>
+                  <Divider />
+                  <PersonRow
+                    avatar={
+                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: pu.user.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
+                        {pu.user.initials}
+                      </Avatar>
+                    }
+                    name={pu.user.name}
+                    email={pu.user.email}
+                    roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
+                    onRoleClick={e => openMenuFn(e, pu.user.id)}
+                  />
+                </Box>
+              ))}
+
+              {/* Everyone row — teams tab only */}
+              {tab === 'teams' && (
+                <>
+                  <Divider />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+                    <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(0,83,229,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <GroupsIcon sx={{ fontSize: 20, color: c.primary }} />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
+                        Everyone in your account
+                      </Typography>
+                    </Box>
+                    <RoleButton
+                      label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
+                      onClick={e => openMenuFn(e, 'everyone')}
+                    />
+                  </Box>
+                </>
+              )}
+            </Box>
+
+            {/* Only me alert */}
+            {tab === 'private' && (
+              <Alert severity="info" icon={<InfoOutlinedIcon fontSize="small" />}
+                sx={{ mt: 1.5, borderRadius: '8px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, bgcolor: 'rgba(0,83,229,0.06)', color: c.textPrimary, '& .MuiAlert-icon': { color: c.primary } }}
+              >
+                {itemType === 'folder'
+                  ? "Only you can view this folder\u2019s media and all the folders inside it"
+                  : 'Only you can view this media'}
+              </Alert>
+            )}
+
+            {/* Add user */}
+            {tab === 'teams' && (
+              <Button
+                startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                sx={{ mt: '10px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, color: c.primary, textTransform: 'none', p: '4px 8px', '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' } }}
+              >
+                Add user
+              </Button>
+            )}
           </Box>
-        </Collapse>
-      </DialogContent>
+        </DialogContent>
 
-      {/* ── Actions ────────────────────────────────────────────────────────── */}
-      <Divider sx={{ borderColor: c.divider }} />
-      <DialogActions sx={{ px: '28px', py: '16px', gap: '8px' }}>
-        <Button
-          variant="text"
-          size="large"
-          onClick={handleClose}
-          sx={{
-            color: c.primary,
-            fontFamily: '"Open Sans", sans-serif',
-            textTransform: 'none',
-            fontWeight: 600,
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          size="large"
-          onClick={handleSave}
-          sx={{
-            bgcolor: c.primary,
-            fontFamily: '"Open Sans", sans-serif',
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: '8px',
-            boxShadow: 'none',
-            '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' },
-          }}
-        >
-          Save
-        </Button>
-      </DialogActions>
+        <Divider sx={{ borderColor: c.divider }} />
+        <DialogActions sx={{ px: '28px', py: '16px', gap: '8px' }}>
+          <Button variant="text" size="large" onClick={handleClose}
+            sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="large" onClick={handleSave}
+            sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
+            Save
+          </Button>
+        </DialogActions>
 
-      {/* ── Discard changes confirmation ────────────────────────────────────── */}
-      <Dialog
-        open={showDiscardConfirm}
-        onClose={() => setShowDiscardConfirm(false)}
-        maxWidth="xs"
-        fullWidth
+        {/* Role dropdown menu */}
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={closeMenuFn}
+          PaperProps={{ sx: { borderRadius: '10px', boxShadow: '0px 4px 20px rgba(3,25,79,0.18)', minWidth: 210, p: '4px' } }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          {/* Owner menu */}
+          {menuTarget === 'owner' && [
+            <MenuItem key="ol" disableRipple sx={{ ...menuItemSx, cursor: 'default', '&:hover': { bgcolor: 'transparent' } }}>
+              <CheckIcon sx={{ fontSize: 16, color: c.primary }} />
+              <Typography sx={menuTextSx}>{ownerRoleLabel}</Typography>
+            </MenuItem>,
+            <MenuItem key="ms" onClick={closeMenuFn} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Make sole owner</Typography>
+            </MenuItem>,
+            <Divider key="d1" sx={{ my: '4px !important' }} />,
+            <MenuItem key="ro" disabled={ownerUsers.length <= 1} onClick={closeMenuFn} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove ownership</Typography>
+            </MenuItem>,
+          ]}
+
+          {/* Added user menu */}
+          {menuUser && [
+            <MenuItem key="ed" onClick={() => { changeUserRole(menuTarget as string, 'editor'); closeMenuFn() }} sx={menuItemSx}>
+              {menuUser.role === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Editor</Typography>
+            </MenuItem>,
+            <MenuItem key="vi" onClick={() => { changeUserRole(menuTarget as string, 'viewer'); closeMenuFn() }} sx={menuItemSx}>
+              {menuUser.role === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Viewer</Typography>
+            </MenuItem>,
+            <Divider key="d1" sx={{ my: '4px !important' }} />,
+            <MenuItem key="to" onClick={closeMenuFn} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Transfer ownership</Typography>
+            </MenuItem>,
+            <Divider key="d2" sx={{ my: '4px !important' }} />,
+            <MenuItem key="rm" onClick={() => { removeUser(menuTarget as string); closeMenuFn() }} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove</Typography>
+            </MenuItem>,
+          ]}
+
+          {/* Everyone menu */}
+          {menuTarget === 'everyone' && [
+            <MenuItem key="ed" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Editor</Typography>
+            </MenuItem>,
+            <MenuItem key="vi" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Viewer</Typography>
+            </MenuItem>,
+            <Divider key="d1" sx={{ my: '4px !important' }} />,
+            <MenuItem key="re" onClick={() => { setEveryoneRole('restricted'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'restricted' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Restricted</Typography>
+            </MenuItem>,
+          ]}
+        </Menu>
+      </Dialog>
+
+      {/* Discard confirmation */}
+      <Dialog open={showDiscard} onClose={() => setShowDiscard(false)} maxWidth="xs" fullWidth
         PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)' } }}
       >
         <DialogTitle sx={{ p: '20px 20px 12px' }}>
@@ -667,27 +596,16 @@ export default function ManageAccessDialog({
         </DialogContent>
         <Divider sx={{ borderColor: c.divider }} />
         <DialogActions sx={{ px: '20px', py: '12px', gap: '8px' }}>
-          <Button
-            variant="text"
-            onClick={() => setShowDiscardConfirm(false)}
-            sx={{ color: c.primary, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600 }}
-          >
+          <Button variant="text" onClick={() => setShowDiscard(false)}
+            sx={{ color: c.primary, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600 }}>
             Keep editing
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => { setShowDiscardConfirm(false); onClose() }}
-            sx={{
-              bgcolor: c.errorMain, textTransform: 'none',
-              fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-              borderRadius: '8px', boxShadow: 'none',
-              '&:hover': { bgcolor: '#C41E34', boxShadow: 'none' },
-            }}
-          >
+          <Button variant="contained" onClick={() => { setShowDiscard(false); onClose() }}
+            sx={{ bgcolor: c.errorMain, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#C41E34', boxShadow: 'none' } }}>
             Discard
           </Button>
         </DialogActions>
       </Dialog>
-    </Dialog>
+    </>
   )
 }

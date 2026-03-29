@@ -32,11 +32,29 @@ import LockOutlinedIcon             from '@mui/icons-material/LockOutlined'
 
 import ManageAccessDialog, {
   type PermissionSettings,
-  type ViewPermission,
   type User,
   UserAvatarWithTooltip,
   OWNER_USER,
 } from './ManageAccessDialog'
+
+// ─── Local display type (not exported by ManageAccessDialog anymore) ──────────
+type ViewPermission = 'everyone' | 'editors' | 'specific' | 'private'
+
+function toVp(s: PermissionSettings): ViewPermission {
+  if (s.tab === 'private') return 'private'
+  if (s.everyoneRole === 'restricted') return s.users.length > 0 ? 'specific' : 'editors'
+  return 'everyone'
+}
+
+function toViewUsers(s: PermissionSettings): User[] {
+  return s.users.map(pu => pu.user)
+}
+
+function fromVp(vp: ViewPermission, base: PermissionSettings): PermissionSettings {
+  if (vp === 'private') return { ...base, tab: 'private' }
+  if (vp === 'everyone') return { ...base, tab: 'teams', everyoneRole: 'viewer' }
+  return { ...base, tab: 'teams', everyoneRole: 'restricted' }
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PANEL_WIDTH = 366
@@ -93,9 +111,10 @@ const FOLDER_CONTENTS: Record<string, { name: string; isAi?: boolean }[]> = {
 
 // ─── Default permissions ──────────────────────────────────────────────────────
 const defaultPermissions = (): PermissionSettings => ({
-  viewPermission: 'everyone',
-  viewUsers:      [],
-  manageUsers:    [OWNER_USER],
+  tab:          'teams',
+  everyoneRole: 'viewer',
+  users:        [],
+  ownerUsers:   [OWNER_USER],
 })
 
 // ─── Menu target type ─────────────────────────────────────────────────────────
@@ -236,13 +255,15 @@ function PermissionSection({
   onManageAccess: () => void
   onViewClick?:   () => void
 }) {
-  const { viewPermission, viewUsers, manageUsers } = settings
+  const viewPermission = toVp(settings)
+  const viewUsers      = toViewUsers(settings)
+  const ownerUsers     = settings.ownerUsers
   const handleViewClick = onViewClick ?? onManageAccess
 
-  // Manage users: show up to 3, then +N overflow
+  // Owner users: show up to 3, then +N overflow
   const MAX_MANAGE = 3
-  const visibleManage = manageUsers.slice(0, MAX_MANAGE)
-  const extraManage   = manageUsers.length - MAX_MANAGE
+  const visibleManage = ownerUsers.slice(0, MAX_MANAGE)
+  const extraManage   = ownerUsers.length - MAX_MANAGE
 
   // View users (specific): show up to 2, then +N overflow
   const MAX_VIEW = 2
@@ -574,7 +595,7 @@ export default function MediaLibraryPanel({
     // Check for conflict with parent folder
     if (manageParentKey) {
       const parentPerms = getPerms(manageParentKey)
-      if (hasPermissionConflict(s.viewPermission, s.viewUsers, parentPerms.viewPermission, parentPerms.viewUsers)) {
+      if (hasPermissionConflict(toVp(s), toViewUsers(s), toVp(parentPerms), toViewUsers(parentPerms))) {
         setConflictInfo({ parentKey: manageParentKey, childKey: manageKey, childType: manageType, newSettings: s })
         setConflictOpen(true)
         return // keep ManageAccessDialog open for correction
@@ -586,10 +607,10 @@ export default function MediaLibraryPanel({
 
   function handleFixParent() {
     if (!conflictInfo) return
-    const newVp = conflictInfo.newSettings.viewPermission
+    const { tab, everyoneRole } = conflictInfo.newSettings
     setPermissions(prev => ({
       ...prev,
-      [conflictInfo.parentKey]: { ...getPerms(conflictInfo.parentKey), viewPermission: newVp },
+      [conflictInfo.parentKey]: { ...getPerms(conflictInfo.parentKey), tab, everyoneRole },
       [conflictInfo.childKey]:  conflictInfo.newSettings,
     }))
     setConflictOpen(false)
@@ -598,7 +619,7 @@ export default function MediaLibraryPanel({
   }
 
   // Effective parent permission for nested items
-  const parentVp: ViewPermission = folder !== null ? getPerms(folder).viewPermission : 'everyone'
+  const parentVp: ViewPermission = folder !== null ? toVp(getPerms(folder)) : 'everyone'
 
   return (
     <Box sx={{
@@ -825,7 +846,7 @@ export default function MediaLibraryPanel({
                   </Typography>
                   <Button
                     variant="text" size="small"
-                    startIcon={<VisibleIcon vp={fp.viewPermission} />}
+                    startIcon={<VisibleIcon vp={toVp(fp)} />}
                     endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '13px !important' }} />}
                     onClick={() => openManageAccess(folder, 'folder')}
                     sx={{
@@ -834,7 +855,7 @@ export default function MediaLibraryPanel({
                       textTransform: 'none', p: '2px 4px', minWidth: 0,
                     }}
                   >
-                    {visibleLabel(fp.viewPermission)}
+                    {visibleLabel(toVp(fp))}
                   </Button>
                 </Box>
               </Box>
@@ -846,7 +867,7 @@ export default function MediaLibraryPanel({
 
             {/* Folder items (root view) */}
             {!folder && MEDIA_FOLDERS.map(f => {
-              const fvp = getPerms(f.name).viewPermission
+              const fvp = toVp(getPerms(f.name))
               return (
                 <Box
                   key={f.name}
@@ -904,7 +925,7 @@ export default function MediaLibraryPanel({
 
             {/* Subfolders inside a folder */}
             {folder && (FOLDER_CONTENTS[folder] ?? []).map(sf => {
-              const sfvp       = getPerms(sf.name).viewPermission
+              const sfvp       = toVp(getPerms(sf.name))
               const sfIconVp   = getEffectiveVp(sfvp, parentVp)
               // Only show icon when this subfolder's permission differs from its parent
               const sfShowIcon = sfIconVp !== parentVp
@@ -965,7 +986,7 @@ export default function MediaLibraryPanel({
 
             {/* Media items */}
             {MEDIA_ITEMS.map(item => {
-              const ivp          = getPerms(item.name).viewPermission
+              const ivp          = toVp(getPerms(item.name))
               const itemIconVp   = getEffectiveVp(ivp, parentVp)
               // Only show icon when this item's permission differs from its parent folder
               const itemShowIcon = itemIconVp !== parentVp
@@ -1101,8 +1122,8 @@ export default function MediaLibraryPanel({
         {/* Permission section — display shows effective (inherited) permission */}
         {(() => {
           const ownPerms    = getPerms(menuTarget?.name ?? '')
-          const effectiveVp = getEffectiveVp(ownPerms.viewPermission, parentVp)
-          const displayPerms: PermissionSettings = { ...ownPerms, viewPermission: effectiveVp }
+          const effectiveVp = getEffectiveVp(toVp(ownPerms), parentVp)
+          const displayPerms = fromVp(effectiveVp, ownPerms)
           return (
             <PermissionSection
               settings={displayPerms}
@@ -1148,12 +1169,10 @@ export default function MediaLibraryPanel({
         initialSettings={manageKey ? (() => {
           const own = getPerms(manageKey)
           if (!manageParentKey) return own
-          const effectiveVp = getEffectiveVp(own.viewPermission, getPerms(manageParentKey).viewPermission)
-          return { ...own, viewPermission: effectiveVp }
+          const effectiveVp = getEffectiveVp(toVp(own), toVp(getPerms(manageParentKey)))
+          return fromVp(effectiveVp, own)
         })() : undefined}
         onSave={handleSavePermissions}
-        parentVp={manageParentKey ? getPerms(manageParentKey).viewPermission : undefined}
-        parentViewUsers={manageParentKey ? getPerms(manageParentKey).viewUsers : undefined}
       />
 
       {/* ── Permission conflict dialog ────────────────────────────────────────── */}
@@ -1165,11 +1184,11 @@ export default function MediaLibraryPanel({
           parentName={conflictInfo.parentKey}
           childName={conflictInfo.childKey}
           childType={conflictInfo.childType}
-          parentVp={getPerms(conflictInfo.parentKey).viewPermission}
-          newVp={conflictInfo.newSettings.viewPermission}
-          childOwnVp={getPerms(conflictInfo.childKey).viewPermission}
-          parentViewUsers={getPerms(conflictInfo.parentKey).viewUsers}
-          newViewUsers={conflictInfo.newSettings.viewUsers}
+          parentVp={toVp(getPerms(conflictInfo.parentKey))}
+          newVp={toVp(conflictInfo.newSettings)}
+          childOwnVp={toVp(getPerms(conflictInfo.childKey))}
+          parentViewUsers={toViewUsers(getPerms(conflictInfo.parentKey))}
+          newViewUsers={toViewUsers(conflictInfo.newSettings)}
         />
       )}
     </Box>

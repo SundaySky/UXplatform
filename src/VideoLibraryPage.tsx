@@ -207,7 +207,7 @@ function ApprovalStatusIcon({ state, totalComments }: { state: LiveVideoState; t
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
 type ThumbType = 'full' | 'photo' | 'split-template'
 
-function VideoThumbnail({ _type, headingText, subheadingText }: { _type?: ThumbType; headingText?: string; subheadingText?: string }) {
+function VideoThumbnail({ headingText, subheadingText }: { _type?: ThumbType; headingText?: string; subheadingText?: string }) {
   return (
     <Box sx={{ position: 'relative', width: '100%', height: 171, overflow: 'hidden' }}>
       <Box component="img" src={IMG_THUMB} alt=""

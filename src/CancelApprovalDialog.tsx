@@ -1,6 +1,6 @@
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, IconButton, Typography, Box,
+  Button, IconButton, Typography,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 

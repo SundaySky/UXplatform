@@ -36,13 +36,12 @@ import PaletteIcon                 from '@mui/icons-material/Palette'
 import StarBorderIcon              from '@mui/icons-material/StarBorder'
 import LockOutlinedIcon           from '@mui/icons-material/LockOutlined'
 import PeopleAltOutlinedIcon      from '@mui/icons-material/PeopleAltOutlined'
-import ManageAccountsIcon         from '@mui/icons-material/ManageAccounts'
 import LockPersonIcon             from '@mui/icons-material/LockPerson'
 import Tooltip                    from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
 import AvatarLibraryPanel from './AvatarLibraryPanel'
-import VideoPermissionDialog, { UserPenIcon, VideoAccessBar, type VideoViewPermission, type VideoPermissionSettings } from './VideoPermissionDialog'
+import VideoPermissionDialog, { VideoAccessBar, type VideoPermissionSettings } from './VideoPermissionDialog'
 import { OWNER_USER } from './ManageAccessDialog'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
@@ -389,13 +388,12 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
 
 // ─── Comments panel ────────────────────────────────────────────────────────────
 function CommentsPanel({
-  open, onClose, threads, setThreads, approverNames, onRequestApproval,
+  open, onClose, threads, setThreads, onRequestApproval,
 }: {
   open: boolean
   onClose: () => void
   threads: CommentThread[]
   setThreads: React.Dispatch<React.SetStateAction<CommentThread[]>>
-  approverNames: string
   onRequestApproval: () => void
 }) {
   const [pos,         setPos]         = useState({ x: 0, y: 80 })
@@ -805,7 +803,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,      setSnackbarMsg]      = useState<string | null>(null)
   const [videoPermOpen,     setVideoPermOpen]     = useState(false)
-  const [videoPerm,         setVideoPerm]         = useState<VideoViewPermission>('everyone')
   const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(undefined)
   const [permBarAnchor,     setPermBarAnchor]     = useState<HTMLElement | null>(null)
 
@@ -911,17 +908,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             <IconButton
               size="small"
               onClick={e => setPermBarAnchor(e.currentTarget)}
-              sx={{ p: 0, color: videoPerm === 'private' ? '#118747' : videoPerm === 'owners' ? '#0053E5' : videoPerm === 'videoEditors' ? '#00897B' : videoPerm === 'everyone' ? 'rgba(255,255,255,0.6)' : '#F46900' }}
+              sx={{ p: 0, color: videoPermSettings?.tab === 'private' ? '#118747' : 'rgba(255,255,255,0.6)' }}
             >
-              {videoPerm === 'private'
-                ? <LockOutlinedIcon      sx={{ fontSize: 18 }} />
-                : videoPerm === 'editors'
-                  ? <PersonOutlinedIcon  sx={{ fontSize: 18 }} />
-                  : videoPerm === 'owners'
-                    ? <ManageAccountsIcon sx={{ fontSize: 18 }} />
-                    : videoPerm === 'videoEditors'
-                      ? <UserPenIcon sx={{ fontSize: 18 }} />
-                      : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
+              {videoPermSettings?.tab === 'private'
+                ? <LockOutlinedIcon sx={{ fontSize: 18 }} />
+                : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
             </IconButton>
             <Popover
               open={Boolean(permBarAnchor)}
@@ -1329,7 +1320,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         onClose={() => setCommentsOpen(false)}
         threads={threads}
         setThreads={setThreads}
-        approverNames={approverNames}
         onRequestApproval={() => {
           setSnackbarMsg(`Version sent for additional approval by ${approverNames}`)
           onRequestReapproval()
@@ -1344,7 +1334,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         open={videoPermOpen}
         onClose={() => setVideoPermOpen(false)}
         initialSettings={videoPermSettings}
-        onSave={s => { setVideoPerm(s.viewPermission); setVideoPermSettings(s); setVideoPermOpen(false) }}
+        onSave={s => { setVideoPermSettings(s); setVideoPermOpen(false) }}
       />
 
       <Snackbar

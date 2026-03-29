@@ -27,15 +27,14 @@ import ConfirmationDialog from './ConfirmationDialog'
 import ApproveVideoDialog    from './ApproveVideoDialog'
 import CancelApprovalDialog  from './CancelApprovalDialog'
 import VideoLibraryPage, { type VideoItem } from './VideoLibraryPage'
-import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS, type CommentThread } from './StudioPage'
-import { NotificationBell, type NotificationItem } from './NotificationsPanel'
+import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from './StudioPage'
+import { type NotificationItem } from './NotificationsPanel'
 import VideoPermissionDialog, { VideoAccessBar, type VideoPermissionSettings } from './VideoPermissionDialog'
 
 // MUI icons
 import MoreVertIcon              from '@mui/icons-material/MoreVert'
 import EditOutlinedIcon          from '@mui/icons-material/EditOutlined'
 import CreateOutlinedIcon        from '@mui/icons-material/CreateOutlined'
-import CommentOutlinedIcon            from '@mui/icons-material/CommentOutlined'
 import AddPhotoAlternateOutlinedIcon  from '@mui/icons-material/AddPhotoAlternateOutlined'
 import ShareOutlinedIcon         from '@mui/icons-material/ShareOutlined'
 import BarChartOutlinedIcon      from '@mui/icons-material/BarChartOutlined'
@@ -46,10 +45,8 @@ import RefreshIcon              from '@mui/icons-material/Refresh'
 import SearchIcon                from '@mui/icons-material/Search'
 import GroupIcon                 from '@mui/icons-material/Group'
 import LinkIcon                  from '@mui/icons-material/Link'
-import DescriptionOutlinedIcon   from '@mui/icons-material/DescriptionOutlined'
 import HelpOutlineIcon           from '@mui/icons-material/HelpOutline'
 import InfoOutlinedIcon          from '@mui/icons-material/InfoOutlined'
-import PersonOutlinedIcon        from '@mui/icons-material/PersonOutlined'
 import LayersOutlinedIcon        from '@mui/icons-material/LayersOutlined'
 import PublicOutlinedIcon        from '@mui/icons-material/PublicOutlined'
 import PaletteOutlinedIcon       from '@mui/icons-material/PaletteOutlined'
@@ -166,7 +163,7 @@ function Sidebar({
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   return (
     <Box sx={{
-      width: 266, flexShrink: 0, display: 'flex', flexDirection: 'column',
+      width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column',
       height: '100%', bgcolor: 'background.paper', borderRight: `1px solid ${t.divider}`,
     }}>
       <Box
@@ -261,7 +258,7 @@ function Sidebar({
         pr:             0,
         pt:             '1px',
         pb:             '1px',
-        width:          '246px',
+        width:          '280px',
         height:         '25px',
       }}>
         <Box sx={{
@@ -764,14 +761,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 
   const doneCount = tasks.filter(t => t.done).length
 
-  const startSession = () => {
-    setTasks(INITIAL_TASKS.map(t => ({ ...t, done: false })))
-    setCurrentIdx(0)
-    setSession('active')
-    setSurveyStep(1); setSurveyQ1(null); setSurveyQ2(null); setSurveyWhy1(''); setSurveyWhy2(''); setPendingNext(null)
-  }
-
-  // Clear resets ALL session state and restarts from task 1
+// Clear resets ALL session state and restarts from task 1
   const clearSession = () => {
     setTasks(INITIAL_TASKS.map(t => ({ ...t, done: false })))
     setCurrentIdx(0)
