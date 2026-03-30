@@ -427,8 +427,8 @@ export default function AvatarPermissionDialog({
                 onRoleClick={e => openMenuFn(e, 'owner')}
               />
 
-              {/* Added users */}
-              {users.map(pu => (
+              {/* Added users — teams tab only */}
+              {tab === 'teams' && users.map(pu => (
                 <Box key={pu.user.id}>
                   <Divider />
                   <PersonRow
@@ -459,7 +459,7 @@ export default function AvatarPermissionDialog({
                       </Typography>
                     </Box>
                     <RoleButton
-                      label={everyoneRole === 'editor' ? 'Can edit' : everyoneRole === 'viewer' ? 'Can view' : 'Restricted'}
+                      label={everyoneRole === 'editor' ? 'Can use' : everyoneRole === 'viewer' ? 'Can view' : 'Restricted'}
                       onClick={e => openMenuFn(e, 'everyone')}
                     />
                   </Box>
@@ -591,14 +591,14 @@ export default function AvatarPermissionDialog({
             </MenuItem>,
             <Divider key="d2" sx={{ my: '4px !important' }} />,
             <MenuItem key="rm" onClick={() => { removeUser(menuTarget as string); closeMenuFn() }} sx={menuItemSx}>
-              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove</Typography>
+              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove permission</Typography>
             </MenuItem>,
           ]}
 
           {menuTarget === 'everyone' && [
-            <MenuItem key="ce" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
+            <MenuItem key="cu" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Can edit</Typography>
+              <Typography sx={menuTextSx}>Can use</Typography>
             </MenuItem>,
             <MenuItem key="cv" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
