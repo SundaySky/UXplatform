@@ -1474,10 +1474,10 @@ export default function App() {
             openCommentsOnMount={openCommentsOnStudio}
             triggerOpenComments={openCommentsCounter}
             notifications={notifications}
-            initialThreads={videoPhase >= 1 ? INITIAL_THREADS : []}
+            initialThreads={videoPhase >= 2 ? INITIAL_THREADS : []}
             initialPermSettings={videoPermSettings}
             onPermChange={(s) => updateVideoState(currentKey, { permSettings: s })}
-            awaitingApprovers={videoPhase === 1}
+            awaitingApprovers={false}
             onEditAttempt={videoPhase === 1 ? () => setCancelApprovalDialogOpen(true) : undefined}
           />
 
