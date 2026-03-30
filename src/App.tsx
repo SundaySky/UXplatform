@@ -261,7 +261,7 @@ function VideoPermissionStrip({
             <Box sx={{ width: '1px', height: 16, bgcolor: t.divider, flexShrink: 0 }} />
           )}
 
-          {/* Everyone indicator — conditional icon (pen for edit, eye for view) */}
+          {/* Everyone indicator — users icon */}
           {showEveryone && (
             <Tooltip
               title={`Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`}
@@ -277,10 +277,7 @@ function VideoPermissionStrip({
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, alignSelf: 'center',
                 }}>
-                  {everyoneRole === 'editor'
-                    ? <EditOutlinedIcon sx={{ fontSize: 11, color: 'rgba(0,0,0,0.87)' }} />
-                    : <VisibilityOutlinedIcon sx={{ fontSize: 11, color: 'rgba(0,0,0,0.87)' }} />
-                  }
+                  <PeopleAltOutlinedIcon sx={{ fontSize: 11, color: 'rgba(0,0,0,0.87)' }} />
                 </Box>
                 <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, lineHeight: 1.5, color: t.textSecondary }}>
                   Everyone in your account

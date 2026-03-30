@@ -31,8 +31,6 @@ import InfoOutlinedIcon               from '@mui/icons-material/InfoOutlined'
 import OpenInNewIcon                  from '@mui/icons-material/OpenInNew'
 import ArchiveOutlinedIcon            from '@mui/icons-material/ArchiveOutlined'
 import LockPersonIcon                 from '@mui/icons-material/LockPerson'
-import EditOutlinedIcon               from '@mui/icons-material/EditOutlined'
-import VisibilityOutlinedIcon         from '@mui/icons-material/VisibilityOutlined'
 
 // ─── Custom icon: FA "image-circle-check" approximation ──────────────────────
 function ImageCircleCheckIcon() {
@@ -353,12 +351,10 @@ export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?
           pu.user.color,
         )
       )}
-      {/* Everyone — show with conditional icon (pen for edit, eye for view) in black */}
+      {/* Everyone — show with users icon in black */}
       {everyoneRole !== 'restricted' &&
         miniAvatar('everyone',
-          everyoneRole === 'editor'
-            ? <EditOutlinedIcon sx={{ fontSize: 12, color: 'rgba(0,0,0,0.87)' }} />
-            : <VisibilityOutlinedIcon sx={{ fontSize: 12, color: 'rgba(0,0,0,0.87)' }} />,
+          <PeopleAltOutlinedIcon sx={{ fontSize: 12, color: 'rgba(0,0,0,0.87)' }} />,
           `Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`,
         )
       }
@@ -500,7 +496,7 @@ function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoIt
         <MenuItem onClick={e => { e.stopPropagation(); savedMenuAnchor.current = menuAnchor; setMenuAnchor(null); setVideoPermOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
           <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
-          <PermAvatarGroup settings={videoPermSettings} />
+          <PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />
         </MenuItem>
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
