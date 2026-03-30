@@ -214,7 +214,6 @@ function AvatarCard({
           }}>
             {/* + Add / Replace */}
             <Button
-              variant="text"
               startIcon={
                 anyActive
                   ? <SwapHorizIcon sx={{ fontSize: '14px !important' }} />
@@ -229,9 +228,12 @@ function AvatarCard({
                 height: 24,
                 px: '8px',
                 minWidth: 0,
+                bgcolor: '#fff',
                 color: c.primary,
+                borderRadius: '6px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
                 '&:hover': {
-                  bgcolor: 'rgba(0,83,229,0.08)',
+                  bgcolor: '#f0f4ff',
                 },
               }}
             >
@@ -409,8 +411,8 @@ export default function AvatarLibraryPanel({
   const menuSpecific      = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : []
   const menuPerm          = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? 'everyone') : 'everyone'
   const menuEveryoneRole  = menuAvatarId ? (permMap[menuAvatarId]?.everyoneRole ?? 'restricted') : 'restricted'
-  // Only show the "everyone" icon when everyone truly CAN USE the avatar (not just request access)
-  const menuHasEveryone   = menuPerm === 'everyone' && menuEveryoneRole !== 'restricted'
+  // Show the "everyone" icon when permission is set to 'everyone', regardless of everyoneRole
+  const menuHasEveryone   = menuPerm === 'everyone'
 
   // Chip overflow logic: max 3 visible total chips (approvers + specific + everyone)
   // If more than 3, show first 2 user chips + [+N] overflow with hidden users + everyone in tooltip
