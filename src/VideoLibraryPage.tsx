@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
 import ApprovalDialog from './ApprovalDialog'
+import ConfirmationDialog from './ConfirmationDialog'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import { TOTAL_COMMENT_COUNT } from './StudioPage'
 import { OWNER_USER } from './ManageAccessDialog'
@@ -360,10 +361,12 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
   )
 }
 
-function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void }) {
+function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void; onSubmitForApproval?: (videoKey: string, approvers: string[]) => void }) {
   const [hovered,       setHovered]    = useState(false)
   const [menuAnchor,    setMenuAnchor] = useState<HTMLElement | null>(null)
   const [videoPermOpen, setVideoPermOpen] = useState(false)
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
+  const [confirmApprovers, setConfirmApprovers] = useState<string[]>([])
   const [approvalOpen,  setApprovalOpen]  = useState(false)
   // Saved so we can re-open the menu after the permission dialog closes
   const savedMenuAnchor = useRef<HTMLElement | null>(null)
@@ -551,7 +554,19 @@ function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoIt
       <ApprovalDialog
         open={approvalOpen}
         onClose={() => setApprovalOpen(false)}
-        onSend={approvers => { console.log('Approvers:', approvers); setApprovalOpen(false) }}
+        onSend={approvers => {
+          setApprovalOpen(false)
+          setConfirmApprovers(approvers)
+          setConfirmationOpen(true)
+          onSubmitForApproval?.(video.title, approvers)
+        }}
+      />
+
+      {/* Approval confirmation dialog */}
+      <ConfirmationDialog
+        open={confirmationOpen}
+        onClose={() => setConfirmationOpen(false)}
+        approverCount={confirmApprovers.length}
       />
     </Box>
   )
@@ -802,11 +817,12 @@ const FOLDERS = [
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates, onPermChange }: {
-  onSelectVideo:  (v: VideoItem) => void
-  notifications?: NotificationItem[]
-  videoStates?:   Record<string, LiveVideoState>
-  onPermChange?:  (key: string, s: VideoPermissionSettings) => void
+export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates, onPermChange, onSubmitForApproval }: {
+  onSelectVideo:         (v: VideoItem) => void
+  notifications?:        NotificationItem[]
+  videoStates?:          Record<string, LiveVideoState>
+  onPermChange?:         (key: string, s: VideoPermissionSettings) => void
+  onSubmitForApproval?:  (videoKey: string, approvers: string[]) => void
 }) {
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: '#FFFFFF', overflow: 'hidden' }}>
@@ -904,6 +920,7 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
                     liveState={videoStates?.[v.title]}
                     onClick={() => onSelectVideo(v)}
                     onPermChange={onPermChange}
+                    onSubmitForApproval={onSubmitForApproval}
                   />
                 </Box>
               ))}

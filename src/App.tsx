@@ -1451,7 +1451,13 @@ export default function App() {
       {/* ── Main app area ───────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {currentPage === 'library' ? (
-          <VideoLibraryPage onSelectVideo={handleSelectVideo} notifications={notifications} videoStates={videoStates} onPermChange={(key, s) => updateVideoState(key, { permSettings: s })} />
+          <VideoLibraryPage
+            onSelectVideo={handleSelectVideo}
+            notifications={notifications}
+            videoStates={videoStates}
+            onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
+            onSubmitForApproval={(key, approvers) => updateVideoState(key, { sentApprovers: approvers, pageState: 'pending' })}
+          />
 
         ) : currentPage === 'studio' ? (
           /* ── Studio / Editor page ─────────────────────────────────────────── */
