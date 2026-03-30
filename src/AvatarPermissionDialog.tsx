@@ -42,6 +42,7 @@ export interface AvatarPermissionSettings {
   usagePermission: AvatarUsagePermission
   specificUsers:   User[]
   approverUsers:   User[]
+  everyoneRole:    'editor' | 'viewer' | 'restricted'
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -234,6 +235,7 @@ export default function AvatarPermissionDialog({
 
   const [tab,        setTab]        = useState<PermissionTab>(toTab(initPerm))
   const [restricted, setRestricted] = useState<boolean>(toEveryoneRestricted(initPerm))
+  const [everyoneRole, setEveryoneRole] = useState<'editor' | 'viewer' | 'restricted'>(initialSettings?.everyoneRole ?? 'viewer')
   const [users,      setUsers]      = useState<PermissionUser[]>(
     (initialSettings?.specificUsers ?? []).map(u => ({ user: u, role: 'viewer' as UserRole }))
   )
@@ -251,6 +253,7 @@ export default function AvatarPermissionDialog({
       const perm = initialSettings?.usagePermission ?? 'everyone'
       setTab(toTab(perm))
       setRestricted(toEveryoneRestricted(perm))
+      setEveryoneRole(initialSettings?.everyoneRole ?? 'viewer')
       setUsers((initialSettings?.specificUsers ?? []).map(u => ({ user: u, role: 'viewer' as UserRole })))
       setOwnerUsers(initialSettings?.approverUsers ?? [OWNER_USER])
       setRequests(initialRequests)
@@ -283,6 +286,7 @@ export default function AvatarPermissionDialog({
       usagePermission: externalPerm,
       specificUsers:   users.map(pu => pu.user),
       approverUsers:   ownerUsers,
+      everyoneRole:    everyoneRole,
     }, requests)
   }
 
@@ -455,7 +459,7 @@ export default function AvatarPermissionDialog({
                       </Typography>
                     </Box>
                     <RoleButton
-                      label={restricted ? 'Restricted' : 'Can use'}
+                      label={everyoneRole === 'editor' ? 'Can edit' : everyoneRole === 'viewer' ? 'Can view' : 'Restricted'}
                       onClick={e => openMenuFn(e, 'everyone')}
                     />
                   </Box>
@@ -592,13 +596,17 @@ export default function AvatarPermissionDialog({
           ]}
 
           {menuTarget === 'everyone' && [
-            <MenuItem key="cu" onClick={() => { setRestricted(false); closeMenuFn() }} sx={menuItemSx}>
-              {!restricted ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Can use</Typography>
+            <MenuItem key="ce" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Can edit</Typography>
+            </MenuItem>,
+            <MenuItem key="cv" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+              <Typography sx={menuTextSx}>Can view</Typography>
             </MenuItem>,
             <Divider key="d1" sx={{ my: '4px !important' }} />,
-            <MenuItem key="re" onClick={() => { setRestricted(true); closeMenuFn() }} sx={menuItemSx}>
-              {restricted ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
+            <MenuItem key="re" onClick={() => { setEveryoneRole('restricted'); closeMenuFn() }} sx={menuItemSx}>
+              {everyoneRole === 'restricted' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
               <Typography sx={menuTextSx}>Restricted</Typography>
             </MenuItem>,
           ]}
