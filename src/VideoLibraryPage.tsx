@@ -378,7 +378,11 @@ function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApprova
 
   return (
     <Box
-      onClick={onClick}
+      onClick={() => {
+        // Don't navigate while any dialog is open — React portal clicks bubble through component tree
+        if (approvalOpen || confirmationOpen || videoPermOpen) return
+        onClick?.()
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       sx={{

@@ -71,6 +71,7 @@ export default function ApprovalDialog({ open, onClose, onSend }: Props) {
     <Dialog
       open={open}
       onClose={(_, reason) => { if (reason === 'backdropClick') return; handleClose() }}
+      onClick={e => e.stopPropagation()}
       maxWidth="sm"
       fullWidth
       PaperProps={{
