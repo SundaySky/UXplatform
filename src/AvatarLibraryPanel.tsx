@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Box, Typography, IconButton, Button, Tooltip,
-  Popover, Divider, Badge,
+  Popover, Divider, Badge, MenuItem, ListItemIcon, ListItemText,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
 import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
@@ -11,16 +11,14 @@ import MoreVertIcon           from '@mui/icons-material/MoreVert'
 import PersonIcon             from '@mui/icons-material/Person'
 import TokenOutlinedIcon      from '@mui/icons-material/TokenOutlined'
 import DeleteOutlinedIcon     from '@mui/icons-material/DeleteOutlined'
-import SettingsOutlinedIcon   from '@mui/icons-material/SettingsOutlined'
 import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
 import GroupsIcon             from '@mui/icons-material/Groups'
-import PeopleOutlinedIcon     from '@mui/icons-material/PeopleOutlined'
 import LockOutlinedIcon       from '@mui/icons-material/LockOutlined'
-import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
+import PeopleOutlinedIcon     from '@mui/icons-material/PeopleOutlined'
+import LockPersonIcon         from '@mui/icons-material/LockPerson'
 import SwapHorizIcon          from '@mui/icons-material/SwapHoriz'
 
 import AvatarPermissionDialog, {
-  type AvatarUsagePermission,
   type AvatarPermissionSettings,
   type AccessRequest,
 } from './AvatarPermissionDialog'
@@ -54,13 +52,6 @@ const navyTooltipSx = {
   maxWidth: 240, whiteSpace: 'pre-line' as const,
   '& .MuiTooltip-arrow': { color: '#03194F' },
 }
-
-// ─── Usage permission options ─────────────────────────────────────────────────
-const USAGE_OPTIONS: { value: AvatarUsagePermission; label: string }[] = [
-  { value: 'everyone', label: 'Everyone in your account' },
-  { value: 'specific', label: 'Specific users'           },
-  { value: 'private',  label: 'Private (only you)'       },
-]
 
 // ─── Mock data ─────────────────────────────────────────────────────────────────
 interface AvatarItem {
@@ -103,18 +94,6 @@ const STOCK_AVATARS: AvatarItem[] = [
   { id: 's-jake',    name: 'Jake',    img: null },
   { id: 's-mei',     name: 'Mei',     img: null },
 ]
-
-// ─── Permission icon with correct color baked in ──────────────────────────
-function PermissionIcon({ perm, size = 16 }: { perm: AvatarUsagePermission; size?: number }) {
-  const sx = { fontSize: size }
-  if (perm === 'everyone') return <GroupsIcon         sx={{ ...sx, color: c.primary }} />
-  if (perm === 'specific') return <PeopleOutlinedIcon sx={{ ...sx, color: '#F46900' }} />
-  return <LockOutlinedIcon sx={{ ...sx, color: c.successMain }} />
-}
-
-function permLabel(perm: AvatarUsagePermission) {
-  return USAGE_OPTIONS.find(o => o.value === perm)?.label ?? 'Everyone in your account'
-}
 
 // ─── Rounded-square avatar chip (for options menu) ─────────────────────────
 function AvatarChip({
@@ -712,39 +691,33 @@ export default function AvatarLibraryPanel({
 
             <Divider sx={{ borderColor: 'rgba(0,0,0,0.08)' }} />
 
-            {/* Usage access + approver avatars */}
-            <Box sx={{ px: 2, py: 1.25 }}>
-              {/* Label + clickable permission row → opens dialog */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: '10px' }}>
-                <Typography sx={{
-                  fontFamily: '"Open Sans", sans-serif', fontSize: 13,
-                  color: c.textPrimary, fontWeight: 600, flexShrink: 0,
+            {/* Manage permissions (with request badge) */}
+            <MenuItem
+              onClick={e => { e.stopPropagation(); handleOpenPermDialog() }}
+              sx={{ gap: '10px', py: '8px', px: '16px' }}
+            >
+              <ListItemIcon sx={{ minWidth: 'unset', color: c.textPrimary }}>
+                <LockPersonIcon sx={{ fontSize: 16 }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Manage permissions"
+                primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary }}
+                sx={{ m: 0 }}
+              />
+              {menuRequests > 0 && (
+                <Box sx={{
+                  width: 18, height: 18, borderRadius: '50%',
+                  bgcolor: c.errorMain, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700,
+                  fontFamily: '"Open Sans", sans-serif',
+                  flexShrink: 0,
                 }}>
-                  Usage access:
-                </Typography>
-                <Box
-                  onClick={handleOpenPermDialog}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    flex: 1, cursor: 'pointer', borderRadius: '6px',
-                    px: '6px', py: '3px', mx: '-6px',
-                    '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                  }}
-                >
-                  <PermissionIcon perm={menuPerm} size={15} />
-                  <Typography sx={{
-                    fontFamily: '"Open Sans", sans-serif', fontSize: 13,
-                    color: menuPerm === 'everyone' ? c.primary : '#F46900',
-                    fontWeight: 500, flex: 1, whiteSpace: 'nowrap',
-                  }}>
-                    {permLabel(menuPerm)}
-                  </Typography>
-                  <KeyboardArrowDownIcon sx={{ fontSize: 15, color: c.textSecondary, flexShrink: 0 }} />
+                  {menuRequests}
                 </Box>
-              </Box>
-
+              )}
               {/* Approver + usage avatars row — two groups separated by a divider */}
-              <Box sx={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', gap: '6px', alignItems: 'center', ml: 'auto' }}>
                 {/* Group 1: Approver users (who can allow) */}
                 {menuApprovers.map(user => (
                   <AvatarChip
@@ -791,39 +764,7 @@ export default function AvatarLibraryPanel({
                   />
                 ))}
               </Box>
-            </Box>
-
-            <Divider sx={{ borderColor: 'rgba(0,0,0,0.08)' }} />
-
-            {/* Manage permissions (with request badge) */}
-            <Box sx={{ px: 2, py: 1 }}>
-              <Button
-                variant="outlined" fullWidth size="small"
-                startIcon={<SettingsOutlinedIcon sx={{ fontSize: 16 }} />}
-                endIcon={
-                  menuRequests > 0 ? (
-                    <Box sx={{
-                      width: 18, height: 18, borderRadius: '50%',
-                      bgcolor: c.errorMain, color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 700,
-                      fontFamily: '"Open Sans", sans-serif',
-                    }}>
-                      {menuRequests}
-                    </Box>
-                  ) : undefined
-                }
-                onClick={handleOpenPermDialog}
-                sx={{
-                  color: c.textPrimary, borderColor: c.grey300,
-                  fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 13,
-                  textTransform: 'none', borderRadius: '8px', justifyContent: 'flex-start',
-                  '&:hover': { borderColor: c.primary, color: c.primary },
-                }}
-              >
-                Manage permissions
-              </Button>
-            </Box>
+            </MenuItem>
 
             <Divider sx={{ borderColor: 'rgba(0,0,0,0.08)' }} />
 
