@@ -407,7 +407,6 @@ export default function AvatarLibraryPanel({
   const menuPerm       = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? 'everyone') : 'everyone'
   const menuApprovers  = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER]
   const menuSpecific   = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : []
-  const menuEveryoneRole = menuAvatarId ? (permMap[menuAvatarId]?.everyoneRole ?? 'viewer') : 'viewer'
   const menuRequests   = menuAvatarId ? (requestsMap[menuAvatarId]?.length ?? 0) : 0
 
   const permDialogAvatar = CUSTOM_AVATARS.find(a => a.id === permDialogAvatarId)
@@ -740,7 +739,7 @@ export default function AvatarLibraryPanel({
                 {/* Group 2: who can use — group icon (everyone) or specific users */}
                 {menuPerm === 'everyone' && (
                   <Tooltip
-                    title={`Everyone in your account can ${menuEveryoneRole === 'editor' ? 'edit' : menuEveryoneRole === 'viewer' ? 'view' : 'not use'} this custom avatar.`}
+                    title="Everyone in your account can use this custom avatar."
                     placement="top"
                     arrow
                     componentsProps={{ tooltip: { sx: navyTooltipSx } }}

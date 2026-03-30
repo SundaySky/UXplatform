@@ -219,7 +219,7 @@ function InlineAddAvatarUsers({
 export default function AvatarPermissionDialog({
   open,
   onClose,
-  avatarName: _avatarName,
+  avatarName,
   initialSettings,
   initialRequests = [],
   onSave,
@@ -266,6 +266,13 @@ export default function AvatarPermissionDialog({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Auto-set restricted when specific users are added
+  useEffect(() => {
+    if (users.length > 0 && !restricted && tab === 'teams') {
+      setRestricted(true)
+    }
+  }, [users.length, restricted, tab])
 
   function sameIds(a: User[], b: User[]) {
     if (a.length !== b.length) return false
@@ -359,7 +366,7 @@ export default function AvatarPermissionDialog({
               />
             )}
             <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
-              {showAddDialog ? 'Add users' : 'Manage access'}
+              {showAddDialog ? 'Add users' : `Manage "${avatarName}" avatar permissions`}
             </Typography>
             {!showAddDialog && <IconButton size="small" sx={{ color: 'rgba(0,0,0,0.4)' }}>
               <HelpOutlineIcon sx={{ fontSize: 20 }} />
