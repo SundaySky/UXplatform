@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import {
   Box, Typography, Button, Avatar, IconButton, Tooltip, SvgIcon,
   InputAdornment, OutlinedInput,
-  Menu, MenuItem, ListItemIcon, ListItemText, Divider,
+  Menu, MenuItem, ListItemText, Divider,
 } from '@mui/material'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
 import ApprovalDialog from './ApprovalDialog'
@@ -481,60 +481,60 @@ function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoIt
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><InfoOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><InfoOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Details</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><OpenInNewIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><OpenInNewIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Video Page</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => { e.stopPropagation(); savedMenuAnchor.current = menuAnchor; setMenuAnchor(null); setVideoPermOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => { e.stopPropagation(); savedMenuAnchor.current = menuAnchor; setMenuAnchor(null); setVideoPermOpen(true) }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><LockPersonIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
           <PermAvatarGroup settings={videoPermSettings} />
         </MenuItem>
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => { closeMenu(e); setApprovalOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive, fontSize: 16 }}><ImageCircleCheckIcon /></ListItemIcon>
+        <MenuItem onClick={e => { closeMenu(e); setApprovalOpen(true) }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ImageCircleCheckIcon /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
         </MenuItem>
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ContentCopyIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ContentCopyIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Duplicate video</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><DashboardCustomizeOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><DashboardCustomizeOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Video to template</ListItemText>
         </MenuItem>
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><FolderOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><FolderOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Move to folder</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ArchiveOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ArchiveOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Archive</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.errorMain }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.errorMain, display: 'flex', alignItems: 'center', flexShrink: 0 }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.errorMain }}>Delete</ListItemText>
         </MenuItem>
       </Menu>
