@@ -119,25 +119,23 @@ function permLabel(perm: AvatarUsagePermission) {
 // ─── Rounded-square avatar chip (for options menu) ─────────────────────────
 function AvatarChip({
   initials,
-  color,
   tooltip,
 }: {
   initials: string
-  color:    string
   tooltip:  string
 }) {
   return (
     <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
       <Box sx={{
         width: 28, height: 28,
-        bgcolor: color,
+        bgcolor: 'rgba(0,83,229,0.12)',
         borderRadius: '6px',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'default', flexShrink: 0,
       }}>
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 700,
-          fontSize: 10, color: '#fff', lineHeight: 1,
+          fontSize: 10, color: c.textPrimary, lineHeight: 1,
         }}>
           {initials}
         </Typography>
@@ -752,7 +750,6 @@ export default function AvatarLibraryPanel({
                   <AvatarChip
                     key={user.id}
                     initials={user.initials}
-                    color={user.color}
                     tooltip={`${user.name} (You)\nCan manage access, delete, and rename.`}
                   />
                 ))}
@@ -776,7 +773,7 @@ export default function AvatarLibraryPanel({
                   >
                     <Box sx={{
                       width: 28, height: 28,
-                      bgcolor: 'rgba(0,0,0,0.07)',
+                      bgcolor: 'rgba(0,83,229,0.12)',
                       borderRadius: '6px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'default',
@@ -790,7 +787,6 @@ export default function AvatarLibraryPanel({
                   <AvatarChip
                     key={user.id}
                     initials={user.initials}
-                    color={user.color}
                     tooltip={`${user.name} can use this avatar.`}
                   />
                 ))}
