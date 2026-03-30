@@ -4,6 +4,7 @@ import {
   DialogTitle, DialogContent, DialogActions,
   Avatar, Tooltip, Alert, Divider, Menu, MenuItem,
   ToggleButton, ToggleButtonGroup,
+  Autocomplete, TextField, Chip,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
 import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
@@ -15,6 +16,7 @@ import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import DoNotDisturbOnOutlinedIcon from '@mui/icons-material/DoNotDisturbOnOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import ArrowBackIcon          from '@mui/icons-material/ArrowBack'
 
 import {
   type User,
@@ -22,6 +24,7 @@ import {
   type PermissionUser,
   type UserRole,
   OWNER_USER,
+  ALL_USERS,
 } from './ManageAccessDialog'
 
 // ─── Types (kept for AvatarLibraryPanel compatibility) ────────────────────────
@@ -117,6 +120,100 @@ function PersonRow({
   )
 }
 
+// ─── Inline Add Avatar Users Autocomplete ────────────────────────────────
+function InlineAddAvatarUsers({
+  value, onChange, excludeIds, onCancel, onAdd,
+}: {
+  value:      User[]
+  onChange:   (v: User[]) => void
+  excludeIds: string[]
+  onCancel:   () => void
+  onAdd:      () => void
+}) {
+  const options = ALL_USERS.filter(u => !excludeIds.includes(u.id))
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <Autocomplete<User, true>
+        multiple
+        autoFocus
+        value={value}
+        onChange={(_, v) => onChange(v)}
+        options={options}
+        getOptionLabel={u => u.name}
+        isOptionEqualToValue={(a, b) => a.id === b.id}
+        disableCloseOnSelect
+        popupIcon={null}
+        renderInput={params => (
+          <TextField
+            {...params}
+            autoFocus
+            placeholder={value.length === 0 ? 'Search users…' : ''}
+            inputProps={{ ...params.inputProps, autoComplete: 'new-password' }}
+            sx={{
+              '& .MuiOutlinedInput-root': { borderRadius: '8px', pr: '8px !important' },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
+              '& .MuiInputBase-root': { flexWrap: 'wrap', gap: '4px', p: '8px 12px' },
+            }}
+          />
+        )}
+        renderTags={(tagValue, getTagProps) =>
+          tagValue.map((user, index) => (
+            <Chip
+              {...getTagProps({ index })}
+              key={user.id}
+              label={user.name}
+              size="small"
+              avatar={<Avatar sx={{ bgcolor: 'rgba(0,83,229,0.12)', fontSize: '9px !important', fontWeight: 600, color: `${c.textPrimary} !important` }}>{user.initials}</Avatar>}
+              sx={{
+                fontFamily: '"Open Sans", sans-serif', fontSize: 12,
+                bgcolor: 'rgba(0,83,229,0.12)', color: c.textPrimary, borderRadius: '20px',
+                '& .MuiChip-label': { px: '6px' },
+                '& .MuiChip-deleteIcon': { color: 'rgba(0,0,0,0.3)', '&:hover': { color: c.textPrimary } },
+                height: 24,
+              }}
+            />
+          ))
+        }
+        renderOption={(props, option) => {
+          const { key, ...listProps } = props as typeof props & { key: string }
+          return (
+            <Box key={key} component="li" {...listProps} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1 }}>
+              <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: 'rgba(0,83,229,0.12)', fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.textPrimary }}>
+                {option.initials}
+              </Avatar>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: c.textPrimary, lineHeight: 1.4 }}>
+                  {option.name}
+                </Typography>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, color: c.textSecondary, lineHeight: 1.3 }}>
+                  {option.email}
+                </Typography>
+              </Box>
+            </Box>
+          )
+        }}
+        ListboxProps={{ sx: { p: '4px', maxHeight: 240, '& .MuiAutocomplete-option': { borderRadius: '6px', '&.Mui-focused': { bgcolor: 'rgba(0,83,229,0.06)' } } } }}
+        slotProps={{ paper: { sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.18)', mt: '4px' } } }}
+      />
+
+      <Box sx={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', mt: '20px' }}>
+        <Button size="small" onClick={onCancel}
+          sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: c.textSecondary, textTransform: 'none' }}>
+          Cancel
+        </Button>
+        <Button size="small" variant="contained" disabled={value.length === 0} onClick={onAdd}
+          sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, textTransform: 'none',
+            bgcolor: c.primary, borderRadius: '8px', boxShadow: 'none',
+            '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' },
+            '&.Mui-disabled': { bgcolor: 'rgba(0,0,0,0.12)', color: 'rgba(0,0,0,0.26)' },
+          }}>
+          Add
+        </Button>
+      </Box>
+    </Box>
+  )
+}
+
 // ─── AvatarPermissionDialog ───────────────────────────────────────────────────
 export default function AvatarPermissionDialog({
   open,
@@ -146,6 +243,8 @@ export default function AvatarPermissionDialog({
   const [showDenyAll,    setShowDenyAll]    = useState(false)
   const [menuAnchor,     setMenuAnchor]     = useState<null | HTMLElement>(null)
   const [menuTarget,     setMenuTarget]     = useState<'owner' | 'everyone' | string | null>(null)
+  const [showAddDialog,  setShowAddDialog]  = useState(false)
+  const [addUsers,       setAddUsers]       = useState<User[]>([])
 
   useEffect(() => {
     if (open) {
@@ -159,6 +258,8 @@ export default function AvatarPermissionDialog({
       setMenuTarget(null)
       setShowDiscard(false)
       setShowDenyAll(false)
+      setShowAddDialog(false)
+      setAddUsers([])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -217,6 +318,17 @@ export default function AvatarPermissionDialog({
   }
   function handleDenyAll() { setRequests([]); setShowDenyAll(false) }
 
+  function handleAddAvatarUsers() {
+    if (addUsers.length === 0) return
+    const existingIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)])
+    const newOnes = addUsers.filter(u => !existingIds.has(u.id))
+    if (newOnes.length > 0) {
+      setUsers(prev => [...prev, ...newOnes.map(u => ({ user: u, role: 'viewer' as UserRole }))])
+    }
+    setShowAddDialog(false)
+    setAddUsers([])
+  }
+
   const menuUser = (menuTarget && menuTarget !== 'owner' && menuTarget !== 'everyone')
     ? (users.find(pu => pu.user.id === menuTarget) ?? null)
     : null
@@ -235,12 +347,19 @@ export default function AvatarPermissionDialog({
       >
         <DialogTitle sx={{ p: '20px 16px 16px 28px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {showAddDialog && (
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => setShowAddDialog(false)}
+                sx={{ color: c.textPrimary, textTransform: 'none', p: 0, mr: 1 }}
+              />
+            )}
             <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
-              Manage access
+              {showAddDialog ? 'Add users' : 'Manage access'}
             </Typography>
-            <IconButton size="small" sx={{ color: 'rgba(0,0,0,0.4)' }}>
+            {!showAddDialog && <IconButton size="small" sx={{ color: 'rgba(0,0,0,0.4)' }}>
               <HelpOutlineIcon sx={{ fontSize: 20 }} />
-            </IconButton>
+            </IconButton>}
             <IconButton size="small" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.4)' }}>
               <CloseIcon sx={{ fontSize: 20 }} />
             </IconButton>
@@ -250,6 +369,16 @@ export default function AvatarPermissionDialog({
         <Divider sx={{ borderColor: c.divider }} />
 
         <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {showAddDialog ? (
+            <InlineAddAvatarUsers
+              value={addUsers}
+              onChange={setAddUsers}
+              excludeIds={[OWNER_USER.id, ...users.map(pu => pu.user.id)]}
+              onCancel={() => setShowAddDialog(false)}
+              onAdd={handleAddAvatarUsers}
+            />
+          ) : (
+            <>
           {/* Tab selector */}
           <ToggleButtonGroup
             value={tab}
@@ -347,6 +476,7 @@ export default function AvatarPermissionDialog({
             {tab === 'teams' && (
               <Button
                 startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setShowAddDialog(true)}
                 sx={{ mt: '10px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, color: c.primary, textTransform: 'none', p: '4px 8px', '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' } }}
               >
                 Add user
@@ -407,8 +537,11 @@ export default function AvatarPermissionDialog({
               </Box>
             )}
           </Box>
+            </>
+          )}
         </DialogContent>
 
+        {!showAddDialog && (
         <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
           <Button onClick={handleClose} sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: c.textPrimary, textTransform: 'none', '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' } }}>
             Cancel
@@ -418,6 +551,7 @@ export default function AvatarPermissionDialog({
             Save
           </Button>
         </DialogActions>
+        )}
 
         {/* Role dropdown menu */}
         <Menu
