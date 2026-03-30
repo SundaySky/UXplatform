@@ -665,7 +665,7 @@ export default function AvatarLibraryPanel({
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{
           sx: {
-            borderRadius: '10px', minWidth: 260, maxWidth: 310,
+            borderRadius: '10px', minWidth: 360, maxWidth: 420,
             boxShadow: '0 4px 20px rgba(3,25,79,0.18)',
             p: 0, overflow: 'hidden',
           },
