@@ -631,8 +631,8 @@ function CommentsPanel({
           )}
         </Box>
 
-        {/* ── Footer: "Resend for approval" — hidden while awaiting all approvers ── */}
-        {!awaitingApprovers && (
+        {/* ── Footer: "Resend for approval" — hidden when awaiting approvers or no comments yet ── */}
+        {!awaitingApprovers && threads.length > 0 && (
           <Box sx={{
             px: 2, py: '12px',
             borderTop: `1px solid ${s.dividerGrey}`,
