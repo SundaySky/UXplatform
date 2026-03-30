@@ -1,0 +1,46 @@
+{
+    "env": {
+        "es6": true,
+        "browser": true
+    },
+    "extends": ["./.eslintrc.base.json", "./.eslintrc.typescript.json"],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2020,
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "project": "./tsconfig.app.json"
+    },
+    "plugins": ["react", "react-hooks"],
+    "settings": {
+        "react": {
+            "version": "detect"
+        }
+    },
+    "rules": {
+        "no-undef": "off",
+        "react/react-in-jsx-scope": "off",
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn",
+        "import/no-default-export": "off",
+        "@typescript-eslint/consistent-type-imports": ["error", { "prefer": "type-imports" }],
+        "no-restricted-imports": ["error", {
+            "patterns": [
+                {
+                    "group": ["@sundaysky/**/src*"],
+                    "message": "Please import directly from the module and not its source directory."
+                }
+            ]
+        }]
+    },
+    "overrides": [
+        {
+            "files": ["vite.config.ts"],
+            "parserOptions": {
+                "project": "./tsconfig.node.json"
+            }
+        }
+    ]
+}
