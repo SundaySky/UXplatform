@@ -18,6 +18,7 @@ import InfoOutlinedIcon      from '@mui/icons-material/InfoOutlined'
 import LockOutlinedIcon      from '@mui/icons-material/LockOutlined'
 import SettingsOutlinedIcon  from '@mui/icons-material/SettingsOutlined'
 import NoAccountsIcon        from '@mui/icons-material/NoAccounts'
+import ArrowBackIcon         from '@mui/icons-material/ArrowBack'
 
 import {
   type PermissionTab,
@@ -311,12 +312,12 @@ function InlineAddUsers({
               key={user.id}
               label={user.name}
               size="small"
-              avatar={<Avatar sx={{ bgcolor: c.primaryLight, fontSize: '9px !important', fontWeight: 600, color: `${c.primary} !important` }}>{user.initials}</Avatar>}
+              avatar={<Avatar sx={{ bgcolor: c.primaryLight, fontSize: '9px !important', fontWeight: 600, color: `${c.textPrimary} !important` }}>{user.initials}</Avatar>}
               sx={{
                 fontFamily: '"Open Sans", sans-serif', fontSize: 12,
-                bgcolor: c.primaryLight, color: c.primary, borderRadius: '20px',
+                bgcolor: c.primaryLight, color: c.textPrimary, borderRadius: '20px',
                 '& .MuiChip-label': { px: '6px' },
-                '& .MuiChip-deleteIcon': { color: 'rgba(0,83,229,0.5)', '&:hover': { color: c.primary } },
+                '& .MuiChip-deleteIcon': { color: 'rgba(0,0,0,0.3)', '&:hover': { color: c.textPrimary } },
                 height: 24,
               }}
             />
@@ -326,7 +327,7 @@ function InlineAddUsers({
           const { key, ...listProps } = props as typeof props & { key: string }
           return (
             <Box key={key} component="li" {...listProps} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1 }}>
-              <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.primary }}>
+              <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.textPrimary }}>
                 {option.initials}
               </Avatar>
               <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -523,7 +524,7 @@ export default function VideoPermissionDialog({
               <ToggleButton key={v} value={v} sx={{
                 fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
                 textTransform: 'none', py: 1, gap: '6px',
-                color: c.textSecondary,
+                color: c.textPrimary,
                 bgcolor: '#fff',
                 '&.Mui-selected': {
                   bgcolor: c.primaryTabBg,
@@ -541,95 +542,123 @@ export default function VideoPermissionDialog({
             ))}
           </ToggleButtonGroup>
 
-          {/* Access list */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Access list — sliding panel container */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden' }}>
             {/* Who can access label */}
             <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textSecondary, letterSpacing: '0.02em' }}>
               Who can access
             </Typography>
 
-            <Box>
-              <Box sx={{ border: `1px solid ${c.grey300}`, borderRadius: '10px', overflow: 'hidden' }}>
-                {/* Owner row */}
-                <PersonRow
-                  avatar={
-                    <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.primary }}>
-                      {OWNER_USER.initials}
-                    </Avatar>
-                  }
-                  name={`${OWNER_USER.name} (You)`}
-                  email={OWNER_USER.email}
-                  roleLabel="Video owner"
-                  onRoleClick={tab === 'teams' ? e => openMenuFn(e, 'owner') : () => {}}
-                />
-
-                {/* Specific users — only when teams tab */}
-                {tab === 'teams' && users.map(pu => (
-                  <Box key={pu.user.id}>
-                    <Divider sx={{ borderColor: c.grey300 }} />
+            {/* Sliding panels container */}
+            <Box sx={{ overflow: 'hidden', borderRadius: '10px' }}>
+              <Box sx={{
+                width: '200%',
+                transform: `translateX(${addOpen ? '-50%' : '0%'})`,
+                transition: 'transform 0.3s ease',
+                display: 'flex',
+              }}>
+                {/* Left panel: Main permission list (50% width) */}
+                <Box sx={{ width: '50%', minWidth: 0 }}>
+                  <Box sx={{ border: `1px solid ${c.grey300}`, borderRadius: '10px', overflow: 'hidden' }}>
+                    {/* Owner row */}
                     <PersonRow
                       avatar={
-                        <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.primary }}>
-                          {pu.user.initials}
+                        <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.textPrimary }}>
+                          {OWNER_USER.initials}
                         </Avatar>
                       }
-                      name={pu.user.name}
-                      email={pu.user.email}
-                      roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
-                      onRoleClick={e => openMenuFn(e, pu.user.id)}
+                      name={`${OWNER_USER.name} (You)`}
+                      email={OWNER_USER.email}
+                      roleLabel="Video owner"
+                      onRoleClick={tab === 'teams' ? e => openMenuFn(e, 'owner') : () => {}}
                     />
+
+                    {/* Specific users — only when teams tab */}
+                    {tab === 'teams' && users.map(pu => (
+                      <Box key={pu.user.id}>
+                        <Divider sx={{ borderColor: c.grey300 }} />
+                        <PersonRow
+                          avatar={
+                            <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.textPrimary }}>
+                              {pu.user.initials}
+                            </Avatar>
+                          }
+                          name={pu.user.name}
+                          email={pu.user.email}
+                          roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
+                          onRoleClick={e => openMenuFn(e, pu.user.id)}
+                        />
+                      </Box>
+                    ))}
+
+                    {/* Everyone row — only when teams tab */}
+                    {tab === 'teams' && (
+                      <>
+                        <Divider sx={{ borderColor: c.grey300 }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+                          <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: everyoneRole === 'restricted' ? 'rgba(0,0,0,0.06)' : c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <EveryoneIcon sx={{ fontSize: 20, color: everyoneRole === 'restricted' ? c.textSecondary : c.textPrimary }} />
+                          </Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
+                              Everyone in your account
+                            </Typography>
+                          </Box>
+                          <RoleButton
+                            label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
+                            onClick={e => openMenuFn(e, 'everyone')}
+                          />
+                        </Box>
+                      </>
+                    )}
+
+                    {/* Only-me state: owner row is already shown above; show info row */}
+                    {tab === 'private' && (
+                      <>
+                        <Divider sx={{ borderColor: c.grey300 }} />
+                        <Box sx={{ px: '16px', py: '10px' }}>
+                          <Alert
+                            severity="info"
+                            icon={<InfoOutlinedIcon fontSize="small" />}
+                            sx={{
+                              borderRadius: '8px',
+                              fontFamily: '"Open Sans", sans-serif',
+                              fontSize: 13,
+                              bgcolor: 'rgba(1,118,215,0.06)',
+                              color: c.textPrimary,
+                              '& .MuiAlert-icon': { color: '#0176D7' },
+                              p: '6px 12px',
+                            }}
+                          >
+                            Only you can see this video.
+                          </Alert>
+                        </Box>
+                      </>
+                    )}
                   </Box>
-                ))}
+                </Box>
 
-                {/* Everyone row — only when teams tab */}
-                {tab === 'teams' && (
-                  <>
-                    <Divider sx={{ borderColor: c.grey300 }} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
-                      <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: everyoneRole === 'restricted' ? 'rgba(0,0,0,0.06)' : c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <EveryoneIcon sx={{ fontSize: 20, color: everyoneRole === 'restricted' ? c.textSecondary : c.primary }} />
-                      </Box>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
-                          Everyone in your account
-                        </Typography>
-                      </Box>
-                      <RoleButton
-                        label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
-                        onClick={e => openMenuFn(e, 'everyone')}
-                      />
-                    </Box>
-                  </>
-                )}
-
-                {/* Only-me state: owner row is already shown above; show info row */}
-                {tab === 'private' && (
-                  <>
-                    <Divider sx={{ borderColor: c.grey300 }} />
-                    <Box sx={{ px: '16px', py: '10px' }}>
-                      <Alert
-                        severity="info"
-                        icon={<InfoOutlinedIcon fontSize="small" />}
-                        sx={{
-                          borderRadius: '8px',
-                          fontFamily: '"Open Sans", sans-serif',
-                          fontSize: 13,
-                          bgcolor: 'rgba(1,118,215,0.06)',
-                          color: c.textPrimary,
-                          '& .MuiAlert-icon': { color: '#0176D7' },
-                          p: '6px 12px',
-                        }}
-                      >
-                        Only you can see this video.
-                      </Alert>
-                    </Box>
-                  </>
-                )}
-              </Box>
-
-              {/* Inline add-user autocomplete */}
-              {tab === 'teams' && addOpen && (
-                <Box sx={{ mt: '12px' }}>
+                {/* Right panel: Add users (50% width) */}
+                <Box sx={{ width: '50%', minWidth: 0, display: 'flex', flexDirection: 'column', px: '4px' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mb: '12px' }}>
+                    <Button
+                      size="small"
+                      startIcon={<ArrowBackIcon />}
+                      onClick={() => { setAddOpen(false); setAddUsers([]); setAddRoleAnchor(null) }}
+                      sx={{
+                        fontFamily: '"Open Sans", sans-serif',
+                        fontSize: 13,
+                        color: c.textPrimary,
+                        textTransform: 'none',
+                        p: 0,
+                        minWidth: 0,
+                        '&:hover': { bgcolor: 'transparent' },
+                      }}
+                    />
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary }}>
+                      Add users
+                    </Typography>
+                  </Box>
                   <InlineAddUsers
                     value={addUsers}
                     onChange={setAddUsers}
@@ -640,29 +669,7 @@ export default function VideoPermissionDialog({
                     onAdd={handleAddUsers}
                   />
                 </Box>
-              )}
-
-              {/* + Add user button — light-blue pill, shown when add is closed */}
-              {tab === 'teams' && !addOpen && (
-                <Box sx={{ mt: '12px' }}>
-                  <Button
-                    startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
-                    onClick={() => setAddOpen(true)}
-                    sx={{
-                      fontFamily: '"Open Sans", sans-serif',
-                      fontSize: 13, fontWeight: 500,
-                      color: c.primary,
-                      textTransform: 'none',
-                      bgcolor: c.primaryTabBg,
-                      borderRadius: '100px',
-                      px: '14px', py: '6px',
-                      '&:hover': { bgcolor: 'rgba(0,83,229,0.14)' },
-                    }}
-                  >
-                    Add user
-                  </Button>
-                </Box>
-              )}
+              </Box>
             </Box>
           </Box>
         </DialogContent>
@@ -670,15 +677,39 @@ export default function VideoPermissionDialog({
         <Divider sx={{ borderColor: c.divider }} />
 
         {/* ── Actions ────────────────────────────────────────────────────────── */}
-        <DialogActions sx={{ px: '28px', py: '16px', gap: '8px' }}>
-          <Button variant="text" size="large" onClick={handleClose}
-            sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
-            Cancel
-          </Button>
-          <Button variant="contained" size="large" onClick={handleSave}
-            sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
-            Save
-          </Button>
+        <DialogActions sx={{ px: '28px', py: '16px', gap: '8px', justifyContent: 'space-between' }}>
+          {/* Left side: + Add user button */}
+          {tab === 'teams' && !addOpen && (
+            <Button
+              startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+              onClick={() => setAddOpen(true)}
+              sx={{
+                fontFamily: '"Open Sans", sans-serif',
+                fontSize: 13, fontWeight: 500,
+                color: c.primary,
+                textTransform: 'none',
+                bgcolor: c.primaryTabBg,
+                borderRadius: '100px',
+                px: '14px', py: '6px',
+                '&:hover': { bgcolor: 'rgba(0,83,229,0.14)' },
+              }}
+            >
+              Add user
+            </Button>
+          )}
+          {(tab !== 'teams' || addOpen) && <Box />}
+
+          {/* Right side: Cancel and Save buttons */}
+          <Box sx={{ display: 'flex', gap: '8px' }}>
+            <Button variant="text" size="large" onClick={handleClose}
+              sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+              Cancel
+            </Button>
+            <Button variant="contained" size="large" onClick={handleSave}
+              sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
+              Save
+            </Button>
+          </Box>
         </DialogActions>
 
         {/* Role dropdown for add-user inline */}
