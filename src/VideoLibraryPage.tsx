@@ -301,12 +301,12 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
   }
   const { tab, everyoneRole, users, ownerUsers } = s
 
-  const miniAvatar = (key: string, content: React.ReactNode, tip: string) => (
+  const miniAvatar = (key: string, content: React.ReactNode, tip: string, bgColor?: string) => (
     <Tooltip key={key} title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
       <Box sx={{
-        width: 20, height: 20, borderRadius: '4px', bgcolor: 'rgba(0,83,229,0.12)',
+        width: 20, height: 20, borderRadius: '4px', bgcolor: bgColor ?? 'rgba(0,83,229,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 10,
-        fontWeight: 600, lineHeight: 1, fontFamily: '"Open Sans", sans-serif',
+        fontWeight: 600, lineHeight: 1, fontFamily: '"Open Sans", sans-serif', color: bgColor ? '#fff' : 'inherit',
       }}>
         {content}
       </Box>
@@ -323,31 +323,34 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
 
   return (
     <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
-      {/* Owners — show initials with user color */}
+      {/* Owners — show initials with user color background */}
       {ownerUsers.slice(0, 2).map(u =>
         miniAvatar(u.id,
-          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: u.color, lineHeight: 1 }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, lineHeight: 1 }}>
             {u.initials}
           </Typography>,
           `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Owner`,
+          u.color,
         )
       )}
-      {/* Editors — show initials with user color */}
+      {/* Editors — show initials with user color background */}
       {users.filter(pu => pu.role === 'editor').slice(0, 2).map(pu =>
         miniAvatar(pu.user.id,
-          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: pu.user.color, lineHeight: 1 }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, lineHeight: 1 }}>
             {pu.user.initials}
           </Typography>,
           `${pu.user.name} — Can edit`,
+          pu.user.color,
         )
       )}
-      {/* Viewers — show initials with user color */}
+      {/* Viewers — show initials with user color background */}
       {users.filter(pu => pu.role === 'viewer').slice(0, 1).map(pu =>
         miniAvatar(pu.user.id + '_v',
-          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: pu.user.color, lineHeight: 1 }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, lineHeight: 1 }}>
             {pu.user.initials}
           </Typography>,
           `${pu.user.name} — Can view`,
+          pu.user.color,
         )
       )}
       {/* Everyone — show with conditional icon (pen for edit, eye for view) in black */}
