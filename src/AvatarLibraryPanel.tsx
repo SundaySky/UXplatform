@@ -27,7 +27,7 @@ import AvatarPermissionDialog, {
 import { OWNER_USER } from './ManageAccessDialog'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const PANEL_WIDTH    = 366
+const PANEL_WIDTH    = 280
 const AVATAR_CREDITS = 340
 const AVATARS_LEFT   = 2
 
@@ -83,25 +83,32 @@ const MOCK_REQUESTS: Record<string, AccessRequest[]> = {
 }
 
 const CUSTOM_AVATARS: AvatarItem[] = [
-  { id: 'adam',   name: 'Adam',       img: null, isCustom: true, createdDate: 'Dec 29, 2025', createdBy: 'You' },
-  { id: 'chris',  name: 'Chris (CEO)',img: null, isCustom: true, createdDate: 'Jan 5, 2026',  createdBy: 'You' },
-  { id: 'taylor', name: 'Taylor',     img: null, isCustom: true, createdDate: 'Feb 12, 2026', createdBy: 'You' },
-  { id: 'jordan', name: 'Jordan',     img: null, isCustom: true, createdDate: 'Mar 1, 2026',  createdBy: 'You' },
+  { id: 'adam',   name: 'Adam',        img: 'https://randomuser.me/api/portraits/men/32.jpg',    isCustom: true, createdDate: 'Dec 29, 2025', createdBy: 'You' },
+  { id: 'chris',  name: 'Chris (CEO)', img: 'https://randomuser.me/api/portraits/men/75.jpg',    isCustom: true, createdDate: 'Jan 5, 2026',  createdBy: 'You' },
+  { id: 'taylor', name: 'Taylor',      img: 'https://randomuser.me/api/portraits/women/44.jpg',  isCustom: true, createdDate: 'Feb 12, 2026', createdBy: 'You' },
+  { id: 'jordan', name: 'Jordan',      img: 'https://randomuser.me/api/portraits/men/46.jpg',    isCustom: true, createdDate: 'Mar 1, 2026',  createdBy: 'You' },
 ]
 
 const STOCK_AVATARS: AvatarItem[] = [
-  { id: 's-sofia',   name: 'Sofia',   img: null },
-  { id: 's-marcus',  name: 'Marcus',  img: null },
-  { id: 's-yuki',    name: 'Yuki',    img: null },
-  { id: 's-priya',   name: 'Priya',   img: null },
-  { id: 's-leo',     name: 'Leo',     img: null },
-  { id: 's-elena',   name: 'Elena',   img: null },
-  { id: 's-omar',    name: 'Omar',    img: null },
-  { id: 's-zoe',     name: 'Zoe',     img: null },
-  { id: 's-daniel',  name: 'Daniel',  img: null },
-  { id: 's-aisha',   name: 'Aisha',   img: null },
-  { id: 's-jake',    name: 'Jake',    img: null },
-  { id: 's-mei',     name: 'Mei',     img: null },
+  { id: 's-chrissy',  name: 'Chrissy',  img: 'https://randomuser.me/api/portraits/women/65.jpg' },
+  { id: 's-amanda',   name: 'Amanda',   img: 'https://randomuser.me/api/portraits/women/17.jpg' },
+  { id: 's-ahron',    name: 'Ahron',    img: 'https://randomuser.me/api/portraits/men/22.jpg'   },
+  { id: 's-rachel',   name: 'Rachel',   img: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { id: 's-james',    name: 'James',    img: 'https://randomuser.me/api/portraits/men/41.jpg'   },
+  { id: 's-rebecca',  name: 'Rebecca',  img: 'https://randomuser.me/api/portraits/women/27.jpg' },
+  { id: 's-iema',     name: 'Iema',     img: 'https://randomuser.me/api/portraits/women/54.jpg' },
+  { id: 's-melissa',  name: 'Melissa',  img: 'https://randomuser.me/api/portraits/women/33.jpg' },
+  { id: 's-carlos',   name: 'Carlos',   img: 'https://randomuser.me/api/portraits/men/57.jpg'   },
+  { id: 's-diana',    name: 'Diana',    img: 'https://randomuser.me/api/portraits/women/72.jpg' },
+  { id: 's-ben',      name: 'Ben',      img: 'https://randomuser.me/api/portraits/men/15.jpg'   },
+  { id: 's-grace',    name: 'Grace',    img: 'https://randomuser.me/api/portraits/women/49.jpg' },
+]
+
+const BETA_AVATARS: AvatarItem[] = [
+  { id: 'b-alex',    name: 'Alex',    img: 'https://randomuser.me/api/portraits/men/88.jpg'   },
+  { id: 'b-morgan',  name: 'Morgan',  img: 'https://randomuser.me/api/portraits/women/58.jpg' },
+  { id: 'b-sam',     name: 'Sam',     img: 'https://randomuser.me/api/portraits/men/63.jpg'   },
+  { id: 'b-riley',   name: 'Riley',   img: 'https://randomuser.me/api/portraits/women/82.jpg' },
 ]
 
 // ─── Permission icon with correct color baked in ──────────────────────────
@@ -197,7 +204,7 @@ function AvatarCard({
         position: 'relative',
         width: '100%',
         paddingTop: '115%',
-        bgcolor: '#e8eaf0',
+        bgcolor: '#f5f5f5',
         overflow: 'hidden',
       }}>
         {avatar.img ? (
@@ -376,8 +383,8 @@ function AvatarGrid({
     <Box sx={{
       display: 'grid',
       gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '12px',
-      p: 2,
+      gap: '8px',
+      p: '12px',
     }}>
       {avatars.map(av => (
         <AvatarCard
@@ -405,7 +412,7 @@ export default function AvatarLibraryPanel({
   onClose:                () => void
   onTotalRequestsChange?: (count: number) => void
 }) {
-  const [tab, setTab] = useState<0 | 1 | 2>(0)
+  const [tab, setTab] = useState<0 | 1 | 2 | 3>(0)
 
   // Track which avatar is currently placed in the scene (single at a time)
   const [activeAvatarId, setActiveAvatarId] = useState<string | null>(null)
@@ -478,8 +485,9 @@ export default function AvatarLibraryPanel({
     setPermDialogOpen(false)
   }
 
-  const tabs: { label: string; beta?: boolean }[] = [
-    { label: 'Custom', beta: true },
+  const tabs: { label: string; isBeta?: boolean }[] = [
+    { label: 'Custom' },
+    { label: 'Beta', isBeta: true },
     { label: 'Stock' },
     { label: 'Used in video' },
   ]
@@ -550,44 +558,46 @@ export default function AvatarLibraryPanel({
             </IconButton>
           </Box>
 
-          {/* ── Tabs (full width) ─────────────────────────────────── */}
+          {/* ── Tabs ──────────────────────────────────────────────── */}
           <Box sx={{
             display: 'flex', borderBottom: `1px solid ${c.divider}`,
             flexShrink: 0,
           }}>
-            {tabs.map(({ label, beta }, i) => (
+            {tabs.map(({ label, isBeta }, i) => (
               <Box
                 key={label}
-                onClick={() => setTab(i as 0 | 1 | 2)}
+                onClick={() => setTab(i as 0 | 1 | 2 | 3)}
                 sx={{
-                  flex: 1,
+                  flexShrink: 0,
                   py: '8px',
+                  px: '5px',
                   cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                   borderBottom: tab === i ? `2px solid ${c.secondary}` : '2px solid transparent',
                   mb: '-1px',
                   userSelect: 'none',
                 }}
               >
-                <Typography sx={{
-                  fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 13,
-                  color: tab === i ? c.secondary : c.secondaryFade,
-                  whiteSpace: 'nowrap',
-                }}>
-                  {label}
-                </Typography>
-                {beta && (
+                {isBeta ? (
                   <Box sx={{
                     background: GRADIENT_BETA, borderRadius: '4px',
-                    px: '6px', pt: '1px', pb: '2px',
+                    px: '8px', pt: '2px', pb: '3px',
                   }}>
                     <Typography sx={{
-                      fontFamily: '"Open Sans", sans-serif', fontWeight: 500,
-                      fontSize: 10, color: '#fff', lineHeight: 1.5,
+                      fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+                      fontSize: 12, color: '#fff', lineHeight: 1.5,
                     }}>
                       Beta
                     </Typography>
                   </Box>
+                ) : (
+                  <Typography sx={{
+                    fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 12,
+                    color: tab === i ? c.secondary : c.secondaryFade,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {label}
+                  </Typography>
                 )}
                 {/* Request badge on Custom tab */}
                 {label === 'Custom' && total > 0 && (
@@ -639,8 +649,17 @@ export default function AvatarLibraryPanel({
               </Box>
             )}
 
-            {/* Stock tab */}
+            {/* Beta tab */}
             {tab === 1 && (
+              <AvatarGrid
+                avatars={BETA_AVATARS}
+                activeAvatarId={activeAvatarId}
+                onAdd={handleAdd}
+              />
+            )}
+
+            {/* Stock tab */}
+            {tab === 2 && (
               <AvatarGrid
                 avatars={STOCK_AVATARS}
                 activeAvatarId={activeAvatarId}
@@ -649,7 +668,7 @@ export default function AvatarLibraryPanel({
             )}
 
             {/* Used in video tab — only shows dynamically added avatars */}
-            {tab === 2 && (
+            {tab === 3 && (
               usedInVideo.length > 0 ? (
                 <AvatarGrid
                   avatars={usedInVideo}
