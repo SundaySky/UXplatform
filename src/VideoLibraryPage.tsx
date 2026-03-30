@@ -29,9 +29,10 @@ import CommentOutlinedIcon            from '@mui/icons-material/CommentOutlined'
 import AddPhotoAlternateOutlinedIcon  from '@mui/icons-material/AddPhotoAlternateOutlined'
 import InfoOutlinedIcon               from '@mui/icons-material/InfoOutlined'
 import OpenInNewIcon                  from '@mui/icons-material/OpenInNew'
-import GroupsIcon                     from '@mui/icons-material/Groups'
 import ArchiveOutlinedIcon            from '@mui/icons-material/ArchiveOutlined'
 import LockPersonIcon                 from '@mui/icons-material/LockPerson'
+import EditOutlinedIcon               from '@mui/icons-material/EditOutlined'
+import VisibilityOutlinedIcon         from '@mui/icons-material/VisibilityOutlined'
 
 // ─── Custom icon: FA "image-circle-check" approximation ──────────────────────
 function ImageCircleCheckIcon() {
@@ -337,7 +338,7 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: pu.user.color, lineHeight: 1 }}>
             {pu.user.initials}
           </Typography>,
-          `${pu.user.name} — Editor`,
+          `${pu.user.name} — Can edit`,
         )
       )}
       {/* Viewers — show initials with user color */}
@@ -346,13 +347,15 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: pu.user.color, lineHeight: 1 }}>
             {pu.user.initials}
           </Typography>,
-          `${pu.user.name} — Viewer`,
+          `${pu.user.name} — Can view`,
         )
       )}
-      {/* Everyone — show with icon in black */}
+      {/* Everyone — show with conditional icon (pen for edit, eye for view) in black */}
       {everyoneRole !== 'restricted' &&
         miniAvatar('everyone',
-          <GroupsIcon sx={{ fontSize: 12, color: 'rgba(0,0,0,0.87)' }} />,
+          everyoneRole === 'editor'
+            ? <EditOutlinedIcon sx={{ fontSize: 12, color: 'rgba(0,0,0,0.87)' }} />
+            : <VisibilityOutlinedIcon sx={{ fontSize: 12, color: 'rgba(0,0,0,0.87)' }} />,
           `Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`,
         )
       }

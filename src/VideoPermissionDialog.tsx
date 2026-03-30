@@ -261,7 +261,6 @@ function InlineAddUsers({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <Autocomplete<User, true>
         multiple
-        openOnFocus
         autoFocus
         value={value}
         onChange={(_, v) => onChange(v)}
@@ -297,7 +296,7 @@ function InlineAddUsers({
                       '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: c.primary },
                     }}
                   >
-                    {addRole === 'editor' ? 'Editor' : 'Viewer'}
+                    {addRole === 'editor' ? 'Can edit' : 'Can view'}
                   </Button>
                 </InputAdornment>
               ),
@@ -646,7 +645,7 @@ export default function VideoPermissionDialog({
                       }
                       name={pu.user.name}
                       email={pu.user.email}
-                      roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
+                      roleLabel={pu.role === 'editor' ? 'Can edit' : 'Can view'}
                       onRoleClick={e => openMenuFn(e, pu.user.id)}
                     />
                   </Box>
@@ -666,7 +665,7 @@ export default function VideoPermissionDialog({
                         </Typography>
                       </Box>
                       <RoleButton
-                        label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
+                        label={everyoneRole === 'editor' ? 'Can edit' : everyoneRole === 'viewer' ? 'Can view' : 'Restricted'}
                         onClick={e => openMenuFn(e, 'everyone')}
                       />
                     </Box>
@@ -768,11 +767,11 @@ export default function VideoPermissionDialog({
         >
           <MenuItem onClick={() => { setAddRole('editor'); setAddRoleAnchor(null) }} sx={menuItemSx}>
             {addRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-            <Typography sx={menuTextSx}>Editor</Typography>
+            <Typography sx={menuTextSx}>Can edit</Typography>
           </MenuItem>
           <MenuItem onClick={() => { setAddRole('viewer'); setAddRoleAnchor(null) }} sx={menuItemSx}>
             {addRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-            <Typography sx={menuTextSx}>Viewer</Typography>
+            <Typography sx={menuTextSx}>Can view</Typography>
           </MenuItem>
         </Menu>
 
@@ -804,11 +803,11 @@ export default function VideoPermissionDialog({
           {menuUser && [
             <MenuItem key="ed" onClick={() => { changeUserRole(menuTarget as string, 'editor'); closeMenuFn() }} sx={menuItemSx}>
               {menuUser.role === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Editor</Typography>
+              <Typography sx={menuTextSx}>Can edit</Typography>
             </MenuItem>,
             <MenuItem key="vi" onClick={() => { changeUserRole(menuTarget as string, 'viewer'); closeMenuFn() }} sx={menuItemSx}>
               {menuUser.role === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Viewer</Typography>
+              <Typography sx={menuTextSx}>Can view</Typography>
             </MenuItem>,
             ...(menuUser?.role === 'viewer' ? [
               <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
@@ -830,11 +829,11 @@ export default function VideoPermissionDialog({
           {menuTarget === 'everyone' && [
             <MenuItem key="ed" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Editor</Typography>
+              <Typography sx={menuTextSx}>Can edit</Typography>
             </MenuItem>,
             <MenuItem key="vi" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Viewer</Typography>
+              <Typography sx={menuTextSx}>Can view</Typography>
             </MenuItem>,
             ...(everyoneRole === 'viewer' ? [
               <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
