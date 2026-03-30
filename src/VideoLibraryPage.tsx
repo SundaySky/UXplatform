@@ -294,7 +294,7 @@ const navyTipSx = {
   '& .MuiTooltip-arrow': { color: '#03194F' },
 }
 
-function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
+export function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
   const s = settings ?? {
     tab: 'teams' as const, everyoneRole: 'viewer' as const,
     users: [], ownerUsers: [OWNER_USER], noDuplicate: false,

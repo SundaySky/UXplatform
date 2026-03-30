@@ -27,7 +27,7 @@ import ApprovalDialog     from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
 import ApproveVideoDialog    from './ApproveVideoDialog'
 import CancelApprovalDialog  from './CancelApprovalDialog'
-import VideoLibraryPage, { type VideoItem } from './VideoLibraryPage'
+import VideoLibraryPage, { type VideoItem, PermAvatarGroup } from './VideoLibraryPage'
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from './StudioPage'
 import { type NotificationItem } from './NotificationsPanel'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
@@ -401,44 +401,7 @@ function Sidebar({
           <MenuItem onClick={() => { setMenuAnchor(null); onManageAccess?.() }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
-            {/* Mini permission badges */}
-            {(() => {
-              const s = videoPermSettings ?? { tab: 'teams' as const, everyoneRole: 'viewer' as const, users: [] as PermissionUser[], ownerUsers: [OWNER_USER], noDuplicate: false }
-              if (s.tab === 'private') {
-                return <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: t.textSecondary, lineHeight: 1 }}>Just me</Typography>
-              }
-              const miniBox = (key: string, bg: string, icon: React.ReactNode, tip: string) => (
-                <Tooltip key={key} title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1, '& .MuiTooltip-arrow': { color: '#03194F' } } } }}>
-                  <Box sx={{ width: 18, height: 18, borderRadius: '3px', bgcolor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {icon}
-                  </Box>
-                </Tooltip>
-              )
-              return (
-                <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
-                  {s.ownerUsers.slice(0, 2).map(u =>
-                    miniBox(u.id, 'rgba(0,83,229,0.12)',
-                      <VpnKeyOutlinedIcon sx={{ fontSize: 10, color: t.primaryMain }} />,
-                      `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Owner`,
-                    )
-                  )}
-                  {s.users.filter(pu => pu.role === 'editor').slice(0, 2).map(pu =>
-                    miniBox(pu.user.id, 'rgba(0,83,229,0.12)',
-                      <EditOutlinedIcon sx={{ fontSize: 10, color: t.primaryMain }} />,
-                      `${pu.user.name} — Can edit`,
-                    )
-                  )}
-                  {s.everyoneRole !== 'restricted' &&
-                    miniBox('everyone', 'rgba(0,83,229,0.10)',
-                      s.everyoneRole === 'editor'
-                        ? <EditOutlinedIcon sx={{ fontSize: 11, color: t.primaryMain }} />
-                        : <VisibilityOutlinedIcon sx={{ fontSize: 11, color: t.primaryMain }} />,
-                      `Everyone — Can ${s.everyoneRole === 'editor' ? 'edit' : 'view'}`,
-                    )
-                  }
-                </Box>
-              )
-            })()}
+            <PermAvatarGroup settings={videoPermSettings} />
           </MenuItem>
 
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
