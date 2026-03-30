@@ -46,6 +46,7 @@ import CheckCircleOutlineIcon   from '@mui/icons-material/CheckCircleOutline'
 import RefreshIcon              from '@mui/icons-material/Refresh'
 import SearchIcon                from '@mui/icons-material/Search'
 import GroupIcon                 from '@mui/icons-material/Group'
+
 import LinkIcon                  from '@mui/icons-material/Link'
 import HelpOutlineIcon           from '@mui/icons-material/HelpOutline'
 import InfoOutlinedIcon          from '@mui/icons-material/InfoOutlined'
@@ -654,6 +655,7 @@ function VideoPreviewCard({
           <Button
             variant="outlined"
             size="small"
+            onClick={() => onEdit(true)}
             startIcon={<GroupIcon sx={{ fontSize: '16px !important', color: t.warningMain }} />}
             sx={{
               bgcolor: 'rgba(244,105,0,0.06)',
@@ -697,7 +699,7 @@ function VideoPreviewCard({
           }}
         >
           <Button
-            variant="outlined"
+            variant="contained"
             size="small"
             color="primary"
             startIcon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
@@ -712,10 +714,25 @@ function VideoPreviewCard({
     // ── Phase 0, draft: "Send for approval" ──────────────────────────────────
     return (
       <Button variant="outlined" size="small" color="primary"
-        startIcon={<GroupIcon sx={{ fontSize: '16px !important' }} />}
+        startIcon={
+          <svg viewBox="0 0 22 22" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
+            {/* Image frame — outlined only, not filled */}
+            <rect x="0.75" y="0.75" width="14.5" height="11.5" rx="1.5"
+              fill="none" stroke="currentColor" strokeWidth="1.5"/>
+            {/* Sun (small filled circle, top-left of frame) */}
+            <circle cx="3.5" cy="3.5" r="1.3" fill="currentColor"/>
+            {/* Mountains (filled triangles at bottom of frame) */}
+            <path d="M1.5 10.75 L5 5.5 L8 8.5 L10.5 6 L14.5 10.75 Z" fill="currentColor"/>
+            {/* Circle-check badge (bottom-right, partially overlapping frame corner) */}
+            <circle cx="17.5" cy="17.5" r="4" fill="currentColor"/>
+            <path d="M14.3 17.5 L16.9 20.2 L21.2 13.8"
+              stroke="white" strokeWidth="2.1" fill="none"
+              strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        }
         onClick={onSentForApproval}
       >
-        Send for approval
+        Submit for approval
       </Button>
     )
   }
@@ -863,13 +880,13 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
   const [attentionDismissed, setAttentionDismissed] = useState(false)
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 280, flexShrink: 0 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 340, flexShrink: 0 }}>
 
       {/* ── 1. Review options ──────────────────────────────────────────────── */}
       <Paper variant="outlined" sx={{ borderRadius: 2, borderColor: t.divider, bgcolor: t.bgPaper, p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', height: 30, minHeight: 30 }}>
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, lineHeight: 1.5, color: t.textPrimary, whiteSpace: 'nowrap' }}>
-            Review options
+            Send video for review (single version)
           </Typography>
           <Tooltip title="Options for reviewing this video">
             <InfoOutlinedIcon sx={{ fontSize: 16, color: t.actionActive, cursor: 'pointer' }} />
@@ -953,14 +970,14 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
 
           {/* Body text */}
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: t.textPrimary }}>
-            Requests have been sent to approvers. You can also share the video using the link.
+            Approval request sent to the approver. You can also share the video using the link.
           </Typography>
 
-          {/* Copy share link */}
+          {/* Share video using link */}
           <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', mt: '4px', cursor: 'pointer' }}>
             <LinkIcon sx={{ fontSize: 14, color: t.warningMain }} />
             <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: t.warningMain, textDecoration: 'underline' }}>
-              Copy share link
+              Share video using link
             </Typography>
           </Box>
         </Paper>
@@ -975,7 +992,7 @@ interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
   { id: 1, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
-  { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene title is missing your company name."], done: false },
+  { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene heading is missing 2026 at the end."], done: false },
   { id: 3, label: "Sarah told you she already submitted feedback.", done: false },
   { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
   { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
@@ -1424,8 +1441,8 @@ export default function App() {
 
   // Tooltip text on "Pending approval" button
   const pendingTooltip = sentApprovers.length > 0
-    ? `Sent for approval on Mar 15 by <Sender> to ${formatApproverNames(sentApprovers)}`
-    : 'Sent for approval on Mar 15 by <Sender>'
+    ? `Sent for approval on Mar 15 by you to ${formatApproverNames(sentApprovers)}`
+    : 'Sent for approval on Mar 15 by you'
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -1453,6 +1470,7 @@ export default function App() {
             initialThreads={videoPhase >= 1 ? INITIAL_THREADS : []}
             initialPermSettings={videoPermSettings}
             onPermChange={(s) => updateVideoState(currentKey, { permSettings: s })}
+            awaitingApprovers={videoPhase === 1}
           />
 
         ) : (
@@ -1564,7 +1582,7 @@ export default function App() {
         onConfirm={() => {
           // Reset this video to draft + clear all approval state
           updateVideoState(currentKey, { phase: 0, pageState: 'draft', sentApprovers: [] })
-          setOpenCommentsOnStudio(false)
+          setOpenCommentsOnStudio(true)
           setCurrentPage('studio')
         }}
       />

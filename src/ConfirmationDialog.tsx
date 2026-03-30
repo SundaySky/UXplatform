@@ -80,14 +80,14 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
         </Box>
       </DialogContent>
 
-      {/* ── Actions: Copy share link (text/left) · Close (contained/right) ─── */}
+      {/* ── Actions: Share video using link (text/left) · Close (contained/right) ─── */}
       <DialogActions sx={{
         display: 'flex', justifyContent: 'flex-end',
         px: '32px', pt: 1, pb: '20px', gap: 1,
       }}>
         {/* DS: Size=Large, Color=Primary, Variant=Text */}
         <Button variant="text" color="primary" size="large" startIcon={<LinkIcon />}>
-          Copy share link
+          Share video using link
         </Button>
         {/* DS: Size=Large, Color=Primary, Variant=Contained */}
         <Button variant="contained" color="primary" size="large" onClick={onClose}>

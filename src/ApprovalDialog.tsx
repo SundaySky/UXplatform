@@ -117,7 +117,7 @@ export default function ApprovalDialog({ open, onClose, onSend }: Props) {
               },
             }}
           >
-            Approvers will be notified by email
+            Approvers will be notified by email and will need to log in to SundaySky
           </Alert>
 
           {/* ── Comment field

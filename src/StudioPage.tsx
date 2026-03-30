@@ -312,7 +312,7 @@ export const INITIAL_THREADS: CommentThread[] = [
     id: 1, author: 'Sarah Johnson',
     comments: [
       { text: 'Opening scene - add the name of the company to the title', checkedNow: false, resolved: false },
-      { text: 'Do we have rights to use this image? Please confirm or replace', checkedNow: false, resolved: false },
+      { text: 'Opening scene - We may need a different version of this image depending on rights. Can you check and update me?', checkedNow: false, resolved: false },
     ],
   },
   {
@@ -386,13 +386,15 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
 
 // ─── Comments panel ────────────────────────────────────────────────────────────
 function CommentsPanel({
-  open, onClose, threads, setThreads, onRequestApproval,
+  open, onClose, threads, setThreads, onRequestApproval, awaitingApprovers,
 }: {
   open: boolean
   onClose: () => void
   threads: CommentThread[]
   setThreads: React.Dispatch<React.SetStateAction<CommentThread[]>>
+  approverNames?: string
   onRequestApproval: () => void
+  awaitingApprovers?: boolean
 }) {
   const [pos,         setPos]         = useState({ x: 0, y: 80 })
   const [tab,         setTab]         = useState<'unresolved' | 'completed'>('unresolved')
@@ -497,7 +499,7 @@ function CommentsPanel({
             gap: 0,
           }}>
             {[
-              { key: 'unresolved', label: `Unresolved (${unresolvedCount})` },
+              { key: 'unresolved', label: awaitingApprovers ? 'Unresolved' : `Unresolved (${unresolvedCount})` },
               { key: 'completed',  label: 'Completed' },
             ].map(({ key, label }) => (
               <Box
@@ -545,8 +547,21 @@ function CommentsPanel({
           </Box>
         )}
 
+        {/* ── Awaiting all approvers state ──────────────────────────────── */}
+        {awaitingApprovers && tab === 'unresolved' && (
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2, py: 3 }}>
+            <Typography sx={{
+              fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14,
+              lineHeight: 1.5, color: s.textPrimary, textAlign: 'center',
+            }}>
+              1 of 2 approvers responded<br />
+              Comments will appear here once all approvers have responded.
+            </Typography>
+          </Box>
+        )}
+
         {/* ── Comment threads ───────────────────────────────────────────── */}
-        <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: '4px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: '4px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '16px', ...( awaitingApprovers && tab === 'unresolved' ? { display: 'none' } : {}) }}>
           {threads.map(thread => {
             const visibleComments = tab === 'unresolved'
               ? thread.comments.filter(c => !c.resolved)
@@ -615,8 +630,8 @@ function CommentsPanel({
           )}
         </Box>
 
-        {/* ── Footer: "Resent for approval" — only when there are unresolved comments ── */}
-        {unresolvedCount > 0 && (
+        {/* ── Footer: "Resend for approval" — hidden while awaiting all approvers ── */}
+        {!awaitingApprovers && (
           <Box sx={{
             px: 2, py: '12px',
             borderTop: `1px solid ${s.dividerGrey}`,
@@ -634,7 +649,7 @@ function CommentsPanel({
                 px: 2,
               }}
             >
-              Resent for approval
+              Resend for approval
             </Button>
           </Box>
         )}
@@ -768,9 +783,10 @@ interface Props {
   initialThreads?:          CommentThread[]
   initialPermSettings?:     VideoPermissionSettings
   onPermChange?:            (s: VideoPermissionSettings) => void
+  awaitingApprovers?:       boolean
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -1294,6 +1310,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         onClose={() => setCommentsOpen(false)}
         threads={threads}
         setThreads={setThreads}
+        approverNames={approverNames}
+        awaitingApprovers={awaitingApprovers}
         onRequestApproval={() => {
           setSnackbarMsg(`Version sent for additional approval by ${approverNames}`)
           onRequestReapproval()
