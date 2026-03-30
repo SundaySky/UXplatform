@@ -12,6 +12,7 @@ import PersonIcon             from '@mui/icons-material/Person'
 import TokenOutlinedIcon      from '@mui/icons-material/TokenOutlined'
 import DeleteOutlinedIcon     from '@mui/icons-material/DeleteOutlined'
 import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
+import GroupsIcon             from '@mui/icons-material/Groups'
 import LockOutlinedIcon       from '@mui/icons-material/LockOutlined'
 import SwapHorizIcon          from '@mui/icons-material/SwapHoriz'
 
@@ -103,25 +104,23 @@ const BETA_AVATARS: AvatarItem[] = [
 // ─── Rounded-square avatar chip (for options menu) ─────────────────────────
 function AvatarChip({
   initials,
-  color,
   tooltip,
 }: {
   initials: string
-  color:    string
   tooltip:  string
 }) {
   return (
     <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
       <Box sx={{
         width: 28, height: 28,
-        bgcolor: color,
+        bgcolor: 'rgba(0,83,229,0.12)',
         borderRadius: '6px',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'default', flexShrink: 0,
       }}>
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 700,
-          fontSize: 10, color: '#fff', lineHeight: 1,
+          fontSize: 10, color: 'rgba(0,0,0,0.87)', lineHeight: 1,
         }}>
           {initials}
         </Typography>
@@ -412,6 +411,8 @@ export default function AvatarLibraryPanel({
 
   const menuAvatar     = CUSTOM_AVATARS.find(a => a.id === menuAvatarId)
   const menuApprovers  = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER]
+  const menuSpecific   = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : []
+  const menuPerm       = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? 'everyone') : 'everyone'
 
   const permDialogAvatar = CUSTOM_AVATARS.find(a => a.id === permDialogAvatarId)
 
@@ -681,7 +682,7 @@ export default function AvatarLibraryPanel({
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{
           sx: {
-            borderRadius: '10px', minWidth: 260, maxWidth: 310,
+            borderRadius: '10px', minWidth: 360, maxWidth: 460,
             boxShadow: '0 4px 20px rgba(3,25,79,0.18)',
             p: 0, overflow: 'hidden',
           },
@@ -723,21 +724,44 @@ export default function AvatarLibraryPanel({
               }}>
                 Manage permissions
               </Typography>
-              {/* User chips — approvers + requesters */}
+              {/* User chips — approvers + specific users + everyone icon + requesters */}
               <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
                 {menuApprovers.map(user => (
                   <AvatarChip
                     key={user.id}
                     initials={user.initials}
-                    color={user.color}
                     tooltip={`${user.name}\nCan manage access, delete, and rename.`}
                   />
                 ))}
+                {menuSpecific.map(user => (
+                  <AvatarChip
+                    key={user.id}
+                    initials={user.initials}
+                    tooltip={`${user.name} can use this avatar.`}
+                  />
+                ))}
+                {menuPerm === 'everyone' && (
+                  <Tooltip
+                    title="Everyone in your account can use this custom avatar."
+                    placement="top"
+                    arrow
+                    componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                  >
+                    <Box sx={{
+                      width: 28, height: 28,
+                      bgcolor: 'rgba(0,83,229,0.12)',
+                      borderRadius: '6px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'default', flexShrink: 0,
+                    }}>
+                      <GroupsIcon sx={{ fontSize: 16, color: '#0053E5' }} />
+                    </Box>
+                  </Tooltip>
+                )}
                 {(menuAvatarId ? (requestsMap[menuAvatarId] ?? []) : []).map(req => (
                   <AvatarChip
                     key={req.id}
                     initials={req.initials}
-                    color={req.color}
                     tooltip={`${req.name}\nRequested access`}
                   />
                 ))}
