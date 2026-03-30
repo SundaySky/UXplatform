@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Box, Typography, IconButton, Button, Avatar,
   Badge, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Snackbar, Alert, Divider, Checkbox, Switch, Popover,
+  TextField, Snackbar, Alert, Divider, Checkbox, Switch,
 } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import UndoIcon                    from '@mui/icons-material/Undo'
@@ -34,14 +34,12 @@ import RemoveIcon                  from '@mui/icons-material/Remove'
 import TitleIcon                   from '@mui/icons-material/Title'
 import PaletteIcon                 from '@mui/icons-material/Palette'
 import StarBorderIcon              from '@mui/icons-material/StarBorder'
-import LockOutlinedIcon           from '@mui/icons-material/LockOutlined'
-import PeopleAltOutlinedIcon      from '@mui/icons-material/PeopleAltOutlined'
 import LockPersonIcon             from '@mui/icons-material/LockPerson'
 import Tooltip                    from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
 import AvatarLibraryPanel from './AvatarLibraryPanel'
-import VideoPermissionDialog, { VideoAccessBar, type VideoPermissionSettings } from './VideoPermissionDialog'
+import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
 import { OWNER_USER } from './ManageAccessDialog'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
@@ -764,13 +762,15 @@ interface Props {
   onRequestReapproval:      () => void
   onHeadingChange?:         (text: string) => void
   onSubheadingChange?:      (text: string) => void
-  openCommentsOnMount?:   boolean
-  triggerOpenComments?:   number
-  notifications?:         NotificationItem[]
-  initialThreads?:        CommentThread[]
+  openCommentsOnMount?:     boolean
+  triggerOpenComments?:     number
+  notifications?:           NotificationItem[]
+  initialThreads?:          CommentThread[]
+  initialPermSettings?:     VideoPermissionSettings
+  onPermChange?:            (s: VideoPermissionSettings) => void
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -803,8 +803,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,      setSnackbarMsg]      = useState<string | null>(null)
   const [videoPermOpen,     setVideoPermOpen]     = useState(false)
-  const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(undefined)
-  const [permBarAnchor,     setPermBarAnchor]     = useState<HTMLElement | null>(null)
+  const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(initialPermSettings)
 
   // Unread = not yet checked or resolved
   const unreadCount = threads.reduce((n, t) => n + t.comments.filter(c => !c.checkedNow && !c.resolved).length, 0)
@@ -897,38 +896,13 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                 </Typography>
               ))}
           </Box>
-          {/* Video name + permission icon */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Typography sx={{
-              fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18,
-              color: '#fff', lineHeight: 1.2, letterSpacing: '0.15px',
-            }}>
-              {videoTitle}
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={e => setPermBarAnchor(e.currentTarget)}
-              sx={{ p: 0, color: videoPermSettings?.tab === 'private' ? '#118747' : 'rgba(255,255,255,0.6)' }}
-            >
-              {videoPermSettings?.tab === 'private'
-                ? <LockOutlinedIcon sx={{ fontSize: 18 }} />
-                : <PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}
-            </IconButton>
-            <Popover
-              open={Boolean(permBarAnchor)}
-              anchorEl={permBarAnchor}
-              onClose={() => setPermBarAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-              PaperProps={{ sx: { borderRadius: '12px', mt: '8px', boxShadow: '0px 4px 20px rgba(3,25,79,0.18)', p: '16px', minWidth: 240 } }}
-            >
-              <VideoAccessBar
-                settings={videoPermSettings}
-                onManageAccess={() => { setPermBarAnchor(null); setVideoPermOpen(true) }}
-                onChangePermission={() => { setPermBarAnchor(null); setVideoPermOpen(true) }}
-              />
-            </Popover>
-          </Box>
+          {/* Video name */}
+          <Typography sx={{
+            fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18,
+            color: '#fff', lineHeight: 1.2, letterSpacing: '0.15px',
+          }}>
+            {videoTitle}
+          </Typography>
           {/* Language badge */}
           <Box sx={{
             display: 'flex', alignItems: 'center', gap: '4px',
@@ -1334,7 +1308,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         open={videoPermOpen}
         onClose={() => setVideoPermOpen(false)}
         initialSettings={videoPermSettings}
-        onSave={s => { setVideoPermSettings(s); setVideoPermOpen(false) }}
+        onSave={s => { setVideoPermSettings(s); onPermChange?.(s); setVideoPermOpen(false) }}
       />
 
       <Snackbar

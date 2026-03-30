@@ -21,6 +21,7 @@ import {
   TextField,
   Menu,
   MenuItem,
+  SvgIcon,
 } from '@mui/material'
 import ApprovalDialog     from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
@@ -30,7 +31,7 @@ import VideoLibraryPage, { type VideoItem } from './VideoLibraryPage'
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from './StudioPage'
 import { type NotificationItem } from './NotificationsPanel'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
-import { OWNER_USER, type User, type PermissionUser } from './ManageAccessDialog'
+import { OWNER_USER, type PermissionUser } from './ManageAccessDialog'
 
 // MUI icons
 import MoreVertIcon              from '@mui/icons-material/MoreVert'
@@ -62,6 +63,29 @@ import CheckIcon                 from '@mui/icons-material/Check'
 import DeleteOutlineIcon         from '@mui/icons-material/DeleteOutline'
 import GroupsIcon               from '@mui/icons-material/Groups'
 import LockOutlinedIcon         from '@mui/icons-material/LockOutlined'
+import LockOpenOutlinedIcon     from '@mui/icons-material/LockOpenOutlined'
+import LockPersonIcon           from '@mui/icons-material/LockPerson'
+import ContentCopyIcon          from '@mui/icons-material/ContentCopy'
+import DashboardCustomizeOutlinedIcon from '@mui/icons-material/DashboardCustomizeOutlined'
+import ArchiveOutlinedIcon      from '@mui/icons-material/ArchiveOutlined'
+import FolderOutlinedIcon       from '@mui/icons-material/FolderOutlined'
+import VpnKeyOutlinedIcon       from '@mui/icons-material/VpnKeyOutlined'
+import VisibilityOutlinedIcon   from '@mui/icons-material/VisibilityOutlined'
+
+// ─── Custom icon: FA "image-circle-check" approximation ──────────────────────
+function ImageCircleCheckIcon() {
+  return (
+    <SvgIcon sx={{ fontSize: 'inherit' }} viewBox="0 0 22 22">
+      {/* Photo frame */}
+      <path d="M14.5 2h-12C1.67 2 1 2.67 1 3.5v9C1 13.33 1.67 14 2.5 14H9.4a5.52 5.52 0 0 1-.4-2H2.5v-8h12v5.9a5.52 5.52 0 0 1 1.5.95V3.5c0-.83-.67-1.5-1.5-1.5z"/>
+      <path d="M3 12 5.5 8 8 11 10.5 7 13 12H3z"/>
+      <circle cx="12" cy="4.5" r="1"/>
+      {/* Check-circle badge */}
+      <circle cx="16.5" cy="16.5" r="5"/>
+      <path d="M14 16.5l2 2 4-4" fill="none" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </SvgIcon>
+  )
+}
 
 // ─── Figma asset: split-template preview (template left + media right)
 const imgVideoPreview = '/thumb.svg'
@@ -156,21 +180,28 @@ function VideoPermissionStrip({
     '& .MuiTooltip-arrow': { color: '#03194F' },
   }
 
-  // Mini avatar chip — optionally with name label
-  function AvatarChip({ user, label, tip }: { user: User; label?: string; tip: string }) {
+  // Mini avatar chip — uses role icon instead of initials; primary/light bg with blue icon
+  function AvatarChip({ roleType, label, tip }: { roleType: 'owner' | 'editor' | 'viewer'; label?: string; tip: string }) {
+    const RoleIcon = roleType === 'owner'
+      ? VpnKeyOutlinedIcon
+      : roleType === 'editor'
+        ? EditOutlinedIcon
+        : VisibilityOutlinedIcon
     return (
       <Tooltip title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+        <Box sx={{
+          display: 'inline-flex', alignItems: 'baseline', gap: '5px', flexShrink: 0,
+          bgcolor: t.grey200, borderRadius: '4px', px: '6px', pt: '2px', pb: '3px',
+        }}>
           <Box sx={{
-            width: 20, height: 20, borderRadius: '4px', bgcolor: user.color,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 16, height: 16, borderRadius: '3px', bgcolor: 'rgba(0,83,229,0.12)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, alignSelf: 'center',
           }}>
-            <Typography sx={{ fontSize: 8, color: '#fff', fontWeight: 700, lineHeight: 1, fontFamily: '"Open Sans", sans-serif' }}>
-              {user.initials}
-            </Typography>
+            <RoleIcon sx={{ fontSize: 10, color: t.primaryMain }} />
           </Box>
           {label && (
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: t.textPrimary, lineHeight: 1.4 }}>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, lineHeight: 1.5, color: t.textSecondary }}>
               {label}
             </Typography>
           )}
@@ -180,8 +211,8 @@ function VideoPermissionStrip({
   }
 
   const rowIcon = isPrivate
-    ? <LockOutlinedIcon sx={{ fontSize: 19, color: '#118747' }} />
-    : <GroupsIcon       sx={{ fontSize: 19, color: t.primaryMain }} />
+    ? <LockOutlinedIcon     sx={{ fontSize: 19, color: '#118747' }} />
+    : <LockOpenOutlinedIcon sx={{ fontSize: 19, color: t.primaryMain }} />
 
   return (
     <Box
@@ -203,28 +234,29 @@ function VideoPermissionStrip({
           {isPrivate ? 'Video permission — Only you can see this video' : 'Video permission'}
         </Typography>
 
-        {/* Indicators */}
+        {/* Indicators — all users shown with name, then Everyone at the end */}
         <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-          {/* Owner(s) — show name for first owner only */}
-          {ownerUsers.slice(0, 3).map((u, i) => (
+          {/* Owner(s) — each with key icon + name + "(Owner)" */}
+          {ownerUsers.slice(0, 3).map((u) => (
             <AvatarChip
               key={u.id}
-              user={u}
-              label={i === 0 ? `${u.name} (Owner)` : undefined}
+              roleType="owner"
+              label={`${u.name} (Owner)`}
               tip={`${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Can manage access`}
             />
           ))}
 
-          {/* Non-owner users for restricted/specific-user mode */}
-          {tab === 'teams' && !showEveryone && users.slice(0, 3).map(pu => (
+          {/* Specific users — always show with role icon + name regardless of everyoneRole */}
+          {tab === 'teams' && users.map(pu => (
             <AvatarChip
               key={pu.user.id}
-              user={pu.user}
+              roleType={pu.role === 'editor' ? 'editor' : 'viewer'}
+              label={pu.user.name}
               tip={`${pu.user.name} — Can ${pu.role === 'editor' ? 'edit' : 'view'}`}
             />
           ))}
 
-          {/* Separator */}
+          {/* Separator before "Everyone" */}
           {showEveryone && (
             <Box sx={{ width: '1px', height: 16, bgcolor: t.divider, flexShrink: 0 }} />
           )}
@@ -236,14 +268,18 @@ function VideoPermissionStrip({
               placement="top" arrow
               componentsProps={{ tooltip: { sx: navyTipSx } }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+              <Box sx={{
+                display: 'inline-flex', alignItems: 'baseline', gap: '5px', flexShrink: 0,
+                bgcolor: t.grey200, borderRadius: '4px', px: '6px', pt: '2px', pb: '3px',
+              }}>
                 <Box sx={{
-                  width: 20, height: 20, borderRadius: '4px', bgcolor: 'rgba(0,83,229,0.10)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 16, height: 16, borderRadius: '3px', bgcolor: 'rgba(0,83,229,0.10)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, alignSelf: 'center',
                 }}>
-                  <GroupsIcon sx={{ fontSize: 13, color: t.primaryMain }} />
+                  <GroupsIcon sx={{ fontSize: 11, color: t.primaryMain }} />
                 </Box>
-                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: t.textPrimary, lineHeight: 1.4 }}>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, lineHeight: 1.5, color: t.textSecondary }}>
                   Everyone in your account
                 </Typography>
               </Box>
@@ -274,10 +310,16 @@ function Sidebar({
   effectiveStatus,
   videoTitle,
   onNavigateToLibrary,
+  videoPermSettings,
+  onManageAccess,
+  onSubmitForApproval,
 }: {
   effectiveStatus: 'draft' | 'pending' | 'approved'
   videoTitle: string
   onNavigateToLibrary: () => void
+  videoPermSettings?: VideoPermissionSettings
+  onManageAccess?: () => void
+  onSubmitForApproval?: () => void
 }) {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   return (
@@ -324,35 +366,112 @@ function Sidebar({
         <IconButton size="small" onClick={e => setMenuAnchor(e.currentTarget)} sx={{ mt: 0.3, color: t.actionActive, flexShrink: 0 }}>
           <MoreVertIcon fontSize="small" />
         </IconButton>
-        {/* Three-dot menu */}
+        {/* Three-dot menu — mirrors library VideoCard menu (minus "Video Page") */}
         <Menu
           anchorEl={menuAnchor}
           open={Boolean(menuAnchor)}
           onClose={() => setMenuAnchor(null)}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          PaperProps={{ sx: { borderRadius: '8px', minWidth: 240, boxShadow: '0px 4px 20px rgba(3,25,79,0.15)', mt: '4px' } }}
+          PaperProps={{ sx: { borderRadius: '10px', minWidth: 256, boxShadow: '0px 4px 20px rgba(3,25,79,0.15)', mt: '4px', py: '4px' } }}
         >
-          {/* Menu header */}
-          <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: t.textPrimary }}>
+          {/* Header: video name + location */}
+          <Box sx={{ px: '16px', pt: '10px', pb: '8px' }}>
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: t.textPrimary, lineHeight: 1.4, mb: '4px' }}>
               {videoTitle}
             </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <FolderOutlinedIcon sx={{ fontSize: 13, color: t.textSecondary }} />
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: t.textSecondary, lineHeight: 1.4 }}>
+                Shared assets
+              </Typography>
+            </Box>
           </Box>
+
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
+
           <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><EditOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><InfoOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Details</ListItemText>
           </MenuItem>
+
+          <MenuItem onClick={() => { setMenuAnchor(null); onManageAccess?.() }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
+            {/* Mini permission badges */}
+            {(() => {
+              const s = videoPermSettings ?? { tab: 'teams' as const, everyoneRole: 'viewer' as const, users: [] as PermissionUser[], ownerUsers: [OWNER_USER], noDuplicate: false }
+              if (s.tab === 'private') {
+                return <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: t.textSecondary, lineHeight: 1 }}>Just me</Typography>
+              }
+              const miniBox = (key: string, bg: string, icon: React.ReactNode, tip: string) => (
+                <Tooltip key={key} title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: '#03194F', borderRadius: '8px', px: 1.5, py: 1, '& .MuiTooltip-arrow': { color: '#03194F' } } } }}>
+                  <Box sx={{ width: 18, height: 18, borderRadius: '3px', bgcolor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {icon}
+                  </Box>
+                </Tooltip>
+              )
+              return (
+                <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                  {s.ownerUsers.slice(0, 2).map(u =>
+                    miniBox(u.id, 'rgba(0,83,229,0.12)',
+                      <VpnKeyOutlinedIcon sx={{ fontSize: 10, color: t.primaryMain }} />,
+                      `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Owner`,
+                    )
+                  )}
+                  {s.users.filter(pu => pu.role === 'editor').slice(0, 2).map(pu =>
+                    miniBox(pu.user.id, 'rgba(0,83,229,0.12)',
+                      <EditOutlinedIcon sx={{ fontSize: 10, color: t.primaryMain }} />,
+                      `${pu.user.name} — Editor`,
+                    )
+                  )}
+                  {s.everyoneRole !== 'restricted' &&
+                    miniBox('everyone', 'rgba(0,83,229,0.10)',
+                      <GroupsIcon sx={{ fontSize: 11, color: t.primaryMain }} />,
+                      `Everyone — Can ${s.everyoneRole === 'editor' ? 'edit' : 'view'}`,
+                    )
+                  }
+                </Box>
+              )
+            })()}
+          </MenuItem>
+
+          <Divider sx={{ my: '4px', borderColor: t.divider }} />
+
           <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
           </MenuItem>
+
+          <MenuItem onClick={() => { setMenuAnchor(null); onSubmitForApproval?.() }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive, fontSize: 16 }}><ImageCircleCheckIcon /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
+          </MenuItem>
+
+          <Divider sx={{ my: '4px', borderColor: t.divider }} />
+
           <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><FileExportIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ContentCopyIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Duplicate video</ListItemText>
+          </MenuItem>
+
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><DashboardCustomizeOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Video to template</ListItemText>
+          </MenuItem>
+
+          <Divider sx={{ my: '4px', borderColor: t.divider }} />
+
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><FolderOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Move to folder</ListItemText>
           </MenuItem>
-          <Divider sx={{ my: '4px', borderColor: t.divider }} />
+
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ArchiveOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Archive</ListItemText>
+          </MenuItem>
+
           <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.errorMain }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.errorMain }}>Delete</ListItemText>
@@ -1187,7 +1306,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 const PHASE_STATUS: Record<number, 'draft' | 'pending' | 'approved'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'approved', 4: 'approved' }
 
 // Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
-type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string }
+type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string; permSettings?: VideoPermissionSettings }
 const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: 'draft', sentApprovers: [] }
 
 export default function App() {
@@ -1200,14 +1319,14 @@ export default function App() {
   const [openCommentsOnStudio,  setOpenCommentsOnStudio]  = useState(false)
   const [openCommentsCounter,   setOpenCommentsCounter]   = useState(0)
   const [videoPermDialogOpen,   setVideoPermDialogOpen]   = useState(false)
-  const [videoPermSettings,     setVideoPermSettings]     = useState<VideoPermissionSettings | undefined>(undefined)
 
   // Derive current video's state from the map (defaults to fresh draft)
   const currentKey = selectedVideo?.title || 'Stay Safe During Missile Threats'
   const currentVState: VideoState = videoStates[currentKey] ?? DEFAULT_VIDEO_STATE
-  const videoPhase     = currentVState.phase
-  const pageState      = currentVState.pageState
-  const sentApprovers  = currentVState.sentApprovers
+  const videoPhase        = currentVState.phase
+  const pageState         = currentVState.pageState
+  const sentApprovers     = currentVState.sentApprovers
+  const videoPermSettings = currentVState.permSettings
 
   // Helper to partially update a video's state entry
   function updateVideoState(key: string, patch: Partial<VideoState>) {
@@ -1314,7 +1433,7 @@ export default function App() {
       {/* ── Main app area ───────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {currentPage === 'library' ? (
-          <VideoLibraryPage onSelectVideo={handleSelectVideo} notifications={notifications} videoStates={videoStates} />
+          <VideoLibraryPage onSelectVideo={handleSelectVideo} notifications={notifications} videoStates={videoStates} onPermChange={(key, s) => updateVideoState(key, { permSettings: s })} />
 
         ) : currentPage === 'studio' ? (
           /* ── Studio / Editor page ─────────────────────────────────────────── */
@@ -1332,6 +1451,8 @@ export default function App() {
             triggerOpenComments={openCommentsCounter}
             notifications={notifications}
             initialThreads={videoPhase >= 1 ? INITIAL_THREADS : []}
+            initialPermSettings={videoPermSettings}
+            onPermChange={(s) => updateVideoState(currentKey, { permSettings: s })}
           />
 
         ) : (
@@ -1341,6 +1462,9 @@ export default function App() {
               effectiveStatus={effectiveStatus}
               videoTitle={selectedVideo?.title ?? 'Video'}
               onNavigateToLibrary={() => setCurrentPage('library')}
+              videoPermSettings={videoPermSettings}
+              onManageAccess={() => setVideoPermDialogOpen(true)}
+              onSubmitForApproval={() => setDialogStep('form')}
             />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -1414,7 +1538,7 @@ export default function App() {
       <VideoPermissionDialog
         open={videoPermDialogOpen}
         onClose={() => setVideoPermDialogOpen(false)}
-        onSave={s => { setVideoPermSettings(s); setVideoPermDialogOpen(false) }}
+        onSave={s => { updateVideoState(currentKey, { permSettings: s }); setVideoPermDialogOpen(false) }}
         initialSettings={videoPermSettings}
       />
 

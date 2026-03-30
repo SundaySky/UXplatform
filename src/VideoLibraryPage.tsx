@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
-  Box, Typography, Button, Avatar, IconButton, Tooltip,
+  Box, Typography, Button, Avatar, IconButton, Tooltip, SvgIcon,
   InputAdornment, OutlinedInput,
   Menu, MenuItem, ListItemIcon, ListItemText, Divider,
 } from '@mui/material'
@@ -29,10 +29,27 @@ import CommentOutlinedIcon            from '@mui/icons-material/CommentOutlined'
 import AddPhotoAlternateOutlinedIcon  from '@mui/icons-material/AddPhotoAlternateOutlined'
 import InfoOutlinedIcon               from '@mui/icons-material/InfoOutlined'
 import OpenInNewIcon                  from '@mui/icons-material/OpenInNew'
-import LockOutlinedIcon               from '@mui/icons-material/LockOutlined'
 import GroupsIcon                     from '@mui/icons-material/Groups'
 import ArchiveOutlinedIcon            from '@mui/icons-material/ArchiveOutlined'
-import CheckCircleOutlineIcon         from '@mui/icons-material/CheckCircleOutline'
+import LockPersonIcon                 from '@mui/icons-material/LockPerson'
+import VpnKeyOutlinedIcon             from '@mui/icons-material/VpnKeyOutlined'
+import EditOutlinedIcon               from '@mui/icons-material/EditOutlined'
+import VisibilityOutlinedIcon         from '@mui/icons-material/VisibilityOutlined'
+
+// ─── Custom icon: FA "image-circle-check" approximation ──────────────────────
+function ImageCircleCheckIcon() {
+  return (
+    <SvgIcon sx={{ fontSize: 'inherit' }} viewBox="0 0 22 22">
+      {/* Photo frame */}
+      <path d="M14.5 2h-12C1.67 2 1 2.67 1 3.5v9C1 13.33 1.67 14 2.5 14H9.4a5.52 5.52 0 0 1-.4-2H2.5v-8h12v5.9a5.52 5.52 0 0 1 1.5.95V3.5c0-.83-.67-1.5-1.5-1.5z"/>
+      <path d="M3 12 5.5 8 8 11 10.5 7 13 12H3z"/>
+      <circle cx="12" cy="4.5" r="1"/>
+      {/* Check-circle badge */}
+      <circle cx="16.5" cy="16.5" r="5"/>
+      <path d="M14 16.5l2 2 4-4" fill="none" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </SvgIcon>
+  )
+}
 
 // ─── Figma asset image — split template (HEADING PLACEHOLDER left + media right)
 const IMG_THUMB = '/thumb.svg'
@@ -70,6 +87,7 @@ export interface LiveVideoState {
   sentApprovers:    string[]
   headingText?:     string
   subheadingText?:  string
+  permSettings?:    VideoPermissionSettings
 }
 
 const PHASE_TO_PENDING: Record<number, boolean> = { 0: false, 1: true, 2: true, 3: false, 4: false }
@@ -285,50 +303,47 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
   }
   const { tab, everyoneRole, users, ownerUsers } = s
 
-  const miniAvatar = (key: string, bg: string, content: React.ReactNode, tip: string) => (
+  const miniAvatar = (key: string, icon: React.ReactNode, tip: string) => (
     <Tooltip key={key} title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
       <Box sx={{
-        width: 20, height: 20, borderRadius: '4px', bgcolor: bg,
+        width: 20, height: 20, borderRadius: '4px', bgcolor: 'rgba(0,83,229,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        {content}
+        {icon}
       </Box>
     </Tooltip>
   )
 
   if (tab === 'private') {
     return (
-      <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
-        {ownerUsers.slice(0, 3).map(u =>
-          miniAvatar(u.id, u.color,
-            <Typography sx={{ fontSize: 8, color: '#fff', fontWeight: 700, lineHeight: 1 }}>{u.initials}</Typography>,
-            `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Can manage access`,
-          )
-        )}
-        {miniAvatar('lock', 'rgba(17,135,71,0.12)',
-          <LockOutlinedIcon sx={{ fontSize: 12, color: '#118747' }} />,
-          'Only you can see this video',
-        )}
-      </Box>
+      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: t.textSecondary, lineHeight: 1, ml: '4px' }}>
+        Just me
+      </Typography>
     )
   }
 
   return (
     <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
       {ownerUsers.slice(0, 2).map(u =>
-        miniAvatar(u.id, u.color,
-          <Typography sx={{ fontSize: 8, color: '#fff', fontWeight: 700, lineHeight: 1 }}>{u.initials}</Typography>,
-          `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Can manage access`,
+        miniAvatar(u.id,
+          <VpnKeyOutlinedIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
+          `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Owner`,
         )
       )}
       {users.filter(pu => pu.role === 'editor').slice(0, 2).map(pu =>
-        miniAvatar(pu.user.id, pu.user.color,
-          <Typography sx={{ fontSize: 8, color: '#fff', fontWeight: 700, lineHeight: 1 }}>{pu.user.initials}</Typography>,
-          `${pu.user.name} — Can edit`,
+        miniAvatar(pu.user.id,
+          <EditOutlinedIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
+          `${pu.user.name} — Editor`,
+        )
+      )}
+      {users.filter(pu => pu.role === 'viewer').slice(0, 1).map(pu =>
+        miniAvatar(pu.user.id + '_v',
+          <VisibilityOutlinedIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
+          `${pu.user.name} — Viewer`,
         )
       )}
       {everyoneRole !== 'restricted' &&
-        miniAvatar('everyone', 'rgba(0,83,229,0.10)',
+        miniAvatar('everyone',
           <GroupsIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
           `Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`,
         )
@@ -337,12 +352,15 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
   )
 }
 
-function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState }) {
-  const [hovered,            setHovered]            = useState(false)
-  const [menuAnchor,         setMenuAnchor]          = useState<HTMLElement | null>(null)
-  const [videoPermOpen,      setVideoPermOpen]       = useState(false)
-  const [videoPermSettings,  setVideoPermSettings]   = useState<VideoPermissionSettings | undefined>(undefined)
-  const [approvalOpen,       setApprovalOpen]        = useState(false)
+function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void }) {
+  const [hovered,       setHovered]    = useState(false)
+  const [menuAnchor,    setMenuAnchor] = useState<HTMLElement | null>(null)
+  const [videoPermOpen, setVideoPermOpen] = useState(false)
+  const [approvalOpen,  setApprovalOpen]  = useState(false)
+  // Saved so we can re-open the menu after the permission dialog closes
+  const savedMenuAnchor = useRef<HTMLElement | null>(null)
+
+  const videoPermSettings = liveState?.permSettings
 
   const openMenu  = (e: React.MouseEvent<HTMLElement>) => { e.stopPropagation(); setMenuAnchor(e.currentTarget) }
   const closeMenu = (e?: React.MouseEvent)             => { e?.stopPropagation(); setMenuAnchor(null) }
@@ -465,8 +483,8 @@ function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: 
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Video Page</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => { closeMenu(e); setVideoPermOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}>{videoPermSettings?.tab === 'private' ? <LockOutlinedIcon sx={{ fontSize: 16 }} /> : <PeopleAltOutlinedIcon sx={{ fontSize: 16 }} />}</ListItemIcon>
+        <MenuItem onClick={e => { e.stopPropagation(); savedMenuAnchor.current = menuAnchor; setMenuAnchor(null); setVideoPermOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
           <PermAvatarGroup settings={videoPermSettings} />
         </MenuItem>
@@ -479,7 +497,7 @@ function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: 
         </MenuItem>
 
         <MenuItem onClick={e => { closeMenu(e); setApprovalOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><CheckCircleOutlineIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive, fontSize: 16 }}><ImageCircleCheckIcon /></ListItemIcon>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
         </MenuItem>
 
@@ -517,7 +535,7 @@ function VideoCard({ video, onClick, liveState }: { video: VideoItem; onClick?: 
       <VideoPermissionDialog
         open={videoPermOpen}
         onClose={() => setVideoPermOpen(false)}
-        onSave={s => { setVideoPermSettings(s); setVideoPermOpen(false) }}
+        onSave={s => { onPermChange?.(video.title, s); setVideoPermOpen(false); setMenuAnchor(savedMenuAnchor.current) }}
         initialSettings={videoPermSettings}
       />
 
@@ -776,10 +794,11 @@ const FOLDERS = [
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates }: {
+export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates, onPermChange }: {
   onSelectVideo:  (v: VideoItem) => void
   notifications?: NotificationItem[]
   videoStates?:   Record<string, LiveVideoState>
+  onPermChange?:  (key: string, s: VideoPermissionSettings) => void
 }) {
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: '#FFFFFF', overflow: 'hidden' }}>
@@ -876,6 +895,7 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
                     video={{ ...v, statuses: resolveStatuses(v, videoStates) }}
                     liveState={videoStates?.[v.title]}
                     onClick={() => onSelectVideo(v)}
+                    onPermChange={onPermChange}
                   />
                 </Box>
               ))}
@@ -921,6 +941,7 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
                   video={{ ...v, statuses: resolveStatuses(v, videoStates) }}
                   liveState={videoStates?.[v.title]}
                   onClick={() => onSelectVideo(v)}
+                  onPermChange={onPermChange}
                 />
               </Box>
             ))}

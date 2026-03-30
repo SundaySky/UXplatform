@@ -4,8 +4,8 @@ import {
   Box, Typography, Button, IconButton,
   Alert, Divider, Menu, MenuItem,
   ToggleButton, ToggleButtonGroup, Checkbox, Tooltip,
-  FormControlLabel, Chip, InputAdornment,
-  Autocomplete, TextField,
+  Autocomplete, TextField, Chip,
+  InputAdornment,
 } from '@mui/material'
 import Avatar                from '@mui/material/Avatar'
 import CloseIcon             from '@mui/icons-material/Close'
@@ -17,7 +17,7 @@ import CheckIcon             from '@mui/icons-material/Check'
 import InfoOutlinedIcon      from '@mui/icons-material/InfoOutlined'
 import LockOutlinedIcon      from '@mui/icons-material/LockOutlined'
 import SettingsOutlinedIcon  from '@mui/icons-material/SettingsOutlined'
-import ArrowBackIcon         from '@mui/icons-material/ArrowBack'
+import NoAccountsIcon        from '@mui/icons-material/NoAccounts'
 
 import {
   type PermissionTab,
@@ -43,6 +43,9 @@ export interface VideoPermissionSettings {
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const c = {
   primary:       '#0053E5',
+  primaryLight:  'rgba(0,83,229,0.12)',
+  primaryTabBg:  'rgba(0,83,229,0.08)',
+  primaryBorder: 'rgba(0,83,229,0.24)',
   textPrimary:   'rgba(0,0,0,0.87)',
   textSecondary: 'rgba(60,60,72,0.8)',
   divider:       'rgba(0,83,229,0.12)',
@@ -186,7 +189,7 @@ export function VideoAccessBar({
   )
 }
 
-// ─── Internal UI helpers ───────────────────────────────────────────────────────
+// ─── RoleButton — outlined style matching design system ───────────────────────
 function RoleButton({ label, onClick }: { label: string; onClick: (e: React.MouseEvent<HTMLElement>) => void }) {
   return (
     <Button
@@ -198,11 +201,12 @@ function RoleButton({ label, onClick }: { label: string; onClick: (e: React.Mous
         fontSize: 12, fontWeight: 500,
         color: c.textPrimary,
         textTransform: 'none',
-        bgcolor: 'rgba(0,0,0,0.06)',
-        borderRadius: '20px',
+        bgcolor: '#fff',
+        border: `1px solid ${c.grey300}`,
+        borderRadius: '8px',
         px: '10px', py: '4px',
         minWidth: 0, whiteSpace: 'nowrap', flexShrink: 0,
-        '&:hover': { bgcolor: 'rgba(0,0,0,0.10)' },
+        '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: c.primary },
       }}
     >
       {label}
@@ -235,103 +239,125 @@ function PersonRow({
   )
 }
 
-// ─── Add Users Autocomplete (role pill inside input) ──────────────────────────
-function AddUsersAutocomplete({
-  value, onChange, excludeIds, addRole, onRoleClick,
+// ─── Inline Add Users Autocomplete ────────────────────────────────────────────
+function InlineAddUsers({
+  value, onChange, excludeIds, addRole, onRoleClick, onCancel, onAdd,
 }: {
   value:       User[]
   onChange:    (v: User[]) => void
   excludeIds:  string[]
   addRole:     UserRole
   onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
+  onCancel:    () => void
+  onAdd:       () => void
 }) {
   const options = ALL_USERS.filter(u => !excludeIds.includes(u.id))
   return (
-    <Autocomplete<User, true>
-      multiple
-      value={value}
-      onChange={(_, v) => onChange(v)}
-      options={options}
-      getOptionLabel={u => u.name}
-      isOptionEqualToValue={(a, b) => a.id === b.id}
-      disableCloseOnSelect
-      popupIcon={null}
-      renderInput={params => (
-        <TextField
-          {...params}
-          placeholder={value.length === 0 ? 'Add users' : ''}
-          inputProps={{ ...params.inputProps, autoComplete: 'new-password' }}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <InputAdornment position="end" sx={{ mr: '-2px', flexShrink: 0 }}>
-                <Button
-                  size="small"
-                  endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: '-6px' }} />}
-                  onClick={e => { e.stopPropagation(); onRoleClick(e) }}
-                  sx={{
-                    fontFamily: '"Open Sans", sans-serif',
-                    fontSize: 12, fontWeight: 500,
-                    color: c.textPrimary,
-                    textTransform: 'none',
-                    bgcolor: 'rgba(0,0,0,0.06)',
-                    borderRadius: '20px',
-                    px: '10px', py: '4px',
-                    minWidth: 0, whiteSpace: 'nowrap',
-                    '&:hover': { bgcolor: 'rgba(0,0,0,0.10)' },
-                  }}
-                >
-                  {addRole === 'editor' ? 'Can edit' : 'Can view'}
-                </Button>
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': { borderRadius: '8px', pr: '8px !important' },
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
-            '& .MuiInputBase-root': { flexWrap: 'wrap', gap: '4px', p: '8px 12px' },
-          }}
-        />
-      )}
-      renderTags={(tagValue, getTagProps) =>
-        tagValue.map((user, index) => (
-          <Chip
-            {...getTagProps({ index })}
-            key={user.id}
-            label={user.name}
-            size="small"
-            avatar={<Avatar sx={{ bgcolor: user.color, fontSize: '9px !important', fontWeight: 600, color: '#fff !important' }}>{user.initials}</Avatar>}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <Autocomplete<User, true>
+        multiple
+        openOnFocus
+        autoFocus
+        value={value}
+        onChange={(_, v) => onChange(v)}
+        options={options}
+        getOptionLabel={u => u.name}
+        isOptionEqualToValue={(a, b) => a.id === b.id}
+        disableCloseOnSelect
+        popupIcon={null}
+        renderInput={params => (
+          <TextField
+            {...params}
+            autoFocus
+            placeholder={value.length === 0 ? 'Search users…' : ''}
+            inputProps={{ ...params.inputProps, autoComplete: 'new-password' }}
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <InputAdornment position="end" sx={{ mr: '-2px', flexShrink: 0 }}>
+                  <Button
+                    size="small"
+                    endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: '-6px' }} />}
+                    onClick={e => { e.stopPropagation(); onRoleClick(e) }}
+                    sx={{
+                      fontFamily: '"Open Sans", sans-serif',
+                      fontSize: 12, fontWeight: 500,
+                      color: c.textPrimary,
+                      textTransform: 'none',
+                      bgcolor: '#fff',
+                      border: `1px solid ${c.grey300}`,
+                      borderRadius: '8px',
+                      px: '10px', py: '4px',
+                      minWidth: 0, whiteSpace: 'nowrap',
+                      '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: c.primary },
+                    }}
+                  >
+                    {addRole === 'editor' ? 'Editor' : 'Viewer'}
+                  </Button>
+                </InputAdornment>
+              ),
+            }}
             sx={{
-              fontFamily: '"Open Sans", sans-serif', fontSize: 12,
-              bgcolor: user.color, color: '#fff', borderRadius: '20px',
-              '& .MuiChip-label': { px: '6px' },
-              '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } },
-              height: 24,
+              '& .MuiOutlinedInput-root': { borderRadius: '8px', pr: '8px !important' },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
+              '& .MuiInputBase-root': { flexWrap: 'wrap', gap: '4px', p: '8px 12px' },
             }}
           />
-        ))
-      }
-      renderOption={(props, option) => {
-        const { key, ...listProps } = props as typeof props & { key: string }
-        return (
-          <Box key={key} component="li" {...listProps} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1 }}>
-            <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: option.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
-              {option.initials}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: c.textPrimary, lineHeight: 1.4 }}>
-                {option.name}
-              </Typography>
-              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, color: c.textSecondary, lineHeight: 1.3 }}>
-                {option.email}
-              </Typography>
+        )}
+        renderTags={(tagValue, getTagProps) =>
+          tagValue.map((user, index) => (
+            <Chip
+              {...getTagProps({ index })}
+              key={user.id}
+              label={user.name}
+              size="small"
+              avatar={<Avatar sx={{ bgcolor: c.primaryLight, fontSize: '9px !important', fontWeight: 600, color: `${c.primary} !important` }}>{user.initials}</Avatar>}
+              sx={{
+                fontFamily: '"Open Sans", sans-serif', fontSize: 12,
+                bgcolor: c.primaryLight, color: c.primary, borderRadius: '20px',
+                '& .MuiChip-label': { px: '6px' },
+                '& .MuiChip-deleteIcon': { color: 'rgba(0,83,229,0.5)', '&:hover': { color: c.primary } },
+                height: 24,
+              }}
+            />
+          ))
+        }
+        renderOption={(props, option) => {
+          const { key, ...listProps } = props as typeof props & { key: string }
+          return (
+            <Box key={key} component="li" {...listProps} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1 }}>
+              <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.primary }}>
+                {option.initials}
+              </Avatar>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: c.textPrimary, lineHeight: 1.4 }}>
+                  {option.name}
+                </Typography>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, color: c.textSecondary, lineHeight: 1.3 }}>
+                  {option.email}
+                </Typography>
+              </Box>
             </Box>
-          </Box>
-        )
-      }}
-      ListboxProps={{ sx: { p: '4px', maxHeight: 240, '& .MuiAutocomplete-option': { borderRadius: '6px', '&.Mui-focused': { bgcolor: 'rgba(0,83,229,0.06)' } } } }}
-      slotProps={{ paper: { sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.18)', mt: '4px' } } }}
-    />
+          )
+        }}
+        ListboxProps={{ sx: { p: '4px', maxHeight: 240, '& .MuiAutocomplete-option': { borderRadius: '6px', '&.Mui-focused': { bgcolor: 'rgba(0,83,229,0.06)' } } } }}
+        slotProps={{ paper: { sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.18)', mt: '4px' } } }}
+      />
+      <Box sx={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+        <Button size="small" onClick={onCancel}
+          sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: c.textSecondary, textTransform: 'none' }}>
+          Cancel
+        </Button>
+        <Button size="small" variant="contained" disabled={value.length === 0} onClick={onAdd}
+          sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, textTransform: 'none',
+            bgcolor: c.primary, borderRadius: '8px', boxShadow: 'none',
+            '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' },
+            '&.Mui-disabled': { bgcolor: 'rgba(0,0,0,0.12)', color: 'rgba(0,0,0,0.26)' },
+          }}>
+          Add
+        </Button>
+      </Box>
+    </Box>
   )
 }
 
@@ -360,12 +386,10 @@ export default function VideoPermissionDialog({
   const [menuTarget,   setMenuTarget]   = useState<'owner' | 'everyone' | string | null>(null)
   const [showDiscard,  setShowDiscard]  = useState(false)
 
-  // Add users sub-view state
+  // Inline add-user state
   const [addOpen,       setAddOpen]       = useState(false)
   const [addUsers,      setAddUsers]      = useState<User[]>([])
   const [addRole,       setAddRole]       = useState<UserRole>('editor')
-  const [addNotify,     setAddNotify]     = useState(true)
-  const [addAllowDup,   setAddAllowDup]   = useState(false)
   const [addRoleAnchor, setAddRoleAnchor] = useState<null | HTMLElement>(null)
 
   useEffect(() => {
@@ -382,8 +406,6 @@ export default function VideoPermissionDialog({
       setAddOpen(false)
       setAddUsers([])
       setAddRole('editor')
-      setAddNotify(true)
-      setAddAllowDup(false)
       setAddRoleAnchor(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -422,7 +444,6 @@ export default function VideoPermissionDialog({
     setAddOpen(false)
     setAddUsers([])
     setAddRole('editor')
-    setAddAllowDup(false)
   }
 
   const excludeIdsForAdd = [OWNER_USER.id, ...users.map(pu => pu.user.id)]
@@ -447,6 +468,9 @@ export default function VideoPermissionDialog({
   const menuTextSx = { fontFamily: '"Open Sans"', fontSize: 14, color: c.textPrimary }
   const menuErrSx  = { fontFamily: '"Open Sans"', fontSize: 14, color: c.errorMain }
 
+  // Everyone row icon: PersonOffIcon when restricted, GroupsIcon otherwise
+  const EveryoneIcon = everyoneRole === 'restricted' ? NoAccountsIcon : GroupsIcon
+
   return (
     <>
       <Dialog
@@ -459,13 +483,8 @@ export default function VideoPermissionDialog({
         {/* ── Title ─────────────────────────────────────────────────────────── */}
         <DialogTitle sx={{ p: '20px 16px 16px 28px', flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {addOpen && (
-              <IconButton size="medium" onClick={() => setAddOpen(false)} sx={{ color: 'rgba(0,0,0,0.54)', ml: '-8px', mr: '4px' }}>
-                <ArrowBackIcon />
-              </IconButton>
-            )}
             <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
-              {addOpen ? 'Add users' : 'Manage video access'}
+              Manage video access
             </Typography>
             <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
               <HelpOutlineIcon />
@@ -478,125 +497,171 @@ export default function VideoPermissionDialog({
 
         <Divider sx={{ borderColor: c.divider }} />
 
-        {/* ── Sliding content ────────────────────────────────────────────────── */}
-        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
-          <Box sx={{
-            display: 'flex',
-            transform: addOpen ? 'translateX(-50%)' : 'translateX(0)',
-            transition: 'transform 0.26s cubic-bezier(0.4,0,0.2,1)',
-            width: '200%',
-          }}>
-            {/* ── Panel 1: Manage access ─────────────────────────────────── */}
-            <Box sx={{ width: '50%', flexShrink: 0, p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Tab selector */}
-              <ToggleButtonGroup
-                value={tab}
-                exclusive
-                onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
-                sx={{
-                  bgcolor: 'rgba(0,0,0,0.06)', borderRadius: '10px', p: '3px', alignSelf: 'flex-start',
-                  '& .MuiToggleButtonGroup-grouped': { border: 'none !important', borderRadius: '8px !important', m: 0 },
-                }}
-              >
-                {(['teams', 'private'] as const).map(v => (
-                  <ToggleButton key={v} value={v} sx={{
-                    fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
-                    textTransform: 'none', px: 2, py: 0.75, color: c.textSecondary,
-                    '&.Mui-selected': {
-                      bgcolor: '#fff', color: c.textPrimary, fontWeight: 600,
-                      boxShadow: '0px 1px 4px rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#fff' },
-                    },
-                  }}>
-                    {v === 'teams' ? 'Teams and people' : 'Only me'}
-                  </ToggleButton>
+        {/* ── Content ────────────────────────────────────────────────────────── */}
+        <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Tab selector — full-width bordered segmented control */}
+          <ToggleButtonGroup
+            value={tab}
+            exclusive
+            onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
+            fullWidth
+            sx={{
+              border: `1px solid ${c.primaryBorder}`,
+              borderRadius: '8px',
+              overflow: 'hidden',
+              '& .MuiToggleButtonGroup-grouped': {
+                border: 'none !important',
+                borderRadius: '0 !important',
+                m: 0,
+              },
+              '& .MuiToggleButtonGroup-grouped:not(:last-of-type)': {
+                borderRight: `1px solid ${c.primaryBorder} !important`,
+              },
+            }}
+          >
+            {(['teams', 'private'] as const).map(v => (
+              <ToggleButton key={v} value={v} sx={{
+                fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
+                textTransform: 'none', py: 1, gap: '6px',
+                color: c.textSecondary,
+                bgcolor: '#fff',
+                '&.Mui-selected': {
+                  bgcolor: c.primaryTabBg,
+                  color: c.primary,
+                  fontWeight: 600,
+                  '&:hover': { bgcolor: 'rgba(0,83,229,0.12)' },
+                },
+                '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' },
+              }}>
+                {v === 'teams'
+                  ? <GroupsIcon sx={{ fontSize: 18 }} />
+                  : <LockOutlinedIcon sx={{ fontSize: 18 }} />}
+                {v === 'teams' ? 'Teams and people' : 'Only me'}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+
+          {/* Access list */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Who can access label */}
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textSecondary, letterSpacing: '0.02em' }}>
+              Who can access
+            </Typography>
+
+            <Box>
+              <Box sx={{ border: `1px solid ${c.grey300}`, borderRadius: '10px', overflow: 'hidden' }}>
+                {/* Owner row */}
+                <PersonRow
+                  avatar={
+                    <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.primary }}>
+                      {OWNER_USER.initials}
+                    </Avatar>
+                  }
+                  name={`${OWNER_USER.name} (You)`}
+                  email={OWNER_USER.email}
+                  roleLabel="Video owner"
+                  onRoleClick={tab === 'teams' ? e => openMenuFn(e, 'owner') : () => {}}
+                />
+
+                {/* Specific users — only when teams tab */}
+                {tab === 'teams' && users.map(pu => (
+                  <Box key={pu.user.id}>
+                    <Divider sx={{ borderColor: c.grey300 }} />
+                    <PersonRow
+                      avatar={
+                        <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.primary }}>
+                          {pu.user.initials}
+                        </Avatar>
+                      }
+                      name={pu.user.name}
+                      email={pu.user.email}
+                      roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
+                      onRoleClick={e => openMenuFn(e, pu.user.id)}
+                    />
+                  </Box>
                 ))}
-              </ToggleButtonGroup>
 
-              {/* Access list */}
-              <Box>
-                <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: '10px', overflow: 'hidden' }}>
-                  <PersonRow
-                    avatar={
-                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: OWNER_USER.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
-                        {OWNER_USER.initials}
-                      </Avatar>
-                    }
-                    name={`${OWNER_USER.name} (You)`}
-                    email={OWNER_USER.email}
-                    roleLabel="Video owner"
-                    onRoleClick={tab === 'teams' ? e => openMenuFn(e, 'owner') : () => {}}
-                  />
-
-                  {tab === 'teams' && users.map(pu => (
-                    <Box key={pu.user.id}>
-                      <Divider />
-                      <PersonRow
-                        avatar={
-                          <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: pu.user.color, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0 }}>
-                            {pu.user.initials}
-                          </Avatar>
-                        }
-                        name={pu.user.name}
-                        email={pu.user.email}
-                        roleLabel={pu.role === 'editor' ? 'Can edit' : 'Can view'}
-                        onRoleClick={e => openMenuFn(e, pu.user.id)}
+                {/* Everyone row — only when teams tab */}
+                {tab === 'teams' && (
+                  <>
+                    <Divider sx={{ borderColor: c.grey300 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+                      <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: everyoneRole === 'restricted' ? 'rgba(0,0,0,0.06)' : c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <EveryoneIcon sx={{ fontSize: 20, color: everyoneRole === 'restricted' ? c.textSecondary : c.primary }} />
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
+                          Everyone in your account
+                        </Typography>
+                      </Box>
+                      <RoleButton
+                        label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
+                        onClick={e => openMenuFn(e, 'everyone')}
                       />
                     </Box>
-                  ))}
+                  </>
+                )}
 
-                  {tab === 'teams' && (
-                    <>
-                      <Divider />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
-                        <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(0,83,229,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <GroupsIcon sx={{ fontSize: 20, color: c.primary }} />
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
-                            Everyone in your account
-                          </Typography>
-                        </Box>
-                        <RoleButton
-                          label={everyoneRole === 'editor' ? 'Can edit' : everyoneRole === 'viewer' ? 'Can view' : 'Restricted'}
-                          onClick={e => openMenuFn(e, 'everyone')}
-                        />
-                      </Box>
-                    </>
-                  )}
-                </Box>
-
+                {/* Only-me state: owner row is already shown above; show info row */}
                 {tab === 'private' && (
-                  <Alert severity="success" icon={<InfoOutlinedIcon fontSize="small" />}
-                    sx={{ mt: 1.5, borderRadius: '8px', fontFamily: '"Open Sans", sans-serif', fontSize: 13, bgcolor: 'rgba(17,135,71,0.06)', color: c.textPrimary, '& .MuiAlert-icon': { color: c.successMain } }}
-                  >
-                    Only you can see this video.
-                  </Alert>
+                  <>
+                    <Divider sx={{ borderColor: c.grey300 }} />
+                    <Box sx={{ px: '16px', py: '10px' }}>
+                      <Alert
+                        severity="info"
+                        icon={<InfoOutlinedIcon fontSize="small" />}
+                        sx={{
+                          borderRadius: '8px',
+                          fontFamily: '"Open Sans", sans-serif',
+                          fontSize: 13,
+                          bgcolor: 'rgba(1,118,215,0.06)',
+                          color: c.textPrimary,
+                          '& .MuiAlert-icon': { color: '#0176D7' },
+                          p: '6px 12px',
+                        }}
+                      >
+                        Only you can see this video.
+                      </Alert>
+                    </Box>
+                  </>
                 )}
               </Box>
-            </Box>
 
-            {/* ── Panel 2: Add users ─────────────────────────────────────── */}
-            <Box sx={{ width: '50%', flexShrink: 0, p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <AddUsersAutocomplete
-                value={addUsers}
-                onChange={setAddUsers}
-                excludeIds={excludeIdsForAdd}
-                addRole={addRole}
-                onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
-              />
-              {addRole === 'viewer' && (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={addAllowDup}
-                      onChange={e => setAddAllowDup(e.target.checked)}
-                      size="small"
-                      sx={{ '&.Mui-checked': { color: c.primary } }}
-                    />
-                  }
-                  label="Allow to duplicate videos"
-                  sx={{ ml: 0, '& .MuiFormControlLabel-label': { fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary } }}
-                />
+              {/* Inline add-user autocomplete */}
+              {tab === 'teams' && addOpen && (
+                <Box sx={{ mt: '12px' }}>
+                  <InlineAddUsers
+                    value={addUsers}
+                    onChange={setAddUsers}
+                    excludeIds={excludeIdsForAdd}
+                    addRole={addRole}
+                    onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
+                    onCancel={() => { setAddOpen(false); setAddUsers([]) }}
+                    onAdd={handleAddUsers}
+                  />
+                </Box>
+              )}
+
+              {/* + Add user button — light-blue pill, shown when add is closed */}
+              {tab === 'teams' && !addOpen && (
+                <Box sx={{ mt: '12px' }}>
+                  <Button
+                    startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                    onClick={() => setAddOpen(true)}
+                    sx={{
+                      fontFamily: '"Open Sans", sans-serif',
+                      fontSize: 13, fontWeight: 500,
+                      color: c.primary,
+                      textTransform: 'none',
+                      bgcolor: c.primaryTabBg,
+                      borderRadius: '100px',
+                      px: '14px', py: '6px',
+                      '&:hover': { bgcolor: 'rgba(0,83,229,0.14)' },
+                    }}
+                  >
+                    Add user
+                  </Button>
+                </Box>
               )}
             </Box>
           </Box>
@@ -606,58 +671,17 @@ export default function VideoPermissionDialog({
 
         {/* ── Actions ────────────────────────────────────────────────────────── */}
         <DialogActions sx={{ px: '28px', py: '16px', gap: '8px' }}>
-          {!addOpen ? (
-            <>
-              {tab === 'teams' && (
-                <Button
-                  startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
-                  onClick={() => setAddOpen(true)}
-                  sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 600, color: c.primary, textTransform: 'none', p: '4px 8px', mr: 'auto', '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' } }}
-                >
-                  Add user
-                </Button>
-              )}
-              <Box sx={{ flex: 1 }} />
-              <Button variant="text" size="large" onClick={handleClose}
-                sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
-                Cancel
-              </Button>
-              <Button variant="contained" size="large" onClick={handleSave}
-                sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
-                Save
-              </Button>
-            </>
-          ) : (
-            <>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={addNotify}
-                    onChange={e => setAddNotify(e.target.checked)}
-                    size="medium"
-                    sx={{ '&.Mui-checked': { color: c.primary } }}
-                  />
-                }
-                label="Notify via email"
-                sx={{ mr: 'auto', '& .MuiFormControlLabel-label': { fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary } }}
-              />
-              <Button variant="text" size="large" onClick={() => setAddOpen(false)}
-                sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
-                Cancel
-              </Button>
-              <Button
-                variant="contained" size="large"
-                disabled={addUsers.length === 0}
-                onClick={handleAddUsers}
-                sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}
-              >
-                Add users
-              </Button>
-            </>
-          )}
+          <Button variant="text" size="large" onClick={handleClose}
+            sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="large" onClick={handleSave}
+            sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
+            Save
+          </Button>
         </DialogActions>
 
-        {/* Role dropdown for add view */}
+        {/* Role dropdown for add-user inline */}
         <Menu
           anchorEl={addRoleAnchor}
           open={Boolean(addRoleAnchor)}
@@ -668,15 +692,15 @@ export default function VideoPermissionDialog({
         >
           <MenuItem onClick={() => { setAddRole('editor'); setAddRoleAnchor(null) }} sx={menuItemSx}>
             {addRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-            <Typography sx={menuTextSx}>Can edit</Typography>
+            <Typography sx={menuTextSx}>Editor</Typography>
           </MenuItem>
           <MenuItem onClick={() => { setAddRole('viewer'); setAddRoleAnchor(null) }} sx={menuItemSx}>
             {addRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-            <Typography sx={menuTextSx}>Can view</Typography>
+            <Typography sx={menuTextSx}>Viewer</Typography>
           </MenuItem>
         </Menu>
 
-        {/* Role dropdown menu */}
+        {/* Role dropdown menu (for existing user rows) */}
         <Menu
           anchorEl={menuAnchor}
           open={Boolean(menuAnchor)}
@@ -704,21 +728,21 @@ export default function VideoPermissionDialog({
           {menuUser && [
             <MenuItem key="ed" onClick={() => { changeUserRole(menuTarget as string, 'editor'); closeMenuFn() }} sx={menuItemSx}>
               {menuUser.role === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Can edit</Typography>
+              <Typography sx={menuTextSx}>Editor</Typography>
             </MenuItem>,
             <MenuItem key="vi" onClick={() => { changeUserRole(menuTarget as string, 'viewer'); closeMenuFn() }} sx={menuItemSx}>
               {menuUser.role === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Can view</Typography>
+              <Typography sx={menuTextSx}>Viewer</Typography>
             </MenuItem>,
             ...(menuUser?.role === 'viewer' ? [
               <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
                 <Checkbox checked={!noDuplicate} size="small" disableRipple sx={{ p: 0, '&.Mui-checked': { color: c.primary } }} />
-                <Typography sx={menuTextSx}>Allow to duplicate videos</Typography>
+                <Typography sx={menuTextSx}>Allow to duplicate</Typography>
               </MenuItem>,
               <Divider key="d-dup" sx={{ my: '4px !important' }} />,
             ] : []),
             <MenuItem key="to" onClick={closeMenuFn} sx={menuItemSx}>
-              <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Video owner</Typography>
+              <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Transfer ownership</Typography>
             </MenuItem>,
             <Divider key="d2" sx={{ my: '4px !important' }} />,
             <MenuItem key="rm" onClick={() => { removeUser(menuTarget as string); closeMenuFn() }} sx={menuItemSx}>
@@ -730,16 +754,16 @@ export default function VideoPermissionDialog({
           {menuTarget === 'everyone' && [
             <MenuItem key="ed" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Can edit</Typography>
+              <Typography sx={menuTextSx}>Editor</Typography>
             </MenuItem>,
             <MenuItem key="vi" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Can view</Typography>
+              <Typography sx={menuTextSx}>Viewer</Typography>
             </MenuItem>,
             ...(everyoneRole === 'viewer' ? [
               <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
                 <Checkbox checked={!noDuplicate} size="small" disableRipple sx={{ p: 0, '&.Mui-checked': { color: c.primary } }} />
-                <Typography sx={menuTextSx}>Allow to duplicate videos</Typography>
+                <Typography sx={menuTextSx}>Allow to duplicate</Typography>
               </MenuItem>,
               <Divider key="d-dup" sx={{ my: '4px !important' }} />,
             ] : []),
@@ -768,12 +792,12 @@ export default function VideoPermissionDialog({
         </DialogContent>
         <Divider sx={{ borderColor: c.divider }} />
         <DialogActions sx={{ px: '20px', py: '12px', gap: '8px' }}>
-          <Button variant="text" onClick={() => setShowDiscard(false)}
-            sx={{ color: c.primary, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600 }}>
+          <Button onClick={() => setShowDiscard(false)}
+            sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
             Keep editing
           </Button>
           <Button variant="contained" onClick={() => { setShowDiscard(false); onClose() }}
-            sx={{ bgcolor: c.errorMain, textTransform: 'none', fontFamily: '"Open Sans", sans-serif', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#C41E34', boxShadow: 'none' } }}>
+            sx={{ bgcolor: c.errorMain, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#C41C32', boxShadow: 'none' } }}>
             Discard
           </Button>
         </DialogActions>
