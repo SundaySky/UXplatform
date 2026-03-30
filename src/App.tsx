@@ -62,7 +62,6 @@ import WarningAmberOutlinedIcon  from '@mui/icons-material/WarningAmberOutlined'
 import CloseIcon                 from '@mui/icons-material/Close'
 import CheckIcon                 from '@mui/icons-material/Check'
 import DeleteOutlineIcon         from '@mui/icons-material/DeleteOutline'
-import GroupsIcon               from '@mui/icons-material/Groups'
 import LockOutlinedIcon         from '@mui/icons-material/LockOutlined'
 import LockOpenOutlinedIcon     from '@mui/icons-material/LockOpenOutlined'
 import LockPersonIcon           from '@mui/icons-material/LockPerson'
@@ -262,7 +261,7 @@ function VideoPermissionStrip({
             <Box sx={{ width: '1px', height: 16, bgcolor: t.divider, flexShrink: 0 }} />
           )}
 
-          {/* Everyone indicator */}
+          {/* Everyone indicator — conditional icon (pen for edit, eye for view) */}
           {showEveryone && (
             <Tooltip
               title={`Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`}
@@ -278,7 +277,10 @@ function VideoPermissionStrip({
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, alignSelf: 'center',
                 }}>
-                  <GroupsIcon sx={{ fontSize: 11, color: t.primaryMain }} />
+                  {everyoneRole === 'editor'
+                    ? <EditOutlinedIcon sx={{ fontSize: 11, color: 'rgba(0,0,0,0.87)' }} />
+                    : <VisibilityOutlinedIcon sx={{ fontSize: 11, color: 'rgba(0,0,0,0.87)' }} />
+                  }
                 </Box>
                 <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, lineHeight: 1.5, color: t.textSecondary }}>
                   Everyone in your account
@@ -423,12 +425,14 @@ function Sidebar({
                   {s.users.filter(pu => pu.role === 'editor').slice(0, 2).map(pu =>
                     miniBox(pu.user.id, 'rgba(0,83,229,0.12)',
                       <EditOutlinedIcon sx={{ fontSize: 10, color: t.primaryMain }} />,
-                      `${pu.user.name} — Editor`,
+                      `${pu.user.name} — Can edit`,
                     )
                   )}
                   {s.everyoneRole !== 'restricted' &&
                     miniBox('everyone', 'rgba(0,83,229,0.10)',
-                      <GroupsIcon sx={{ fontSize: 11, color: t.primaryMain }} />,
+                      s.everyoneRole === 'editor'
+                        ? <EditOutlinedIcon sx={{ fontSize: 11, color: t.primaryMain }} />
+                        : <VisibilityOutlinedIcon sx={{ fontSize: 11, color: t.primaryMain }} />,
                       `Everyone — Can ${s.everyoneRole === 'editor' ? 'edit' : 'view'}`,
                     )
                   }
