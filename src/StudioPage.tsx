@@ -785,9 +785,10 @@ interface Props {
   initialPermSettings?:     VideoPermissionSettings
   onPermChange?:            (s: VideoPermissionSettings) => void
   awaitingApprovers?:       boolean
+  onEditAttempt?:           () => void
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers, onEditAttempt }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -1180,17 +1181,17 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               {/* Toolbars — outside overflow:hidden so they render above the canvas edge */}
               {headingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '30%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
-                  <PlaceholderToolbar onEditClick={() => { setEditHeadingOpen(true) }} />
+                  <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditHeadingOpen(true) }} />
                 </Box>
               )}
               {subheadingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '55%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
-                  <PlaceholderToolbar onEditClick={() => { setEditSubheadingOpen(true) }} />
+                  <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditSubheadingOpen(true) }} />
                 </Box>
               )}
               {footnoteSelected && (
                 <Box sx={{ position: 'absolute', left: '50%', bottom: '3%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
-                  <PlaceholderToolbar onEditClick={() => { setEditFootnoteOpen(true) }} />
+                  <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditFootnoteOpen(true) }} />
                 </Box>
               )}
             </Box>
