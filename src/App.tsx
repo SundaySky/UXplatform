@@ -1334,6 +1334,7 @@ export default function App() {
   const [dialogStep,     setDialogStep]     = useState<'closed' | 'form' | 'confirmed'>('closed')
   const [approveDialogOpen,        setApproveDialogOpen]        = useState(false)
   const [cancelApprovalDialogOpen, setCancelApprovalDialogOpen] = useState(false)
+  const [cancelFromComments,       setCancelFromComments]       = useState(false)
   const [openCommentsOnStudio,  setOpenCommentsOnStudio]  = useState(false)
   const [openCommentsCounter,   setOpenCommentsCounter]   = useState(0)
   const [videoPermDialogOpen,   setVideoPermDialogOpen]   = useState(false)
@@ -1530,7 +1531,8 @@ export default function App() {
                       videoTitle={selectedVideo?.title}
                       onSentForApproval={() => setDialogStep('form')}
                       onEdit={(fromComments?: boolean) => {
-                        if (isPending && videoPhase !== 2 && !fromComments) {
+                        if (isPending && videoPhase !== 2) {
+                          setCancelFromComments(fromComments ?? false)
                           setCancelApprovalDialogOpen(true)
                         } else {
                           setOpenCommentsOnStudio(fromComments ?? false)
@@ -1589,7 +1591,8 @@ export default function App() {
         onConfirm={() => {
           // Reset this video to draft + clear all approval state
           updateVideoState(currentKey, { phase: 0, pageState: 'draft', sentApprovers: [] })
-          setOpenCommentsOnStudio(true)
+          setOpenCommentsOnStudio(cancelFromComments)
+          setCancelApprovalDialogOpen(false)
           setCurrentPage('studio')
         }}
       />
