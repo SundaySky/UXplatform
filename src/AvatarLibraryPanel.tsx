@@ -409,35 +409,27 @@ export default function AvatarLibraryPanel({
   const [permDialogOpen,     setPermDialogOpen]     = useState(false)
   const [permDialogAvatarId, setPermDialogAvatarId] = useState<string | null>(null)
 
-  const menuAvatar     = CUSTOM_AVATARS.find(a => a.id === menuAvatarId)
-  const menuApprovers  = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER]
-  const menuSpecific   = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : []
-  const menuPerm       = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? 'everyone') : 'everyone'
-  const menuRequests   = menuAvatarId ? (requestsMap[menuAvatarId] ?? []) : []
-  const menuHasEveryone = menuPerm === 'everyone'
+  const menuAvatar        = CUSTOM_AVATARS.find(a => a.id === menuAvatarId)
+  const menuApprovers     = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER]
+  const menuSpecific      = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : []
+  const menuPerm          = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? 'everyone') : 'everyone'
+  const menuEveryoneRole  = menuAvatarId ? (permMap[menuAvatarId]?.everyoneRole ?? 'restricted') : 'restricted'
+  // Only show the "everyone" icon when everyone truly CAN USE the avatar (not just request access)
+  const menuHasEveryone   = menuPerm === 'everyone' && menuEveryoneRole !== 'restricted'
 
-  // Chip overflow logic: max 3 of (specificUsers + everyone slot), everyone always 2nd-to-last, +N last
+  // Chip overflow: max 3 visible (specific users + everyone slot), +N shows only "can use" users
   const MAX_PERMITTED = 3
   const everyoneSlot = menuHasEveryone ? 1 : 0
   const maxSpecificVisible = Math.max(0, MAX_PERMITTED - everyoneSlot)
   const visibleSpecific = menuSpecific.slice(0, maxSpecificVisible)
   const hiddenSpecific  = menuSpecific.slice(maxSpecificVisible)
-  const overflowN = hiddenSpecific.length + menuRequests.length
+  const overflowN = hiddenSpecific.length
 
   const overflowTipContent = overflowN > 0 ? (
     <Box>
-      {hiddenSpecific.length > 0 && (
-        <Box sx={{ mb: menuRequests.length > 0 ? '8px' : 0 }}>
-          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', mb: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Can use</Typography>
-          {hiddenSpecific.map(u => <Typography key={u.id} sx={{ fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.5 }}>{u.name}</Typography>)}
-        </Box>
-      )}
-      {menuRequests.length > 0 && (
-        <Box>
-          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', mb: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Requested access</Typography>
-          {menuRequests.map(r => <Typography key={r.id} sx={{ fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.5 }}>{r.name}</Typography>)}
-        </Box>
-      )}
+      {hiddenSpecific.map(u => (
+        <Typography key={u.id} sx={{ fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.5 }}>{u.name}</Typography>
+      ))}
     </Box>
   ) : null
 
