@@ -103,7 +103,7 @@ function PersonRow({
   name:        string
   email:       string
   roleLabel:   string
-  onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
+  onRoleClick?: (e: React.MouseEvent<HTMLElement>) => void
 }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
@@ -116,7 +116,7 @@ function PersonRow({
           {email}
         </Typography>
       </Box>
-      <RoleButton label={roleLabel} onClick={onRoleClick} />
+      {onRoleClick && <RoleButton label={roleLabel} onClick={onRoleClick} />}
     </Box>
   )
 }
@@ -424,7 +424,7 @@ export default function AvatarPermissionDialog({
                 name={`${OWNER_USER.name} (You)`}
                 email={OWNER_USER.email}
                 roleLabel="Avatar owner"
-                onRoleClick={e => openMenuFn(e, 'owner')}
+                onRoleClick={tab === 'teams' ? (e => openMenuFn(e, 'owner')) : undefined}
               />
 
               {/* Added users — teams tab only */}
@@ -603,11 +603,6 @@ export default function AvatarPermissionDialog({
             <MenuItem key="cv" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
               <Typography sx={menuTextSx}>Can view</Typography>
-            </MenuItem>,
-            <Divider key="d1" sx={{ my: '4px !important' }} />,
-            <MenuItem key="re" onClick={() => { setEveryoneRole('restricted'); closeMenuFn() }} sx={menuItemSx}>
-              {everyoneRole === 'restricted' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Restricted</Typography>
             </MenuItem>,
           ]}
         </Menu>
