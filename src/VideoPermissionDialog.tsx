@@ -387,8 +387,8 @@ export default function VideoPermissionDialog({
   const [menuTarget,   setMenuTarget]   = useState<'owner' | 'everyone' | string | null>(null)
   const [showDiscard,  setShowDiscard]  = useState(false)
 
-  // Inline add-user state
-  const [addOpen,       setAddOpen]       = useState(false)
+  // Add users dialog state (separate dialog that replaces main content)
+  const [showAddDialog, setShowAddDialog] = useState(false)
   const [addUsers,      setAddUsers]      = useState<User[]>([])
   const [addRole,       setAddRole]       = useState<UserRole>('editor')
   const [addRoleAnchor, setAddRoleAnchor] = useState<null | HTMLElement>(null)
@@ -404,7 +404,7 @@ export default function VideoPermissionDialog({
       setMenuAnchor(null)
       setMenuTarget(null)
       setShowDiscard(false)
-      setAddOpen(false)
+      setShowAddDialog(false)
       setAddUsers([])
       setAddRole('editor')
       setAddRoleAnchor(null)
@@ -430,7 +430,7 @@ export default function VideoPermissionDialog({
     !sameIds(ownerUsers, initS.ownerUsers)
 
   function handleClose() {
-    if (addOpen) { setAddOpen(false); return }
+    if (showAddDialog) { setShowAddDialog(false); return }
     if (isDirty) setShowDiscard(true); else onClose()
   }
   function handleSave() { onSave({ tab, everyoneRole, users, ownerUsers, noDuplicate }) }
@@ -442,7 +442,7 @@ export default function VideoPermissionDialog({
       .filter(u => !existingIds.has(u.id))
       .map(u => ({ user: u, role: addRole }))
     if (newOnes.length > 0) setUsers(prev => [...prev, ...newOnes])
-    setAddOpen(false)
+    setShowAddDialog(false)
     setAddUsers([])
     setAddRole('editor')
   }
@@ -482,237 +482,235 @@ export default function VideoPermissionDialog({
         PaperProps={{ sx: { width: 560, maxWidth: '98vw', borderRadius: '12px', boxShadow: '0px 0px 10px rgba(3,25,79,0.25)', overflow: 'hidden' } }}
       >
         {/* ── Title ─────────────────────────────────────────────────────────── */}
-        <DialogTitle sx={{ p: '20px 16px 16px 28px', flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
-              Manage video access
-            </Typography>
-            <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
-              <HelpOutlineIcon />
-            </IconButton>
-            <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
+        {!showAddDialog ? (
+          <DialogTitle sx={{ p: '20px 16px 16px 28px', flexShrink: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
+                Manage video access
+              </Typography>
+              <IconButton size="medium" sx={{ color: 'rgba(0,0,0,0.54)' }}>
+                <HelpOutlineIcon />
+              </IconButton>
+              <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+        ) : (
+          <DialogTitle sx={{ p: '20px 16px 16px 28px', flexShrink: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Button
+                size="small"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => { setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null) }}
+                sx={{
+                  fontFamily: '"Open Sans", sans-serif',
+                  fontSize: 13,
+                  color: c.textPrimary,
+                  textTransform: 'none',
+                  p: 0,
+                  minWidth: 0,
+                  '&:hover': { bgcolor: 'transparent' },
+                }}
+              />
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 20, color: c.textPrimary, lineHeight: 1.5, flex: 1 }}>
+                Add users
+              </Typography>
+              <IconButton size="medium" onClick={handleClose} sx={{ color: 'rgba(0,0,0,0.54)' }}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+        )}
 
         <Divider sx={{ borderColor: c.divider }} />
 
         {/* ── Content ────────────────────────────────────────────────────────── */}
-        <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Tab selector — full-width bordered segmented control */}
-          <ToggleButtonGroup
-            value={tab}
-            exclusive
-            onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
-            fullWidth
-            sx={{
-              border: `1px solid ${c.primaryBorder}`,
-              borderRadius: '8px',
-              overflow: 'hidden',
-              '& .MuiToggleButtonGroup-grouped': {
-                border: 'none !important',
-                borderRadius: '0 !important',
-                m: 0,
-              },
-              '& .MuiToggleButtonGroup-grouped:not(:last-of-type)': {
-                borderRight: `1px solid ${c.primaryBorder} !important`,
-              },
-            }}
-          >
-            {(['teams', 'private'] as const).map(v => (
-              <ToggleButton key={v} value={v} sx={{
-                fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
-                textTransform: 'none', py: 1, gap: '6px',
-                color: c.textPrimary,
-                bgcolor: '#fff',
-                '&.Mui-selected': {
-                  bgcolor: c.primaryTabBg,
-                  color: c.primary,
-                  fontWeight: 600,
-                  '&:hover': { bgcolor: 'rgba(0,83,229,0.12)' },
+        {!showAddDialog ? (
+          <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Tab selector — full-width bordered segmented control */}
+            <ToggleButtonGroup
+              value={tab}
+              exclusive
+              onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
+              fullWidth
+              sx={{
+                border: `1px solid ${c.primaryBorder}`,
+                borderRadius: '8px',
+                overflow: 'hidden',
+                '& .MuiToggleButtonGroup-grouped': {
+                  border: 'none !important',
+                  borderRadius: '0 !important',
+                  m: 0,
                 },
-                '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' },
-              }}>
-                {v === 'teams'
-                  ? <GroupsIcon sx={{ fontSize: 18 }} />
-                  : <LockOutlinedIcon sx={{ fontSize: 18 }} />}
-                {v === 'teams' ? 'Teams and people' : 'Only me'}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+                '& .MuiToggleButtonGroup-grouped:not(:last-of-type)': {
+                  borderRight: `1px solid ${c.primaryBorder} !important`,
+                },
+              }}
+            >
+              {(['teams', 'private'] as const).map(v => (
+                <ToggleButton key={v} value={v} sx={{
+                  fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
+                  textTransform: 'none', py: 1, gap: '6px',
+                  color: c.textPrimary,
+                  bgcolor: '#fff',
+                  '&.Mui-selected': {
+                    bgcolor: c.primaryTabBg,
+                    color: c.primary,
+                    fontWeight: 600,
+                    '&:hover': { bgcolor: 'rgba(0,83,229,0.12)' },
+                  },
+                  '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' },
+                }}>
+                  {v === 'teams'
+                    ? <GroupsIcon sx={{ fontSize: 18 }} />
+                    : <LockOutlinedIcon sx={{ fontSize: 18 }} />}
+                  {v === 'teams' ? 'Teams and people' : 'Only me'}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
 
-          {/* Access list — sliding panel container */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden' }}>
-            {/* Who can access label */}
-            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textSecondary, letterSpacing: '0.02em' }}>
-              Who can access
-            </Typography>
+            {/* Access list */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Who can access label */}
+              <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textSecondary, letterSpacing: '0.02em' }}>
+                Who can access
+              </Typography>
 
-            {/* Sliding panels container */}
-            <Box sx={{ overflow: 'hidden', borderRadius: '10px' }}>
-              <Box sx={{
-                width: '200%',
-                transform: `translateX(${addOpen ? '-50%' : '0%'})`,
-                transition: 'transform 0.3s ease',
-                display: 'flex',
-              }}>
-                {/* Left panel: Main permission list (50% width) */}
-                <Box sx={{ width: '50%', minWidth: 0 }}>
-                  <Box sx={{ border: `1px solid ${c.grey300}`, borderRadius: '10px', overflow: 'hidden' }}>
-                    {/* Owner row */}
+              <Box sx={{ border: `1px solid ${c.grey300}`, borderRadius: '10px', overflow: 'hidden' }}>
+                {/* Owner row */}
+                <PersonRow
+                  avatar={
+                    <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.textPrimary }}>
+                      {OWNER_USER.initials}
+                    </Avatar>
+                  }
+                  name={`${OWNER_USER.name} (You)`}
+                  email={OWNER_USER.email}
+                  roleLabel="Video owner"
+                  onRoleClick={tab === 'teams' ? e => openMenuFn(e, 'owner') : () => {}}
+                />
+
+                {/* Specific users — only when teams tab */}
+                {tab === 'teams' && users.map(pu => (
+                  <Box key={pu.user.id}>
+                    <Divider sx={{ borderColor: c.grey300 }} />
                     <PersonRow
                       avatar={
                         <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.textPrimary }}>
-                          {OWNER_USER.initials}
+                          {pu.user.initials}
                         </Avatar>
                       }
-                      name={`${OWNER_USER.name} (You)`}
-                      email={OWNER_USER.email}
-                      roleLabel="Video owner"
-                      onRoleClick={tab === 'teams' ? e => openMenuFn(e, 'owner') : () => {}}
+                      name={pu.user.name}
+                      email={pu.user.email}
+                      roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
+                      onRoleClick={e => openMenuFn(e, pu.user.id)}
                     />
+                  </Box>
+                ))}
 
-                    {/* Specific users — only when teams tab */}
-                    {tab === 'teams' && users.map(pu => (
-                      <Box key={pu.user.id}>
-                        <Divider sx={{ borderColor: c.grey300 }} />
-                        <PersonRow
-                          avatar={
-                            <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, flexShrink: 0, color: c.textPrimary }}>
-                              {pu.user.initials}
-                            </Avatar>
-                          }
-                          name={pu.user.name}
-                          email={pu.user.email}
-                          roleLabel={pu.role === 'editor' ? 'Editor' : 'Viewer'}
-                          onRoleClick={e => openMenuFn(e, pu.user.id)}
-                        />
+                {/* Everyone row — only when teams tab */}
+                {tab === 'teams' && (
+                  <>
+                    <Divider sx={{ borderColor: c.grey300 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
+                      <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: everyoneRole === 'restricted' ? 'rgba(0,0,0,0.06)' : c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <EveryoneIcon sx={{ fontSize: 20, color: everyoneRole === 'restricted' ? c.textSecondary : c.textPrimary }} />
                       </Box>
-                    ))}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
+                          Everyone in your account
+                        </Typography>
+                      </Box>
+                      <RoleButton
+                        label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
+                        onClick={e => openMenuFn(e, 'everyone')}
+                      />
+                    </Box>
+                  </>
+                )}
 
-                    {/* Everyone row — only when teams tab */}
-                    {tab === 'teams' && (
-                      <>
-                        <Divider sx={{ borderColor: c.grey300 }} />
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
-                          <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: everyoneRole === 'restricted' ? 'rgba(0,0,0,0.06)' : c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <EveryoneIcon sx={{ fontSize: 20, color: everyoneRole === 'restricted' ? c.textSecondary : c.textPrimary }} />
-                          </Box>
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
-                              Everyone in your account
-                            </Typography>
-                          </Box>
-                          <RoleButton
-                            label={everyoneRole === 'editor' ? 'Editor' : everyoneRole === 'viewer' ? 'Viewer' : 'Restricted'}
-                            onClick={e => openMenuFn(e, 'everyone')}
-                          />
-                        </Box>
-                      </>
-                    )}
-
-                    {/* Only-me state: owner row is already shown above; show info row */}
-                    {tab === 'private' && (
-                      <>
-                        <Divider sx={{ borderColor: c.grey300 }} />
-                        <Box sx={{ px: '16px', py: '10px' }}>
-                          <Alert
-                            severity="info"
-                            icon={<InfoOutlinedIcon fontSize="small" />}
-                            sx={{
-                              borderRadius: '8px',
-                              fontFamily: '"Open Sans", sans-serif',
-                              fontSize: 13,
-                              bgcolor: 'rgba(1,118,215,0.06)',
-                              color: c.textPrimary,
-                              '& .MuiAlert-icon': { color: '#0176D7' },
-                              p: '6px 12px',
-                            }}
-                          >
-                            Only you can see this video.
-                          </Alert>
-                        </Box>
-                      </>
-                    )}
-                  </Box>
-                </Box>
-
-                {/* Right panel: Add users (50% width) */}
-                <Box sx={{ width: '50%', minWidth: 0, display: 'flex', flexDirection: 'column', px: '4px' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mb: '12px' }}>
-                    <Button
-                      size="small"
-                      startIcon={<ArrowBackIcon />}
-                      onClick={() => { setAddOpen(false); setAddUsers([]); setAddRoleAnchor(null) }}
-                      sx={{
-                        fontFamily: '"Open Sans", sans-serif',
-                        fontSize: 13,
-                        color: c.textPrimary,
-                        textTransform: 'none',
-                        p: 0,
-                        minWidth: 0,
-                        '&:hover': { bgcolor: 'transparent' },
-                      }}
-                    />
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary }}>
-                      Add users
-                    </Typography>
-                  </Box>
-                  <InlineAddUsers
-                    value={addUsers}
-                    onChange={setAddUsers}
-                    excludeIds={excludeIdsForAdd}
-                    addRole={addRole}
-                    onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
-                    onCancel={() => { setAddOpen(false); setAddUsers([]) }}
-                    onAdd={handleAddUsers}
-                  />
-                </Box>
+                {/* Only-me state: owner row is already shown above; show info row */}
+                {tab === 'private' && (
+                  <>
+                    <Divider sx={{ borderColor: c.grey300 }} />
+                    <Box sx={{ px: '16px', py: '10px' }}>
+                      <Alert
+                        severity="info"
+                        icon={<InfoOutlinedIcon fontSize="small" />}
+                        sx={{
+                          borderRadius: '8px',
+                          fontFamily: '"Open Sans", sans-serif',
+                          fontSize: 13,
+                          bgcolor: 'rgba(1,118,215,0.06)',
+                          color: c.textPrimary,
+                          '& .MuiAlert-icon': { color: '#0176D7' },
+                          p: '6px 12px',
+                        }}
+                      >
+                        Only you can see this video.
+                      </Alert>
+                    </Box>
+                  </>
+                )}
               </Box>
             </Box>
-          </Box>
-        </DialogContent>
+          </DialogContent>
+        ) : (
+          <DialogContent sx={{ p: '24px 28px', display: 'flex', flexDirection: 'column' }}>
+            <InlineAddUsers
+              value={addUsers}
+              onChange={setAddUsers}
+              excludeIds={excludeIdsForAdd}
+              addRole={addRole}
+              onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
+              onCancel={() => { setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null) }}
+              onAdd={handleAddUsers}
+            />
+          </DialogContent>
+        )}
 
         <Divider sx={{ borderColor: c.divider }} />
 
         {/* ── Actions ────────────────────────────────────────────────────────── */}
-        <DialogActions sx={{ px: '28px', py: '16px', gap: '8px', justifyContent: 'space-between' }}>
-          {/* Left side: + Add user button */}
-          {tab === 'teams' && !addOpen && (
-            <Button
-              startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
-              onClick={() => setAddOpen(true)}
-              sx={{
-                fontFamily: '"Open Sans", sans-serif',
-                fontSize: 13, fontWeight: 500,
-                color: c.primary,
-                textTransform: 'none',
-                bgcolor: c.primaryTabBg,
-                borderRadius: '100px',
-                px: '14px', py: '6px',
-                '&:hover': { bgcolor: 'rgba(0,83,229,0.14)' },
-              }}
-            >
-              Add user
-            </Button>
-          )}
-          {(tab !== 'teams' || addOpen) && <Box />}
+        {!showAddDialog && (
+          <DialogActions sx={{ px: '28px', py: '16px', gap: '8px', justifyContent: 'space-between' }}>
+            {/* Left side: + Add user button */}
+            {tab === 'teams' && (
+              <Button
+                startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setShowAddDialog(true)}
+                sx={{
+                  fontFamily: '"Open Sans", sans-serif',
+                  fontSize: 13, fontWeight: 500,
+                  color: c.primary,
+                  textTransform: 'none',
+                  bgcolor: c.primaryTabBg,
+                  borderRadius: '100px',
+                  px: '14px', py: '6px',
+                  '&:hover': { bgcolor: 'rgba(0,83,229,0.14)' },
+                }}
+              >
+                Add user
+              </Button>
+            )}
+            {tab !== 'teams' && <Box />}
 
-          {/* Right side: Cancel and Save buttons */}
-          <Box sx={{ display: 'flex', gap: '8px' }}>
-            <Button variant="text" size="large" onClick={handleClose}
-              sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
-              Cancel
-            </Button>
-            <Button variant="contained" size="large" onClick={handleSave}
-              sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
-              Save
-            </Button>
-          </Box>
-        </DialogActions>
+            {/* Right side: Cancel and Save buttons */}
+            <Box sx={{ display: 'flex', gap: '8px' }}>
+              <Button variant="text" size="large" onClick={handleClose}
+                sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+                Cancel
+              </Button>
+              <Button variant="contained" size="large" onClick={handleSave}
+                sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
+                Save
+              </Button>
+            </Box>
+          </DialogActions>
+        )}
 
-        {/* Role dropdown for add-user inline */}
+        {/* Role dropdown for add-user */}
         <Menu
           anchorEl={addRoleAnchor}
           open={Boolean(addRoleAnchor)}
