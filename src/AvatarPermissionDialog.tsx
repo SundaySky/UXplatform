@@ -18,6 +18,7 @@ import DoNotDisturbOnOutlinedIcon from '@mui/icons-material/DoNotDisturbOnOutlin
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import ArrowBackIcon          from '@mui/icons-material/ArrowBack'
 import LockOutlinedIcon       from '@mui/icons-material/LockOutlined'
+import LockOpenOutlinedIcon  from '@mui/icons-material/LockOpenOutlined'
 
 import {
   type User,
@@ -437,7 +438,7 @@ export default function AvatarPermissionDialog({
                   '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' },
                 }}>
                   {v === 'teams'
-                    ? <><GroupsIcon sx={{ fontSize: 18 }} /> Teams and people</>
+                    ? <><LockOpenOutlinedIcon sx={{ fontSize: 18 }} /> Teams and people</>
                     : <><LockOutlinedIcon sx={{ fontSize: 18 }} /> Only me</>
                   }
                 </ToggleButton>
@@ -484,8 +485,8 @@ export default function AvatarPermissionDialog({
                 <>
                   <Divider sx={{ borderColor: c.grey300 }} />
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
-                    <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(0,83,229,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <GroupsIcon sx={{ fontSize: 20, color: c.primary }} />
+                    <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <GroupsIcon sx={{ fontSize: 20, color: c.textPrimary }} />
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 500, color: c.textPrimary }}>
@@ -529,10 +530,10 @@ export default function AvatarPermissionDialog({
               </Box>
             ) : (
               <Box>
-                <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: '8px', overflow: 'hidden' }}>
+                <Box sx={{ border: `1px solid ${c.grey300}`, borderRadius: '10px', overflow: 'hidden' }}>
                   {requests.map((req, idx) => (
-                    <Box key={req.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25, borderBottom: idx < requests.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none', bgcolor: '#fff' }}>
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(0,83,229,0.12)', fontSize: 11, fontFamily: '"Open Sans", sans-serif', fontWeight: 600, color: c.textPrimary, flexShrink: 0 }}>
+                    <Box key={req.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25, borderBottom: idx < requests.length - 1 ? `1px solid ${c.grey300}` : 'none', bgcolor: '#fff' }}>
+                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, color: c.textPrimary, flexShrink: 0 }}>
                         {req.initials}
                       </Avatar>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
