@@ -736,7 +736,15 @@ export default function AvatarLibraryPanel({
                   }} />
                 )}
 
-                {/* Group 2: who can use — group icon (everyone) or specific users */}
+                {/* Group 2: who can use — show both specific users and everyone when applicable */}
+                {menuSpecific.length > 0 && menuSpecific.map(user => (
+                  <AvatarChip
+                    key={user.id}
+                    initials={user.initials}
+                    tooltip={`${user.name} can use this avatar.`}
+                  />
+                ))}
+
                 {menuPerm === 'everyone' && (
                   <Tooltip
                     title="Everyone in your account can use this custom avatar."
@@ -755,14 +763,6 @@ export default function AvatarLibraryPanel({
                     </Box>
                   </Tooltip>
                 )}
-
-                {menuPerm === 'specific' && menuSpecific.map(user => (
-                  <AvatarChip
-                    key={user.id}
-                    initials={user.initials}
-                    tooltip={`${user.name} can use this avatar.`}
-                  />
-                ))}
               </Box>
             </MenuItem>
 
