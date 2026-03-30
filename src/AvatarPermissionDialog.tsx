@@ -49,6 +49,9 @@ export interface AvatarPermissionSettings {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const c = {
   primary:       '#0053E5',
+  primaryLight:  'rgba(0,83,229,0.12)',
+  primaryTabBg:  'rgba(0,83,229,0.08)',
+  primaryBorder: 'rgba(0,83,229,0.24)',
   textPrimary:   'rgba(0,0,0,0.87)',
   textSecondary: 'rgba(60,60,72,0.6)',
   divider:       'rgba(0,83,229,0.12)',
@@ -85,11 +88,12 @@ function RoleButton({ label, onClick }: { label: string; onClick: (e: React.Mous
         fontSize: 12, fontWeight: 500,
         color: c.textPrimary,
         textTransform: 'none',
-        bgcolor: 'rgba(0,0,0,0.06)',
-        borderRadius: '20px',
+        bgcolor: '#fff',
+        border: `1px solid ${c.grey300}`,
+        borderRadius: '8px',
         px: '10px', py: '4px',
         minWidth: 0, whiteSpace: 'nowrap', flexShrink: 0,
-        '&:hover': { bgcolor: 'rgba(0,0,0,0.10)' },
+        '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: c.primary },
       }}
     >
       {label}
@@ -246,7 +250,7 @@ export default function AvatarPermissionDialog({
 
   const [tab,        setTab]        = useState<PermissionTab>(toTab(initPerm))
   const [restricted, setRestricted] = useState<boolean>(toEveryoneRestricted(initPerm))
-  const [everyoneRole, setEveryoneRole] = useState<'editor' | 'viewer' | 'restricted'>(initialSettings?.everyoneRole ?? 'viewer')
+  const [everyoneRole, setEveryoneRole] = useState<'editor' | 'viewer' | 'restricted'>(initialSettings?.everyoneRole ?? 'restricted')
   const [users,      setUsers]      = useState<PermissionUser[]>(
     (initialSettings?.specificUsers ?? []).map(u => ({ user: u, role: 'viewer' as UserRole }))
   )
@@ -264,7 +268,7 @@ export default function AvatarPermissionDialog({
       const perm = initialSettings?.usagePermission ?? 'everyone'
       setTab(toTab(perm))
       setRestricted(toEveryoneRestricted(perm))
-      setEveryoneRole(initialSettings?.everyoneRole ?? 'viewer')
+      setEveryoneRole(initialSettings?.everyoneRole ?? 'restricted')
       setUsers((initialSettings?.specificUsers ?? []).map(u => ({ user: u, role: 'viewer' as UserRole })))
       setOwnerUsers(initialSettings?.approverUsers ?? [OWNER_USER])
       setRequests(initialRequests)
@@ -412,23 +416,29 @@ export default function AvatarPermissionDialog({
               fullWidth
               onChange={(_, v) => { if (v !== null) setTab(v as PermissionTab) }}
               sx={{
-                bgcolor: 'rgba(0,0,0,0.06)', borderRadius: '10px', p: '3px',
-                '& .MuiToggleButtonGroup-grouped': { border: 'none !important', borderRadius: '8px !important', m: 0 },
+                border: `1px solid ${c.primaryBorder}`,
+                borderRadius: '8px',
+                overflow: 'hidden',
+                '& .MuiToggleButtonGroup-grouped': { border: 'none !important', borderRadius: '0 !important', m: 0 },
+                '& .MuiToggleButtonGroup-grouped:not(:last-of-type)': {
+                  borderRight: `1px solid ${c.primaryBorder} !important`,
+                },
               }}
             >
               {(['teams', 'private'] as const).map(v => (
                 <ToggleButton key={v} value={v} sx={{
                   fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
-                  textTransform: 'none', px: 2, py: 0.75, color: c.textSecondary,
-                  display: 'flex', alignItems: 'center', gap: '6px',
+                  textTransform: 'none', py: 1, gap: '6px',
+                  color: c.textPrimary, bgcolor: '#fff',
                   '&.Mui-selected': {
-                    bgcolor: '#fff', color: c.textPrimary, fontWeight: 600,
-                    boxShadow: '0px 1px 4px rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#fff' },
+                    bgcolor: c.primaryTabBg, color: c.textPrimary, fontWeight: 600,
+                    '&:hover': { bgcolor: 'rgba(0,83,229,0.12)' },
                   },
+                  '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' },
                 }}>
                   {v === 'teams'
-                    ? <><GroupsIcon sx={{ fontSize: 16 }} /> Teams and people</>
-                    : <><LockOutlinedIcon sx={{ fontSize: 16 }} /> Only me</>
+                    ? <><GroupsIcon sx={{ fontSize: 18 }} /> Teams and people</>
+                    : <><LockOutlinedIcon sx={{ fontSize: 18 }} /> Only me</>
                   }
                 </ToggleButton>
               ))}
@@ -437,27 +447,27 @@ export default function AvatarPermissionDialog({
 
           {/* Who can access */}
           <Box>
-            <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: '10px', overflow: 'hidden' }}>
+            <Box sx={{ border: `1px solid ${c.grey300}`, borderRadius: '10px', overflow: 'hidden' }}>
               {/* Owner row */}
               <PersonRow
                 avatar={
-                  <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: 'rgba(0,83,229,0.12)', fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, color: c.textPrimary, flexShrink: 0 }}>
+                  <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, color: c.textPrimary, flexShrink: 0 }}>
                     {OWNER_USER.initials}
                   </Avatar>
                 }
                 name={`${OWNER_USER.name} (You)`}
                 email={OWNER_USER.email}
                 roleLabel="Avatar owner"
-                roleStatic
+                onRoleClick={e => openMenuFn(e, 'owner')}
               />
 
               {/* Added users — teams tab only */}
               {tab === 'teams' && users.map(pu => (
                 <Box key={pu.user.id}>
-                  <Divider />
+                  <Divider sx={{ borderColor: c.grey300 }} />
                   <PersonRow
                     avatar={
-                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: 'rgba(0,83,229,0.12)', fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, color: c.textPrimary, flexShrink: 0 }}>
+                      <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: c.primaryLight, fontSize: 12, fontFamily: '"Inter"', fontWeight: 600, color: c.textPrimary, flexShrink: 0 }}>
                         {pu.user.initials}
                       </Avatar>
                     }
@@ -472,7 +482,7 @@ export default function AvatarPermissionDialog({
               {/* Everyone row — teams tab only */}
               {tab === 'teams' && (
                 <>
-                  <Divider />
+                  <Divider sx={{ borderColor: c.grey300 }} />
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '10px' }}>
                     <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(0,83,229,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <GroupsIcon sx={{ fontSize: 20, color: c.primary }} />
@@ -483,7 +493,7 @@ export default function AvatarPermissionDialog({
                       </Typography>
                     </Box>
                     <RoleButton
-                      label={everyoneRole === 'editor' ? 'Can use' : everyoneRole === 'viewer' ? 'Can view' : 'Can request to use'}
+                      label={everyoneRole === 'editor' ? 'Can use' : everyoneRole === 'viewer' ? 'Can use' : 'Can request to use'}
                       onClick={e => openMenuFn(e, 'everyone')}
                     />
                   </Box>
@@ -559,32 +569,34 @@ export default function AvatarPermissionDialog({
           )}
         </DialogContent>
 
+        {!showAddDialog && <Divider sx={{ borderColor: c.divider }} />}
         {!showAddDialog && (
-        <DialogActions sx={{ px: 3, py: 2, gap: 1, justifyContent: 'flex-start' }}>
-          {tab === 'teams' && (
+        <DialogActions sx={{ px: '28px', py: '16px', gap: '8px', justifyContent: 'space-between' }}>
+          {tab === 'teams' ? (
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 14 }} />}
+              startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
               onClick={() => setShowAddDialog(true)}
               sx={{
                 fontFamily: '"Open Sans", sans-serif', fontSize: 13, fontWeight: 500,
-                color: c.primary, borderColor: 'rgba(0,83,229,0.3)',
-                textTransform: 'none', borderRadius: '20px', px: '12px',
-                '&:hover': { bgcolor: 'rgba(0,83,229,0.06)', borderColor: c.primary },
+                color: c.primary, textTransform: 'none',
+                bgcolor: c.primaryTabBg, borderRadius: '100px',
+                px: '14px', py: '6px',
+                '&:hover': { bgcolor: 'rgba(0,83,229,0.14)' },
               }}
             >
               Add user
             </Button>
-          )}
-          <Box sx={{ flex: 1 }} />
-          <Button onClick={handleClose} sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: c.textPrimary, textTransform: 'none', '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' } }}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleSave}
-            sx={{ bgcolor: c.primary, color: '#fff', fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: 2.5, '&:hover': { bgcolor: '#0047CC' } }}>
-            Save
-          </Button>
+          ) : <Box />}
+          <Box sx={{ display: 'flex', gap: '8px' }}>
+            <Button variant="text" size="large" onClick={handleClose}
+              sx={{ color: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600 }}>
+              Cancel
+            </Button>
+            <Button variant="contained" size="large" onClick={handleSave}
+              sx={{ bgcolor: c.primary, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', fontWeight: 600, borderRadius: '8px', boxShadow: 'none', '&:hover': { bgcolor: '#0047CC', boxShadow: 'none' } }}>
+              Save
+            </Button>
+          </Box>
         </DialogActions>
         )}
 
@@ -606,8 +618,8 @@ export default function AvatarPermissionDialog({
               <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Make sole owner</Typography>
             </MenuItem>,
             <Divider key="d1" sx={{ my: '4px !important' }} />,
-            <MenuItem key="ro" disabled={ownerUsers.length <= 1} onClick={closeMenuFn} sx={menuItemSx}>
-              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove ownership</Typography>
+            <MenuItem key="ro" onClick={closeMenuFn} sx={menuItemSx}>
+              <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>{ownerUsers.length <= 1 ? 'Transfer ownership' : 'Remove ownership'}</Typography>
             </MenuItem>,
           ]}
 
@@ -630,10 +642,6 @@ export default function AvatarPermissionDialog({
             <MenuItem key="cu" onClick={() => { setEveryoneRole('editor'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'editor' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
               <Typography sx={menuTextSx}>Can use</Typography>
-            </MenuItem>,
-            <MenuItem key="cv" onClick={() => { setEveryoneRole('viewer'); closeMenuFn() }} sx={menuItemSx}>
-              {everyoneRole === 'viewer' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
-              <Typography sx={menuTextSx}>Can view</Typography>
             </MenuItem>,
             <MenuItem key="cr" onClick={() => { setEveryoneRole('restricted'); closeMenuFn() }} sx={menuItemSx}>
               {everyoneRole === 'restricted' ? <CheckIcon sx={{ fontSize: 16, color: c.primary }} /> : <Box sx={{ width: 16 }} />}
