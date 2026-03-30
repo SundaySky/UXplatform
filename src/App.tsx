@@ -401,7 +401,7 @@ function Sidebar({
           <MenuItem onClick={() => { setMenuAnchor(null); onManageAccess?.() }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
-            <PermAvatarGroup settings={videoPermSettings} />
+            <PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />
           </MenuItem>
 
           <Divider sx={{ my: '4px', borderColor: t.divider }} />

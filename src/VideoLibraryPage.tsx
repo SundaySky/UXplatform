@@ -294,7 +294,7 @@ const navyTipSx = {
   '& .MuiTooltip-arrow': { color: '#03194F' },
 }
 
-export function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
+export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?: VideoPermissionSettings; coloredAvatars?: boolean }) {
   const s = settings ?? {
     tab: 'teams' as const, everyoneRole: 'viewer' as const,
     users: [], ownerUsers: [OWNER_USER], noDuplicate: false,
@@ -304,9 +304,9 @@ export function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettin
   const miniAvatar = (key: string, content: React.ReactNode, tip: string, bgColor?: string) => (
     <Tooltip key={key} title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
       <Box sx={{
-        width: 20, height: 20, borderRadius: '4px', bgcolor: bgColor ?? 'rgba(0,83,229,0.12)',
+        width: 20, height: 20, borderRadius: '4px', bgcolor: coloredAvatars && bgColor ? bgColor : 'rgba(0,83,229,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 10,
-        fontWeight: 600, lineHeight: 1, fontFamily: '"Open Sans", sans-serif', color: bgColor ? '#fff' : 'inherit',
+        fontWeight: 600, lineHeight: 1, fontFamily: '"Open Sans", sans-serif', color: coloredAvatars && bgColor ? '#fff' : 'rgba(0,0,0,0.87)',
       }}>
         {content}
       </Box>
