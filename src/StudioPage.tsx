@@ -259,7 +259,8 @@ function NavSection({ label }: { label: string }) {
     <Typography sx={{
       fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
       letterSpacing: '1px', textTransform: 'uppercase',
-      color: s.textSecondary, px: '12px', pt: '12px', pb: '4px', lineHeight: 1.5,
+      color: s.textSecondary, px: '12px', pb: '8px', lineHeight: 1.5,
+      opacity: 0.8,
     }}>
       {label}
     </Typography>
@@ -784,9 +785,10 @@ interface Props {
   initialPermSettings?:     VideoPermissionSettings
   onPermChange?:            (s: VideoPermissionSettings) => void
   awaitingApprovers?:       boolean
+  onEditAttempt?:           () => void
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers, onEditAttempt }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false)
 
   // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -828,8 +830,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     {
       section: 'STYLE',
       items: [
-        { icon: <BrandingWatermarkOutlinedIcon sx={{ fontSize: 18 }} />, label: 'Brand' },
-        { icon: <PaletteOutlinedIcon          sx={{ fontSize: 18 }} />, label: 'Theme' },
+        { icon: <BrandingWatermarkOutlinedIcon sx={{ fontSize: 20 }} />, label: 'Brand' },
+        { icon: <PaletteOutlinedIcon          sx={{ fontSize: 20 }} />, label: 'Theme' },
         {
           icon: (
             <Badge
@@ -837,7 +839,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               color="error"
               sx={{ '& .MuiBadge-badge': { fontSize: 9, minWidth: 14, height: 14, padding: 0 } }}
             >
-              <PersonOutlinedIcon sx={{ fontSize: 18 }} />
+              <PersonOutlinedIcon sx={{ fontSize: 20 }} />
             </Badge>
           ),
           label: 'Avatar',
@@ -847,18 +849,18 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     {
       section: 'LIBRARIES',
       items: [
-        { icon: <PermMediaOutlinedIcon  sx={{ fontSize: 18 }} />, label: 'Media' },
-        { icon: <MusicNoteOutlinedIcon  sx={{ fontSize: 18 }} />, label: 'Music' },
-        { icon: <MicOutlinedIcon        sx={{ fontSize: 18 }} />, label: 'Voice' },
-        { icon: <StorageOutlinedIcon    sx={{ fontSize: 18 }} />, label: 'Data' },
-        { icon: <InputOutlinedIcon      sx={{ fontSize: 18 }} />, label: 'Input fields' },
+        { icon: <PermMediaOutlinedIcon  sx={{ fontSize: 20 }} />, label: 'Media' },
+        { icon: <MusicNoteOutlinedIcon  sx={{ fontSize: 20 }} />, label: 'Music' },
+        { icon: <MicOutlinedIcon        sx={{ fontSize: 20 }} />, label: 'Voice' },
+        { icon: <StorageOutlinedIcon    sx={{ fontSize: 20 }} />, label: 'Data' },
+        { icon: <InputOutlinedIcon      sx={{ fontSize: 20 }} />, label: 'Input fields' },
       ],
     },
     {
       section: 'SETTINGS',
       items: [
-        { icon: <AspectRatioOutlinedIcon sx={{ fontSize: 18 }} />, label: 'Aspect ratio' },
-        { icon: <LanguageOutlinedIcon    sx={{ fontSize: 18 }} />, label: 'Languages' },
+        { icon: <AspectRatioOutlinedIcon sx={{ fontSize: 20 }} />, label: 'Aspect ratio' },
+        { icon: <LanguageOutlinedIcon    sx={{ fontSize: 20 }} />, label: 'Languages' },
       ],
     },
     {
@@ -871,7 +873,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               color="error"
               sx={{ '& .MuiBadge-badge': { fontSize: 9, minWidth: 14, height: 14, padding: 0 } }}
             >
-              <CommentOutlinedIcon sx={{ fontSize: 18 }} />
+              <CommentOutlinedIcon sx={{ fontSize: 20 }} />
             </Badge>
           ),
           label: 'Comments',
@@ -993,8 +995,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         <Box sx={{
           width: 180, flexShrink: 0, bgcolor: s.white,
           borderRight: `1px solid ${s.divider}`,
-          overflowY: 'auto', pt: 1,
-          display: 'flex', flexDirection: 'column',
+          overflowY: 'auto', pt: '16px',
+          display: 'flex', flexDirection: 'column', gap: '24px',
         }}>
           {NAV_SECTIONS.map(({ section, items }) => (
             <Box key={section}>
@@ -1179,17 +1181,17 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               {/* Toolbars — outside overflow:hidden so they render above the canvas edge */}
               {headingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '30%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
-                  <PlaceholderToolbar onEditClick={() => { setEditHeadingOpen(true) }} />
+                  <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditHeadingOpen(true) }} />
                 </Box>
               )}
               {subheadingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '55%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
-                  <PlaceholderToolbar onEditClick={() => { setEditSubheadingOpen(true) }} />
+                  <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditSubheadingOpen(true) }} />
                 </Box>
               )}
               {footnoteSelected && (
                 <Box sx={{ position: 'absolute', left: '50%', bottom: '3%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
-                  <PlaceholderToolbar onEditClick={() => { setEditFootnoteOpen(true) }} />
+                  <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditFootnoteOpen(true) }} />
                 </Box>
               )}
             </Box>

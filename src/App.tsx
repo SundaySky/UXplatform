@@ -390,12 +390,12 @@ function Sidebar({
 
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><InfoOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Details</ListItemText>
           </MenuItem>
 
-          <MenuItem onClick={() => { setMenuAnchor(null); onManageAccess?.() }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => { setMenuAnchor(null); onManageAccess?.() }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
             <PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />
@@ -403,41 +403,41 @@ function Sidebar({
 
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
           </MenuItem>
 
-          <MenuItem onClick={() => { setMenuAnchor(null); onSubmitForApproval?.() }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => { setMenuAnchor(null); onSubmitForApproval?.() }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive, fontSize: 16 }}><ImageCircleCheckIcon /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
           </MenuItem>
 
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ContentCopyIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Duplicate video</ListItemText>
           </MenuItem>
 
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><DashboardCustomizeOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Video to template</ListItemText>
           </MenuItem>
 
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><FolderOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Move to folder</ListItemText>
           </MenuItem>
 
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ArchiveOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Archive</ListItemText>
           </MenuItem>
 
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
+          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
             <ListItemIcon sx={{ minWidth: 'unset', color: t.errorMain }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.errorMain }}>Delete</ListItemText>
           </MenuItem>
@@ -677,20 +677,21 @@ function VideoPreviewCard({
 
     // ── Phase 0, draft: "Send for approval" ──────────────────────────────────
     return (
-      <Button variant="outlined" size="small" color="primary"
+      <Button variant="contained" size="small" color="primary"
         startIcon={
-          <svg viewBox="0 0 22 22" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
-            {/* Image frame — outlined only, not filled */}
-            <rect x="0.75" y="0.75" width="14.5" height="11.5" rx="1.5"
+          <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+            {/* Photo frame */}
+            <rect x="1" y="2" width="15" height="12" rx="2"
               fill="none" stroke="currentColor" strokeWidth="1.5"/>
-            {/* Sun (small filled circle, top-left of frame) */}
-            <circle cx="3.5" cy="3.5" r="1.3" fill="currentColor"/>
-            {/* Mountains (filled triangles at bottom of frame) */}
-            <path d="M1.5 10.75 L5 5.5 L8 8.5 L10.5 6 L14.5 10.75 Z" fill="currentColor"/>
-            {/* Circle-check badge (bottom-right, partially overlapping frame corner) */}
-            <circle cx="17.5" cy="17.5" r="4" fill="currentColor"/>
-            <path d="M14.3 17.5 L16.9 20.2 L21.2 13.8"
-              stroke="white" strokeWidth="2.1" fill="none"
+            {/* Sun */}
+            <circle cx="4.5" cy="5.5" r="1.5" fill="currentColor"/>
+            {/* Mountains — two peaks, clipped inside frame */}
+            <path d="M1.5 13.5 L5.5 7.5 L9 11 L11.5 8.5 L15.5 13.5 Z" fill="currentColor"/>
+            {/* Badge — white circle */}
+            <circle cx="18.5" cy="18.5" r="5.5" fill="white"/>
+            {/* Check — primary blue */}
+            <path d="M15.5 18.5 L17.5 21 L22 15.5"
+              stroke="#0053E5" strokeWidth="2.2" fill="none"
               strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         }
@@ -956,8 +957,8 @@ interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
   { id: 1, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
-  { id: 2, label: ["You want to see if there's any response to your approval request.", "You also realized the opening scene heading is missing 2026 at the end."], done: false },
-  { id: 3, label: "Sarah told you she already submitted feedback.", done: false },
+  { id: 2, label: ["You want to check and review any response to your approval request.", "You also realized the opening scene heading is missing 2026 and you want to add it at the end of the heading."], done: false },
+  { id: 3, label: "Sarah mentioned she submitted feedback for your approval", done: false },
   { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
   { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
   { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
@@ -1414,7 +1415,13 @@ export default function App() {
       {/* ── Main app area ───────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {currentPage === 'library' ? (
-          <VideoLibraryPage onSelectVideo={handleSelectVideo} notifications={notifications} videoStates={videoStates} onPermChange={(key, s) => updateVideoState(key, { permSettings: s })} />
+          <VideoLibraryPage
+            onSelectVideo={handleSelectVideo}
+            notifications={notifications}
+            videoStates={videoStates}
+            onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
+            onSubmitForApproval={(key, approvers) => updateVideoState(key, { sentApprovers: approvers, pageState: 'pending' })}
+          />
 
         ) : currentPage === 'studio' ? (
           /* ── Studio / Editor page ─────────────────────────────────────────── */
@@ -1431,10 +1438,11 @@ export default function App() {
             openCommentsOnMount={openCommentsOnStudio}
             triggerOpenComments={openCommentsCounter}
             notifications={notifications}
-            initialThreads={videoPhase >= 1 ? INITIAL_THREADS : []}
+            initialThreads={videoPhase >= 2 ? INITIAL_THREADS : []}
             initialPermSettings={videoPermSettings}
             onPermChange={(s) => updateVideoState(currentKey, { permSettings: s })}
-            awaitingApprovers={videoPhase === 1}
+            awaitingApprovers={false}
+            onEditAttempt={videoPhase === 1 ? () => setCancelApprovalDialogOpen(true) : undefined}
           />
 
         ) : (
@@ -1546,7 +1554,8 @@ export default function App() {
         onConfirm={() => {
           // Reset this video to draft + clear all approval state
           updateVideoState(currentKey, { phase: 0, pageState: 'draft', sentApprovers: [] })
-          setOpenCommentsOnStudio(true)
+          setOpenCommentsOnStudio(false)
+          setCancelApprovalDialogOpen(false)
           setCurrentPage('studio')
         }}
       />

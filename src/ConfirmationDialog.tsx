@@ -28,6 +28,7 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
         if (reason === 'backdropClick' || reason === 'escapeKeyDown') return
         onClose()
       }}
+      onClick={e => e.stopPropagation()}
       maxWidth="sm"
       fullWidth
       PaperProps={{

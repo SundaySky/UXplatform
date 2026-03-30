@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Box, Typography, IconButton, Button, Tooltip,
-  Popover, Divider, Badge, MenuItem, ListItemIcon, ListItemText,
+  Popover, Divider, Badge,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
 import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
@@ -12,10 +12,7 @@ import PersonIcon             from '@mui/icons-material/Person'
 import TokenOutlinedIcon      from '@mui/icons-material/TokenOutlined'
 import DeleteOutlinedIcon     from '@mui/icons-material/DeleteOutlined'
 import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
-import GroupsIcon             from '@mui/icons-material/Groups'
 import LockOutlinedIcon       from '@mui/icons-material/LockOutlined'
-import PeopleOutlinedIcon     from '@mui/icons-material/PeopleOutlined'
-import LockPersonIcon         from '@mui/icons-material/LockPerson'
 import SwapHorizIcon          from '@mui/icons-material/SwapHoriz'
 
 import AvatarPermissionDialog, {
@@ -25,7 +22,7 @@ import AvatarPermissionDialog, {
 import { OWNER_USER } from './ManageAccessDialog'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const PANEL_WIDTH    = 366
+const PANEL_WIDTH    = 280
 const AVATAR_CREDITS = 340
 const AVATARS_LEFT   = 2
 
@@ -53,6 +50,7 @@ const navyTooltipSx = {
   '& .MuiTooltip-arrow': { color: '#03194F' },
 }
 
+
 // ─── Mock data ─────────────────────────────────────────────────────────────────
 interface AvatarItem {
   id:          string
@@ -74,47 +72,56 @@ const MOCK_REQUESTS: Record<string, AccessRequest[]> = {
 }
 
 const CUSTOM_AVATARS: AvatarItem[] = [
-  { id: 'adam',   name: 'Adam',       img: null, isCustom: true, createdDate: 'Dec 29, 2025', createdBy: 'You' },
-  { id: 'chris',  name: 'Chris (CEO)',img: null, isCustom: true, createdDate: 'Jan 5, 2026',  createdBy: 'You' },
-  { id: 'taylor', name: 'Taylor',     img: null, isCustom: true, createdDate: 'Feb 12, 2026', createdBy: 'You' },
-  { id: 'jordan', name: 'Jordan',     img: null, isCustom: true, createdDate: 'Mar 1, 2026',  createdBy: 'You' },
+  { id: 'adam',   name: 'Adam',        img: 'https://randomuser.me/api/portraits/men/32.jpg',    isCustom: true, createdDate: 'Dec 29, 2025', createdBy: 'You' },
+  { id: 'chris',  name: 'Chris (CEO)', img: 'https://randomuser.me/api/portraits/men/75.jpg',    isCustom: true, createdDate: 'Jan 5, 2026',  createdBy: 'You' },
+  { id: 'taylor', name: 'Taylor',      img: 'https://randomuser.me/api/portraits/women/44.jpg',  isCustom: true, createdDate: 'Feb 12, 2026', createdBy: 'You' },
+  { id: 'jordan', name: 'Jordan',      img: 'https://randomuser.me/api/portraits/men/46.jpg',    isCustom: true, createdDate: 'Mar 1, 2026',  createdBy: 'You' },
 ]
 
 const STOCK_AVATARS: AvatarItem[] = [
-  { id: 's-sofia',   name: 'Sofia',   img: null },
-  { id: 's-marcus',  name: 'Marcus',  img: null },
-  { id: 's-yuki',    name: 'Yuki',    img: null },
-  { id: 's-priya',   name: 'Priya',   img: null },
-  { id: 's-leo',     name: 'Leo',     img: null },
-  { id: 's-elena',   name: 'Elena',   img: null },
-  { id: 's-omar',    name: 'Omar',    img: null },
-  { id: 's-zoe',     name: 'Zoe',     img: null },
-  { id: 's-daniel',  name: 'Daniel',  img: null },
-  { id: 's-aisha',   name: 'Aisha',   img: null },
-  { id: 's-jake',    name: 'Jake',    img: null },
-  { id: 's-mei',     name: 'Mei',     img: null },
+  { id: 's-chrissy',  name: 'Chrissy',  img: 'https://randomuser.me/api/portraits/women/65.jpg' },
+  { id: 's-amanda',   name: 'Amanda',   img: 'https://randomuser.me/api/portraits/women/17.jpg' },
+  { id: 's-ahron',    name: 'Ahron',    img: 'https://randomuser.me/api/portraits/men/22.jpg'   },
+  { id: 's-rachel',   name: 'Rachel',   img: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { id: 's-james',    name: 'James',    img: 'https://randomuser.me/api/portraits/men/41.jpg'   },
+  { id: 's-rebecca',  name: 'Rebecca',  img: 'https://randomuser.me/api/portraits/women/27.jpg' },
+  { id: 's-iema',     name: 'Iema',     img: 'https://randomuser.me/api/portraits/women/54.jpg' },
+  { id: 's-melissa',  name: 'Melissa',  img: 'https://randomuser.me/api/portraits/women/33.jpg' },
+  { id: 's-carlos',   name: 'Carlos',   img: 'https://randomuser.me/api/portraits/men/57.jpg'   },
+  { id: 's-diana',    name: 'Diana',    img: 'https://randomuser.me/api/portraits/women/72.jpg' },
+  { id: 's-ben',      name: 'Ben',      img: 'https://randomuser.me/api/portraits/men/15.jpg'   },
+  { id: 's-grace',    name: 'Grace',    img: 'https://randomuser.me/api/portraits/women/49.jpg' },
+]
+
+const BETA_AVATARS: AvatarItem[] = [
+  { id: 'b-alex',    name: 'Alex',    img: 'https://randomuser.me/api/portraits/men/88.jpg'   },
+  { id: 'b-morgan',  name: 'Morgan',  img: 'https://randomuser.me/api/portraits/women/58.jpg' },
+  { id: 'b-sam',     name: 'Sam',     img: 'https://randomuser.me/api/portraits/men/63.jpg'   },
+  { id: 'b-riley',   name: 'Riley',   img: 'https://randomuser.me/api/portraits/women/82.jpg' },
 ]
 
 // ─── Rounded-square avatar chip (for options menu) ─────────────────────────
 function AvatarChip({
   initials,
+  color,
   tooltip,
 }: {
   initials: string
+  color:    string
   tooltip:  string
 }) {
   return (
     <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
       <Box sx={{
         width: 28, height: 28,
-        bgcolor: 'rgba(0,83,229,0.12)',
+        bgcolor: color,
         borderRadius: '6px',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'default', flexShrink: 0,
       }}>
         <Typography sx={{
           fontFamily: '"Open Sans", sans-serif', fontWeight: 700,
-          fontSize: 10, color: c.textPrimary, lineHeight: 1,
+          fontSize: 10, color: '#fff', lineHeight: 1,
         }}>
           {initials}
         </Typography>
@@ -173,8 +180,8 @@ function AvatarCard({
       <Box sx={{
         position: 'relative',
         width: '100%',
-        paddingTop: '115%',
-        bgcolor: '#e8eaf0',
+        paddingTop: '100%',
+        bgcolor: '#f5f5f5',
         overflow: 'hidden',
       }}>
         {avatar.img ? (
@@ -322,7 +329,7 @@ function AvatarCard({
             <Box sx={{ display: 'flex', cursor: 'default' }}>
               {perm === 'private'
                 ? <LockOutlinedIcon      sx={{ fontSize: 14, color: c.successMain }} />
-                : <PeopleOutlinedIcon    sx={{ fontSize: 14, color: '#F46900' }} />}
+                : <LockOutlinedIcon      sx={{ fontSize: 14, color: '#F46900' }} />}
             </Box>
           </Tooltip>
         )}
@@ -353,8 +360,8 @@ function AvatarGrid({
     <Box sx={{
       display: 'grid',
       gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '12px',
-      p: 2,
+      gap: '8px',
+      p: '12px',
     }}>
       {avatars.map(av => (
         <AvatarCard
@@ -382,7 +389,7 @@ export default function AvatarLibraryPanel({
   onClose:                () => void
   onTotalRequestsChange?: (count: number) => void
 }) {
-  const [tab, setTab] = useState<0 | 1 | 2>(0)
+  const [tab, setTab] = useState<0 | 1 | 2 | 3>(0)
 
   // Track which avatar is currently placed in the scene (single at a time)
   const [activeAvatarId, setActiveAvatarId] = useState<string | null>(null)
@@ -404,10 +411,7 @@ export default function AvatarLibraryPanel({
   const [permDialogAvatarId, setPermDialogAvatarId] = useState<string | null>(null)
 
   const menuAvatar     = CUSTOM_AVATARS.find(a => a.id === menuAvatarId)
-  const menuPerm       = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? 'everyone') : 'everyone'
   const menuApprovers  = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER]
-  const menuSpecific   = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : []
-  const menuRequests   = menuAvatarId ? (requestsMap[menuAvatarId]?.length ?? 0) : 0
 
   const permDialogAvatar = CUSTOM_AVATARS.find(a => a.id === permDialogAvatarId)
 
@@ -455,8 +459,9 @@ export default function AvatarLibraryPanel({
     setPermDialogOpen(false)
   }
 
-  const tabs: { label: string; beta?: boolean }[] = [
-    { label: 'Custom', beta: true },
+  const tabs: { label: string; isBeta?: boolean }[] = [
+    { label: 'Custom' },
+    { label: 'Beta', isBeta: true },
     { label: 'Stock' },
     { label: 'Used in video' },
   ]
@@ -527,44 +532,46 @@ export default function AvatarLibraryPanel({
             </IconButton>
           </Box>
 
-          {/* ── Tabs (full width) ─────────────────────────────────── */}
+          {/* ── Tabs ──────────────────────────────────────────────── */}
           <Box sx={{
             display: 'flex', borderBottom: `1px solid ${c.divider}`,
             flexShrink: 0,
           }}>
-            {tabs.map(({ label, beta }, i) => (
+            {tabs.map(({ label, isBeta }, i) => (
               <Box
                 key={label}
-                onClick={() => setTab(i as 0 | 1 | 2)}
+                onClick={() => setTab(i as 0 | 1 | 2 | 3)}
                 sx={{
-                  flex: 1,
+                  flexShrink: 0,
                   py: '8px',
+                  px: '5px',
                   cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                   borderBottom: tab === i ? `2px solid ${c.secondary}` : '2px solid transparent',
                   mb: '-1px',
                   userSelect: 'none',
                 }}
               >
-                <Typography sx={{
-                  fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 13,
-                  color: tab === i ? c.secondary : c.secondaryFade,
-                  whiteSpace: 'nowrap',
-                }}>
-                  {label}
-                </Typography>
-                {beta && (
+                {isBeta ? (
                   <Box sx={{
                     background: GRADIENT_BETA, borderRadius: '4px',
-                    px: '6px', pt: '1px', pb: '2px',
+                    px: '8px', pt: '2px', pb: '3px',
                   }}>
                     <Typography sx={{
-                      fontFamily: '"Open Sans", sans-serif', fontWeight: 500,
-                      fontSize: 10, color: '#fff', lineHeight: 1.5,
+                      fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+                      fontSize: 12, color: '#fff', lineHeight: 1.5,
                     }}>
                       Beta
                     </Typography>
                   </Box>
+                ) : (
+                  <Typography sx={{
+                    fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 12,
+                    color: tab === i ? c.secondary : c.secondaryFade,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {label}
+                  </Typography>
                 )}
                 {/* Request badge on Custom tab */}
                 {label === 'Custom' && total > 0 && (
@@ -616,8 +623,17 @@ export default function AvatarLibraryPanel({
               </Box>
             )}
 
-            {/* Stock tab */}
+            {/* Beta tab */}
             {tab === 1 && (
+              <AvatarGrid
+                avatars={BETA_AVATARS}
+                activeAvatarId={activeAvatarId}
+                onAdd={handleAdd}
+              />
+            )}
+
+            {/* Stock tab */}
+            {tab === 2 && (
               <AvatarGrid
                 avatars={STOCK_AVATARS}
                 activeAvatarId={activeAvatarId}
@@ -626,7 +642,7 @@ export default function AvatarLibraryPanel({
             )}
 
             {/* Used in video tab — only shows dynamically added avatars */}
-            {tab === 2 && (
+            {tab === 3 && (
               usedInVideo.length > 0 ? (
                 <AvatarGrid
                   avatars={usedInVideo}
@@ -665,7 +681,7 @@ export default function AvatarLibraryPanel({
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{
           sx: {
-            borderRadius: '10px', minWidth: 360, maxWidth: 420,
+            borderRadius: '10px', minWidth: 260, maxWidth: 310,
             boxShadow: '0 4px 20px rgba(3,25,79,0.18)',
             p: 0, overflow: 'hidden',
           },
@@ -691,80 +707,42 @@ export default function AvatarLibraryPanel({
 
             <Divider sx={{ borderColor: 'rgba(0,0,0,0.08)' }} />
 
-            {/* Manage permissions (with request badge) */}
-            <MenuItem
-              onClick={e => { e.stopPropagation(); handleOpenPermDialog() }}
-              sx={{ gap: '10px', py: '8px', px: '16px' }}
+            {/* Manage permissions row — icon + label + user chips inline */}
+            <Box
+              onClick={handleOpenPermDialog}
+              sx={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                px: 2, py: 1.25, cursor: 'pointer',
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+              }}
             >
-              <ListItemIcon sx={{ minWidth: 'unset', color: c.textPrimary }}>
-                <LockPersonIcon sx={{ fontSize: 16 }} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Manage permissions"
-                primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary }}
-                sx={{ m: 0 }}
-              />
-              {menuRequests > 0 && (
-                <Box sx={{
-                  width: 18, height: 18, borderRadius: '50%',
-                  bgcolor: c.errorMain, color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700,
-                  fontFamily: '"Open Sans", sans-serif',
-                  flexShrink: 0,
-                }}>
-                  {menuRequests}
-                </Box>
-              )}
-              {/* Approver + usage avatars row — two groups separated by a divider */}
-              <Box sx={{ display: 'flex', gap: '6px', alignItems: 'center', ml: 'auto' }}>
-                {/* Group 1: Approver users (who can allow) */}
+              <LockOutlinedIcon sx={{ fontSize: 18, color: c.actionActive, flexShrink: 0 }} />
+              <Typography sx={{
+                fontFamily: '"Open Sans", sans-serif', fontSize: 13,
+                fontWeight: 400, color: c.textPrimary, flex: 1,
+              }}>
+                Manage permissions
+              </Typography>
+              {/* User chips — approvers + requesters */}
+              <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
                 {menuApprovers.map(user => (
                   <AvatarChip
                     key={user.id}
                     initials={user.initials}
-                    tooltip={`${user.name} (You)\nCan manage access, delete, and rename.`}
+                    color={user.color}
+                    tooltip={`${user.name}\nCan manage access, delete, and rename.`}
                   />
                 ))}
-
-                {/* Vertical divider between the two groups */}
-                {(menuPerm === 'everyone' || (menuPerm === 'specific' && menuSpecific.length > 0)) && (
-                  <Box sx={{
-                    width: '1px', height: 20,
-                    bgcolor: 'rgba(0,0,0,0.12)',
-                    flexShrink: 0,
-                  }} />
-                )}
-
-                {/* Group 2: who can use — show both specific users and everyone when applicable */}
-                {menuSpecific.length > 0 && menuSpecific.map(user => (
+                {(menuAvatarId ? (requestsMap[menuAvatarId] ?? []) : []).map(req => (
                   <AvatarChip
-                    key={user.id}
-                    initials={user.initials}
-                    tooltip={`${user.name} can use this avatar.`}
+                    key={req.id}
+                    initials={req.initials}
+                    color={req.color}
+                    tooltip={`${req.name}\nRequested access`}
                   />
                 ))}
-
-                {menuPerm === 'everyone' && (
-                  <Tooltip
-                    title="Everyone in your account can use this custom avatar."
-                    placement="top"
-                    arrow
-                    componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-                  >
-                    <Box sx={{
-                      width: 28, height: 28,
-                      bgcolor: 'rgba(0,83,229,0.12)',
-                      borderRadius: '6px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'default',
-                    }}>
-                      <GroupsIcon sx={{ fontSize: 16, color: c.primary }} />
-                    </Box>
-                  </Tooltip>
-                )}
               </Box>
-            </MenuItem>
+            </Box>
 
             <Divider sx={{ borderColor: 'rgba(0,0,0,0.08)' }} />
 

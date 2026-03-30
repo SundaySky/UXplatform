@@ -2,10 +2,11 @@ import { useState, useRef } from 'react'
 import {
   Box, Typography, Button, Avatar, IconButton, Tooltip, SvgIcon,
   InputAdornment, OutlinedInput,
-  Menu, MenuItem, ListItemIcon, ListItemText, Divider,
+  Menu, MenuItem, ListItemText, Divider,
 } from '@mui/material'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
 import ApprovalDialog from './ApprovalDialog'
+import ConfirmationDialog from './ConfirmationDialog'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import { TOTAL_COMMENT_COUNT } from './StudioPage'
 import { OWNER_USER } from './ManageAccessDialog'
@@ -362,10 +363,12 @@ export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?
   )
 }
 
-function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void }) {
+function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void; onSubmitForApproval?: (videoKey: string, approvers: string[]) => void }) {
   const [hovered,       setHovered]    = useState(false)
   const [menuAnchor,    setMenuAnchor] = useState<HTMLElement | null>(null)
   const [videoPermOpen, setVideoPermOpen] = useState(false)
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
+  const [confirmApprovers, setConfirmApprovers] = useState<string[]>([])
   const [approvalOpen,  setApprovalOpen]  = useState(false)
   // Saved so we can re-open the menu after the permission dialog closes
   const savedMenuAnchor = useRef<HTMLElement | null>(null)
@@ -377,7 +380,11 @@ function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoIt
 
   return (
     <Box
-      onClick={onClick}
+      onClick={() => {
+        // Don't navigate while any dialog is open — React portal clicks bubble through component tree
+        if (approvalOpen || confirmationOpen || videoPermOpen) return
+        onClick?.()
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       sx={{
@@ -483,60 +490,60 @@ function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoIt
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><InfoOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><InfoOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Details</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><OpenInNewIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><OpenInNewIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Video Page</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => { e.stopPropagation(); savedMenuAnchor.current = menuAnchor; setMenuAnchor(null); setVideoPermOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => { e.stopPropagation(); savedMenuAnchor.current = menuAnchor; setMenuAnchor(null); setVideoPermOpen(true) }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><LockPersonIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
           <PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />
         </MenuItem>
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => { closeMenu(e); setApprovalOpen(true) }} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive, fontSize: 16 }}><ImageCircleCheckIcon /></ListItemIcon>
+        <MenuItem onClick={e => { closeMenu(e); setApprovalOpen(true) }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ImageCircleCheckIcon /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
         </MenuItem>
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ContentCopyIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ContentCopyIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Duplicate video</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><DashboardCustomizeOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><DashboardCustomizeOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Video to template</ListItemText>
         </MenuItem>
 
         <Divider sx={{ my: '4px', borderColor: t.divider }} />
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><FolderOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><FolderOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Move to folder</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ArchiveOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ArchiveOutlinedIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Archive</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '10px', py: '8px', px: '16px' }}>
-          <ListItemIcon sx={{ minWidth: 'unset', color: t.errorMain }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+        <MenuItem onClick={e => closeMenu(e)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+          <Box sx={{ color: t.errorMain, display: 'flex', alignItems: 'center', flexShrink: 0 }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.errorMain }}>Delete</ListItemText>
         </MenuItem>
       </Menu>
@@ -553,7 +560,19 @@ function VideoCard({ video, onClick, liveState, onPermChange }: { video: VideoIt
       <ApprovalDialog
         open={approvalOpen}
         onClose={() => setApprovalOpen(false)}
-        onSend={approvers => { console.log('Approvers:', approvers); setApprovalOpen(false) }}
+        onSend={approvers => {
+          setApprovalOpen(false)
+          setConfirmApprovers(approvers)
+          setConfirmationOpen(true)
+          onSubmitForApproval?.(video.title, approvers)
+        }}
+      />
+
+      {/* Approval confirmation dialog */}
+      <ConfirmationDialog
+        open={confirmationOpen}
+        onClose={() => setConfirmationOpen(false)}
+        approverCount={confirmApprovers.length}
       />
     </Box>
   )
@@ -804,11 +823,12 @@ const FOLDERS = [
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates, onPermChange }: {
-  onSelectVideo:  (v: VideoItem) => void
-  notifications?: NotificationItem[]
-  videoStates?:   Record<string, LiveVideoState>
-  onPermChange?:  (key: string, s: VideoPermissionSettings) => void
+export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates, onPermChange, onSubmitForApproval }: {
+  onSelectVideo:         (v: VideoItem) => void
+  notifications?:        NotificationItem[]
+  videoStates?:          Record<string, LiveVideoState>
+  onPermChange?:         (key: string, s: VideoPermissionSettings) => void
+  onSubmitForApproval?:  (videoKey: string, approvers: string[]) => void
 }) {
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: '#FFFFFF', overflow: 'hidden' }}>
@@ -906,6 +926,7 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
                     liveState={videoStates?.[v.title]}
                     onClick={() => onSelectVideo(v)}
                     onPermChange={onPermChange}
+                    onSubmitForApproval={onSubmitForApproval}
                   />
                 </Box>
               ))}
