@@ -32,9 +32,6 @@ import OpenInNewIcon                  from '@mui/icons-material/OpenInNew'
 import GroupsIcon                     from '@mui/icons-material/Groups'
 import ArchiveOutlinedIcon            from '@mui/icons-material/ArchiveOutlined'
 import LockPersonIcon                 from '@mui/icons-material/LockPerson'
-import VpnKeyOutlinedIcon             from '@mui/icons-material/VpnKeyOutlined'
-import EditOutlinedIcon               from '@mui/icons-material/EditOutlined'
-import VisibilityOutlinedIcon         from '@mui/icons-material/VisibilityOutlined'
 
 // ─── Custom icon: FA "image-circle-check" approximation ──────────────────────
 function ImageCircleCheckIcon() {
@@ -303,13 +300,14 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
   }
   const { tab, everyoneRole, users, ownerUsers } = s
 
-  const miniAvatar = (key: string, icon: React.ReactNode, tip: string) => (
+  const miniAvatar = (key: string, content: React.ReactNode, tip: string) => (
     <Tooltip key={key} title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
       <Box sx={{
         width: 20, height: 20, borderRadius: '4px', bgcolor: 'rgba(0,83,229,0.12)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 10,
+        fontWeight: 600, lineHeight: 1, fontFamily: '"Open Sans", sans-serif',
       }}>
-        {icon}
+        {content}
       </Box>
     </Tooltip>
   )
@@ -324,27 +322,37 @@ function PermAvatarGroup({ settings }: { settings?: VideoPermissionSettings }) {
 
   return (
     <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+      {/* Owners — show initials with user color */}
       {ownerUsers.slice(0, 2).map(u =>
         miniAvatar(u.id,
-          <VpnKeyOutlinedIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: u.color, lineHeight: 1 }}>
+            {u.initials}
+          </Typography>,
           `${u.name}${u.id === OWNER_USER.id ? ' (You)' : ''} — Owner`,
         )
       )}
+      {/* Editors — show initials with user color */}
       {users.filter(pu => pu.role === 'editor').slice(0, 2).map(pu =>
         miniAvatar(pu.user.id,
-          <EditOutlinedIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: pu.user.color, lineHeight: 1 }}>
+            {pu.user.initials}
+          </Typography>,
           `${pu.user.name} — Editor`,
         )
       )}
+      {/* Viewers — show initials with user color */}
       {users.filter(pu => pu.role === 'viewer').slice(0, 1).map(pu =>
         miniAvatar(pu.user.id + '_v',
-          <VisibilityOutlinedIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 10, fontWeight: 600, color: pu.user.color, lineHeight: 1 }}>
+            {pu.user.initials}
+          </Typography>,
           `${pu.user.name} — Viewer`,
         )
       )}
+      {/* Everyone — show with icon in black */}
       {everyoneRole !== 'restricted' &&
         miniAvatar('everyone',
-          <GroupsIcon sx={{ fontSize: 12, color: '#0053E5' }} />,
+          <GroupsIcon sx={{ fontSize: 12, color: 'rgba(0,0,0,0.87)' }} />,
           `Everyone in your account — Can ${everyoneRole === 'editor' ? 'edit' : 'view'}`,
         )
       }

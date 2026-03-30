@@ -242,15 +242,19 @@ function PersonRow({
 
 // ─── Inline Add Users Autocomplete ────────────────────────────────────────────
 function InlineAddUsers({
-  value, onChange, excludeIds, addRole, onRoleClick, onCancel, onAdd,
+  value, onChange, excludeIds, addRole, onRoleClick, onCancel, onAdd, noDuplicate, onNoDuplicateChange, notifyEmail, onNotifyEmailChange,
 }: {
-  value:       User[]
-  onChange:    (v: User[]) => void
-  excludeIds:  string[]
-  addRole:     UserRole
-  onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
-  onCancel:    () => void
-  onAdd:       () => void
+  value:                User[]
+  onChange:             (v: User[]) => void
+  excludeIds:           string[]
+  addRole:              UserRole
+  onRoleClick:          (e: React.MouseEvent<HTMLElement>) => void
+  onCancel:             () => void
+  onAdd:                () => void
+  noDuplicate?:         boolean
+  onNoDuplicateChange?: (v: boolean) => void
+  notifyEmail?:         boolean
+  onNotifyEmailChange?: (v: boolean) => void
 }) {
   const options = ALL_USERS.filter(u => !excludeIds.includes(u.id))
   return (
@@ -344,7 +348,42 @@ function InlineAddUsers({
         ListboxProps={{ sx: { p: '4px', maxHeight: 240, '& .MuiAutocomplete-option': { borderRadius: '6px', '&.Mui-focused': { bgcolor: 'rgba(0,83,229,0.06)' } } } }}
         slotProps={{ paper: { sx: { borderRadius: '8px', boxShadow: '0px 0px 10px rgba(3,25,79,0.18)', mt: '4px' } } }}
       />
-      <Box sx={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+
+      {/* Allow to duplicate checkbox - only for viewers */}
+      {addRole === 'viewer' && (
+        <Box sx={{ mt: '16px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Checkbox
+              checked={!noDuplicate}
+              onChange={e => onNoDuplicateChange?.(e.target.checked ? false : true)}
+              size="small"
+              disableRipple
+              sx={{ p: 0, '&.Mui-checked': { color: c.primary } }}
+            />
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary }}>
+              Allow to duplicate videos
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {/* Notify via email checkbox */}
+      <Box sx={{ mt: '16px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Checkbox
+            checked={notifyEmail ?? false}
+            onChange={e => onNotifyEmailChange?.(e.target.checked)}
+            size="small"
+            disableRipple
+            sx={{ p: 0, '&.Mui-checked': { color: c.primary } }}
+          />
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary }}>
+            Notify via email
+          </Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', mt: '20px' }}>
         <Button size="small" onClick={onCancel}
           sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: c.textSecondary, textTransform: 'none' }}>
           Cancel
@@ -388,10 +427,12 @@ export default function VideoPermissionDialog({
   const [showDiscard,  setShowDiscard]  = useState(false)
 
   // Add users dialog state (separate dialog that replaces main content)
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [addUsers,      setAddUsers]      = useState<User[]>([])
-  const [addRole,       setAddRole]       = useState<UserRole>('editor')
-  const [addRoleAnchor, setAddRoleAnchor] = useState<null | HTMLElement>(null)
+  const [showAddDialog,    setShowAddDialog]    = useState(false)
+  const [addUsers,         setAddUsers]         = useState<User[]>([])
+  const [addRole,          setAddRole]          = useState<UserRole>('editor')
+  const [addRoleAnchor,    setAddRoleAnchor]    = useState<null | HTMLElement>(null)
+  const [addNoDuplicate,   setAddNoDuplicate]   = useState(false)
+  const [notifyViaEmail,   setNotifyViaEmail]   = useState(true)
 
   useEffect(() => {
     if (open) {
@@ -408,6 +449,8 @@ export default function VideoPermissionDialog({
       setAddUsers([])
       setAddRole('editor')
       setAddRoleAnchor(null)
+      setAddNoDuplicate(false)
+      setNotifyViaEmail(true)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -556,7 +599,7 @@ export default function VideoPermissionDialog({
                   bgcolor: '#fff',
                   '&.Mui-selected': {
                     bgcolor: c.primaryTabBg,
-                    color: c.primary,
+                    color: c.textPrimary,
                     fontWeight: 600,
                     '&:hover': { bgcolor: 'rgba(0,83,229,0.12)' },
                   },
@@ -664,8 +707,12 @@ export default function VideoPermissionDialog({
               excludeIds={excludeIdsForAdd}
               addRole={addRole}
               onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
-              onCancel={() => { setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null) }}
+              onCancel={() => { setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null); setAddNoDuplicate(false); setNotifyViaEmail(true) }}
               onAdd={handleAddUsers}
+              noDuplicate={addNoDuplicate}
+              onNoDuplicateChange={setAddNoDuplicate}
+              notifyEmail={notifyViaEmail}
+              onNotifyEmailChange={setNotifyViaEmail}
             />
           </DialogContent>
         )}

@@ -199,7 +199,7 @@ function VideoPermissionStrip({
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, alignSelf: 'center',
           }}>
-            <RoleIcon sx={{ fontSize: 10, color: t.primaryMain }} />
+            <RoleIcon sx={{ fontSize: 10, color: 'rgba(0,0,0,0.87)' }} />
           </Box>
           {label && (
             <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12, lineHeight: 1.5, color: t.textSecondary }}>
