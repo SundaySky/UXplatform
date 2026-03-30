@@ -413,6 +413,33 @@ export default function AvatarLibraryPanel({
   const menuApprovers  = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER]
   const menuSpecific   = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : []
   const menuPerm       = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? 'everyone') : 'everyone'
+  const menuRequests   = menuAvatarId ? (requestsMap[menuAvatarId] ?? []) : []
+  const menuHasEveryone = menuPerm === 'everyone'
+
+  // Chip overflow logic: max 3 of (specificUsers + everyone slot), everyone always 2nd-to-last, +N last
+  const MAX_PERMITTED = 3
+  const everyoneSlot = menuHasEveryone ? 1 : 0
+  const maxSpecificVisible = Math.max(0, MAX_PERMITTED - everyoneSlot)
+  const visibleSpecific = menuSpecific.slice(0, maxSpecificVisible)
+  const hiddenSpecific  = menuSpecific.slice(maxSpecificVisible)
+  const overflowN = hiddenSpecific.length + menuRequests.length
+
+  const overflowTipContent = overflowN > 0 ? (
+    <Box>
+      {hiddenSpecific.length > 0 && (
+        <Box sx={{ mb: menuRequests.length > 0 ? '8px' : 0 }}>
+          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', mb: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Can use</Typography>
+          {hiddenSpecific.map(u => <Typography key={u.id} sx={{ fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.5 }}>{u.name}</Typography>)}
+        </Box>
+      )}
+      {menuRequests.length > 0 && (
+        <Box>
+          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', mb: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Requested access</Typography>
+          {menuRequests.map(r => <Typography key={r.id} sx={{ fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.5 }}>{r.name}</Typography>)}
+        </Box>
+      )}
+    </Box>
+  ) : null
 
   const permDialogAvatar = CUSTOM_AVATARS.find(a => a.id === permDialogAvatarId)
 
@@ -682,7 +709,7 @@ export default function AvatarLibraryPanel({
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{
           sx: {
-            borderRadius: '10px', minWidth: 360, maxWidth: 460,
+            borderRadius: '10px', minWidth: 260, maxWidth: 310,
             boxShadow: '0 4px 20px rgba(3,25,79,0.18)',
             p: 0, overflow: 'hidden',
           },
@@ -724,47 +751,30 @@ export default function AvatarLibraryPanel({
               }}>
                 Manage permissions
               </Typography>
-              {/* User chips — approvers + specific users + everyone icon + requesters */}
+              {/* User chips: approvers → visible specific → everyone (2nd-to-last) → +N (last) */}
               <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
                 {menuApprovers.map(user => (
-                  <AvatarChip
-                    key={user.id}
-                    initials={user.initials}
-                    tooltip={`${user.name}\nCan manage access, delete, and rename.`}
-                  />
+                  <AvatarChip key={user.id} initials={user.initials} tooltip={`${user.name}\nCan manage access, delete, and rename.`} />
                 ))}
-                {menuSpecific.map(user => (
-                  <AvatarChip
-                    key={user.id}
-                    initials={user.initials}
-                    tooltip={`${user.name} can use this avatar.`}
-                  />
+                {visibleSpecific.map(user => (
+                  <AvatarChip key={user.id} initials={user.initials} tooltip={`${user.name} can use this avatar.`} />
                 ))}
-                {menuPerm === 'everyone' && (
-                  <Tooltip
-                    title="Everyone in your account can use this custom avatar."
-                    placement="top"
-                    arrow
-                    componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-                  >
-                    <Box sx={{
-                      width: 28, height: 28,
-                      bgcolor: 'rgba(0,83,229,0.12)',
-                      borderRadius: '6px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'default', flexShrink: 0,
-                    }}>
-                      <GroupsIcon sx={{ fontSize: 16, color: '#0053E5' }} />
+                {menuHasEveryone && (
+                  <Tooltip title="Everyone in your account can use this custom avatar." placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+                    <Box sx={{ width: 28, height: 28, bgcolor: 'rgba(0,83,229,0.12)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default', flexShrink: 0 }}>
+                      <GroupsIcon sx={{ fontSize: 16, color: 'rgba(0,0,0,0.87)' }} />
                     </Box>
                   </Tooltip>
                 )}
-                {(menuAvatarId ? (requestsMap[menuAvatarId] ?? []) : []).map(req => (
-                  <AvatarChip
-                    key={req.id}
-                    initials={req.initials}
-                    tooltip={`${req.name}\nRequested access`}
-                  />
-                ))}
+                {overflowN > 0 && (
+                  <Tooltip title={overflowTipContent} placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+                    <Box sx={{ width: 28, height: 28, bgcolor: 'rgba(0,0,0,0.08)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default', flexShrink: 0 }}>
+                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 700, fontSize: 10, color: 'rgba(0,0,0,0.56)', lineHeight: 1 }}>
+                        +{overflowN}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
+                )}
               </Box>
             </Box>
 
