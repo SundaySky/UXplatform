@@ -214,8 +214,7 @@ function AvatarCard({
           }}>
             {/* + Add / Replace */}
             <Button
-              variant="contained"
-              size="small"
+              variant="text"
               startIcon={
                 anyActive
                   ? <SwapHorizIcon sx={{ fontSize: '14px !important' }} />
@@ -227,16 +226,12 @@ function AvatarCard({
                 fontWeight: 600,
                 fontSize: 12,
                 textTransform: 'none',
-                borderRadius: '6px',
-                py: '3px',
+                height: 24,
                 px: '8px',
                 minWidth: 0,
-                bgcolor: '#fff',
-                color: c.secondary,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                color: c.primary,
                 '&:hover': {
-                  bgcolor: '#f0f4ff',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                  bgcolor: 'rgba(0,83,229,0.08)',
                 },
               }}
             >
@@ -428,9 +423,13 @@ export default function AvatarLibraryPanel({
   const hiddenUsers = allUsers.slice(maxVisibleUsers)
   const showEveryoneAsChip = menuHasEveryone && !showOverflow
   const overflowN = showOverflow ? hiddenUsers.length + 1 : 0  // Hidden users + everyone
+  const everyonePermText = menuEveryoneRole === 'restricted' ? 'request to use' : 'use'
 
   const overflowTipContent = showOverflow ? (
     <Box>
+      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 600, mb: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        Users who can use this avatar
+      </Typography>
       {hiddenUsers.map(u => (
         <Typography key={u.id} sx={{ fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.5 }}>
           {u.name}
@@ -441,7 +440,7 @@ export default function AvatarLibraryPanel({
       )}
       {menuHasEveryone && (
         <Typography sx={{ fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.5 }}>
-          Everyone in your account
+          Everyone in your account can {everyonePermText}
         </Typography>
       )}
     </Box>
