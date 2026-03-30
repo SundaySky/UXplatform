@@ -26,7 +26,8 @@ import {
 import ApprovalDialog     from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
 import ApproveVideoDialog    from './ApproveVideoDialog'
-import CancelApprovalDialog  from './CancelApprovalDialog'
+import CancelApprovalDialog       from './CancelApprovalDialog'
+import WorkflowApprovalStepper   from './WorkflowApprovalStepper'
 import VideoLibraryPage, { type VideoItem, PermAvatarGroup } from './VideoLibraryPage'
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from './StudioPage'
 import { type NotificationItem } from './NotificationsPanel'
@@ -1484,7 +1485,7 @@ export default function App() {
                   px: 4, pb: 4, pt: 2,
                   display: 'flex', gap: 3, alignItems: 'flex-start',
                 }}>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <VideoPreviewCard
                       videoPhase={videoPhase}
                       effectiveStatus={effectiveStatus}
@@ -1506,6 +1507,12 @@ export default function App() {
                       videoPermSettings={videoPermSettings}
                       onManageAccess={() => setVideoPermDialogOpen(true)}
                     />
+                    {videoPhase >= 1 && (
+                      <WorkflowApprovalStepper
+                        phase={videoPhase}
+                        approvers={sentApprovers.length > 0 ? sentApprovers : ['sjohnson', 'erodriguez']}
+                      />
+                    )}
                   </Box>
                   <ReviewOptionsPanel isPending={effectiveStatus === 'pending' && videoPhase !== 2} />
                 </Box>
