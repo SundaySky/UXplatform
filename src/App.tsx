@@ -1251,8 +1251,20 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
             </Button>
 
             {/* Dot navigation */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: '2px', mt: '4px' }}>
-              <IconButton size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={{ color: t.actionActive }}>
+            <Box
+              className="task-nav"
+              sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: '2px', mt: '4px',
+                '&:hover .task-nav-arrow': { opacity: 1 },
+              }}
+            >
+              <IconButton
+                className="task-nav-arrow"
+                size="small"
+                disabled={currentIdx === 0}
+                onClick={() => setCurrentIdx(i => i - 1)}
+                sx={{ color: t.actionActive, opacity: 0, transition: 'opacity 0.15s' }}
+              >
                 <ArrowBackIcon sx={{ fontSize: 18 }} />
               </IconButton>
               <Box sx={{ display: 'flex', gap: '5px' }}>
@@ -1268,7 +1280,13 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                   />
                 ))}
               </Box>
-              <IconButton size="small" disabled={currentIdx === tasks.length - 1} onClick={() => setCurrentIdx(i => i + 1)} sx={{ color: t.actionActive }}>
+              <IconButton
+                className="task-nav-arrow"
+                size="small"
+                disabled={currentIdx === tasks.length - 1}
+                onClick={() => setCurrentIdx(i => i + 1)}
+                sx={{ color: t.actionActive, opacity: 0, transition: 'opacity 0.15s' }}
+              >
                 <ArrowForwardIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Box>
