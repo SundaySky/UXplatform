@@ -583,11 +583,7 @@ function VideoPreviewCard({
                     placement="top"
                     arrow
                     componentsProps={{
-                        tooltip: { sx: {
-                            bgcolor: t.secondaryMain, borderRadius: 2, px: "12px", pt: "10px", pb: "12px",
-                            fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14,
-                            lineHeight: 1.5, color: "#fff", maxWidth: 320
-                        } },
+                        tooltip: { sx: { bgcolor: t.secondaryMain, borderRadius: 2, px: "12px", pt: "10px", pb: "12px", fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: "#fff", maxWidth: 320 } },
                         arrow:   { sx: { color: t.secondaryMain } }
                     }}
                 >
@@ -616,11 +612,7 @@ function VideoPreviewCard({
                 • {respondedName} left feedback on Mar 15
                             </Typography>
                             {pendingNames.map((name, i) => (
-                                <Typography key={i} sx={{
-                                    fontFamily: "\"Open Sans\", sans-serif", fontSize: 12, color: "#fff",
-                                    lineHeight: 1.6, display: "block",
-                                    mb: i === pendingNames.length - 1 ? "8px" : "2px"
-                                }}>
+                                <Typography key={i} sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 12, color: "#fff", lineHeight: 1.6, display: "block", mb: i === pendingNames.length - 1 ? "8px" : "2px" }}>
                   • {name} hasn't responded yet
                                 </Typography>
                             ))}
@@ -658,10 +650,7 @@ function VideoPreviewCard({
                 <Button variant="contained" size="small" color="primary"
                     startIcon={
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="16" height="16" fill="currentColor">
-                            <path d={
-                                "M256 32C114.6 32 0 125.1 0 240c0 49.6 21.4 95 57 130.7C44.5 421.1 2.7 466 2.2 466.5c-2.2 2.3-2.8 5.7-1.5 8.7S4.8 480 8 480c66.3 0 116-31.8 140.6-51.4"
-                                + "C169.1 433.1 212.2 448 256 448c141.4 0 256-93.1 256-208S397.4 32 256 32z"
-                            } />
+                            <path d="M256 32C114.6 32 0 125.1 0 240c0 49.6 21.4 95 57 130.7C44.5 421.1 2.7 466 2.2 466.5c-2.2 2.3-2.8 5.7-1.5 8.7S4.8 480 8 480c66.3 0 116-31.8 140.6-51.4C169.1 433.1 212.2 448 256 448c141.4 0 256-93.1 256-208S397.4 32 256 32z"/>
                         </svg>
                     }
                     onClick={() => onEdit(true)}
@@ -679,11 +668,7 @@ function VideoPreviewCard({
                     placement="top"
                     arrow
                     componentsProps={{
-                        tooltip: { sx: {
-                            bgcolor: t.secondaryMain, borderRadius: 2, px: "12px", pt: "10px", pb: "12px",
-                            fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14,
-                            lineHeight: 1.5, color: "#fff", maxWidth: 320
-                        } },
+                        tooltip: { sx: { bgcolor: t.secondaryMain, borderRadius: 2, px: "12px", pt: "10px", pb: "12px", fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: "#fff", maxWidth: 320 } },
                         arrow:   { sx: { color: t.secondaryMain } }
                     }}
                 >
@@ -922,11 +907,7 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
                     ].map(({ icon, label }) => (
                         <Box key={label} sx={{ display: "flex", alignItems: "center", px: 1, py: "4px", gap: 1 }}>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 16, pr: 1, height: 24 }}>{icon}</Box>
-                            <Typography sx={{
-                                fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
-                                lineHeight: 1.66, color: t.textSecondary, letterSpacing: "0.4px",
-                                flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-                            }}>
+                            <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12, lineHeight: 1.66, color: t.textSecondary, letterSpacing: "0.4px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {label}
                             </Typography>
                             <UpdatedLabel />
@@ -986,18 +967,11 @@ interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
     { id: 1, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
-    { id: 2, label: [
-        "You want to check and review any response to your approval request.",
-        "You also realized the opening scene heading is missing 2026 and you want to add it at the end of the heading."
-    ], done: false },
+    { id: 2, label: ["You want to check and review any response to your approval request.", "You also realized the opening scene heading is missing 2026 and you want to add it at the end of the heading."], done: false },
     { id: 3, label: "Sarah mentioned she submitted feedback for your approval", done: false },
     { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
-    { id: 5, label: "You are creating a video for a top-secret new product launching later this year. "
-        + "You and Eli Bogan are the only persons authorized to edit this video. "
-        + "No one else can view or access the video or its assets.", done: false },
-    { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, "
-        + "Chris's avatar to create deepfake content. They've asked you to ensure that other users "
-        + "in the organization cannot access or use this avatar.", done: false }
+    { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
+    { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false }
 ];
 
 type SessionState = "idle" | "active" | "survey" | "complete"
@@ -1292,8 +1266,20 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                         </Button>
 
                         {/* Dot navigation */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pt: "2px", mt: "4px" }}>
-                            <IconButton size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={{ color: t.actionActive }}>
+                        <Box
+                            className="task-nav"
+                            sx={{
+                                display: "flex", alignItems: "center", justifyContent: "space-between", pt: "2px", mt: "4px",
+                                "&:hover .task-nav-arrow": { opacity: 1 }
+                            }}
+                        >
+                            <IconButton
+                                className="task-nav-arrow"
+                                size="small"
+                                disabled={currentIdx === 0}
+                                onClick={() => setCurrentIdx(i => i - 1)}
+                                sx={{ color: t.actionActive, opacity: 0, transition: "opacity 0.15s" }}
+                            >
                                 <ArrowBackIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                             <Box sx={{ display: "flex", gap: "5px" }}>
@@ -1309,7 +1295,13 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                                     />
                                 ))}
                             </Box>
-                            <IconButton size="small" disabled={currentIdx === tasks.length - 1} onClick={() => setCurrentIdx(i => i + 1)} sx={{ color: t.actionActive }}>
+                            <IconButton
+                                className="task-nav-arrow"
+                                size="small"
+                                disabled={currentIdx === tasks.length - 1}
+                                onClick={() => setCurrentIdx(i => i + 1)}
+                                sx={{ color: t.actionActive, opacity: 0, transition: "opacity 0.15s" }}
+                            >
                                 <ArrowForwardIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                         </Box>
@@ -1329,11 +1321,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 const PHASE_STATUS: Record<number, "draft" | "pending" | "approved"> = { 0: "draft", 1: "pending", 2: "pending", 3: "approved", 4: "approved" };
 
 // Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
-type VideoState = {
-    phase: number; pageState: "draft" | "pending"; sentApprovers: string[];
-    commentsCleared?: boolean; headingText?: string; subheadingText?: string;
-    permSettings?: VideoPermissionSettings;
-}
+type VideoState = { phase: number; pageState: "draft" | "pending"; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string; permSettings?: VideoPermissionSettings }
 const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: "draft", sentApprovers: [] };
 
 export default function App() {

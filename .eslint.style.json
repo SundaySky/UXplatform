@@ -3,7 +3,7 @@
         "max-len": [
             "error",
             {
-                "code": 200
+                "code": 600
             }
         ],
         "indent": ["error", 4, { "SwitchCase": 1 }],

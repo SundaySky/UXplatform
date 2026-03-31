@@ -12,6 +12,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import TokenOutlinedIcon from "@mui/icons-material/TokenOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import GroupsIcon from "@mui/icons-material/Groups";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
@@ -103,25 +104,23 @@ const BETA_AVATARS: AvatarItem[] = [
 // ─── Rounded-square avatar chip (for options menu) ─────────────────────────
 function AvatarChip({
     initials,
-    color,
     tooltip
 }: {
   initials: string
-  color: string
   tooltip: string
 }) {
     return (
         <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
             <Box sx={{
                 width: 28, height: 28,
-                bgcolor: color,
+                bgcolor: "rgba(0,83,229,0.12)",
                 borderRadius: "6px",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "default", flexShrink: 0
             }}>
                 <Typography sx={{
                     fontFamily: "\"Open Sans\", sans-serif", fontWeight: 700,
-                    fontSize: 10, color: "#fff", lineHeight: 1
+                    fontSize: 10, color: "rgba(0,0,0,0.87)", lineHeight: 1
                 }}>
                     {initials}
                 </Typography>
@@ -150,7 +149,7 @@ function AvatarCard({
 }) {
     const [hovered, setHovered] = useState(false);
     const perm = permSettings?.usagePermission ?? "everyone";
-    const showPermIcon = perm !== "everyone";
+    const showPermIcon = false; // Don't show lock icon on avatar thumbnail
 
     const permTooltip = perm === "private"
         ? "Only you can use this avatar. Everyone else can view it."
@@ -215,8 +214,6 @@ function AvatarCard({
                     }}>
                         {/* + Add / Replace */}
                         <Button
-                            variant="contained"
-                            size="small"
                             startIcon={
                                 anyActive
                                     ? <SwapHorizIcon sx={{ fontSize: "14px !important" }} />
@@ -230,16 +227,15 @@ function AvatarCard({
                                 fontWeight: 600,
                                 fontSize: 12,
                                 textTransform: "none",
-                                borderRadius: "6px",
-                                py: "3px",
+                                height: 24,
                                 px: "8px",
                                 minWidth: 0,
                                 bgcolor: "#fff",
-                                color: c.secondary,
+                                color: c.primary,
+                                borderRadius: "6px",
                                 boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
                                 "&:hover": {
-                                    bgcolor: "#f0f4ff",
-                                    boxShadow: "0 1px 4px rgba(0,0,0,0.18)"
+                                    bgcolor: "#f0f4ff"
                                 }
                             }}
                         >
@@ -416,6 +412,45 @@ export default function AvatarLibraryPanel({
 
     const menuAvatar = CUSTOM_AVATARS.find(a => a.id === menuAvatarId);
     const menuApprovers = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER];
+    const menuSpecific = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : [];
+    const menuPerm = menuAvatarId ? (permMap[menuAvatarId]?.usagePermission ?? "everyone") : "everyone";
+    const menuEveryoneRole = menuAvatarId ? (permMap[menuAvatarId]?.everyoneRole ?? "restricted") : "restricted";
+    // Show the "everyone" icon when permission is set to 'everyone', regardless of everyoneRole
+    const menuHasEveryone = menuPerm === "everyone";
+
+    // Chip overflow logic: max 3 visible total chips (approvers + specific + everyone)
+    // If more than 3, show first 2 user chips + [+N] overflow with hidden users + everyone in tooltip
+    const allUsers = [...menuApprovers, ...menuSpecific];
+    const totalItems = allUsers.length + (menuHasEveryone ? 1 : 0);
+
+    const showOverflow = totalItems > 3;
+    const maxVisibleUsers = showOverflow ? 2 : Math.min(3, allUsers.length);
+    const visibleUsers = allUsers.slice(0, maxVisibleUsers);
+    const hiddenUsers = allUsers.slice(maxVisibleUsers);
+    const showEveryoneAsChip = menuHasEveryone && !showOverflow;
+    const overflowN = showOverflow ? hiddenUsers.length + 1 : 0; // Hidden users + everyone
+    const everyonePermText = menuEveryoneRole === "restricted" ? "request to use" : "use";
+
+    const overflowTipContent = showOverflow ? (
+        <Box>
+            <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600, mb: "12px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        Users who can use this avatar
+            </Typography>
+            {hiddenUsers.map(u => (
+                <Typography key={u.id} sx={{ fontSize: 12, color: "#fff", fontWeight: 500, lineHeight: 1.5 }}>
+                    {u.name}
+                </Typography>
+            ))}
+            {hiddenUsers.length > 0 && menuHasEveryone && (
+                <Divider sx={{ borderColor: "rgba(255,255,255,0.2)", my: "6px" }} />
+            )}
+            {menuHasEveryone && (
+                <Typography sx={{ fontSize: 12, color: "#fff", fontWeight: 500, lineHeight: 1.5 }}>
+          Everyone in your account can {everyonePermText}
+                </Typography>
+            )}
+        </Box>
+    ) : null;
 
     const permDialogAvatar = CUSTOM_AVATARS.find(a => a.id === permDialogAvatarId);
 
@@ -725,28 +760,36 @@ export default function AvatarLibraryPanel({
                             <LockOutlinedIcon sx={{ fontSize: 18, color: c.actionActive, flexShrink: 0 }} />
                             <Typography sx={{
                                 fontFamily: "\"Open Sans\", sans-serif", fontSize: 13,
-                                fontWeight: 400, color: c.textPrimary, flex: 1
+                                fontWeight: 400, color: c.textPrimary, flex: 1,
+                                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
                             }}>
                 Manage permissions
                             </Typography>
-                            {/* User chips — approvers + requesters */}
-                            <Box sx={{ display: "flex", gap: "4px", alignItems: "center", flexShrink: 0 }}>
-                                {menuApprovers.map(user => (
-                                    <AvatarChip
-                                        key={user.id}
-                                        initials={user.initials}
-                                        color={user.color}
-                                        tooltip={`${user.name}\nCan manage access, delete, and rename.`}
-                                    />
-                                ))}
-                                {(menuAvatarId ? (requestsMap[menuAvatarId] ?? []) : []).map(req => (
-                                    <AvatarChip
-                                        key={req.id}
-                                        initials={req.initials}
-                                        color={req.color}
-                                        tooltip={`${req.name}\nRequested access`}
-                                    />
-                                ))}
+                            {/* User chips: up to 3 total (approvers + specific), overflow +N, then everyone in tooltip if applicable */}
+                            <Box sx={{ display: "flex", gap: "4px", alignItems: "center", flexShrink: 0, minWidth: 0 }}>
+                                {visibleUsers.map(user => {
+                                    const isApprover = menuApprovers.some(a => a.id === user.id);
+                                    const tooltip = isApprover
+                                        ? `${user.name}\nCan manage access, delete, and rename.`
+                                        : `${user.name} can use this avatar.`;
+                                    return <AvatarChip key={user.id} initials={user.initials} tooltip={tooltip} />;
+                                })}
+                                {showEveryoneAsChip && (
+                                    <Tooltip title="Everyone in your account can use this custom avatar." placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+                                        <Box sx={{ width: 28, height: 28, bgcolor: "rgba(0,83,229,0.12)", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", flexShrink: 0 }}>
+                                            <GroupsIcon sx={{ fontSize: 16, color: "rgba(0,0,0,0.87)" }} />
+                                        </Box>
+                                    </Tooltip>
+                                )}
+                                {overflowN > 0 && (
+                                    <Tooltip title={overflowTipContent} placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+                                        <Box sx={{ width: 28, height: 28, bgcolor: "rgba(0,0,0,0.08)", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", flexShrink: 0 }}>
+                                            <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 700, fontSize: 10, color: "rgba(0,0,0,0.56)", lineHeight: 1 }}>
+                        +{overflowN}
+                                            </Typography>
+                                        </Box>
+                                    </Tooltip>
+                                )}
                             </Box>
                         </Box>
 

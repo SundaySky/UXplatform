@@ -233,11 +233,7 @@ function ApprovalStatusIcon({ state, totalComments }: { state: LiveVideoState; t
             placement="top"
             arrow
             componentsProps={{
-                tooltip: { sx: {
-                    bgcolor: t.secondaryMain, borderRadius: "8px", px: "10px", py: "8px",
-                    fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
-                    lineHeight: 1.5, color: "#fff", maxWidth: 240
-                } },
+                tooltip: { sx: { bgcolor: t.secondaryMain, borderRadius: "8px", px: "10px", py: "8px", fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12, lineHeight: 1.5, color: "#fff", maxWidth: 240 } },
                 arrow:   { sx: { color: t.secondaryMain } }
             }}
         >
@@ -343,54 +339,70 @@ export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?
         );
     }
 
+    // Build flat ordered list: owners first, then editors, then viewers
+    const allUsers: { id: string; initials: string; name: string; color?: string; roleLabel: string }[] = [
+        ...ownerUsers.map(u => ({ id: u.id, initials: u.initials, name: `${u.name}${u.id === OWNER_USER.id ? " (You)" : ""}`, color: u.color, roleLabel: "Owner" })),
+        ...users.filter(pu => pu.role === "editor").map(pu => ({ id: pu.user.id, initials: pu.user.initials, name: pu.user.name, color: pu.user.color, roleLabel: "Can edit" })),
+        ...users.filter(pu => pu.role === "viewer").map(pu => ({ id: pu.user.id + "_v", initials: pu.user.initials, name: pu.user.name, color: pu.user.color, roleLabel: "Can view" }))
+    ];
+
+    const MAX_VISIBLE = 3;
+    const hasEveryone = everyoneRole !== "restricted";
+    const visibleUsers = allUsers.slice(0, MAX_VISIBLE);
+    const hiddenUsers = allUsers.slice(MAX_VISIBLE);
+    const overflowN = hiddenUsers.length;
+
     return (
         <Box sx={{ display: "flex", gap: "3px", alignItems: "center" }}>
-            {/* Owners — show initials with user color background */}
-            {ownerUsers.slice(0, 2).map(u =>
+            {/* Visible users */}
+            {visibleUsers.map(u =>
                 miniAvatar(u.id,
                     <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 10, fontWeight: 600, lineHeight: 1 }}>
                         {u.initials}
                     </Typography>,
-                    `${u.name}${u.id === OWNER_USER.id ? " (You)" : ""} — Owner`,
+                    `${u.name} — ${u.roleLabel}`,
                     u.color
                 )
             )}
-            {/* Editors — show initials with user color background */}
-            {users.filter(pu => pu.role === "editor").slice(0, 2).map(pu =>
-                miniAvatar(pu.user.id,
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 10, fontWeight: 600, lineHeight: 1 }}>
-                        {pu.user.initials}
-                    </Typography>,
-                    `${pu.user.name} — Can edit`,
-                    pu.user.color
-                )
-            )}
-            {/* Viewers — show initials with user color background */}
-            {users.filter(pu => pu.role === "viewer").slice(0, 1).map(pu =>
-                miniAvatar(pu.user.id + "_v",
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 10, fontWeight: 600, lineHeight: 1 }}>
-                        {pu.user.initials}
-                    </Typography>,
-                    `${pu.user.name} — Can view`,
-                    pu.user.color
-                )
-            )}
-            {/* Everyone — show with users icon in black */}
-            {everyoneRole !== "restricted" &&
+            {/* Everyone — second-to-last */}
+            {hasEveryone &&
         miniAvatar("everyone",
             <PeopleAltOutlinedIcon sx={{ fontSize: 12, color: "rgba(0,0,0,0.87)" }} />,
             `Everyone in your account — Can ${everyoneRole === "editor" ? "edit" : "view"}`
         )
             }
+            {/* Overflow +N — last */}
+            {overflowN > 0 && (
+                <Tooltip
+                    key="overflow"
+                    placement="top"
+                    arrow
+                    componentsProps={{ tooltip: { sx: navyTipSx } }}
+                    title={
+                        <Box>
+                            {hiddenUsers.map(u => (
+                                <Typography key={u.id} sx={{ fontSize: 12, color: "#fff", fontWeight: 500, lineHeight: 1.5 }}>
+                                    {u.name} — {u.roleLabel}
+                                </Typography>
+                            ))}
+                        </Box>
+                    }
+                >
+                    <Box sx={{
+                        width: 20, height: 20, borderRadius: "4px", bgcolor: "rgba(0,0,0,0.08)",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                    }}>
+                        <Typography sx={{ fontSize: 9, fontWeight: 600, lineHeight: 1, color: "rgba(0,0,0,0.56)", fontFamily: "\"Open Sans\", sans-serif" }}>
+              +{overflowN}
+                        </Typography>
+                    </Box>
+                </Tooltip>
+            )}
         </Box>
     );
 }
 
-function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval }: {
-    video: VideoItem; onClick?: () => void; liveState?: LiveVideoState;
-    onPermChange?: (key: string, s: VideoPermissionSettings) => void;
-    onSubmitForApproval?: (videoKey: string, approvers: string[]) => void;
-}) {
+function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void; onSubmitForApproval?: (videoKey: string, approvers: string[]) => void }) {
     const [hovered, setHovered] = useState(false);
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
     const [videoPermOpen, setVideoPermOpen] = useState(false);
