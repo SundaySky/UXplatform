@@ -74,12 +74,10 @@ public/
 **Before writing ANY UI code, read the component library's AI guide:**
 
 ```
-node_modules/@sundaysky/smartvideo-hub-truffle-component-library/AI-COMPONENT-GUIDE.md
+AI-COMPONENT-GUIDE.md
 ```
 
 This file is the authoritative reference for all available components, theme tokens, typography variants, palette colors, and usage patterns. It is shipped with the npm package and always up to date with the installed version.
-
-**Import path**: `@sundaysky/smartvideo-hub-truffle-component-library`
 
 ---
 

@@ -28,3 +28,4 @@ npm-debug.log*
 
 # Claude preview cache
 .claude/preview/
+/.claude/worktrees/
