@@ -41,6 +41,7 @@ import MediaLibraryPanel from './MediaLibraryPanel'
 import AvatarLibraryPanel from './AvatarLibraryPanel'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
 import { OWNER_USER } from './ManageAccessDialog'
+import SceneLibraryDialog from './SceneLibraryDialog'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
 function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
@@ -811,7 +812,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [footnoteText,        setFootnoteText]        = useState('Footnote placeholder')
   const [editFootnoteOpen,    setEditFootnoteOpen]    = useState(false)
 
-  const SCENE_COUNT = 4
+  const [sceneCount,       setSceneCount]       = useState(4)
+  const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
+  const SCENE_COUNT = sceneCount
   const goToScene = (idx: number) => {
     setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
     setHeadingSelected(false)
@@ -1270,14 +1273,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                 width: 56, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Box sx={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  bgcolor: s.editorBg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: `1.5px dashed ${s.primary}`,
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                }}>
+                <Box
+                  onClick={() => setSceneLibOpen(true)}
+                  sx={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    bgcolor: s.editorBg,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1.5px dashed ${s.primary}`,
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                  }}>
                   <AddIcon sx={{ fontSize: 18, color: s.primary }} />
                 </Box>
               </Box>
@@ -1304,6 +1309,17 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         title="Footnote"
         currentText={footnoteText}
         onClose={(newText) => { setFootnoteText(newText); setEditFootnoteOpen(false) }}
+      />
+
+      {/* ── Scene Library dialog ──────────────────────────────────────────── */}
+      <SceneLibraryDialog
+        open={sceneLibOpen}
+        onClose={() => setSceneLibOpen(false)}
+        onAddScene={() => {
+          setSceneCount(prev => prev + 1)
+          setSelectedScene(sceneCount) // jump to the newly added scene
+          setSceneLibOpen(false)
+        }}
       />
 
       {/* ── Comments panel — draggable + resizable ────────────────────────── */}
