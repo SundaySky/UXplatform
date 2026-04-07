@@ -17,7 +17,16 @@ import MicOutlinedIcon             from '@mui/icons-material/MicOutlined'
 import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
 import InputOutlinedIcon           from '@mui/icons-material/InputOutlined'
 import AspectRatioOutlinedIcon     from '@mui/icons-material/AspectRatioOutlined'
-import CropFreeIcon               from '@mui/icons-material/CropFree'
+import PersonOutlinedIcon2        from '@mui/icons-material/PersonOutlined'
+import ImageOutlinedIcon          from '@mui/icons-material/ImageOutlined'
+import FormatListBulletedIcon     from '@mui/icons-material/FormatListBulleted'
+import ViewModuleOutlinedIcon     from '@mui/icons-material/ViewModuleOutlined'
+import NotesIcon                  from '@mui/icons-material/Notes'
+import RadioButtonUncheckedIcon   from '@mui/icons-material/RadioButtonUnchecked'
+import GridViewOutlinedIcon       from '@mui/icons-material/GridViewOutlined'
+import TableChartOutlinedIcon     from '@mui/icons-material/TableChartOutlined'
+import InfoOutlinedIcon           from '@mui/icons-material/InfoOutlined'
+import SmartButtonOutlinedIcon    from '@mui/icons-material/SmartButtonOutlined'
 import LanguageOutlinedIcon        from '@mui/icons-material/LanguageOutlined'
 import CommentOutlinedIcon         from '@mui/icons-material/CommentOutlined'
 import ChevronLeftIcon             from '@mui/icons-material/ChevronLeft'
@@ -729,6 +738,36 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
 }
 
 // ─── Custom scene thumbnail ───────────────────────────────────────────────────
+// Custom icon: corner handles + plus — matches the shared design
+function PlaceholderIcon({ size = 28, color = s.primary }: { size?: number; color?: string }) {
+  const d = size
+  const corner = d * 0.15   // corner square size
+  const gap    = d * 0.28   // inset from edge
+  const arm    = d * 0.12   // half-length of plus arms
+  const cx     = d / 2
+  return (
+    <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`} fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
+      {/* Corner squares */}
+      <rect x={0}            y={0}            width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      <rect x={d - corner}   y={0}            width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      <rect x={0}            y={d - corner}   width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      <rect x={d - corner}   y={d - corner}   width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      {/* Corner connector lines */}
+      <line x1={corner}    y1={corner * 0.5} x2={gap}        y2={corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner} y1={corner * 0.5} x2={d - gap}   y2={corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={corner * 0.5} y1={corner}    x2={corner * 0.5} y2={gap}        stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={corner * 0.5} y1={d - corner} x2={corner * 0.5} y2={d - gap}  stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner * 0.5} y1={corner}  x2={d - corner * 0.5} y2={gap}       stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner * 0.5} y1={d - corner} x2={d - corner * 0.5} y2={d - gap} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={corner}    y1={d - corner * 0.5} x2={gap}        y2={d - corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner} y1={d - corner * 0.5} x2={d - gap}  y2={d - corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      {/* Plus sign */}
+      <line x1={cx - arm} y1={cx} x2={cx + arm} y2={cx} stroke={color} strokeWidth={corner * 0.6} strokeLinecap="round" />
+      <line x1={cx} y1={cx - arm} x2={cx} y2={cx + arm} stroke={color} strokeWidth={corner * 0.6} strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function CustomSceneThumbnail({ index, selected, onClick }: { index: number; selected: boolean; onClick?: () => void }) {
   return (
     <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
@@ -740,21 +779,13 @@ function CustomSceneThumbnail({ index, selected, onClick }: { index: number; sel
       </Typography>
       <Box sx={{
         width: '100%', aspectRatio: '16/9',
-        bgcolor: '#FFF176',   // yellow — matches Figma custom scene card
+        bgcolor: '#FAFAFA',
         border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
         borderRadius: '8px', overflow: 'hidden',
         position: 'relative',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {/* Blue bounding-box badge — bottom right */}
-        <Box sx={{
-          position: 'absolute', bottom: 6, right: 6,
-          width: 26, height: 26, borderRadius: '6px',
-          bgcolor: '#29B6F6',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
-        }}>
-          <CropFreeIcon sx={{ fontSize: 16, color: '#fff' }} />
-        </Box>
+        <PlaceholderIcon size={28} />
       </Box>
     </Box>
   )
@@ -847,6 +878,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
   const [sceneTypes,       setSceneTypes]       = useState<('regular' | 'custom')[]>(['regular', 'regular', 'regular', 'regular'])
   const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
+  const [placeholderMenuOpen, setPlaceholderMenuOpen] = useState(false)
+  const placeholderAnchorRef = useRef<HTMLDivElement>(null)
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
@@ -1126,31 +1159,102 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             >
               {/* ── Custom scene canvas ──────────────────────────────── */}
               {sceneTypes[selectedScene] === 'custom' && (
-                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFF9C4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {/* Blue bounding-box badge — bottom right */}
-                  <Box sx={{
-                    position: 'absolute', bottom: 14, right: 14,
-                    width: 40, height: 40, borderRadius: '10px',
-                    bgcolor: '#29B6F6',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                  }}>
-                    <CropFreeIcon sx={{ fontSize: 24, color: '#fff' }} />
+                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex' }}>
+                  {/* Pink top accent */}
+                  <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
+
+                  {/* Canvas area */}
+                  <Box ref={placeholderAnchorRef} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+                    <PlaceholderIcon size={52} />
+                    <Button
+                      variant="contained"
+                      onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                      sx={{
+                        fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                        fontSize: 14, textTransform: 'none',
+                        borderRadius: '8px', px: '16px', py: '8px',
+                        bgcolor: s.primary,
+                        boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
+                      }}
+                    >
+                      Add placeholder
+                    </Button>
                   </Box>
-                  {/* Add placeholder button */}
-                  <Button
-                    variant="contained"
-                    startIcon={<AddPhotoAlternateOutlinedIcon sx={{ fontSize: 18 }} />}
-                    sx={{
-                      fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                      fontSize: 14, textTransform: 'none',
-                      borderRadius: '8px', px: '16px', py: '8px',
-                      bgcolor: s.primary,
-                      boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
-                    }}
-                  >
-                    Add placeholder
-                  </Button>
+
+                  {/* Right toolbar */}
+                  <Box sx={{
+                    width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: '4px', py: '10px',
+                    borderLeft: `1px solid ${s.divider}`, bgcolor: '#FAFAFA',
+                  }}>
+                    {[
+                      { icon: <GridViewOutlinedIcon sx={{ fontSize: 18 }} />, tip: 'Layout'   },
+                      { icon: <RadioButtonUncheckedIcon sx={{ fontSize: 18 }} />, tip: 'Shape' },
+                      { icon: <TableChartOutlinedIcon sx={{ fontSize: 18 }} />, tip: 'Data'    },
+                      { icon: <InfoOutlinedIcon sx={{ fontSize: 18 }} />, tip: 'Info'          },
+                      { icon: <MoreHorizIcon sx={{ fontSize: 18 }} />, tip: 'More'             },
+                    ].map(({ icon, tip }) => (
+                      <Tooltip key={tip} title={tip} placement="left" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                          sx={{ color: s.textSecondary, '&:hover': { color: s.primary } }}
+                        >
+                          {icon}
+                        </IconButton>
+                      </Tooltip>
+                    ))}
+                  </Box>
+
+                  {/* Placeholder picker panel */}
+                  {placeholderMenuOpen && (
+                    <Box
+                      onClick={e => e.stopPropagation()}
+                      sx={{
+                        position: 'absolute', top: 12, right: 48, zIndex: 20,
+                        bgcolor: '#fff', borderRadius: '10px',
+                        boxShadow: '0 4px 20px rgba(3,25,79,0.18)',
+                        minWidth: 200, overflow: 'hidden',
+                        border: `1px solid ${s.divider}`,
+                      }}
+                    >
+                      {/* Header */}
+                      <Box sx={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        px: '14px', py: '10px',
+                        borderBottom: `1px solid ${s.divider}`,
+                      }}>
+                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: s.textPrimary }}>
+                          Placeholder
+                        </Typography>
+                        <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '2px' }}>
+                          <CloseIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Box>
+                      {/* Items */}
+                      {[
+                        { icon: <TitleIcon sx={{ fontSize: 18, color: s.primary }} />,             label: 'Heading',               color: s.primary },
+                        { icon: <PersonOutlinedIcon2 sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Sub heading',        color: s.textPrimary },
+                        { icon: <ImageOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />,   label: 'Media',              color: s.textPrimary },
+                        { icon: <FormatListBulletedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Vertical bullet point', color: s.textPrimary },
+                        { icon: <ViewModuleOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Horizontal bullet point', color: s.textPrimary },
+                        { icon: <NotesIcon sx={{ fontSize: 18, color: s.textSecondary }} />,        label: 'Footnote',               color: s.textPrimary },
+                        { icon: <RadioButtonUncheckedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Logo',          color: s.textPrimary },
+                        { icon: <SmartButtonOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Button',          color: s.textPrimary },
+                      ].map(({ icon, label, color }) => (
+                        <Box key={label} sx={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          px: '14px', py: '9px', cursor: 'pointer',
+                          '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                        }}>
+                          {icon}
+                          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color }}>
+                            {label}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
                 </Box>
               )}
               {/* Image + overlays clipped to canvas shape — regular scenes only */}
