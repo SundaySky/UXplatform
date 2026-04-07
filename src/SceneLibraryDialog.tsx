@@ -426,7 +426,7 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
             <Button
               variant="outlined" size="small"
               startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-              onClick={() => setNav('custom')}
+              onClick={() => { onAddScene('custom'); handleClose() }}
               sx={{
                 mx: '4px',
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 400,

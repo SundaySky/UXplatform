@@ -727,6 +727,33 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
   )
 }
 
+// ─── Custom scene thumbnail ───────────────────────────────────────────────────
+function CustomSceneThumbnail({ index, selected, onClick }: { index: number; selected: boolean; onClick?: () => void }) {
+  return (
+    <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+      <Typography sx={{
+        fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
+        color: s.textSecondary, letterSpacing: '0.4px',
+      }}>
+        Scene {index + 1}
+      </Typography>
+      <Box sx={{
+        width: '100%', aspectRatio: '16/9',
+        bgcolor: '#FFFFFF',
+        border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
+        borderRadius: '8px', overflow: 'hidden',
+        position: 'relative',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {/* Pink top accent */}
+        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, bgcolor: '#E040FB' }} />
+        {/* Add placeholder icon hint */}
+        <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 20, color: '#BDBDBD' }} />
+      </Box>
+    </Box>
+  )
+}
+
 // ─── Per-scene content lookup ─────────────────────────────────────────────────
 function sceneContentFor(title?: string): [string, string][] {
   const map: Record<string, [string, string][]> = {
@@ -812,9 +839,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [footnoteText,        setFootnoteText]        = useState('Footnote placeholder')
   const [editFootnoteOpen,    setEditFootnoteOpen]    = useState(false)
 
-  const [sceneCount,       setSceneCount]       = useState(4)
+  const [sceneTypes,       setSceneTypes]       = useState<('regular' | 'custom')[]>(['regular', 'regular', 'regular', 'regular'])
   const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
-  const SCENE_COUNT = sceneCount
+  const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
     setHeadingSelected(false)
@@ -1091,8 +1118,28 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                 transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
             >
-              {/* Image + overlays clipped to canvas shape */}
-              <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative' }}>
+              {/* ── Custom scene canvas ──────────────────────────────── */}
+              {sceneTypes[selectedScene] === 'custom' && (
+                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* Pink/magenta top accent line */}
+                  <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB' }} />
+                  <Button
+                    variant="contained"
+                    startIcon={<AddPhotoAlternateOutlinedIcon sx={{ fontSize: 18 }} />}
+                    sx={{
+                      fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                      fontSize: 14, textTransform: 'none',
+                      borderRadius: '8px', px: '16px', py: '8px',
+                      bgcolor: s.primary,
+                      boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
+                    }}
+                  >
+                    Add placeholder
+                  </Button>
+                </Box>
+              )}
+              {/* Image + overlays clipped to canvas shape — regular scenes only */}
+              {sceneTypes[selectedScene] !== 'custom' && <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative' }}>
                 <Box component="img" src={IMG_THUMB} alt={videoTitle}
                   sx={{ width: '100%', display: 'block' }} />
 
@@ -1179,20 +1226,20 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                     {footnoteText}
                   </Typography>
                 </Box>
-              </Box>
+              </Box>}
 
               {/* Toolbars — outside overflow:hidden so they render above the canvas edge */}
-              {headingSelected && (
+              {sceneTypes[selectedScene] !== 'custom' && headingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '30%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
                   <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditHeadingOpen(true) }} />
                 </Box>
               )}
-              {subheadingSelected && (
+              {sceneTypes[selectedScene] !== 'custom' && subheadingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '55%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
                   <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditSubheadingOpen(true) }} />
                 </Box>
               )}
-              {footnoteSelected && (
+              {sceneTypes[selectedScene] !== 'custom' && footnoteSelected && (
                 <Box sx={{ position: 'absolute', left: '50%', bottom: '3%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
                   <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditFootnoteOpen(true) }} />
                 </Box>
@@ -1262,12 +1309,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               '&::-webkit-scrollbar': { height: 4 },
               '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
             }}>
-              {[0, 1, 2, 3].map(i => (
-                <SceneThumbnail key={i} index={i} selected={i === selectedScene}
-                  headingText={i === 0 ? headingText : (sceneContentFor(videoTitle)[i-1]?.[0] ?? 'Scene ' + (i+1))}
-                  subheadingText={i === 0 ? subheadingText : (sceneContentFor(videoTitle)[i-1]?.[1] ?? '')}
-                  footnoteText={footnoteText} onClick={() => goToScene(i)} />
-              ))}
+              {sceneTypes.map((type, i) =>
+                type === 'custom'
+                  ? <CustomSceneThumbnail key={i} index={i} selected={i === selectedScene} onClick={() => goToScene(i)} />
+                  : <SceneThumbnail key={i} index={i} selected={i === selectedScene}
+                      headingText={i === 0 ? headingText : (sceneContentFor(videoTitle)[i-1]?.[0] ?? 'Scene ' + (i+1))}
+                      subheadingText={i === 0 ? subheadingText : (sceneContentFor(videoTitle)[i-1]?.[1] ?? '')}
+                      footnoteText={footnoteText} onClick={() => goToScene(i)} />
+              )}
               {/* Add scene */}
               <Box sx={{
                 width: 56, flexShrink: 0,
@@ -1315,9 +1364,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       <SceneLibraryDialog
         open={sceneLibOpen}
         onClose={() => setSceneLibOpen(false)}
-        onAddScene={() => {
-          setSceneCount(prev => prev + 1)
-          setSelectedScene(sceneCount) // jump to the newly added scene
+        onAddScene={(templateId) => {
+          const type = templateId === 'custom' ? 'custom' : 'regular'
+          setSceneTypes(prev => { const next: ('regular' | 'custom')[] = [...prev, type]; setSelectedScene(next.length - 1); return next })
           setSceneLibOpen(false)
         }}
       />
