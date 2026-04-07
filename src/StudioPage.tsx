@@ -17,6 +17,7 @@ import MicOutlinedIcon             from '@mui/icons-material/MicOutlined'
 import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
 import InputOutlinedIcon           from '@mui/icons-material/InputOutlined'
 import AspectRatioOutlinedIcon     from '@mui/icons-material/AspectRatioOutlined'
+import CropFreeIcon               from '@mui/icons-material/CropFree'
 import LanguageOutlinedIcon        from '@mui/icons-material/LanguageOutlined'
 import CommentOutlinedIcon         from '@mui/icons-material/CommentOutlined'
 import ChevronLeftIcon             from '@mui/icons-material/ChevronLeft'
@@ -739,16 +740,21 @@ function CustomSceneThumbnail({ index, selected, onClick }: { index: number; sel
       </Typography>
       <Box sx={{
         width: '100%', aspectRatio: '16/9',
-        bgcolor: '#FFFFFF',
+        bgcolor: '#FFF176',   // yellow — matches Figma custom scene card
         border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
         borderRadius: '8px', overflow: 'hidden',
         position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {/* Pink top accent */}
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, bgcolor: '#E040FB' }} />
-        {/* Add placeholder icon hint */}
-        <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 20, color: '#BDBDBD' }} />
+        {/* Blue bounding-box badge — bottom right */}
+        <Box sx={{
+          position: 'absolute', bottom: 6, right: 6,
+          width: 26, height: 26, borderRadius: '6px',
+          bgcolor: '#29B6F6',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+        }}>
+          <CropFreeIcon sx={{ fontSize: 16, color: '#fff' }} />
+        </Box>
       </Box>
     </Box>
   )
@@ -1120,9 +1126,18 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             >
               {/* ── Custom scene canvas ──────────────────────────────── */}
               {sceneTypes[selectedScene] === 'custom' && (
-                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {/* Pink/magenta top accent line */}
-                  <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB' }} />
+                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFF9C4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* Blue bounding-box badge — bottom right */}
+                  <Box sx={{
+                    position: 'absolute', bottom: 14, right: 14,
+                    width: 40, height: 40, borderRadius: '10px',
+                    bgcolor: '#29B6F6',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                  }}>
+                    <CropFreeIcon sx={{ fontSize: 24, color: '#fff' }} />
+                  </Box>
+                  {/* Add placeholder button */}
                   <Button
                     variant="contained"
                     startIcon={<AddPhotoAlternateOutlinedIcon sx={{ fontSize: 18 }} />}
