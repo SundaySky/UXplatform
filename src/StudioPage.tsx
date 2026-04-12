@@ -17,11 +17,7 @@ import MicOutlinedIcon             from '@mui/icons-material/MicOutlined'
 import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
 import InputOutlinedIcon           from '@mui/icons-material/InputOutlined'
 import AspectRatioOutlinedIcon     from '@mui/icons-material/AspectRatioOutlined'
-import PersonOutlinedIcon2        from '@mui/icons-material/PersonOutlined'
 import ImageOutlinedIcon          from '@mui/icons-material/ImageOutlined'
-import FormatListBulletedIcon     from '@mui/icons-material/FormatListBulleted'
-import ViewModuleOutlinedIcon     from '@mui/icons-material/ViewModuleOutlined'
-import NotesIcon                  from '@mui/icons-material/Notes'
 import RadioButtonUncheckedIcon   from '@mui/icons-material/RadioButtonUnchecked'
 import GridViewOutlinedIcon       from '@mui/icons-material/GridViewOutlined'
 import TableChartOutlinedIcon     from '@mui/icons-material/TableChartOutlined'
@@ -879,7 +875,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [sceneTypes,       setSceneTypes]       = useState<('regular' | 'custom')[]>(['regular', 'regular', 'regular', 'regular'])
   const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
   const [placeholderMenuOpen, setPlaceholderMenuOpen] = useState(false)
-  const placeholderAnchorRef = useRef<HTMLDivElement>(null)
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
@@ -1132,23 +1127,91 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
           {/* Live preview area */}
           <Box sx={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            px: 6, py: 3, overflow: 'hidden', position: 'relative',
+            px: 2, py: 3, overflow: 'hidden', position: 'relative',
           }}>
+
+            {/* Placeholder picker panel — floats over canvas, anchored top-right */}
+            {placeholderMenuOpen && (
+              <Box
+                onClick={e => e.stopPropagation()}
+                sx={{
+                  position: 'absolute', top: 16, right: 56, zIndex: 30,
+                  bgcolor: '#fff', borderRadius: '10px',
+                  boxShadow: '0 4px 24px rgba(3,25,79,0.18)',
+                  width: 210, overflow: 'hidden',
+                  border: `1px solid ${s.divider}`,
+                }}
+              >
+                {/* Header */}
+                <Box sx={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  px: '14px', py: '10px',
+                  borderBottom: `1px solid ${s.divider}`,
+                }}>
+                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: s.textPrimary }}>
+                    Placeholder
+                  </Typography>
+                  <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '2px' }}>
+                    <CloseIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
+                {/* Text placeholders */}
+                {[
+                  { letter: 'H', letterSize: 17, letterWeight: 800, label: 'Heading',     color: s.primary,        letterColor: s.primary },
+                  { letter: 'h', letterSize: 15, letterWeight: 600, label: 'Sub heading', color: '#5C6BC0',        letterColor: '#5C6BC0' },
+                  { letter: 'T', letterSize: 15, letterWeight: 400, label: 'Footnote',    color: s.textSecondary,  letterColor: s.textSecondary },
+                ].map(({ letter, letterSize, letterWeight, label, color, letterColor }) => (
+                  <Box key={label} sx={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    px: '14px', py: '9px', cursor: 'pointer',
+                    '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                  }}>
+                    <Box sx={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: letterWeight, fontSize: letterSize, color: letterColor, lineHeight: 1 }}>
+                        {letter}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color }}>
+                      {label}
+                    </Typography>
+                  </Box>
+                ))}
+                <Divider sx={{ mx: '14px', borderColor: s.divider }} />
+                {/* Asset placeholders */}
+                {[
+                  { icon: <ImageOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />,      label: 'Media'  },
+                  { icon: <StarBorderIcon sx={{ fontSize: 18, color: s.textSecondary }} />,         label: 'Logo'   },
+                  { icon: <SmartButtonOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Button' },
+                ].map(({ icon, label }) => (
+                  <Box key={label} sx={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    px: '14px', py: '9px', cursor: 'pointer',
+                    '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                  }}>
+                    {icon}
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: s.textPrimary }}>
+                      {label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+
             {/* Prev arrow */}
             <IconButton
               disabled={selectedScene === 0}
               onClick={() => goToScene(selectedScene - 1)}
               size="small"
-              sx={{ position: 'absolute', left: 16, color: selectedScene === 0 ? s.actionDisabled : s.primary }}
+              sx={{ flexShrink: 0, color: selectedScene === 0 ? s.actionDisabled : s.primary, mx: '4px' }}
             >
               <ChevronLeftIcon />
             </IconButton>
 
             {/* Canvas */}
             <Box
-              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false) }}
+              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false) }}
               sx={{
-                maxWidth: 680, width: '100%', position: 'relative',
+                maxWidth: 680, width: '100%', position: 'relative', flex: 1,
                 borderRadius: '8px', overflow: 'visible',
                 border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? '#0053E5' : s.divider}`,
                 boxShadow: headingSelected || subheadingSelected || footnoteSelected
@@ -1159,102 +1222,23 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             >
               {/* ── Custom scene canvas ──────────────────────────────── */}
               {sceneTypes[selectedScene] === 'custom' && (
-                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex' }}>
+                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
                   {/* Pink top accent */}
                   <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
-
-                  {/* Canvas area */}
-                  <Box ref={placeholderAnchorRef} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                    <PlaceholderIcon size={52} />
-                    <Button
-                      variant="contained"
-                      onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
-                      sx={{
-                        fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                        fontSize: 14, textTransform: 'none',
-                        borderRadius: '8px', px: '16px', py: '8px',
-                        bgcolor: s.primary,
-                        boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
-                      }}
-                    >
-                      Add placeholder
-                    </Button>
-                  </Box>
-
-                  {/* Right toolbar */}
-                  <Box sx={{
-                    width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: '4px', py: '10px',
-                    borderLeft: `1px solid ${s.divider}`, bgcolor: '#FAFAFA',
-                  }}>
-                    {[
-                      { icon: <GridViewOutlinedIcon sx={{ fontSize: 18 }} />, tip: 'Layout'   },
-                      { icon: <RadioButtonUncheckedIcon sx={{ fontSize: 18 }} />, tip: 'Shape' },
-                      { icon: <TableChartOutlinedIcon sx={{ fontSize: 18 }} />, tip: 'Data'    },
-                      { icon: <InfoOutlinedIcon sx={{ fontSize: 18 }} />, tip: 'Info'          },
-                      { icon: <MoreHorizIcon sx={{ fontSize: 18 }} />, tip: 'More'             },
-                    ].map(({ icon, tip }) => (
-                      <Tooltip key={tip} title={tip} placement="left" arrow>
-                        <IconButton
-                          size="small"
-                          onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
-                          sx={{ color: s.textSecondary, '&:hover': { color: s.primary } }}
-                        >
-                          {icon}
-                        </IconButton>
-                      </Tooltip>
-                    ))}
-                  </Box>
-
-                  {/* Placeholder picker panel */}
-                  {placeholderMenuOpen && (
-                    <Box
-                      onClick={e => e.stopPropagation()}
-                      sx={{
-                        position: 'absolute', top: 12, right: 48, zIndex: 20,
-                        bgcolor: '#fff', borderRadius: '10px',
-                        boxShadow: '0 4px 20px rgba(3,25,79,0.18)',
-                        minWidth: 200, overflow: 'hidden',
-                        border: `1px solid ${s.divider}`,
-                      }}
-                    >
-                      {/* Header */}
-                      <Box sx={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        px: '14px', py: '10px',
-                        borderBottom: `1px solid ${s.divider}`,
-                      }}>
-                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: s.textPrimary }}>
-                          Placeholder
-                        </Typography>
-                        <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '2px' }}>
-                          <CloseIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Box>
-                      {/* Items */}
-                      {[
-                        { icon: <TitleIcon sx={{ fontSize: 18, color: s.primary }} />,             label: 'Heading',               color: s.primary },
-                        { icon: <PersonOutlinedIcon2 sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Sub heading',        color: s.textPrimary },
-                        { icon: <ImageOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />,   label: 'Media',              color: s.textPrimary },
-                        { icon: <FormatListBulletedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Vertical bullet point', color: s.textPrimary },
-                        { icon: <ViewModuleOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Horizontal bullet point', color: s.textPrimary },
-                        { icon: <NotesIcon sx={{ fontSize: 18, color: s.textSecondary }} />,        label: 'Footnote',               color: s.textPrimary },
-                        { icon: <RadioButtonUncheckedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Logo',          color: s.textPrimary },
-                        { icon: <SmartButtonOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Button',          color: s.textPrimary },
-                      ].map(({ icon, label, color }) => (
-                        <Box key={label} sx={{
-                          display: 'flex', alignItems: 'center', gap: '10px',
-                          px: '14px', py: '9px', cursor: 'pointer',
-                          '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                        }}>
-                          {icon}
-                          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color }}>
-                            {label}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  )}
+                  <PlaceholderIcon size={52} />
+                  <Button
+                    variant="contained"
+                    onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                    sx={{
+                      fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                      fontSize: 14, textTransform: 'none',
+                      borderRadius: '8px', px: '16px', py: '8px',
+                      bgcolor: s.primary,
+                      boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
+                    }}
+                  >
+                    Add placeholder
+                  </Button>
                 </Box>
               )}
               {/* Image + overlays clipped to canvas shape — regular scenes only */}
@@ -1365,15 +1349,38 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               )}
             </Box>
 
-            {/* Next arrow */}
-            <IconButton
-              disabled={selectedScene === SCENE_COUNT - 1}
-              onClick={() => goToScene(selectedScene + 1)}
-              size="small"
-              sx={{ position: 'absolute', right: 16, color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary }}
-            >
-              <ChevronRightIcon />
-            </IconButton>
+            {/* Right column: scene action toolbar + next arrow */}
+            <Box sx={{ width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', py: '8px', mx: '4px' }}>
+              {/* Scene action toolbar */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                {[
+                  { icon: <GridViewOutlinedIcon sx={{ fontSize: 18 }} />,           tip: 'Add placeholder', action: () => setPlaceholderMenuOpen(p => !p) },
+                  { icon: <RadioButtonUncheckedIcon sx={{ fontSize: 18 }} />,       tip: 'Shape',   action: () => {} },
+                  { icon: <TableChartOutlinedIcon sx={{ fontSize: 18 }} />,         tip: 'Data',    action: () => {} },
+                  { icon: <InfoOutlinedIcon sx={{ fontSize: 18 }} />,               tip: 'Info',    action: () => {} },
+                  { icon: <MoreHorizIcon sx={{ fontSize: 18 }} />,                  tip: 'More',    action: () => {} },
+                ].map(({ icon, tip, action }) => (
+                  <Tooltip key={tip} title={tip} placement="left" arrow>
+                    <IconButton
+                      size="small"
+                      onClick={e => { e.stopPropagation(); action() }}
+                      sx={{ color: s.textSecondary, '&:hover': { color: s.primary, bgcolor: 'rgba(0,83,229,0.06)' }, borderRadius: '8px' }}
+                    >
+                      {icon}
+                    </IconButton>
+                  </Tooltip>
+                ))}
+              </Box>
+              {/* Next arrow at bottom */}
+              <IconButton
+                disabled={selectedScene === SCENE_COUNT - 1}
+                onClick={() => goToScene(selectedScene + 1)}
+                size="small"
+                sx={{ color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary }}
+              >
+                <ChevronRightIcon />
+              </IconButton>
+            </Box>
           </Box>
 
           {/* Narration bar */}
