@@ -875,10 +875,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [placeholderMenuOpen, setPlaceholderMenuOpen] = useState(false)
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
-    setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
+    const next = Math.max(0, Math.min(SCENE_COUNT - 1, idx))
+    setSelectedScene(next)
     setHeadingSelected(false)
     setSubheadingSelected(false)
     setFootnoteSelected(false)
+    if (sceneTypes[next] !== 'custom') setPlaceholderMenuOpen(false)
   }
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,      setSnackbarMsg]      = useState<string | null>(null)
@@ -1205,11 +1207,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               <ChevronLeftIcon />
             </IconButton>
 
+            {/* Canvas + right toolbar — inner group aligned at top so toolbar top === canvas top */}
+            <Box sx={{ flex: 1, maxWidth: 720, display: 'flex', alignItems: 'stretch', gap: '8px' }}>
+
             {/* Canvas */}
             <Box
               onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false) }}
               sx={{
-                maxWidth: 680, width: '100%', position: 'relative', flex: 1,
+                flex: 1, position: 'relative',
                 borderRadius: '8px', overflow: 'visible',
                 border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? '#0053E5' : s.divider}`,
                 boxShadow: headingSelected || subheadingSelected || footnoteSelected
@@ -1347,12 +1352,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               )}
             </Box>
 
-            {/* Right column: scene action toolbar + next arrow */}
-            <Box sx={{ width: 40, flexShrink: 0, alignSelf: 'stretch', position: 'relative', mx: '4px' }}>
+            {/* Right column: scene action toolbar + next arrow — sibling of canvas in stretch group */}
+            <Box sx={{ width: 32, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
 
-              {/* Scene action toolbar — white pill card, top-aligned, 32×auto, matches Figma node 20002:223646 */}
+              {/* Scene action toolbar — white pill card, top-aligned */}
               <Box sx={{
-                position: 'absolute', top: 8, left: 4,
                 width: 32,
                 bgcolor: '#ffffff',
                 border: `1px solid ${s.divider}`,
@@ -1377,20 +1381,24 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   </IconButton>
                 </Tooltip>
 
-                {/* 3. Add placeholder — selected (blue bg) when panel is open */}
-                <Tooltip title="Add placeholder" placement="left" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
-                    sx={{
-                      p: '3px', borderRadius: '6px',
-                      bgcolor: placeholderMenuOpen ? s.primary : 'transparent',
-                      color:   placeholderMenuOpen ? '#fff'     : s.primary,
-                      '&:hover': { bgcolor: placeholderMenuOpen ? '#0042BB' : 'rgba(0,83,229,0.08)' },
-                    }}
-                  >
-                    <PlaceholderIcon size={18} color={placeholderMenuOpen ? '#ffffff' : s.primary} />
-                  </IconButton>
+                {/* 3. Add placeholder — active only on custom scenes */}
+                <Tooltip title={sceneTypes[selectedScene] === 'custom' ? 'Add placeholder' : ''} placement="left" arrow>
+                  <span>
+                    <IconButton
+                      size="small"
+                      disabled={sceneTypes[selectedScene] !== 'custom'}
+                      onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                      sx={{
+                        p: '3px', borderRadius: '6px',
+                        bgcolor: placeholderMenuOpen && sceneTypes[selectedScene] === 'custom' ? s.primary : 'transparent',
+                        color:   placeholderMenuOpen && sceneTypes[selectedScene] === 'custom' ? '#fff' : undefined,
+                        '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' },
+                        '&.Mui-disabled': { opacity: 0.3 },
+                      }}
+                    >
+                      <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === 'custom' ? '#ffffff' : s.primary} />
+                    </IconButton>
+                  </span>
                 </Tooltip>
 
                 {/* 4. Info */}
@@ -1410,18 +1418,18 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                 </Tooltip>
               </Box>
 
-              {/* Next arrow — vertically centered */}
-              <Box sx={{ position: 'absolute', top: '50%', left: 4, transform: 'translateY(-50%)' }}>
-                <IconButton
-                  disabled={selectedScene === SCENE_COUNT - 1}
-                  onClick={() => goToScene(selectedScene + 1)}
-                  size="small"
-                  sx={{ color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary, p: '3px' }}
-                >
-                  <ChevronRightIcon />
-                </IconButton>
-              </Box>
+              {/* Next arrow — pushed to bottom by justify-content: space-between */}
+              <IconButton
+                disabled={selectedScene === SCENE_COUNT - 1}
+                onClick={() => goToScene(selectedScene + 1)}
+                size="small"
+                sx={{ color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary, p: '3px' }}
+              >
+                <ChevronRightIcon />
+              </IconButton>
             </Box>
+
+            </Box>{/* end canvas + toolbar group */}
           </Box>
 
           {/* Narration bar */}
