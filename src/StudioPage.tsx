@@ -18,9 +18,7 @@ import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
 import InputOutlinedIcon           from '@mui/icons-material/InputOutlined'
 import AspectRatioOutlinedIcon     from '@mui/icons-material/AspectRatioOutlined'
 import ImageOutlinedIcon          from '@mui/icons-material/ImageOutlined'
-import RadioButtonUncheckedIcon   from '@mui/icons-material/RadioButtonUnchecked'
 import GridViewOutlinedIcon       from '@mui/icons-material/GridViewOutlined'
-import TableChartOutlinedIcon     from '@mui/icons-material/TableChartOutlined'
 import InfoOutlinedIcon           from '@mui/icons-material/InfoOutlined'
 import SmartButtonOutlinedIcon    from '@mui/icons-material/SmartButtonOutlined'
 import LanguageOutlinedIcon        from '@mui/icons-material/LanguageOutlined'
@@ -1350,36 +1348,79 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             </Box>
 
             {/* Right column: scene action toolbar + next arrow */}
-            <Box sx={{ width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', py: '8px', mx: '4px' }}>
-              {/* Scene action toolbar */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                {[
-                  { icon: <GridViewOutlinedIcon sx={{ fontSize: 18 }} />,           tip: 'Add placeholder', action: () => setPlaceholderMenuOpen(p => !p) },
-                  { icon: <RadioButtonUncheckedIcon sx={{ fontSize: 18 }} />,       tip: 'Shape',   action: () => {} },
-                  { icon: <TableChartOutlinedIcon sx={{ fontSize: 18 }} />,         tip: 'Data',    action: () => {} },
-                  { icon: <InfoOutlinedIcon sx={{ fontSize: 18 }} />,               tip: 'Info',    action: () => {} },
-                  { icon: <MoreHorizIcon sx={{ fontSize: 18 }} />,                  tip: 'More',    action: () => {} },
-                ].map(({ icon, tip, action }) => (
-                  <Tooltip key={tip} title={tip} placement="left" arrow>
-                    <IconButton
-                      size="small"
-                      onClick={e => { e.stopPropagation(); action() }}
-                      sx={{ color: s.textSecondary, '&:hover': { color: s.primary, bgcolor: 'rgba(0,83,229,0.06)' }, borderRadius: '8px' }}
-                    >
-                      {icon}
-                    </IconButton>
-                  </Tooltip>
-                ))}
+            <Box sx={{ width: 40, flexShrink: 0, alignSelf: 'stretch', position: 'relative', mx: '4px' }}>
+
+              {/* Scene action toolbar — white pill card, top-aligned, 32×auto, matches Figma node 20002:223646 */}
+              <Box sx={{
+                position: 'absolute', top: 8, left: 4,
+                width: 32,
+                bgcolor: '#ffffff',
+                border: `1px solid ${s.divider}`,
+                borderRadius: '24px',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: '8px',
+                p: '4px',
+              }}>
+                {/* 1. Layout / grid */}
+                <Tooltip title="Layout" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <GridViewOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* 2. Theme / palette */}
+                <Tooltip title="Theme" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <PaletteOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* 3. Add placeholder — selected (blue bg) when panel is open */}
+                <Tooltip title="Add placeholder" placement="left" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                    sx={{
+                      p: '3px', borderRadius: '6px',
+                      bgcolor: placeholderMenuOpen ? s.primary : 'transparent',
+                      color:   placeholderMenuOpen ? '#fff'     : s.primary,
+                      '&:hover': { bgcolor: placeholderMenuOpen ? '#0042BB' : 'rgba(0,83,229,0.08)' },
+                    }}
+                  >
+                    <PlaceholderIcon size={18} color={placeholderMenuOpen ? '#ffffff' : s.primary} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* 4. Info */}
+                <Tooltip title="Info" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <InfoOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* 5. More */}
+                <Tooltip title="More" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
               </Box>
-              {/* Next arrow at bottom */}
-              <IconButton
-                disabled={selectedScene === SCENE_COUNT - 1}
-                onClick={() => goToScene(selectedScene + 1)}
-                size="small"
-                sx={{ color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary }}
-              >
-                <ChevronRightIcon />
-              </IconButton>
+
+              {/* Next arrow — vertically centered */}
+              <Box sx={{ position: 'absolute', top: '50%', left: 4, transform: 'translateY(-50%)' }}>
+                <IconButton
+                  disabled={selectedScene === SCENE_COUNT - 1}
+                  onClick={() => goToScene(selectedScene + 1)}
+                  size="small"
+                  sx={{ color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary, p: '3px' }}
+                >
+                  <ChevronRightIcon />
+                </IconButton>
+              </Box>
             </Box>
           </Box>
 
