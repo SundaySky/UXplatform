@@ -1130,72 +1130,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             px: 2, py: 3, overflow: 'hidden', position: 'relative',
           }}>
 
-            {/* Placeholder picker panel — floats over canvas, anchored top-right */}
-            {placeholderMenuOpen && (
-              <Box
-                onClick={e => e.stopPropagation()}
-                sx={{
-                  position: 'absolute', top: 16, right: 56, zIndex: 30,
-                  bgcolor: '#fff', borderRadius: '10px',
-                  boxShadow: '0 4px 24px rgba(3,25,79,0.18)',
-                  width: 210, overflow: 'hidden',
-                  border: `1px solid ${s.divider}`,
-                }}
-              >
-                {/* Header */}
-                <Box sx={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  px: '14px', py: '10px',
-                  borderBottom: `1px solid ${s.divider}`,
-                }}>
-                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: s.textPrimary }}>
-                    Placeholder
-                  </Typography>
-                  <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '2px' }}>
-                    <CloseIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Box>
-                {/* Text placeholders */}
-                {[
-                  { letter: 'H', letterSize: 17, letterWeight: 800, label: 'Heading',     color: s.primary,        letterColor: s.primary },
-                  { letter: 'h', letterSize: 15, letterWeight: 600, label: 'Sub heading', color: '#5C6BC0',        letterColor: '#5C6BC0' },
-                  { letter: 'T', letterSize: 15, letterWeight: 400, label: 'Footnote',    color: s.textSecondary,  letterColor: s.textSecondary },
-                ].map(({ letter, letterSize, letterWeight, label, color, letterColor }) => (
-                  <Box key={label} sx={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    px: '14px', py: '9px', cursor: 'pointer',
-                    '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                  }}>
-                    <Box sx={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: letterWeight, fontSize: letterSize, color: letterColor, lineHeight: 1 }}>
-                        {letter}
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color }}>
-                      {label}
-                    </Typography>
-                  </Box>
-                ))}
-                <Divider sx={{ mx: '14px', borderColor: s.divider }} />
-                {/* Asset placeholders */}
-                {[
-                  { icon: <ImageOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />,      label: 'Media'  },
-                  { icon: <StarBorderIcon sx={{ fontSize: 18, color: s.textSecondary }} />,         label: 'Logo'   },
-                  { icon: <SmartButtonOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Button' },
-                ].map(({ icon, label }) => (
-                  <Box key={label} sx={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    px: '14px', py: '9px', cursor: 'pointer',
-                    '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                  }}>
-                    {icon}
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: s.textPrimary }}>
-                      {label}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
 
             {/* Prev arrow */}
             <IconButton
@@ -1208,7 +1142,74 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             </IconButton>
 
             {/* Canvas + right toolbar — inner group aligned at top so toolbar top === canvas top */}
-            <Box sx={{ flex: 1, maxWidth: 720, display: 'flex', alignItems: 'stretch', gap: '8px' }}>
+            <Box sx={{ flex: 1, maxWidth: 720, display: 'flex', alignItems: 'stretch', gap: '8px', position: 'relative' }}>
+
+              {/* Placeholder picker panel — anchored right edge = toolbar left edge, top = toolbar top */}
+              {placeholderMenuOpen && (
+                <Box
+                  onClick={e => e.stopPropagation()}
+                  sx={{
+                    position: 'absolute', top: 0, right: 40, zIndex: 30,
+                    bgcolor: '#fff', borderRadius: '10px',
+                    boxShadow: '0 4px 24px rgba(3,25,79,0.18)',
+                    width: 210, overflow: 'hidden',
+                    border: `1px solid ${s.divider}`,
+                  }}
+                >
+                  {/* Header */}
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    px: '14px', py: '10px',
+                    borderBottom: `1px solid ${s.divider}`,
+                  }}>
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: s.textPrimary }}>
+                      Placeholder
+                    </Typography>
+                    <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '2px' }}>
+                      <CloseIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Box>
+                  {/* Text placeholders */}
+                  {[
+                    { letter: 'H', letterSize: 17, letterWeight: 800, label: 'Heading',     color: s.primary,       letterColor: s.primary },
+                    { letter: 'h', letterSize: 15, letterWeight: 600, label: 'Sub heading', color: '#5C6BC0',       letterColor: '#5C6BC0' },
+                    { letter: 'T', letterSize: 15, letterWeight: 400, label: 'Footnote',    color: s.textSecondary, letterColor: s.textSecondary },
+                  ].map(({ letter, letterSize, letterWeight, label, color, letterColor }) => (
+                    <Box key={label} sx={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      px: '14px', py: '9px', cursor: 'pointer',
+                      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                    }}>
+                      <Box sx={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: letterWeight, fontSize: letterSize, color: letterColor, lineHeight: 1 }}>
+                          {letter}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color }}>
+                        {label}
+                      </Typography>
+                    </Box>
+                  ))}
+                  <Divider sx={{ mx: '14px', borderColor: s.divider }} />
+                  {/* Asset placeholders */}
+                  {[
+                    { icon: <ImageOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />,       label: 'Media'  },
+                    { icon: <StarBorderIcon sx={{ fontSize: 18, color: s.textSecondary }} />,          label: 'Logo'   },
+                    { icon: <SmartButtonOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Button' },
+                  ].map(({ icon, label }) => (
+                    <Box key={label} sx={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      px: '14px', py: '9px', cursor: 'pointer',
+                      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                    }}>
+                      {icon}
+                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: s.textPrimary }}>
+                        {label}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
 
             {/* Canvas */}
             <Box
