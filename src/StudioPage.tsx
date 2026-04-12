@@ -38,6 +38,7 @@ import RemoveIcon                  from '@mui/icons-material/Remove'
 import TitleIcon                   from '@mui/icons-material/Title'
 import PaletteIcon                 from '@mui/icons-material/Palette'
 import StarBorderIcon              from '@mui/icons-material/StarBorder'
+import DeleteOutlinedIcon         from '@mui/icons-material/DeleteOutlined'
 import LockPersonIcon             from '@mui/icons-material/LockPerson'
 import Tooltip                    from '@mui/material/Tooltip'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
@@ -111,6 +112,106 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       <Pill icon={<ContentCopyOutlinedIcon  sx={{ fontSize: 14 }} />} label="Copy" />
       <Pill icon={<VisibilityOutlinedIcon   sx={{ fontSize: 14 }} />} />
       <Pill icon={<MoreHorizIcon            sx={{ fontSize: 16 }} />} />
+    </Box>
+  )
+}
+
+// ─── Button placeholder toolbar (Figma node 23002-12178) ─────────────────────
+function ButtonPlaceholderToolbar({
+  size, onSizeChange, onDelete,
+}: {
+  size: 'S' | 'M' | 'L' | 'XL'
+  onSizeChange: (s: 'S' | 'M' | 'L' | 'XL') => void
+  onDelete: () => void
+}) {
+  const primary = '#0053E5'
+  const border  = '1px solid #CFD6EA'
+
+  const ActionBtn = ({ icon, label, disabled }: { icon: React.ReactNode; label: string; disabled?: boolean }) => (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      px: '8px', py: '3.5px', height: 32, flexShrink: 0,
+      borderRadius: '8px',
+      border: disabled ? '1px solid #CECFD2' : border,
+      bgcolor: '#fff',
+      cursor: disabled ? 'default' : 'pointer',
+      '&:hover': { bgcolor: disabled ? '#fff' : 'rgba(0,83,229,0.06)' },
+    }}>
+      {icon}
+      <Typography sx={{
+        fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+        color: disabled ? 'rgba(50,51,56,0.5)' : primary,
+        lineHeight: 1.5,
+      }}>
+        {label}
+      </Typography>
+    </Box>
+  )
+
+  return (
+    <Box
+      onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+      sx={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        bgcolor: '#fff', borderRadius: '8px',
+        px: '6px', py: '5px',
+        border, boxShadow: '0 2px 8px rgba(3,25,79,0.15)',
+        userSelect: 'none', whiteSpace: 'nowrap',
+      }}
+    >
+      {/* Edit */}
+      <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Size S / M / L / XL */}
+      <Box sx={{
+        display: 'inline-flex', alignItems: 'center',
+        border, borderRadius: '8px', overflow: 'hidden', flexShrink: 0,
+      }}>
+        {(['S', 'M', 'L', 'XL'] as const).map((sz, i, arr) => (
+          <Box
+            key={sz}
+            onClick={() => onSizeChange(sz)}
+            sx={{
+              px: '10px', py: '4px', cursor: 'pointer',
+              bgcolor: size === sz ? 'rgba(0,83,229,0.1)' : 'transparent',
+              borderRight: i < arr.length - 1 ? '1px solid #CFD6EA' : 'none',
+              fontFamily: '"Inter", sans-serif', fontWeight: size === sz ? 600 : 400, fontSize: 14,
+              color: size === sz ? primary : '#323338',
+              lineHeight: 1.5,
+              '&:hover': { bgcolor: size === sz ? 'rgba(0,83,229,0.12)' : 'rgba(0,0,0,0.04)' },
+            }}
+          >
+            {sz}
+          </Box>
+        ))}
+      </Box>
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Timing (disabled) */}
+      <ActionBtn
+        icon={<StarBorderIcon sx={{ fontSize: 13, color: 'rgba(50,51,56,0.5)' }} />}
+        label="Timing"
+        disabled
+      />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Copy */}
+      <ActionBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Copy" />
+
+      {/* Delete */}
+      <IconButton size="small" onClick={onDelete} sx={{ color: '#F44336', p: '4px', flexShrink: 0 }}>
+        <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+      </IconButton>
+
+      {/* More */}
+      <IconButton size="small" sx={{ color: primary, p: '4px', flexShrink: 0 }}>
+        <MoreHorizIcon sx={{ fontSize: 18 }} />
+      </IconButton>
     </Box>
   )
 }
@@ -875,6 +976,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [placeholderMenuOpen, setPlaceholderMenuOpen] = useState(false)
   // Track which placeholder types have been added per scene index
   const [scenePlaceholders, setScenePlaceholders] = useState<Record<number, string[]>>({})
+  // Button placeholder selection + size
+  const [buttonSelected, setButtonSelected] = useState(false)
+  const [buttonSize,     setButtonSize]     = useState<'S'|'M'|'L'|'XL'>('M')
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     const next = Math.max(0, Math.min(SCENE_COUNT - 1, idx))
@@ -1216,7 +1320,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
             {/* Canvas */}
             <Box
-              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false) }}
+              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setButtonSelected(false) }}
               sx={{
                 flex: 1, position: 'relative',
                 borderRadius: '8px', overflow: 'visible',
@@ -1238,21 +1342,43 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                     {/* Button placeholder — shown when added */}
                     {hasButton && (
-                      <Box
-                        onClick={e => e.stopPropagation()}
-                        sx={{
-                          position: 'absolute', bottom: '18%', left: '50%', transform: 'translateX(-50%)',
-                          bgcolor: s.primary, color: '#fff',
-                          borderRadius: '6px', px: '24px', py: '9px',
-                          fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14,
-                          cursor: 'move', userSelect: 'none',
-                          boxShadow: '0 2px 8px rgba(0,83,229,0.30)',
-                          border: '2px solid transparent',
-                          '&:hover': { border: '2px solid rgba(0,83,229,0.5)' },
-                          zIndex: 2,
-                        }}
-                      >
-                        Button
+                      <Box sx={{ position: 'absolute', bottom: '18%', left: '50%', transform: 'translateX(-50%)', zIndex: 3 }}>
+                        {/* Toolbar above button */}
+                        {buttonSelected && (
+                          <Box sx={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+                            <ButtonPlaceholderToolbar
+                              size={buttonSize}
+                              onSizeChange={setButtonSize}
+                              onDelete={() => {
+                                setScenePlaceholders(prev => ({
+                                  ...prev,
+                                  [selectedScene]: (prev[selectedScene] ?? []).filter(p => p !== 'Button'),
+                                }))
+                                setButtonSelected(false)
+                              }}
+                            />
+                          </Box>
+                        )}
+                        {/* The button itself */}
+                        <Box
+                          onClick={e => { e.stopPropagation(); setButtonSelected(p => !p) }}
+                          sx={{
+                            bgcolor: s.primary, color: '#fff',
+                            borderRadius: '6px',
+                            px: buttonSize === 'S' ? '16px' : buttonSize === 'L' ? '32px' : buttonSize === 'XL' ? '44px' : '24px',
+                            py: buttonSize === 'S' ? '6px'  : buttonSize === 'L' ? '12px' : buttonSize === 'XL' ? '14px' : '9px',
+                            fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+                            fontSize: buttonSize === 'S' ? 12 : buttonSize === 'L' ? 16 : buttonSize === 'XL' ? 18 : 14,
+                            cursor: 'pointer', userSelect: 'none',
+                            boxShadow: buttonSelected ? '0 0 0 3px rgba(0,83,229,0.25)' : '0 2px 8px rgba(0,83,229,0.30)',
+                            outline: buttonSelected ? '2px solid #0053E5' : '2px solid transparent',
+                            outlineOffset: '2px',
+                            transition: 'all 0.15s',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Button
+                        </Box>
                       </Box>
                     )}
 
