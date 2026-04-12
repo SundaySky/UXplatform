@@ -873,6 +873,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [sceneTypes,       setSceneTypes]       = useState<('regular' | 'custom')[]>(['regular', 'regular', 'regular', 'regular'])
   const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
   const [placeholderMenuOpen, setPlaceholderMenuOpen] = useState(false)
+  // Track which placeholder types have been added per scene index
+  const [scenePlaceholders, setScenePlaceholders] = useState<Record<number, string[]>>({})
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     const next = Math.max(0, Math.min(SCENE_COUNT - 1, idx))
@@ -1179,14 +1181,24 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       { src: '/logo.png',        label: 'Logo',        labelColor: s.primary },
                       { src: '/button.png',      label: 'Button',      labelColor: s.primary },
                     ].map(({ src, label, labelColor }) => (
-                      <Box key={label} sx={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        px: '12px', py: '10px', cursor: 'pointer',
-                        borderRadius: '8px',
-                        border: `1px solid ${s.divider}`,
-                        bgcolor: '#fff',
-                        '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: 'rgba(0,83,229,0.3)' },
-                      }}>
+                      <Box
+                        key={label}
+                        onClick={() => {
+                          setScenePlaceholders(prev => {
+                            const existing = prev[selectedScene] ?? []
+                            if (existing.includes(label)) return prev
+                            return { ...prev, [selectedScene]: [...existing, label] }
+                          })
+                          setPlaceholderMenuOpen(false)
+                        }}
+                        sx={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          px: '12px', py: '10px', cursor: 'pointer',
+                          borderRadius: '8px',
+                          border: `1px solid ${s.divider}`,
+                          bgcolor: '#fff',
+                          '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: 'rgba(0,83,229,0.3)' },
+                        }}>
                         <Box sx={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {src
                             ? <img src={src} alt={label} style={{ width: 20, height: 20, objectFit: 'contain' }} />
@@ -1216,26 +1228,56 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               }}
             >
               {/* ── Custom scene canvas ──────────────────────────────── */}
-              {sceneTypes[selectedScene] === 'custom' && (
-                <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                  {/* Pink top accent */}
-                  <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
-                  <PlaceholderIcon size={52} />
-                  <Button
-                    variant="contained"
-                    onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
-                    sx={{
-                      fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                      fontSize: 14, textTransform: 'none',
-                      borderRadius: '8px', px: '16px', py: '8px',
-                      bgcolor: s.primary,
-                      boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
-                    }}
-                  >
-                    Add placeholder
-                  </Button>
-                </Box>
-              )}
+              {sceneTypes[selectedScene] === 'custom' && (() => {
+                const added = scenePlaceholders[selectedScene] ?? []
+                const hasButton = added.includes('Button')
+                return (
+                  <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+                    {/* Pink top accent */}
+                    <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
+
+                    {/* Button placeholder — shown when added */}
+                    {hasButton && (
+                      <Box
+                        onClick={e => e.stopPropagation()}
+                        sx={{
+                          position: 'absolute', bottom: '18%', left: '50%', transform: 'translateX(-50%)',
+                          bgcolor: s.primary, color: '#fff',
+                          borderRadius: '6px', px: '24px', py: '9px',
+                          fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14,
+                          cursor: 'move', userSelect: 'none',
+                          boxShadow: '0 2px 8px rgba(0,83,229,0.30)',
+                          border: '2px solid transparent',
+                          '&:hover': { border: '2px solid rgba(0,83,229,0.5)' },
+                          zIndex: 2,
+                        }}
+                      >
+                        Button
+                      </Box>
+                    )}
+
+                    {/* Empty state — show when no placeholders added yet */}
+                    {added.length === 0 && (
+                      <>
+                        <PlaceholderIcon size={52} />
+                        <Button
+                          variant="contained"
+                          onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                          sx={{
+                            fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                            fontSize: 14, textTransform: 'none',
+                            borderRadius: '8px', px: '16px', py: '8px',
+                            bgcolor: s.primary,
+                            boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
+                          }}
+                        >
+                          Add placeholder
+                        </Button>
+                      </>
+                    )}
+                  </Box>
+                )
+              })()}
               {/* Image + overlays clipped to canvas shape — regular scenes only */}
               {sceneTypes[selectedScene] !== 'custom' && <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative' }}>
                 <Box component="img" src={IMG_THUMB} alt={videoTitle}
