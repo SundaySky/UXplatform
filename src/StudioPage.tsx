@@ -17,10 +17,10 @@ import MicOutlinedIcon             from '@mui/icons-material/MicOutlined'
 import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
 import InputOutlinedIcon           from '@mui/icons-material/InputOutlined'
 import AspectRatioOutlinedIcon     from '@mui/icons-material/AspectRatioOutlined'
-import ImageOutlinedIcon          from '@mui/icons-material/ImageOutlined'
+// ImageOutlinedIcon removed — placeholder panel now uses PNGs
 import GridViewOutlinedIcon       from '@mui/icons-material/GridViewOutlined'
 import InfoOutlinedIcon           from '@mui/icons-material/InfoOutlined'
-import SmartButtonOutlinedIcon    from '@mui/icons-material/SmartButtonOutlined'
+// SmartButtonOutlinedIcon removed — placeholder panel now uses PNGs
 import LanguageOutlinedIcon        from '@mui/icons-material/LanguageOutlined'
 import CommentOutlinedIcon         from '@mui/icons-material/CommentOutlined'
 import ChevronLeftIcon             from '@mui/icons-material/ChevronLeft'
@@ -1150,64 +1150,55 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   onClick={e => e.stopPropagation()}
                   sx={{
                     position: 'absolute', top: 0, right: 40, zIndex: 30,
-                    bgcolor: '#fff', borderRadius: '10px',
-                    boxShadow: '0 4px 24px rgba(3,25,79,0.18)',
-                    width: 210, overflow: 'hidden',
+                    bgcolor: '#fff', borderRadius: '12px',
+                    boxShadow: '0 0 5px rgba(3,25,79,0.25)',
+                    width: 232, overflow: 'hidden',
                     border: `1px solid ${s.divider}`,
                   }}
                 >
                   {/* Header */}
                   <Box sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    px: '14px', py: '10px',
-                    borderBottom: `1px solid ${s.divider}`,
+                    px: '16px', pt: '14px', pb: '8px',
                   }}>
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 14, color: s.textPrimary }}>
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 16, color: s.textPrimary }}>
                       Placeholder
                     </Typography>
                     <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '2px' }}>
-                      <CloseIcon sx={{ fontSize: 16 }} />
+                      <CloseIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Box>
-                  {/* Text placeholders */}
-                  {[
-                    { letter: 'H', letterSize: 17, letterWeight: 800, label: 'Heading',     color: s.primary,       letterColor: s.primary },
-                    { letter: 'h', letterSize: 15, letterWeight: 600, label: 'Sub heading', color: '#5C6BC0',       letterColor: '#5C6BC0' },
-                    { letter: 'T', letterSize: 15, letterWeight: 400, label: 'Footnote',    color: s.textSecondary, letterColor: s.textSecondary },
-                  ].map(({ letter, letterSize, letterWeight, label, color, letterColor }) => (
-                    <Box key={label} sx={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      px: '14px', py: '9px', cursor: 'pointer',
-                      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                    }}>
-                      <Box sx={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: letterWeight, fontSize: letterSize, color: letterColor, lineHeight: 1 }}>
-                          {letter}
+
+                  {/* Items — each in a bordered rounded card */}
+                  <Box sx={{ px: '12px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {[
+                      { src: '/heading.png',     label: 'Heading',     labelColor: s.primary },
+                      { src: '/sub heading.png', label: 'Sub heading', labelColor: s.primary },
+                      { src: null,               label: 'Footnote',    labelColor: s.textSecondary },
+                      { src: '/media.png',       label: 'Media',       labelColor: s.primary },
+                      { src: '/logo.png',        label: 'Logo',        labelColor: s.primary },
+                      { src: '/button.png',      label: 'Button',      labelColor: s.primary },
+                    ].map(({ src, label, labelColor }) => (
+                      <Box key={label} sx={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        px: '12px', py: '10px', cursor: 'pointer',
+                        borderRadius: '8px',
+                        border: `1px solid ${s.divider}`,
+                        bgcolor: '#fff',
+                        '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: 'rgba(0,83,229,0.3)' },
+                      }}>
+                        <Box sx={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {src
+                            ? <img src={src} alt={label} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                            : <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18, color: s.textSecondary, lineHeight: 1 }}>*</Typography>
+                          }
+                        </Box>
+                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: labelColor }}>
+                          {label}
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color }}>
-                        {label}
-                      </Typography>
-                    </Box>
-                  ))}
-                  <Divider sx={{ mx: '14px', borderColor: s.divider }} />
-                  {/* Asset placeholders */}
-                  {[
-                    { icon: <ImageOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />,       label: 'Media'  },
-                    { icon: <StarBorderIcon sx={{ fontSize: 18, color: s.textSecondary }} />,          label: 'Logo'   },
-                    { icon: <SmartButtonOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />, label: 'Button' },
-                  ].map(({ icon, label }) => (
-                    <Box key={label} sx={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      px: '14px', py: '9px', cursor: 'pointer',
-                      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                    }}>
-                      {icon}
-                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: s.textPrimary }}>
-                        {label}
-                      </Typography>
-                    </Box>
-                  ))}
+                    ))}
+                  </Box>
                 </Box>
               )}
 
