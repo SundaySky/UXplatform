@@ -165,28 +165,37 @@ function ButtonPlaceholderToolbar({
 
       <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
 
-      {/* Size S / M / L / XL */}
-      <Box sx={{
-        display: 'inline-flex', alignItems: 'center',
-        border, borderRadius: '8px', overflow: 'hidden', flexShrink: 0,
-      }}>
-        {(['S', 'M', 'L', 'XL'] as const).map((sz, i, arr) => (
-          <Box
-            key={sz}
-            onClick={() => onSizeChange(sz)}
-            sx={{
-              px: '10px', py: '4px', cursor: 'pointer',
-              bgcolor: size === sz ? 'rgba(0,83,229,0.1)' : 'transparent',
-              borderRight: i < arr.length - 1 ? '1px solid #CFD6EA' : 'none',
-              fontFamily: '"Inter", sans-serif', fontWeight: size === sz ? 600 : 400, fontSize: 14,
-              color: size === sz ? primary : '#323338',
-              lineHeight: 1.5,
-              '&:hover': { bgcolor: size === sz ? 'rgba(0,83,229,0.12)' : 'rgba(0,0,0,0.04)' },
-            }}
-          >
-            {sz}
-          </Box>
-        ))}
+      {/* Size label + S / M / L / XL toggle */}
+      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13,
+          color: '#323338', letterSpacing: '0.46px',
+        }}>
+          Size
+        </Typography>
+        <Box sx={{
+          display: 'inline-flex', alignItems: 'center',
+          border, borderRadius: '8px', overflow: 'hidden',
+        }}>
+          {([ ['S', '80 × 28px'], ['M', '120 × 36px'], ['L', '160 × 44px'], ['XL', '200 × 52px'] ] as const).map(([sz, dims], i, arr) => (
+            <Tooltip key={sz} title={dims} placement="top" arrow>
+              <Box
+                onClick={() => onSizeChange(sz)}
+                sx={{
+                  px: '10px', py: '4px', cursor: 'pointer',
+                  bgcolor: size === sz ? 'rgba(0,83,229,0.1)' : 'transparent',
+                  borderRight: i < arr.length - 1 ? '1px solid #CFD6EA' : 'none',
+                  fontFamily: '"Inter", sans-serif', fontWeight: size === sz ? 600 : 400, fontSize: 14,
+                  color: size === sz ? primary : '#323338',
+                  lineHeight: 1.5,
+                  '&:hover': { bgcolor: size === sz ? 'rgba(0,83,229,0.12)' : 'rgba(0,0,0,0.04)' },
+                }}
+              >
+                {sz}
+              </Box>
+            </Tooltip>
+          ))}
+        </Box>
       </Box>
 
       <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
@@ -978,7 +987,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [scenePlaceholders, setScenePlaceholders] = useState<Record<number, string[]>>({})
   // Button placeholder selection + size
   const [buttonSelected, setButtonSelected] = useState(false)
-  const [buttonSize,     setButtonSize]     = useState<'S'|'M'|'L'|'XL'>('M')
+  const [buttonSize,     setButtonSize]     = useState<'S'|'M'|'L'|'XL'>('L')
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     const next = Math.max(0, Math.min(SCENE_COUNT - 1, idx))
@@ -1359,26 +1368,36 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                             />
                           </Box>
                         )}
-                        {/* The button itself */}
-                        <Box
-                          onClick={e => { e.stopPropagation(); setButtonSelected(p => !p) }}
-                          sx={{
-                            bgcolor: s.primary, color: '#fff',
-                            borderRadius: '6px',
-                            px: buttonSize === 'S' ? '16px' : buttonSize === 'L' ? '32px' : buttonSize === 'XL' ? '44px' : '24px',
-                            py: buttonSize === 'S' ? '6px'  : buttonSize === 'L' ? '12px' : buttonSize === 'XL' ? '14px' : '9px',
-                            fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                            fontSize: buttonSize === 'S' ? 12 : buttonSize === 'L' ? 16 : buttonSize === 'XL' ? 18 : 14,
-                            cursor: 'pointer', userSelect: 'none',
-                            boxShadow: buttonSelected ? '0 0 0 3px rgba(0,83,229,0.25)' : '0 2px 8px rgba(0,83,229,0.30)',
-                            outline: buttonSelected ? '2px solid #0053E5' : '2px solid transparent',
-                            outlineOffset: '2px',
-                            transition: 'all 0.15s',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          Button
-                        </Box>
+                        {/* The button itself — sized to match S/M/L/XL dimensions */}
+                        {(() => {
+                          const dims: Record<string, { w: number; h: number; fs: number }> = {
+                            S:  { w:  80, h: 28, fs: 11 },
+                            M:  { w: 120, h: 36, fs: 13 },
+                            L:  { w: 160, h: 44, fs: 14 },
+                            XL: { w: 200, h: 52, fs: 16 },
+                          }
+                          const { w, h, fs } = dims[buttonSize]
+                          return (
+                            <Box
+                              onClick={e => { e.stopPropagation(); setButtonSelected(p => !p) }}
+                              sx={{
+                                bgcolor: s.primary, color: '#fff',
+                                borderRadius: '6px',
+                                width: w, height: h,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: fs,
+                                cursor: 'pointer', userSelect: 'none',
+                                boxShadow: buttonSelected ? '0 0 0 3px rgba(0,83,229,0.25)' : '0 2px 8px rgba(0,83,229,0.30)',
+                                outline: buttonSelected ? '2px solid #0053E5' : '2px solid transparent',
+                                outlineOffset: '2px',
+                                transition: 'all 0.15s',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Button
+                            </Box>
+                          )
+                        })()}
                       </Box>
                     )}
 
