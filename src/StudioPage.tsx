@@ -1427,8 +1427,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   }
 
   // Drag support
-  const canvasRef  = useRef<HTMLDivElement | null>(null)
-  const sceneBoxRef = useRef<HTMLDivElement | null>(null)
+  const canvasRef     = useRef<HTMLDivElement | null>(null)
+  const sceneBoxRef   = useRef<HTMLDivElement | null>(null)
+  const selectedElRef = useRef<HTMLDivElement | null>(null)
   const dragInfo  = useRef<{
     startMX: number; startMY: number; startX: number; startY: number
     moved: boolean; updatePos: (x: number, y: number) => void
@@ -1948,6 +1949,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                         return (
                           <Box
                             key={el.id}
+                            ref={isSelected ? selectedElRef : undefined}
                             sx={{ position: 'absolute', left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3, pointerEvents: 'auto' }}
                             onMouseDown={e => {
                               if (isEditing) return
@@ -2058,10 +2060,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                     </Box>
 
                     {/* ── Portal toolbar — rendered into document.body, immune to all overflow:hidden ── */}
-                    {selectedEl && sceneBoxRef.current && createPortal((() => {
-                      const rect = sceneBoxRef.current!.getBoundingClientRect()
-                      const elScreenX = rect.left + (selectedEl.x / 100) * rect.width
-                      const elScreenY = rect.top  + (selectedEl.y / 100) * rect.height
+                    {selectedEl && selectedElRef.current && createPortal((() => {
+                      const elRect    = selectedElRef.current!.getBoundingClientRect()
                       const isBullet  = selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point'
                       const isButton  = selectedEl.type === 'Button'
                       return (
@@ -2070,8 +2070,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           onClick={e => e.stopPropagation()}
                           sx={{
                             position: 'fixed',
-                            left: elScreenX,
-                            top: elScreenY - 10,
+                            left: elRect.left + elRect.width / 2,
+                            top: elRect.top - 10,
                             transform: 'translate(-50%, -100%)',
                             zIndex: 9999,
                             whiteSpace: 'nowrap',
