@@ -3,7 +3,7 @@ import {
   Box, Typography, Dialog, IconButton,
   Avatar, Button, OutlinedInput, InputAdornment,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Tooltip, Switch,
+  Tooltip, Switch, Checkbox, FormControlLabel,
   Select, MenuItem, FormControl,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
@@ -112,22 +112,50 @@ function AddUserDialog({ open, onClose, onSend }: {
   onClose: () => void
   onSend: (rows: InviteRow[]) => void
 }) {
-  const [rows, setRows] = useState<InviteRow[]>([{ email: '', createSpace: 'Editor', amplifySpace: 'Contributor' }])
+  const [rows, setRows] = useState<(InviteRow & { createSpaceSelected: string[] })[]>([{ email: '', createSpace: 'Editor', createSpaceSelected: ['Editor'], amplifySpace: 'Contributor' }])
 
   const updateRow = (i: number, field: keyof InviteRow, val: string) =>
     setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
 
-  function handleSend() {
-    const valid = rows.filter(r => r.email.trim())
-    if (valid.length) { onSend(valid); setRows([{ email: '', createSpace: 'Editor', amplifySpace: 'Contributor' }]) }
+  const toggleCreateSpacePermission = (i: number, permission: string) => {
+    setRows(prev => prev.map((r, idx) => {
+      if (idx !== i) return r
+      const selected = r.createSpaceSelected.includes(permission)
+        ? r.createSpaceSelected.filter(p => p !== permission)
+        : [...r.createSpaceSelected, permission]
+      return { ...r, createSpaceSelected: selected, createSpace: selected.join(', ') || 'No access' }
+    }))
   }
 
-  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'Editor and Approver', 'No access']
+  function handleSend() {
+    const valid = rows.filter(r => r.email.trim())
+    if (valid.length) {
+      onSend(valid.map(({ createSpaceSelected, ...r }) => r))
+      setRows([{ email: '', createSpace: 'Editor', createSpaceSelected: ['Editor'], amplifySpace: 'Contributor' }])
+    }
+  }
+
+  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
   const selectSx = {
     fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px',
     '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
     height: 40,
+  }
+
+  const isPermissionDisabled = (permission: string, selected: string[]) => {
+    if (permission === 'Viewer' && (selected.includes('Editor') || selected.includes('Approver'))) return true
+    if (permission === 'Editor' && selected.includes('Viewer')) return true
+    if (permission === 'Approver' && selected.includes('Viewer')) return true
+    return false
+  }
+
+  const getDisabledTooltip = (permission: string, selected: string[]): string | null => {
+    if (permission === 'Viewer' && selected.includes('Editor')) return 'Viewer cannot be combined with Editor'
+    if (permission === 'Viewer' && selected.includes('Approver')) return 'Viewer cannot be combined with Approver'
+    if (permission === 'Editor' && selected.includes('Viewer')) return 'Editor cannot be combined with Viewer'
+    if (permission === 'Approver' && selected.includes('Viewer')) return 'Approver cannot be combined with Viewer'
+    return null
   }
 
   return (
@@ -154,11 +182,33 @@ function AddUserDialog({ open, onClose, onSend }: {
             </Box>
             <Box>
               <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
-              <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
-                <Select value={row.createSpace} onChange={e => updateRow(i, 'createSpace', e.target.value as string)} sx={selectSx}>
-                  {createSpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
-                </Select>
-              </FormControl>
+              <Box sx={{ mt: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {createSpaceOptions.map(option => {
+                  const isDisabled = isPermissionDisabled(option, row.createSpaceSelected)
+                  const tooltip = getDisabledTooltip(option, row.createSpaceSelected)
+                  const checkbox = (
+                    <FormControlLabel
+                      key={option}
+                      control={
+                        <Checkbox
+                          checked={row.createSpaceSelected.includes(option)}
+                          onChange={() => toggleCreateSpacePermission(i, option)}
+                          disabled={isDisabled}
+                          size="small"
+                          sx={{ '&.Mui-checked': { color: c.primary } }}
+                        />
+                      }
+                      label={<Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: isDisabled ? c.textSecondary : c.textPrimary }}>{option}</Typography>}
+                      sx={{ m: 0 }}
+                    />
+                  )
+                  return isDisabled ? (
+                    <Tooltip key={option} title={tooltip} placement="right" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+                      <div>{checkbox}</div>
+                    </Tooltip>
+                  ) : checkbox
+                })}
+              </Box>
             </Box>
             <Box>
               <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
@@ -191,7 +241,7 @@ function AddUserDialog({ open, onClose, onSend }: {
             variant="outlined"
             onClick={handleSend}
             disabled={!rows.some(r => r.email.trim())}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', color: c.primary, borderColor: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' } }}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', color: c.primary, borderColor: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: c.primary }, '&:disabled': { color: c.grey300, borderColor: c.grey300 } }}
           >
             Add users
           </Button>
@@ -210,11 +260,12 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
 }) {
   const [search, setSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<AccountUser | null>(null)
+  const [createSpaceSelected, setCreateSpaceSelected] = useState<string[]>(['Approver'])
   const [createSpace, setCreateSpace] = useState('Approver')
   const [amplifySpace, setAmplifySpace] = useState('No access')
   const [alert, setAlert] = useState('')
 
-  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'Editor and Approver', 'No access']
+  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
 
   const filteredUsers = search.trim()
@@ -223,21 +274,48 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
 
   const isNewEmail = search.trim() && !filteredUsers.some(u => u.user.email === search.trim())
 
+  const isPermissionDisabled = (permission: string): boolean => {
+    if (permission === 'Viewer' && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))) return true
+    if (permission === 'Editor' && createSpaceSelected.includes('Viewer')) return true
+    if (permission === 'Approver' && createSpaceSelected.includes('Viewer')) return true
+    return false
+  }
+
+  const getDisabledTooltip = (permission: string): string | null => {
+    if (permission === 'Viewer' && createSpaceSelected.includes('Editor')) return 'Viewer cannot be combined with Editor'
+    if (permission === 'Viewer' && createSpaceSelected.includes('Approver')) return 'Viewer cannot be combined with Approver'
+    if (permission === 'Editor' && createSpaceSelected.includes('Viewer')) return 'Editor cannot be combined with Viewer'
+    if (permission === 'Approver' && createSpaceSelected.includes('Viewer')) return 'Approver cannot be combined with Viewer'
+    return null
+  }
+
+  const toggleCreateSpacePermission = (permission: string) => {
+    const selected = createSpaceSelected.includes(permission)
+      ? createSpaceSelected.filter(p => p !== permission)
+      : [...createSpaceSelected, permission]
+    setCreateSpaceSelected(selected)
+    setCreateSpace(selected.join(', ') || 'No access')
+  }
+
   const handleSelectUser = (user: AccountUser) => {
     setSelectedUser(user)
     setSearch(user.user.email)
 
     // Set permissions based on user's current role
     if (user.createSpace === 'Editor') {
-      setCreateSpace('Editor and Approver')
+      setCreateSpaceSelected(['Editor', 'Approver'])
+      setCreateSpace('Editor, Approver')
       setAlert('This user will get permission to access the create space')
-    } else if (user.createSpace === 'View only') {
+    } else if (user.createSpace === 'Viewer') {
+      setCreateSpaceSelected(['Approver'])
       setCreateSpace('Approver')
       setAlert('This user will get permission to access the create space')
     } else if (user.createSpace === 'No access') {
+      setCreateSpaceSelected(['Approver'])
       setCreateSpace('Approver')
       setAlert('This user will get permission to access the create space')
     } else {
+      setCreateSpaceSelected(['Approver'])
       setCreateSpace('Approver')
       setAlert('')
     }
@@ -251,6 +329,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
     onAdd(email, createSpace, amplifySpace)
     setSearch('')
     setSelectedUser(null)
+    setCreateSpaceSelected(['Approver'])
     setCreateSpace('Approver')
     setAmplifySpace('No access')
     setAlert('')
@@ -261,6 +340,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
     if (!open) {
       setSearch('')
       setSelectedUser(null)
+      setCreateSpaceSelected(['Approver'])
       setCreateSpace('Approver')
       setAmplifySpace('No access')
       setAlert('')
@@ -320,26 +400,46 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
         )}
 
         {/* Permissions */}
-        {search.trim() && (
-          <Box sx={{ mb: '20px' }}>
-            <Box sx={{ mb: '12px' }}>
-              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Create space</Typography>
-              <FormControl fullWidth size="small">
-                <Select value={createSpace} onChange={e => setCreateSpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
-                  {createSpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Box>
-            <Box>
-              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amplify space</Typography>
-              <FormControl fullWidth size="small">
-                <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
-                  {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
-                </Select>
-              </FormControl>
+        <Box sx={{ mb: '20px' }}>
+          <Box sx={{ mb: '12px' }}>
+            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Create space</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {createSpaceOptions.map(option => {
+                const isDisabled = isPermissionDisabled(option)
+                const tooltip = getDisabledTooltip(option)
+                const checkbox = (
+                  <FormControlLabel
+                    key={option}
+                    control={
+                      <Checkbox
+                        checked={createSpaceSelected.includes(option)}
+                        onChange={() => toggleCreateSpacePermission(option)}
+                        disabled={isDisabled}
+                        size="small"
+                        sx={{ '&.Mui-checked': { color: c.primary } }}
+                      />
+                    }
+                    label={<Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: isDisabled ? c.textSecondary : c.textPrimary }}>{option}</Typography>}
+                    sx={{ m: 0 }}
+                  />
+                )
+                return isDisabled ? (
+                  <Tooltip key={option} title={tooltip} placement="right" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+                    <div>{checkbox}</div>
+                  </Tooltip>
+                ) : checkbox
+              })}
             </Box>
           </Box>
-        )}
+          <Box>
+            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amplify space</Typography>
+            <FormControl fullWidth size="small">
+              <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
+                {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
 
         {/* Alert */}
         {alert && (
@@ -381,16 +481,48 @@ function EditPermissionsDialog({ open, onClose, user, onSave }: {
   user: AccountUser | null
   onSave: (createSpace: string, amplifySpace: string) => void
 }) {
-  const [createSpace, setCreateSpace] = useState(user?.createSpace || 'Viewer')
+  const initialCreateSpace = user?.createSpace || 'Viewer'
+  const [createSpaceSelected, setCreateSpaceSelected] = useState<string[]>(initialCreateSpace ? initialCreateSpace.split(', ') : ['Viewer'])
+  const [createSpace, setCreateSpace] = useState(initialCreateSpace)
   const [amplifySpace, setAmplifySpace] = useState(user?.amplifySpace || 'No access')
 
-  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'Editor and Approver', 'No access']
+  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
   const selectSx = {
     fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px',
     '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
     height: 40,
   }
+
+  const isPermissionDisabled = (permission: string): boolean => {
+    if (permission === 'Viewer' && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))) return true
+    if (permission === 'Editor' && createSpaceSelected.includes('Viewer')) return true
+    if (permission === 'Approver' && createSpaceSelected.includes('Viewer')) return true
+    return false
+  }
+
+  const getDisabledTooltip = (permission: string): string | null => {
+    if (permission === 'Viewer' && createSpaceSelected.includes('Editor')) return 'Viewer cannot be combined with Editor'
+    if (permission === 'Viewer' && createSpaceSelected.includes('Approver')) return 'Viewer cannot be combined with Approver'
+    if (permission === 'Editor' && createSpaceSelected.includes('Viewer')) return 'Editor cannot be combined with Viewer'
+    if (permission === 'Approver' && createSpaceSelected.includes('Viewer')) return 'Approver cannot be combined with Viewer'
+    return null
+  }
+
+  const toggleCreateSpacePermission = (permission: string) => {
+    const selected = createSpaceSelected.includes(permission)
+      ? createSpaceSelected.filter(p => p !== permission)
+      : [...createSpaceSelected, permission]
+    setCreateSpaceSelected(selected)
+    setCreateSpace(selected.join(', ') || 'No access')
+  }
+
+  React.useEffect(() => {
+    const initial = user?.createSpace || 'Viewer'
+    setCreateSpaceSelected(initial ? initial.split(', ') : ['Viewer'])
+    setCreateSpace(initial)
+    setAmplifySpace(user?.amplifySpace || 'No access')
+  }, [user, open])
 
   function handleSave() {
     onSave(createSpace, amplifySpace)
@@ -408,20 +540,42 @@ function EditPermissionsDialog({ open, onClose, user, onSave }: {
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
 
-        {/* Column headers */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', mb: '8px', px: '2px' }}>
+        {/* Create space section */}
+        <Box sx={{ mb: '24px' }}>
           <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
-          <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
+          <Box sx={{ mt: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {createSpaceOptions.map(option => {
+              const isDisabled = isPermissionDisabled(option)
+              const tooltip = getDisabledTooltip(option)
+              const checkbox = (
+                <FormControlLabel
+                  key={option}
+                  control={
+                    <Checkbox
+                      checked={createSpaceSelected.includes(option)}
+                      onChange={() => toggleCreateSpacePermission(option)}
+                      disabled={isDisabled}
+                      size="small"
+                      sx={{ '&.Mui-checked': { color: c.primary } }}
+                    />
+                  }
+                  label={<Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: isDisabled ? c.textSecondary : c.textPrimary }}>{option}</Typography>}
+                  sx={{ m: 0 }}
+                />
+              )
+              return isDisabled ? (
+                <Tooltip key={option} title={tooltip} placement="right" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+                  <div>{checkbox}</div>
+                </Tooltip>
+              ) : checkbox
+            })}
+          </Box>
         </Box>
 
-        {/* Selects */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', mb: '24px', borderBottom: `1px solid ${c.grey300}`, pb: '12px' }}>
-          <FormControl size="small">
-            <Select value={createSpace} onChange={e => setCreateSpace(e.target.value as string)} sx={selectSx}>
-              {createSpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
-            </Select>
-          </FormControl>
-          <FormControl size="small">
+        {/* Amplify space section */}
+        <Box sx={{ mb: '24px', borderBottom: `1px solid ${c.grey300}`, pb: '12px' }}>
+          <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
+          <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
             <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={selectSx}>
               {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
             </Select>
