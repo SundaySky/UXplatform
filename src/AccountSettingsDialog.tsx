@@ -3,7 +3,7 @@ import {
   Box, Typography, Dialog, IconButton,
   Avatar, Button, OutlinedInput, InputAdornment,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Tooltip, Switch, Checkbox,
+  Tooltip, Switch, Checkbox, Divider,
   Select, MenuItem, FormControl, Menu,
   Autocomplete, TextField,
 } from '@mui/material'
@@ -70,13 +70,19 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
 ]
 
 // ─── Shared: column header with ⓘ tooltip + seat badge ───────────────────────
-function SeatHeader({ label, tooltip, used, total }: { label: string; tooltip: string; used: number; total: number }) {
+function SeatHeader({ label, tooltip, iconTooltip, used, total }: { label: string; tooltip: string; iconTooltip?: string; used: number; total: number }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>{label}</Typography>
       <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-        <InfoOutlinedIcon sx={{ fontSize: 14, color: c.actionActive, cursor: 'default' }} />
+        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, cursor: 'default' }}>{label}</Typography>
       </Tooltip>
+      {iconTooltip ? (
+        <Tooltip title={iconTooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+          <InfoOutlinedIcon sx={{ fontSize: 14, color: c.actionActive, cursor: 'default' }} />
+        </Tooltip>
+      ) : (
+        <InfoOutlinedIcon sx={{ fontSize: 14, color: c.actionActive, cursor: 'default' }} />
+      )}
       <Box sx={{ bgcolor: c.primaryLight, borderRadius: '4px', px: '6px', py: '2px' }}>
         <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 11, fontWeight: 600, color: c.primary }}>{used}/{total}</Typography>
       </Box>
@@ -86,13 +92,14 @@ function SeatHeader({ label, tooltip, used, total }: { label: string; tooltip: s
 
 // ─── Shared: Create Space Multi-Select with Checkboxes ─────────────────────
 function CreateSpaceSelector({
-  selected, onChange, options, isPermissionDisabled, getDisabledTooltip
+  selected, onChange, options, isPermissionDisabled, getDisabledTooltip, lockedOption
 }: {
   selected: string[]
   onChange: (permissions: string[]) => void
   options: string[]
   isPermissionDisabled: (permission: string) => boolean
   getDisabledTooltip: (permission: string) => string | null
+  lockedOption?: string
 }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const displayText = selected.length > 0 ? selected.join(', ') : 'No access'
@@ -126,9 +133,10 @@ function CreateSpaceSelector({
         PaperProps={{ sx: { borderRadius: '8px', minWidth: 280 } }}
       >
         {options.map(option => {
-          const isDisabled = isPermissionDisabled(option)
-          const tooltip = getDisabledTooltip(option)
-          const isChecked = selected.includes(option)
+          const isLocked   = option === lockedOption
+          const isDisabled = isLocked || isPermissionDisabled(option)
+          const tooltip    = isLocked ? `${option} is required and cannot be removed` : getDisabledTooltip(option)
+          const isChecked  = isLocked ? true : selected.includes(option)
 
           const menuItem = (
             <Box
@@ -147,8 +155,8 @@ function CreateSpaceSelector({
                 gap: '8px',
                 px: '12px',
                 py: '10px',
-                cursor: isDisabled ? 'not-allowed' : 'pointer',
-                opacity: isDisabled ? 0.5 : 1,
+                cursor: isDisabled ? 'default' : 'pointer',
+                opacity: isDisabled && !isLocked ? 0.5 : 1,
                 '&:hover': { bgcolor: !isDisabled ? c.grey100 : 'transparent' }
               }}
             >
@@ -156,7 +164,7 @@ function CreateSpaceSelector({
                 checked={isChecked}
                 disabled={isDisabled}
                 size="small"
-                sx={{ '&.Mui-checked': { color: c.primary } }}
+                sx={{ '&.Mui-checked': { color: isLocked ? c.textSecondary : c.primary }, '&.Mui-checked.Mui-disabled': { color: c.textSecondary } }}
               />
               <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: isDisabled ? c.textSecondary : c.textPrimary }}>
                 {option}
@@ -164,8 +172,8 @@ function CreateSpaceSelector({
             </Box>
           )
 
-          return isDisabled ? (
-            <Tooltip key={option} title={tooltip} placement="right" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+          return isDisabled && tooltip ? (
+            <Tooltip key={option} title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
               <div>{menuItem}</div>
             </Tooltip>
           ) : menuItem
@@ -251,7 +259,7 @@ function AddUserDialog({ open, onClose, onSend }: {
 
         {/* Rows */}
         {rows.map((row, i) => (
-          <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px', pb: '20px', borderBottom: `1px solid ${c.grey300}` }}>
+          <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: '24px', mb: '20px', pb: '20px', borderBottom: `1px solid ${c.grey300}` }}>
             <Box>
               <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</Typography>
               <OutlinedInput
@@ -424,76 +432,79 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
 
-        {/* User autocomplete */}
-        <Autocomplete
-          options={allUsers}
-          value={selectedUser}
-          inputValue={search}
-          freeSolo
-          getOptionLabel={option => typeof option === 'string' ? option : option.user.email}
-          onChange={(_, option) => {
-            if (option && typeof option !== 'string') {
-              handleSelectUser(option)
-            } else if (!option) {
-              setSelectedUser(null)
-              setSearch('')
-              setCreateSpace('Approver')
-              setAmplifySpace('No access')
-              setAlert('')
-              setValidationError('')
-            }
-          }}
-          onInputChange={(_, value, reason) => {
-            if (reason === 'input') {
-              setSearch(value)
-              setSelectedUser(null)
-              setValidationError('')
-              if (!value.trim()) {
-                setCreateSpace('Approver')
-                setAmplifySpace('No access')
-                setAlert('')
-              } else {
-                const matchesExisting = allUsers.some(u => u.user.email === value.trim())
-                if (!matchesExisting) {
-                  setAlert('The user will receive an email invitation and will need to create an account to get access.')
+        {/* Inputs — 24 px gap between each */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '24px', mb: '20px' }}>
+          {/* User autocomplete */}
+          <Box>
+            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Select user
+            </Typography>
+            <Autocomplete
+              options={allUsers}
+              value={selectedUser}
+              inputValue={search}
+              freeSolo
+              getOptionLabel={option => typeof option === 'string' ? option : option.user.email}
+              onChange={(_, option) => {
+                if (option && typeof option !== 'string') {
+                  handleSelectUser(option)
+                } else if (!option) {
+                  setSelectedUser(null)
+                  setSearch('')
+                  setCreateSpace('Approver')
+                  setAmplifySpace('No access')
+                  setAlert('')
+                  setValidationError('')
                 }
-              }
-            }
-          }}
-          renderOption={(props, option) => (
-            <Box component="li" {...props} key={option.user.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start !important', py: '10px !important', px: '12px !important' }}>
-              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.4 }}>
-                {option.user.name}
-              </Typography>
-              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.4 }}>
-                {option.user.email}
-              </Typography>
-            </Box>
-          )}
-          renderInput={params => (
-            <TextField
-              {...params}
-              label="Select user"
-              placeholder="Search or enter email..."
-              size="small"
-              error={!!validationError}
-              helperText={validationError}
-              sx={{
-                '& .MuiInputLabel-root': { fontFamily: '"Open Sans",sans-serif', fontSize: 14 },
-                '& .MuiInputBase-input': { fontFamily: '"Open Sans",sans-serif', fontSize: 13 },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
-                '& .MuiFormHelperText-root': { fontFamily: '"Open Sans",sans-serif', fontSize: 12 },
               }}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input') {
+                  setSearch(value)
+                  setSelectedUser(null)
+                  setValidationError('')
+                  if (!value.trim()) {
+                    setCreateSpace('Approver')
+                    setAmplifySpace('No access')
+                    setAlert('')
+                  } else {
+                    const matchesExisting = allUsers.some(u => u.user.email === value.trim())
+                    if (!matchesExisting) {
+                      setAlert('The user will receive an email invitation and will need to create an account to get access.')
+                    }
+                  }
+                }
+              }}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.user.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start !important', py: '10px !important', px: '12px !important' }}>
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.4 }}>
+                    {option.user.name}
+                  </Typography>
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.4 }}>
+                    {option.user.email}
+                  </Typography>
+                </Box>
+              )}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  placeholder="Search or enter email..."
+                  size="small"
+                  error={!!validationError}
+                  helperText={validationError}
+                  sx={{
+                    '& .MuiInputBase-input': { fontFamily: '"Open Sans",sans-serif', fontSize: 13 },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
+                    '& .MuiFormHelperText-root': { fontFamily: '"Open Sans",sans-serif', fontSize: 12 },
+                  }}
+                />
+              )}
             />
-          )}
-          sx={{ mb: '16px' }}
-        />
+          </Box>
 
-        {/* Permissions */}
-        <Box sx={{ mb: '20px' }}>
-          <Box sx={{ mb: '12px' }}>
+          {/* Create space */}
+          <Box>
             <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
-            <Box sx={{ mt: '12px' }}>
+            <Box sx={{ mt: '8px' }}>
               <CreateSpaceSelector
                 selected={createSpaceSelected}
                 onChange={(selected) => {
@@ -503,12 +514,15 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                 options={createSpaceOptions}
                 isPermissionDisabled={isPermissionDisabled}
                 getDisabledTooltip={getDisabledTooltip}
+                lockedOption="Approver"
               />
             </Box>
           </Box>
+
+          {/* Amplify space */}
           <Box>
             <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
-            <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
+            <FormControl fullWidth size="small" sx={{ mt: '8px' }}>
               <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
                 {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
               </Select>
@@ -718,74 +732,6 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
   )
 }
 
-// ─── User Details Dialog ──────────────────────────────────────────────────────
-function UserDetailsDialog({ open, onClose, user, onEdit, onRemove }: {
-  open: boolean
-  onClose: () => void
-  user: AccountUser | null
-  onEdit: () => void
-  onRemove: () => void
-}) {
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 400, borderRadius: '12px', p: 0 } }}>
-      <Box sx={{ px: '24px', py: '20px' }}>
-        {/* Title */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
-            User details
-          </Typography>
-          <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
-        </Box>
-
-        {/* User info */}
-        {user && (
-          <Box sx={{ mb: '24px', pb: '24px', borderBottom: `1px solid ${c.grey300}` }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', mb: '16px' }}>
-              <Avatar sx={{ width: 40, height: 40, bgcolor: c.secondary, fontSize: 12, fontFamily: '"Inter",sans-serif', fontWeight: 600, borderRadius: '8px' }}>
-                {user.user.initials}
-              </Avatar>
-              <Box>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, color: c.textPrimary }}>
-                  {user.user.name}
-                </Typography>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
-                  {user.jobRole}
-                </Typography>
-              </Box>
-            </Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', fontSize: 13, fontFamily: '"Open Sans",sans-serif', color: c.textSecondary }}>
-              <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: c.textSecondary, mb: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</Typography>
-                <Typography sx={{ color: c.textPrimary }}>{user.user.email}</Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: c.textSecondary, mb: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Creation date</Typography>
-                <Typography sx={{ color: c.textPrimary }}>{user.pending ? '—' : user.createdDate}</Typography>
-              </Box>
-            </Box>
-          </Box>
-        )}
-
-        {/* Actions */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-          <Button
-            onClick={() => { onRemove(); onClose() }}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: '#E53935', '&:hover': { bgcolor: 'rgba(229,57,53,0.1)' } }}
-          >
-            Remove
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => { onEdit(); onClose() }}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', py: '9px', px: '16px', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
-          >
-            Edit permissions
-          </Button>
-        </Box>
-      </Box>
-    </Dialog>
-  )
-}
 
 // ─── Confirm Approvers Dialog ──────────────────────────────────────────────────
 interface ApproverCreateSpacePermission {
@@ -881,6 +827,8 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [removeApproverOpen, setRemoveApproverOpen] = useState(false)
   const [approverToRemove, setApproverToRemove] = useState<AccountUser | null>(null)
+  const [approverMenuAnchor, setApproverMenuAnchor] = useState<HTMLElement | null>(null)
+  const [approverMenuUser, setApproverMenuUser]     = useState<AccountUser | null>(null)
   const [confirmApproversOpen, setConfirmApproversOpen] = useState(false)
   const [pendingApprovers, setPendingApprovers] = useState<ApproverCreateSpacePermission[]>([])
 
@@ -930,7 +878,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', px: '16px', py: '14px' }}>
           <ApprovalOutlinedIcon sx={{ fontSize: 22, color: c.primary, flexShrink: 0 }} />
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textPrimary, flex: 1 }}>
-            Only specific users can approve videos and template
+            Require approvals from specific users for videos and templates
           </Typography>
           <Switch
             checked={enabled}
@@ -980,25 +928,22 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
               </Box>
             ) : (
               <Box sx={{ borderRadius: '8px', border: `1px solid ${c.grey300}`, overflow: 'auto', maxHeight: 300 }}>
-                <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 900 }}>
+                <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 850, width: '100%' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ ...headCellSx, width: 240, position: 'sticky', left: 0, zIndex: 4 }}>
+                      <TableCell sx={{ ...headCellSx, width: 230, position: 'sticky', left: 0, zIndex: 4 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           User <ArrowDownwardIcon sx={{ fontSize: 13, color: c.actionActive }} />
                         </Box>
                       </TableCell>
-                      <TableCell sx={{ ...headCellSx, width: 150 }}>
-                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>Role</Typography>
+                      <TableCell sx={{ ...headCellSx, width: '22%' }}>
+                        <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" iconTooltip="Access to the video and template editors, analytics, and AI features" used={5} total={10} />
                       </TableCell>
-                      <TableCell sx={{ ...headCellSx, width: 180 }}>
-                        <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={5} total={10} />
+                      <TableCell sx={{ ...headCellSx, width: '22%' }}>
+                        <SeatHeader label="Amplify space" tooltip="Assigned contributor seats compared to total contributor seats" iconTooltip="Access to available templates created by editors and analytics for sent videos" used={4} total={10} />
                       </TableCell>
-                      <TableCell sx={{ ...headCellSx, width: 180 }}>
-                        <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
-                      </TableCell>
-                      <TableCell sx={{ ...headCellSx, width: 160 }}>Added as approver</TableCell>
-                      <TableCell sx={{ ...headCellSx, width: 48, p: 0 }} />
+                      <TableCell sx={{ ...headCellSx, width: 180 }}>Added as approver</TableCell>
+                      <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: 'sticky', right: 0, zIndex: 4 }} />
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1015,11 +960,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                             <UserCell row={row} />
                           </TableCell>
                           <TableCell sx={bodyCellSx}>
-                            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                              {row.jobRole}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={bodyCellSx}>
                             <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.createSpace === 'No access' ? c.textSecondary : c.textPrimary }}>
                               {row.createSpace}
                             </Typography>
@@ -1034,17 +974,15 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                               {row.addedAsApprover || '—'}
                             </Typography>
                           </TableCell>
-                          <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48 }}>
+                          <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48, position: 'sticky', right: 0, zIndex: 2, bgcolor: isHovered ? c.grey100 : '#fff' }}>
                             {isHovered && (
-                              <Tooltip title="Remove approver" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => { setApproverToRemove(row); setRemoveApproverOpen(true) }}
-                                  sx={{ color: '#E53935', '&:hover': { bgcolor: 'rgba(229,57,53,0.1)' } }}
-                                >
-                                  <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
-                                </IconButton>
-                              </Tooltip>
+                              <IconButton
+                                size="small"
+                                onClick={e => { setApproverMenuAnchor(e.currentTarget); setApproverMenuUser(row) }}
+                                sx={{ color: c.textPrimary, p: '4px', '&:hover': { bgcolor: c.grey100 } }}
+                              >
+                                <MoreHorizIcon sx={{ fontSize: 18 }} />
+                              </IconButton>
                             )}
                           </TableCell>
                         </TableRow>
@@ -1054,6 +992,45 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                 </Table>
               </Box>
             )}
+            {/* Approver options popup */}
+            <Menu
+              anchorEl={approverMenuAnchor}
+              open={!!approverMenuAnchor}
+              onClose={() => setApproverMenuAnchor(null)}
+              PaperProps={{ sx: { borderRadius: '10px', minWidth: 240, boxShadow: '0px 4px 20px rgba(3,25,79,0.15)', py: '8px' } }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+              {approverMenuUser && [
+                <Box key="name" sx={{ px: '16px', pt: '4px', pb: '8px' }}>
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 700, color: c.textPrimary }}>
+                    {approverMenuUser.user.name}
+                  </Typography>
+                </Box>,
+                <Box key="details" sx={{ px: '16px', pb: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {[
+                    { label: 'Role', value: approverMenuUser.jobRole },
+                    { label: 'Email', value: approverMenuUser.user.email },
+                    { label: 'Created on', value: approverMenuUser.pending ? '—' : approverMenuUser.createdDate },
+                    ...(approverMenuUser.addedAsApprover ? [{ label: 'Approver since', value: approverMenuUser.addedAsApprover }] : []),
+                  ].map(({ label, value }) => (
+                    <Box key={label} sx={{ display: 'flex', gap: '6px' }}>
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, minWidth: 90 }}>{label}:</Typography>
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textPrimary }}>{value}</Typography>
+                    </Box>
+                  ))}
+                </Box>,
+                <Divider key="divider" sx={{ my: '4px' }} />,
+                <MenuItem
+                  key="remove"
+                  onClick={() => { setApproverToRemove(approverMenuUser); setRemoveApproverOpen(true); setApproverMenuAnchor(null) }}
+                  sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
+                >
+                  <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
+                  Remove approver role
+                </MenuItem>,
+              ]}
+            </Menu>
           </Box>
         )}
       </Box>
@@ -1116,8 +1093,8 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
   const [editingUser, setEditingUser] = useState<AccountUser | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null)
-  const [userDetailsOpen, setUserDetailsOpen] = useState(false)
-  const [selectedUserForDetails, setSelectedUserForDetails] = useState<AccountUser | null>(null)
+  const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(null)
+  const [userMenuUser, setUserMenuUser]     = useState<AccountUser | null>(null)
   const [usersList, setUsersList] = useState<AccountUser[]>(users)
 
   const filtered = search
@@ -1142,9 +1119,9 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Button
             startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-            variant="contained"
+            variant="outlined"
             onClick={() => setInviteOpen(true)}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: '16px', py: '7px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: '16px', py: '7px', color: c.primary, borderColor: c.grey300, '&:hover': { bgcolor: c.primaryLight, borderColor: c.primary, boxShadow: 'none' } }}
           >
             Add user
           </Button>
@@ -1160,8 +1137,8 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
       </Box>
 
       {/* Table */}
-      <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', borderRadius: '8px', border: `1px solid ${c.grey300}`, maxWidth: 850 }}>
-        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%', minWidth: 850 }}>
+      <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', borderRadius: '8px', border: `1px solid ${c.grey300}` }}>
+        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ ...headCellSx, width: 230, position: 'sticky', left: 0, zIndex: 4 }}>
@@ -1169,13 +1146,23 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                   User <ArrowDownwardIcon sx={{ fontSize: 14, color: c.actionActive }} />
                 </Box>
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: '25%' }}>
-                <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={5} total={10} />
+              <TableCell sx={{ ...headCellSx, width: '22%' }}>
+                <SeatHeader
+                  label="Create space"
+                  tooltip="Assigned editor seats compared to total editor seats"
+                  iconTooltip="Access to the video and template editors, analytics, and AI features"
+                  used={5} total={10}
+                />
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: '25%' }}>
-                <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
+              <TableCell sx={{ ...headCellSx, width: '22%' }}>
+                <SeatHeader
+                  label="Amplify space"
+                  tooltip="Assigned contributor seats compared to total contributor seats"
+                  iconTooltip="Access to available templates created by editors and analytics for sent videos"
+                  used={4} total={10}
+                />
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: '25%' }}>Last login</TableCell>
+              <TableCell sx={{ ...headCellSx, width: 220 }}>Last login</TableCell>
               <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: 'sticky', right: 0, zIndex: 4 }} />
             </TableRow>
           </TableHead>
@@ -1193,9 +1180,20 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                     <UserCell row={row} />
                   </TableCell>
                   <TableCell sx={bodyCellSx}>
-                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.createSpace === 'No access' ? c.textSecondary : c.textPrimary, whiteSpace: 'pre-line' }}>
-                      {row.createSpace}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.createSpace === 'No access' ? c.textSecondary : c.textPrimary, whiteSpace: 'pre-line' }}>
+                        {row.createSpace}
+                      </Typography>
+                      <Box sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {isHovered && !row.isOwner && (
+                          <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+                            <IconButton size="small" onClick={() => { setEditingUser(row); setEditPermOpen(true) }} sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}>
+                              <EditOutlinedIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    </Box>
                   </TableCell>
                   <TableCell sx={bodyCellSx}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
@@ -1205,11 +1203,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                       <Box sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {isHovered && !row.isOwner && (
                           <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => { setEditingUser(row); setEditPermOpen(true) }}
-                              sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}
-                            >
+                            <IconButton size="small" onClick={() => { setEditingUser(row); setEditPermOpen(true) }} sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}>
                               <EditOutlinedIcon sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
@@ -1217,8 +1211,8 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                       </Box>
                     </Box>
                   </TableCell>
-                  <TableCell sx={bodyCellSx}>
-                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.pending ? c.textSecondary : c.textPrimary, fontStyle: row.pending ? 'italic' : 'normal' }}>
+                  <TableCell sx={{ ...bodyCellSx, width: 220 }}>
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.pending ? c.textSecondary : c.textPrimary, fontStyle: row.pending ? 'italic' : 'normal', whiteSpace: 'nowrap' }}>
                       {row.pending ? 'Pending' : row.lastLogin}
                     </Typography>
                   </TableCell>
@@ -1226,7 +1220,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                     {isHovered && !row.isOwner && (
                       <IconButton
                         size="small"
-                        onClick={() => { setSelectedUserForDetails(row); setUserDetailsOpen(true) }}
+                        onClick={e => { setUserMenuAnchor(e.currentTarget); setUserMenuUser(row) }}
                         sx={{ color: c.textPrimary, p: '4px', '&:hover': { bgcolor: c.grey100 } }}
                       >
                         <MoreHorizIcon sx={{ fontSize: 18 }} />
@@ -1270,14 +1264,54 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         }}
       />
 
-      {/* User Details Dialog */}
-      <UserDetailsDialog
-        open={userDetailsOpen}
-        onClose={() => setUserDetailsOpen(false)}
-        user={selectedUserForDetails}
-        onEdit={() => { setEditingUser(selectedUserForDetails); setEditPermOpen(true) }}
-        onRemove={() => { setUserToDelete(selectedUserForDetails); setDeleteOpen(true) }}
-      />
+      {/* Options popup menu — media-library style */}
+      <Menu
+        anchorEl={userMenuAnchor}
+        open={!!userMenuAnchor}
+        onClose={() => setUserMenuAnchor(null)}
+        PaperProps={{ sx: { borderRadius: '10px', minWidth: 240, boxShadow: '0px 4px 20px rgba(3,25,79,0.15)', py: '8px' } }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        {/* User info — non-interactive */}
+        {userMenuUser && [
+          <Box key="name" sx={{ px: '16px', pt: '4px', pb: '8px' }}>
+            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 700, color: c.textPrimary }}>
+              {userMenuUser.user.name}
+            </Typography>
+          </Box>,
+          <Box key="details" sx={{ px: '16px', pb: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {[
+              { label: 'Role', value: userMenuUser.jobRole },
+              { label: 'Email', value: userMenuUser.user.email },
+              { label: 'Created on', value: userMenuUser.pending ? '—' : userMenuUser.createdDate },
+              ...(userMenuUser.addedAsApprover ? [{ label: 'Approver since', value: userMenuUser.addedAsApprover }] : []),
+            ].map(({ label, value }) => (
+              <Box key={label} sx={{ display: 'flex', gap: '6px' }}>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, minWidth: 80 }}>{label}:</Typography>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textPrimary }}>{value}</Typography>
+              </Box>
+            ))}
+          </Box>,
+          <Divider key="divider" sx={{ my: '4px' }} />,
+          <MenuItem
+            key="edit"
+            onClick={() => { setEditingUser(userMenuUser); setEditPermOpen(true); setUserMenuAnchor(null) }}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, px: '16px', py: '8px', gap: '10px' }}
+          >
+            <EditOutlinedIcon sx={{ fontSize: 16, color: c.actionActive }} />
+            Edit permissions
+          </MenuItem>,
+          <MenuItem
+            key="remove"
+            onClick={() => { setUserToDelete(userMenuUser); setDeleteOpen(true); setUserMenuAnchor(null) }}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
+          >
+            <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
+            Remove from account
+          </MenuItem>,
+        ]}
+      </Menu>
     </Box>
   )
 }
