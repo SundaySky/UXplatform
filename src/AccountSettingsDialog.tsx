@@ -1151,15 +1151,15 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
 
       {/* Table */}
       <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', borderRadius: '8px', border: `1px solid ${c.grey300}` }}>
-        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
+        <Table size="small" sx={{ width: '100%' }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ ...headCellSx, width: 230, position: 'sticky', left: 0, zIndex: 4 }}>
+              <TableCell sx={{ ...headCellSx, width: 220, position: 'sticky', left: 0, zIndex: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                   User <ArrowDownwardIcon sx={{ fontSize: 14, color: c.actionActive }} />
                 </Box>
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: '22%' }}>
+              <TableCell sx={{ ...headCellSx }}>
                 <SeatHeader
                   label="Create space"
                   tooltip="Assigned editor seats compared to total editor seats"
@@ -1168,7 +1168,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                   used={editorCount} total={10}
                 />
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: '22%' }}>
+              <TableCell sx={{ ...headCellSx }}>
                 <SeatHeader
                   label="Amplify space"
                   tooltip="Assigned contributor seats compared to total contributor seats"
@@ -1177,7 +1177,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                   used={contributorCount} total={10}
                 />
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: 220 }}>Last login</TableCell>
+              <TableCell sx={{ ...headCellSx, width: 190 }}>Last login</TableCell>
               <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: 'sticky', right: 0, zIndex: 4 }} />
             </TableRow>
           </TableHead>
@@ -1226,7 +1226,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                       </Box>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ ...bodyCellSx, width: 220 }}>
+                  <TableCell sx={{ ...bodyCellSx, width: 190 }}>
                     <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.pending ? c.textSecondary : c.textPrimary, fontStyle: row.pending ? 'italic' : 'normal', whiteSpace: 'nowrap' }}>
                       {row.pending ? 'Pending' : row.lastLogin}
                     </Typography>
