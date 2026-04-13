@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Dialog, DialogTitle, Box, Typography, IconButton, Button, Divider, Tooltip,
+  Dialog, Box, Typography, IconButton, Button, Divider,
 } from '@mui/material'
 import CloseIcon                   from '@mui/icons-material/Close'
 import HelpOutlineIcon             from '@mui/icons-material/HelpOutline'
@@ -9,169 +9,260 @@ import UploadFileOutlinedIcon      from '@mui/icons-material/UploadFileOutlined'
 import AddIcon                     from '@mui/icons-material/Add'
 import FilterListIcon              from '@mui/icons-material/FilterList'
 import KeyboardArrowDownIcon       from '@mui/icons-material/KeyboardArrowDown'
-import FaceOutlinedIcon            from '@mui/icons-material/FaceOutlined'
-import ArrowBackIosNewIcon         from '@mui/icons-material/ArrowBackIosNew'
-import ChevronLeftIcon             from '@mui/icons-material/ChevronLeft'
-import ChevronRightIcon            from '@mui/icons-material/ChevronRight'
-import StarBorderIcon              from '@mui/icons-material/StarBorder'
 import PaletteOutlinedIcon         from '@mui/icons-material/PaletteOutlined'
-import PersonOutlinedIcon          from '@mui/icons-material/PersonOutlined'
-import PermMediaOutlinedIcon       from '@mui/icons-material/PermMediaOutlined'
-import MusicNoteOutlinedIcon       from '@mui/icons-material/MusicNoteOutlined'
-import MicOutlinedIcon             from '@mui/icons-material/MicOutlined'
-import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
-import InputOutlinedIcon           from '@mui/icons-material/InputOutlined'
-import AspectRatioOutlinedIcon     from '@mui/icons-material/AspectRatioOutlined'
-import LanguageOutlinedIcon        from '@mui/icons-material/LanguageOutlined'
-import GridViewOutlinedIcon        from '@mui/icons-material/GridViewOutlined'
-import RadioButtonUncheckedIcon    from '@mui/icons-material/RadioButtonUnchecked'
-import TableChartOutlinedIcon      from '@mui/icons-material/TableChartOutlined'
-import InfoOutlinedIcon            from '@mui/icons-material/InfoOutlined'
-import MoreVertIcon                from '@mui/icons-material/MoreVert'
-import AddPhotoAlternateOutlinedIcon from '@mui/icons-material/AddPhotoAlternateOutlined'
 
 // ─── DS tokens ───────────────────────────────────────────────────────────────
 const s = {
   primary:       '#0053E5',
   secondary:     '#03194F',
-  textPrimary:   '#323338',
-  textSecondary: 'rgba(60,60,72,0.6)',
-  divider:       'rgba(0,83,229,0.12)',
-  editorBg:      '#F5F5F5',
+  textPrimary:   '#03194F',
+  textSecondary: 'rgba(3,25,79,0.5)',
+  divider:       '#E6E9F0',
   activeBg:      'rgba(0,83,229,0.08)',
   activeBorder:  'rgba(0,83,229,0.18)',
-  navHover:      'rgba(0,83,229,0.05)',
-  canvasBorder:  '#E0E0E0',
+  sidebarBg:     '#F5F6FA',
 }
 
-// ─── Color combination swatches ───────────────────────────────────────────────
+// ─── Color combination swatches ──────────────────────────────────────────────
 const COLOR_COMBOS = [
-  { top: '#FFFFFF', bottom: '#0053E5', selected: true  },
-  { top: '#111111', bottom: '#111111', selected: false },
-  { top: '#03194F', bottom: '#03194F', selected: false },
-  { top: '#0D2A6E', bottom: '#0D2A6E', selected: false },
-  { top: '#F5F5F5', bottom: '#F5F5F5', selected: false },
+  { a: '#03194F', b: '#8B9FCC', selected: true  },
+  { a: '#111111', b: '#333333', selected: false },
+  { a: '#1B2A4A', b: '#2E4A80', selected: false },
+  { a: '#7B5EA7', b: '#B48FD8', selected: false },
+  { a: '#D0D5E0', b: '#EFF1F5', selected: false },
 ]
 
 // ─── Scene template definitions ───────────────────────────────────────────────
-const TEMPLATE_SECTIONS = [
-  {
-    label: 'Single Message with Media',
-    templates: [
-      { id: 'sml-1', layout: 'media-right',    wave: true  },
-      { id: 'sml-2', layout: 'media-left',     wave: true  },
-      { id: 'sml-3', layout: 'text-bottom',    wave: true  },
-      { id: 'sml-4', layout: 'text-top-right', wave: false },
-      { id: 'sml-5', layout: 'card-left',      wave: false },
-      { id: 'sml-6', layout: 'media-center',   wave: true  },
-      { id: 'sml-7', layout: 'card-center',    wave: false },
-      { id: 'sml-8', layout: 'text-left-lg',   wave: true  },
-      { id: 'sml-9', layout: 'media-full',     wave: false },
-    ],
-  },
+const TEMPLATES = [
+  { id: 't1',  layout: 'left-text-right-media',   accent: 'tr' },
+  { id: 't2',  layout: 'left-text-right-media-2',  accent: 'tl' },
+  { id: 't3',  layout: 'left-text-right-media-3',  accent: 'play' },
+  { id: 't4',  layout: 'right-text-left-media',    accent: 'none' },
+  { id: 't5',  layout: 'left-text-right-media-4',  accent: 'arrow' },
+  { id: 't6',  layout: 'logo-center',              accent: 'none' },
+  { id: 't7',  layout: 'logo-top-media',           accent: 'none' },
+  { id: 't8',  layout: 'right-text-bold',          accent: 'none' },
+  { id: 't9',  layout: 'centered-full-media',      accent: 'none' },
 ]
 
-// ─── Tiny thumbnail SVG ───────────────────────────────────────────────────────
-function TemplateThumbnail({ layout, wave, selected, onClick }: {
-  layout: string; wave: boolean; selected: boolean; onClick: () => void
+// ─── Realistic thumbnail component ────────────────────────────────────────────
+function TemplateThumbnail({ id, layout, selected, onClick }: {
+  id: string; layout: string; accent?: string; selected: boolean; onClick: () => void
 }) {
-  const w = 80, h = 56
-  const bg = '#F0F0EC'
-  const textColor = '#323338'
-  const accentLine = '#0053E5'
+  const W = 280, H = 157
+  const stripe = (x: number, y: number, w: number, h: number) => {
+    const lines = []
+    const step = 14
+    for (let i = -h; i < w + h; i += step) {
+      lines.push(
+        <line key={i}
+          x1={x + i} y1={y + h}
+          x2={x + i + h} y2={y}
+          stroke="#C8CEDA" strokeWidth="1"
+          clipPath={`url(#clip-${id}-media)`} />
+      )
+    }
+    return lines
+  }
 
-  type Rect = { x: number; y: number; w: number; h: number }
-  let textRect: Rect  = { x: 4,  y: 10, w: 34, h: 26 }
-  let mediaRect: Rect = { x: 42, y: 4,  w: 34, h: 40 }
-  let showMedia = true
+  const logoEl = (lx: number, ly: number, dark?: boolean) => (
+    <g>
+      <rect x={lx} y={ly} width={7} height={7} rx="1" fill={dark ? '#FFFFFF' : '#7B8EC8'} opacity="0.9" />
+      <rect x={lx + 9} y={ly + 1} width={24} height={2.5} rx="1" fill={dark ? '#FFFFFF' : '#7B8EC8'} opacity="0.7" />
+      <rect x={lx + 9} y={ly + 4} width={18} height={2} rx="1" fill={dark ? '#FFFFFF' : '#7B8EC8'} opacity="0.45" />
+    </g>
+  )
 
-  if (layout === 'media-right')    { textRect = { x: 4, y: 10, w: 34, h: 26 }; mediaRect = { x: 42, y: 4,  w: 34, h: 40 } }
-  if (layout === 'media-left')     { textRect = { x: 42, y: 10, w: 34, h: 26 }; mediaRect = { x: 4,  y: 4,  w: 34, h: 40 } }
-  if (layout === 'text-bottom')    { textRect = { x: 6, y: 30, w: 56, h: 20 }; mediaRect = { x: 56, y: 4,  w: 20, h: 28 } }
-  if (layout === 'text-top-right') { textRect = { x: 44, y: 4, w: 32, h: 20 }; mediaRect = { x: 4,  y: 4,  w: 36, h: 40 } }
-  if (layout === 'card-left')      { textRect = { x: 8, y: 10, w: 36, h: 30 }; mediaRect = { x: 50, y: 14, w: 24, h: 24 } }
-  if (layout === 'media-center')   { textRect = { x: 4, y: 34, w: 44, h: 16 }; mediaRect = { x: 28, y: 4,  w: 48, h: 32 } }
-  if (layout === 'card-center')    { textRect = { x: 20, y: 12, w: 40, h: 26 }; showMedia = false }
-  if (layout === 'text-left-lg')   { textRect = { x: 2, y: 4,  w: 40, h: 44 }; mediaRect = { x: 44, y: 8,  w: 32, h: 32 } }
-  if (layout === 'media-full')     { textRect = { x: 4, y: 8,  w: 30, h: 20 }; mediaRect = { x: 38, y: 4,  w: 38, h: 44 } }
+  const headingEl = (hx: number, hy: number, lw: number, large?: boolean, dark?: boolean) => {
+    const fill = dark ? '#03194F' : '#03194F'
+    const lh = large ? 8 : 5.5
+    const sh = large ? 5 : 3.5
+    return (
+      <g>
+        <rect x={hx} y={hy}       width={lw * 0.9} height={lh}   rx="1" fill={fill} opacity="0.85" />
+        <rect x={hx} y={hy+lh+2}  width={lw * 0.7} height={lh}   rx="1" fill={fill} opacity="0.85" />
+        <rect x={hx} y={hy+lh*2+5} width={lw * 0.75} height={sh} rx="1" fill={fill} opacity="0.45" />
+      </g>
+    )
+  }
 
-  const headH = layout === 'text-left-lg' ? 6 : 4
+  const footnote = (fy: number) => (
+    <rect x={8} y={fy} width={60} height={2} rx="1" fill="#03194F" opacity="0.2" />
+  )
+
+  let content: React.ReactNode
+
+  if (layout === 'left-text-right-media') {
+    const mx = 118, my = 8, mw = W - mx - 8, mh = H - 16
+    content = (
+      <>
+        {/* Accent triangle top-right */}
+        <polygon points={`${W},0 ${W},${H*0.55} ${W-26},0`} fill="#A78BD4" opacity="0.85" />
+        {/* Media */}
+        <rect x={mx} y={my} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(mx, my, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={mx} y={my} width={mw} height={mh} rx="3" /></clipPath>
+        {/* Text */}
+        {logoEl(8, 7)}
+        {headingEl(8, 30, 100, true)}
+        {footnote(H - 10)}
+        {/* Dots */}
+        <circle cx={40} cy={H-18} r="1.5" fill="#03194F" opacity="0.3" />
+        <circle cx={46} cy={H-18} r="1.5" fill="#03194F" opacity="0.3" />
+        <circle cx={52} cy={H-18} r="1.5" fill="#03194F" opacity="0.3" />
+      </>
+    )
+  } else if (layout === 'left-text-right-media-2') {
+    const mx = 118, my = 8, mw = W - mx - 8, mh = H - 16
+    content = (
+      <>
+        {/* Accent triangle top-left */}
+        <polygon points={`0,0 ${W*0.28},0 0,${H*0.6}`} fill="#A78BCA" opacity="0.75" />
+        {/* Media */}
+        <rect x={mx} y={my} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(mx, my, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={mx} y={my} width={mw} height={mh} rx="3" /></clipPath>
+        {/* Logo top-right */}
+        {logoEl(W - 42, 7)}
+        {headingEl(18, 40, 90, true)}
+        {footnote(H - 10)}
+        <circle cx={40} cy={H-18} r="1.5" fill="#03194F" opacity="0.3" />
+        <circle cx={46} cy={H-18} r="1.5" fill="#03194F" opacity="0.3" />
+        <circle cx={52} cy={H-18} r="1.5" fill="#03194F" opacity="0.3" />
+      </>
+    )
+  } else if (layout === 'left-text-right-media-3') {
+    const mx = 118, my = 8, mw = W - mx - 8, mh = H - 16
+    content = (
+      <>
+        {/* Play arrow on left */}
+        <polygon points={`8,${H/2 - 8} 8,${H/2 + 8} 22,${H/2}`} fill="#03194F" opacity="0.7" />
+        {/* Media */}
+        <rect x={mx} y={my} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(mx, my, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={mx} y={my} width={mw} height={mh} rx="3" /></clipPath>
+        {logoEl(W - 42, 7)}
+        {headingEl(28, 35, 80, true)}
+        {footnote(H - 10)}
+      </>
+    )
+  } else if (layout === 'right-text-left-media') {
+    const mx = W - 110, my = 8, mw = 98, mh = H - 16
+    content = (
+      <>
+        {/* Media left */}
+        <rect x={8} y={my} width={mw - 10} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(8, my, mw - 10, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={8} y={my} width={mw - 10} height={mh} rx="3" /></clipPath>
+        {/* Play arrow on left of media */}
+        <polygon points={`14,${H/2-6} 14,${H/2+6} 24,${H/2}`} fill="#03194F" opacity="0.6" />
+        {logoEl(mx, H - 14)}
+        {headingEl(mx, 20, 88, true)}
+        {/* Accent dashed border right */}
+        <rect x={mx - 4} y={4} width={W - mx} height={H - 8} rx="3" fill="none" stroke="#B0B8CC" strokeWidth="1" strokeDasharray="3 3" />
+        {footnote(H - 10)}
+      </>
+    )
+  } else if (layout === 'left-text-right-media-4') {
+    const mx = 110, my = 8, mw = W - mx - 8, mh = H - 16
+    content = (
+      <>
+        {/* Violet splash top-left */}
+        <ellipse cx={10} cy={10} rx={55} ry={45} fill="#B89DD8" opacity="0.35" />
+        {/* Media */}
+        <rect x={mx} y={my} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(mx, my, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={mx} y={my} width={mw} height={mh} rx="3" /></clipPath>
+        {/* Arrow right edge */}
+        <polygon points={`${W-4},${H/2-7} ${W-4},${H/2+7} ${W+3},${H/2}`} fill="#03194F" opacity="0.55" />
+        {logoEl(mx / 2 - 20, H - 14)}
+        {headingEl(14, 28, 86, true)}
+        {footnote(H - 10)}
+      </>
+    )
+  } else if (layout === 'logo-center') {
+    const mx = W - 120, my = 40, mw = 110, mh = H - 55
+    content = (
+      <>
+        <rect x={mx} y={my} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(mx, my, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={mx} y={my} width={mw} height={mh} rx="3" /></clipPath>
+        {/* Logo centered top */}
+        {logoEl(12, 8)}
+        {headingEl(12, 28, 130, false)}
+        {/* Dots bottom */}
+        <circle cx={20} cy={H - 12} r="1.5" fill="#03194F" opacity="0.3" />
+        <circle cx={26} cy={H - 12} r="1.5" fill="#03194F" opacity="0.3" />
+        <circle cx={32} cy={H - 12} r="1.5" fill="#03194F" opacity="0.3" />
+      </>
+    )
+  } else if (layout === 'logo-top-media') {
+    const mx = 118, my = 28, mw = W - mx - 8, mh = H - 36
+    content = (
+      <>
+        {/* Logo + heading top-left */}
+        {logoEl(8, 8)}
+        {/* Media */}
+        <rect x={mx} y={my} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(mx, my, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={mx} y={my} width={mw} height={mh} rx="3" /></clipPath>
+        {/* Right logo */}
+        {logoEl(W - 42, 8)}
+        {headingEl(8, 26, 100, false)}
+        {footnote(H - 10)}
+      </>
+    )
+  } else if (layout === 'right-text-bold') {
+    const mx = 8, my = 8, mw = 95, mh = H - 16
+    content = (
+      <>
+        <rect x={mx} y={my} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(mx, my, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={mx} y={my} width={mw} height={mh} rx="3" /></clipPath>
+        {/* Dashed border right side */}
+        <rect x={mx + mw + 2} y={4} width={W - mx - mw - 14} height={H - 8} rx="3" fill="none" stroke="#B0B8CC" strokeWidth="1" strokeDasharray="3 3" />
+        {logoEl(8, H - 14)}
+        {headingEl(mx + mw + 10, 18, 95, true)}
+        {footnote(H - 10)}
+        {/* Arrow on left of media */}
+        <polygon points={`${mx+mw-4},${H/2-6} ${mx+mw-4},${H/2+6} ${mx+mw+5},${H/2}`} fill="#03194F" opacity="0.5" />
+      </>
+    )
+  } else {
+    // centered-full-media
+    const mw = W - 60, mh = 80
+    content = (
+      <>
+        {headingEl(W/2 - 60, 8, 120, false)}
+        <rect x={30} y={40} width={mw} height={mh} rx="3" fill="#E2E5EE" />
+        {stripe(30, 40, mw, mh)}
+        <clipPath id={`clip-${id}-media`}><rect x={30} y={40} width={mw} height={mh} rx="3" /></clipPath>
+        {logoEl(W/2 - 18, H - 14)}
+        {/* Accent triangle bottom-right */}
+        <polygon points={`${W},${H*0.55} ${W},${H} ${W - 28},${H}`} fill="#7EC8C8" opacity="0.6" />
+        {/* Dashed left border */}
+        <rect x={4} y={4} width={22} height={H - 8} rx="3" fill="none" stroke="#B0B8CC" strokeWidth="1" strokeDasharray="3 3" />
+        {/* Dashed right border */}
+        <rect x={W - 26} y={4} width={22} height={H - 8} rx="3" fill="none" stroke="#B0B8CC" strokeWidth="1" strokeDasharray="3 3" />
+      </>
+    )
+  }
 
   return (
     <Box
       onClick={onClick}
       sx={{
-        cursor: 'pointer', borderRadius: '6px', boxSizing: 'border-box',
+        cursor: 'pointer', borderRadius: '10px', overflow: 'hidden',
         border: selected ? `2px solid ${s.primary}` : '2px solid transparent',
-        overflow: 'hidden', flexShrink: 0,
-        '&:hover': { border: `2px solid ${s.primary}`, opacity: 0.9 },
-        transition: 'border 0.15s',
+        boxShadow: selected ? `0 0 0 3px rgba(0,83,229,0.15)` : '0 1px 4px rgba(3,25,79,0.1)',
+        transition: 'all 0.15s',
+        '&:hover': { border: `2px solid rgba(0,83,229,0.5)`, boxShadow: '0 2px 8px rgba(3,25,79,0.15)' },
       }}
     >
-      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block' }}>
-        <rect width={w} height={h} fill={bg} />
-        {wave && (
-          <path d={`M${w*0.42},0 Q${w*0.52},${h*0.5} ${w*0.44},${h} L${w*0.38},${h} Q${w*0.46},${h*0.5} ${w*0.36},0 Z`}
-            fill="none" stroke={accentLine} strokeWidth="0.8" opacity="0.35" />
-        )}
-        {showMedia && (
-          <g>
-            <rect x={mediaRect.x} y={mediaRect.y} width={mediaRect.w} height={mediaRect.h} fill="#D0D0C8" rx="2" />
-            {Array.from({ length: 8 }).map((_, i) => {
-              const step = (mediaRect.w + mediaRect.h) / 7
-              return (
-                <line key={i}
-                  x1={mediaRect.x + i * step - mediaRect.h} y1={mediaRect.y + mediaRect.h}
-                  x2={mediaRect.x + i * step} y2={mediaRect.y}
-                  stroke="#B8B8B0" strokeWidth="0.8" clipPath={`url(#clip-${layout})`} />
-              )
-            })}
-            <clipPath id={`clip-${layout}`}>
-              <rect x={mediaRect.x} y={mediaRect.y} width={mediaRect.w} height={mediaRect.h} rx="2" />
-            </clipPath>
-            <text x={mediaRect.x + mediaRect.w / 2} y={mediaRect.y + mediaRect.h / 2 + 2}
-              textAnchor="middle" fontSize="8" fill="#888" fontFamily="sans-serif">⌗</text>
-          </g>
-        )}
-        <rect x={textRect.x} y={textRect.y} width={textRect.w * 0.8} height={headH} fill={textColor} rx="1" opacity="0.75" />
-        <rect x={textRect.x} y={textRect.y + headH + 2} width={textRect.w * 0.6} height={2.5} fill={textColor} rx="1" opacity="0.35" />
-        <rect x={textRect.x} y={textRect.y + headH + 6} width={textRect.w * 0.9} height={1.5} fill={textColor} rx="0.5" opacity="0.18" />
-        <rect x={textRect.x} y={textRect.y + headH + 9} width={textRect.w * 0.75} height={1.5} fill={textColor} rx="0.5" opacity="0.18" />
-        <rect x={4} y={h - 5} width={22} height={1.2} fill={textColor} rx="0.5" opacity="0.18" />
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+        <rect width={W} height={H} fill="#ECEEF4" />
+        {content}
       </svg>
-    </Box>
-  )
-}
-
-// ─── Custom scene left panel section ─────────────────────────────────────────
-function NavSection({ label, items }: {
-  label: string
-  items: { icon: React.ReactNode; text: string }[]
-}) {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      <Typography sx={{
-        fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-        fontSize: 10, color: s.textSecondary, letterSpacing: '0.8px',
-        textTransform: 'uppercase', px: '8px', pb: '4px', pt: '8px',
-      }}>
-        {label}
-      </Typography>
-      {items.map(({ icon, text }) => (
-        <Box key={text} sx={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          px: '8px', py: '7px', borderRadius: '6px', cursor: 'pointer',
-          '&:hover': { bgcolor: s.activeBg },
-        }}>
-          <Box sx={{ color: s.textSecondary, display: 'flex', flexShrink: 0 }}>{icon}</Box>
-          <Typography sx={{
-            fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-            fontSize: 13, color: s.textPrimary,
-          }}>
-            {text}
-          </Typography>
-        </Box>
-      ))}
     </Box>
   )
 }
@@ -183,7 +274,7 @@ interface Props {
   onAddScene: (templateId: string) => void
 }
 
-type Nav = 'library' | 'import' | 'custom'
+type Nav = 'library' | 'import'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props) {
@@ -192,13 +283,10 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
   const [colors,   setColors]   = useState(COLOR_COMBOS)
 
   const handleAdd = () => {
-    if (nav === 'custom') { onAddScene('custom'); return }
     if (selected) { onAddScene(selected); setSelected(null) }
   }
 
   const handleClose = () => { setSelected(null); setNav('library'); onClose() }
-
-  const isCustom = nav === 'custom'
 
   return (
     <Dialog
@@ -207,377 +295,235 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: 900, height: 620, maxHeight: '90vh',
-          borderRadius: 2,
-          boxShadow: '0px 0px 24px 0px rgba(3,25,79,0.18)',
+          width: 1380, maxWidth: '97vw', height: 760, maxHeight: '92vh',
+          borderRadius: '16px',
+          boxShadow: '0px 8px 40px rgba(3,25,79,0.22)',
           display: 'flex', flexDirection: 'row',
           overflow: 'hidden',
-          position: 'relative',
         },
       }}
     >
-      {/* ════════════════════════════════════════════════════════════════════
-          CUSTOM SCENE VIEW — full-width, replaces normal layout
-      ════════════════════════════════════════════════════════════════════ */}
-      {isCustom && (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* ── Left sidebar ─────────────────────────────────────────────────── */}
+      <Box sx={{
+        width: 192, flexShrink: 0,
+        bgcolor: s.sidebarBg,
+        display: 'flex', flexDirection: 'column',
+        borderRight: `1px solid ${s.divider}`,
+        py: '24px', px: '12px',
+      }}>
+        {/* "Scenes" title */}
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 700,
+          fontSize: 22, color: s.textPrimary,
+          px: '8px', pb: '20px',
+        }}>
+          Scenes
+        </Typography>
 
-          {/* ── Top bar ───────────────────────────────────────────────── */}
-          <Box sx={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            px: '16px', py: '10px', borderBottom: `1px solid ${s.divider}`, flexShrink: 0,
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <IconButton size="small" onClick={() => setNav('library')} sx={{ color: s.textSecondary }}>
-                <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                fontSize: 16, color: s.textPrimary,
-              }}>
-                Custom scene
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: '4px' }}>
-              <IconButton size="small" sx={{ color: s.textSecondary }}>
-                <HelpOutlineIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-              <IconButton size="small" onClick={handleClose} sx={{ color: s.textSecondary }}>
-                <CloseIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            </Box>
-          </Box>
-
-          {/* ── Editor row ────────────────────────────────────────────── */}
-          <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-
-            {/* Left tools panel */}
-            <Box sx={{
-              width: 140, flexShrink: 0, bgcolor: s.secondary,
-              display: 'flex', flexDirection: 'column',
-              overflowY: 'auto', px: '6px', py: '8px',
-              '&::-webkit-scrollbar': { width: 4 },
-              '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 2 },
-            }}>
-              <NavSection label="Style" items={[
-                { icon: <StarBorderIcon sx={{ fontSize: 16 }} />,          text: 'Brand'     },
-                { icon: <PaletteOutlinedIcon sx={{ fontSize: 16 }} />,     text: 'Theme'     },
-                { icon: <PersonOutlinedIcon sx={{ fontSize: 16 }} />,      text: 'Avatar'    },
-              ]} />
-              <Divider sx={{ my: '6px', borderColor: 'rgba(255,255,255,0.1)' }} />
-              <NavSection label="Libraries" items={[
-                { icon: <PermMediaOutlinedIcon sx={{ fontSize: 16 }} />,   text: 'Media'         },
-                { icon: <MusicNoteOutlinedIcon sx={{ fontSize: 16 }} />,   text: 'Music'         },
-                { icon: <MicOutlinedIcon sx={{ fontSize: 16 }} />,         text: 'Voice'         },
-                { icon: <StorageOutlinedIcon sx={{ fontSize: 16 }} />,     text: 'Data'          },
-                { icon: <InputOutlinedIcon sx={{ fontSize: 16 }} />,       text: 'Input fields'  },
-              ]} />
-              <Divider sx={{ my: '6px', borderColor: 'rgba(255,255,255,0.1)' }} />
-              <NavSection label="Settings" items={[
-                { icon: <AspectRatioOutlinedIcon sx={{ fontSize: 16 }} />, text: 'Aspect ratio' },
-                { icon: <LanguageOutlinedIcon sx={{ fontSize: 16 }} />,    text: 'Languages'    },
-              ]} />
-            </Box>
-
-            {/* Left collapse arrow */}
-            <Box sx={{
-              width: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: s.editorBg, borderRight: `1px solid ${s.canvasBorder}`, cursor: 'pointer',
-              '&:hover': { bgcolor: '#eee' },
-            }}>
-              <ChevronLeftIcon sx={{ fontSize: 14, color: s.textSecondary }} />
-            </Box>
-
-            {/* Canvas */}
-            <Box sx={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: '#EAEAEA', position: 'relative', overflow: 'hidden',
-            }}>
-              {/* Scene canvas card */}
-              <Box sx={{
-                width: '75%', aspectRatio: '16/9', bgcolor: '#FFFFFF',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-                position: 'relative', overflow: 'hidden',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {/* Pink/magenta top accent line */}
-                <Box sx={{
-                  position: 'absolute', top: 0, left: 0, right: 0,
-                  height: 4, bgcolor: '#E040FB',
-                }} />
-
-                {/* Add placeholder button only */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddPhotoAlternateOutlinedIcon sx={{ fontSize: 18 }} />}
-                    sx={{
-                      fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                      fontSize: 14, textTransform: 'none',
-                      borderRadius: '8px', px: '16px', py: '8px',
-                      bgcolor: s.primary,
-                      boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
-                    }}
-                  >
-                    Add placeholder
-                  </Button>
-                </Box>
-              </Box>
-            </Box>
-
-            {/* Right expand arrow */}
-            <Box sx={{
-              width: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: s.editorBg, borderLeft: `1px solid ${s.canvasBorder}`, cursor: 'pointer',
-              '&:hover': { bgcolor: '#eee' },
-            }}>
-              <ChevronRightIcon sx={{ fontSize: 14, color: s.textSecondary }} />
-            </Box>
-
-            {/* Right tools panel */}
-            <Box sx={{
-              width: 40, flexShrink: 0,
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: '4px', py: '10px',
-              bgcolor: s.editorBg, borderLeft: `1px solid ${s.canvasBorder}`,
-            }}>
-              {[
-                { icon: <GridViewOutlinedIcon sx={{ fontSize: 18 }} />,        tip: 'Layout'  },
-                { icon: <RadioButtonUncheckedIcon sx={{ fontSize: 18 }} />,    tip: 'Shape'   },
-                { icon: <TableChartOutlinedIcon sx={{ fontSize: 18 }} />,      tip: 'Data'    },
-                { icon: <InfoOutlinedIcon sx={{ fontSize: 18 }} />,            tip: 'Info'    },
-                { icon: <MoreVertIcon sx={{ fontSize: 18 }} />,                tip: 'More'    },
-              ].map(({ icon, tip }) => (
-                <Tooltip key={tip} title={tip} placement="left" arrow>
-                  <IconButton size="small" sx={{ color: s.textSecondary, '&:hover': { color: s.primary } }}>
-                    {icon}
-                  </IconButton>
-                </Tooltip>
-              ))}
-            </Box>
-          </Box>
-
-          {/* ── Footer ────────────────────────────────────────────────── */}
-          <Box sx={{
-            borderTop: `1px solid ${s.divider}`,
-            display: 'flex', justifyContent: 'flex-end', gap: '8px',
-            px: '28px', py: '14px', flexShrink: 0, bgcolor: '#fff',
-          }}>
-            <Button variant="outlined" size="large" onClick={handleClose}
-              sx={{ fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px' }}>
-              Cancel
-            </Button>
-            <Button variant="contained" size="large" onClick={handleAdd}
-              sx={{ fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px' }}>
-              Add scene
-            </Button>
-          </Box>
-        </Box>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          LIBRARY / IMPORT VIEW
-      ════════════════════════════════════════════════════════════════════ */}
-      {!isCustom && (
-        <>
-          {/* ── Left sidebar ──────────────────────────────────────────── */}
-          <Box sx={{
-            width: 188, flexShrink: 0, bgcolor: s.editorBg,
-            display: 'flex', flexDirection: 'column',
-            borderRight: `1px solid ${s.divider}`,
-            py: '12px', px: '8px', gap: '2px',
-          }}>
-            <Box onClick={() => setNav('library')} sx={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              px: '12px', py: '8px', borderRadius: '8px', cursor: 'pointer',
-              bgcolor: nav === 'library' ? s.activeBg : 'transparent',
-              border: nav === 'library' ? `1px solid ${s.activeBorder}` : '1px solid transparent',
-              '&:hover': { bgcolor: nav === 'library' ? s.activeBg : s.navHover },
-            }}>
-              <TableRowsOutlinedIcon sx={{ fontSize: 18, color: nav === 'library' ? s.primary : s.textSecondary }} />
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif',
-                fontWeight: nav === 'library' ? 600 : 400, fontSize: 14,
-                color: nav === 'library' ? s.textPrimary : s.textSecondary,
-              }}>
-                Scene library
-              </Typography>
-            </Box>
-
-            <Box onClick={() => setNav('import')} sx={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              px: '12px', py: '8px', borderRadius: '8px', cursor: 'pointer',
-              bgcolor: nav === 'import' ? s.activeBg : 'transparent',
-              border: nav === 'import' ? `1px solid ${s.activeBorder}` : '1px solid transparent',
-              '&:hover': { bgcolor: nav === 'import' ? s.activeBg : s.navHover },
-            }}>
-              <UploadFileOutlinedIcon sx={{ fontSize: 18, color: nav === 'import' ? s.primary : s.textSecondary }} />
-              <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif',
-                fontWeight: nav === 'import' ? 600 : 400, fontSize: 14,
-                color: nav === 'import' ? s.textPrimary : s.textSecondary,
-              }}>
-                Import scene
-              </Typography>
-            </Box>
-
-            <Divider sx={{ my: '8px', borderColor: s.divider }} />
-
-            <Button
-              variant="outlined" size="small"
-              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-              onClick={() => { onAddScene('custom'); handleClose() }}
+        {/* Nav items */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {([
+            { key: 'library' as Nav, icon: <TableRowsOutlinedIcon sx={{ fontSize: 18 }} />, label: 'Scene library' },
+            { key: 'import'  as Nav, icon: <UploadFileOutlinedIcon sx={{ fontSize: 18 }} />, label: 'Import scene' },
+          ]).map(({ key, icon, label }) => (
+            <Box
+              key={key}
+              onClick={() => setNav(key)}
               sx={{
-                mx: '4px',
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                fontSize: 13, textTransform: 'none',
-                borderRadius: '8px', borderColor: s.activeBorder,
-                color: s.primary, justifyContent: 'flex-start',
-                px: '10px', py: '6px',
-                '&:hover': { bgcolor: s.activeBg, borderColor: s.primary },
+                display: 'flex', alignItems: 'center', gap: '10px',
+                px: '12px', py: '9px', borderRadius: '8px', cursor: 'pointer',
+                bgcolor: nav === key ? s.activeBg : 'transparent',
+                border: nav === key ? `1px solid ${s.activeBorder}` : '1px solid transparent',
+                color: nav === key ? s.primary : s.textSecondary,
+                '&:hover': { bgcolor: nav === key ? s.activeBg : 'rgba(0,83,229,0.04)' },
+                transition: 'all 0.12s',
               }}
             >
-              Custom scene
-            </Button>
-          </Box>
-
-          {/* ── Main content ────────────────────────────────────────────── */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <DialogTitle component="div" sx={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              pl: '28px', pr: '16px', pt: '18px', pb: '14px', flexShrink: 0,
-            }}>
+              {icon}
               <Typography sx={{
-                fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                fontSize: 20, color: s.textPrimary,
+                fontFamily: '"Open Sans", sans-serif',
+                fontWeight: nav === key ? 600 : 400, fontSize: 14,
+                color: nav === key ? s.textPrimary : s.textSecondary,
               }}>
-                {nav === 'library' ? 'Scene library' : 'Import scene'}
+                {label}
               </Typography>
-              <Box sx={{ display: 'flex', gap: '4px' }}>
-                <IconButton size="small" sx={{ color: s.textSecondary }}>
-                  <HelpOutlineIcon sx={{ fontSize: 20 }} />
-                </IconButton>
-                <IconButton size="small" onClick={handleClose} sx={{ color: s.textSecondary }}>
-                  <CloseIcon sx={{ fontSize: 20 }} />
-                </IconButton>
-              </Box>
-            </DialogTitle>
+            </Box>
+          ))}
+        </Box>
 
-            {/* ── Library view ─────────────────────────────────────────── */}
-            {nav === 'library' && (
-              <>
-                <Box sx={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  px: '28px', pb: '14px', flexShrink: 0,
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FilterListIcon sx={{ fontSize: 18, color: s.textSecondary }} />
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: s.textSecondary }}>
-                      Filter
-                    </Typography>
-                    <Box sx={{
-                      display: 'flex', alignItems: 'center', gap: '4px',
-                      border: `1px solid ${s.divider}`, borderRadius: '20px',
-                      px: '12px', py: '5px', cursor: 'pointer',
-                      '&:hover': { bgcolor: s.activeBg },
-                    }}>
-                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: s.textPrimary }}>
-                        Scene templates
-                      </Typography>
-                      <KeyboardArrowDownIcon sx={{ fontSize: 16, color: s.textSecondary }} />
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <FaceOutlinedIcon sx={{ fontSize: 18, color: s.textSecondary }} />
-                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: s.textSecondary }}>
-                        Color combinations
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: '6px' }}>
-                      {colors.map((c, i) => (
-                        <Box key={i} onClick={() => setColors(prev => prev.map((cc, j) => ({ ...cc, selected: j === i })))}
-                          sx={{
-                            width: 32, height: 32, borderRadius: '50%',
-                            background: `linear-gradient(180deg, ${c.top} 50%, ${c.bottom} 50%)`,
-                            cursor: 'pointer', boxSizing: 'border-box',
-                            border: c.selected ? `2.5px solid ${s.primary}` : '2.5px solid transparent',
-                            outline: c.selected ? `2px solid white` : 'none', outlineOffset: '-4px',
-                            transition: 'border 0.15s', '&:hover': { opacity: 0.85 },
-                          }} />
-                      ))}
-                    </Box>
-                  </Box>
+        <Divider sx={{ my: '16px', borderColor: s.divider }} />
+
+        {/* + Custom scene button */}
+        <Button
+          variant="outlined"
+          startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+          onClick={() => { onAddScene('custom'); handleClose() }}
+          sx={{
+            fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+            fontSize: 13, textTransform: 'none',
+            borderRadius: '8px', borderColor: s.activeBorder,
+            color: s.textSecondary, justifyContent: 'flex-start',
+            px: '10px', py: '7px', mx: '2px',
+            '&:hover': { bgcolor: s.activeBg, borderColor: s.primary, color: s.primary },
+          }}
+        >
+          Custom scene
+        </Button>
+      </Box>
+
+      {/* ── Main content ─────────────────────────────────────────────────── */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: '#fff' }}>
+
+        {/* Title bar */}
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          px: '32px', pt: '24px', pb: '16px', flexShrink: 0,
+        }}>
+          <Typography sx={{
+            fontFamily: '"Open Sans", sans-serif', fontWeight: 700,
+            fontSize: 22, color: s.textPrimary,
+          }}>
+            {nav === 'library' ? 'Scene library' : 'Import scene'}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: '4px' }}>
+            <IconButton size="small" sx={{ color: s.textSecondary }}>
+              <HelpOutlineIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+            <IconButton size="small" onClick={handleClose} sx={{ color: s.textSecondary }}>
+              <CloseIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Box>
+        </Box>
+
+        {/* ── Library view ─────────────────────────────────────────────── */}
+        {nav === 'library' && (
+          <>
+            {/* Filter + color combos row */}
+            <Box sx={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              px: '32px', pb: '20px', flexShrink: 0,
+            }}>
+              {/* Left: Filter */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FilterListIcon sx={{ fontSize: 20, color: s.textSecondary }} />
+                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: s.textSecondary, fontWeight: 400 }}>
+                    Filter
+                  </Typography>
                 </Box>
+                <Box sx={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  border: `1px solid ${s.divider}`, borderRadius: '20px',
+                  px: '14px', py: '6px', cursor: 'pointer',
+                  '&:hover': { bgcolor: s.activeBg },
+                }}>
+                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: s.textPrimary }}>
+                    Scene templates
+                  </Typography>
+                  <KeyboardArrowDownIcon sx={{ fontSize: 18, color: s.textSecondary }} />
+                </Box>
+              </Box>
 
-                <Divider sx={{ borderColor: s.divider, mx: '28px', mb: '16px' }} />
-
-                <Box sx={{ flex: 1, overflowY: 'auto', px: '28px', pb: '80px' }}>
-                  {TEMPLATE_SECTIONS.map(section => (
-                    <Box key={section.label} sx={{ mb: '24px' }}>
-                      <Typography sx={{
-                        fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                        fontSize: 14, color: s.textSecondary, mb: '12px',
-                      }}>
-                        {section.label}
-                      </Typography>
-                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                        {section.templates.map(t => (
-                          <TemplateThumbnail key={t.id} layout={t.layout} wave={t.wave}
-                            selected={selected === t.id}
-                            onClick={() => setSelected(prev => prev === t.id ? null : t.id)} />
-                        ))}
-                      </Box>
-                    </Box>
+              {/* Right: Color combinations */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <PaletteOutlinedIcon sx={{ fontSize: 20, color: s.textSecondary }} />
+                  <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 13, color: s.textSecondary }}>
+                    Color combinations
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {colors.map((c, i) => (
+                    <Box
+                      key={i}
+                      onClick={() => setColors(prev => prev.map((cc, j) => ({ ...cc, selected: j === i })))}
+                      sx={{
+                        width: 40, height: 40, borderRadius: '50%',
+                        background: `linear-gradient(180deg, ${c.a} 50%, ${c.b} 50%)`,
+                        cursor: 'pointer',
+                        outline: c.selected ? `3px solid ${s.primary}` : '3px solid transparent',
+                        outlineOffset: '2px',
+                        boxShadow: '0 1px 4px rgba(3,25,79,0.15)',
+                        transition: 'all 0.15s',
+                        '&:hover': { opacity: 0.85, transform: 'scale(1.05)' },
+                      }}
+                    />
                   ))}
                 </Box>
-              </>
-            )}
-
-            {/* ── Import view ──────────────────────────────────────────── */}
-            {nav === 'import' && (
-              <Box sx={{
-                flex: 1, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 2, px: '40px',
-              }}>
-                <UploadFileOutlinedIcon sx={{ fontSize: 56, color: s.textSecondary, opacity: 0.5 }} />
-                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 16, color: s.textPrimary }}>
-                  Import a custom scene
-                </Typography>
-                <Typography sx={{
-                  fontFamily: '"Open Sans", sans-serif', fontSize: 14,
-                  color: s.textSecondary, textAlign: 'center', maxWidth: 360,
-                }}>
-                  Upload a scene file exported from another project to reuse it here.
-                </Typography>
-                <Button variant="outlined" startIcon={<UploadFileOutlinedIcon />}
-                  sx={{ mt: 1, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px' }}>
-                  Browse files
-                </Button>
               </Box>
-            )}
-
-            {/* ── Sticky footer ────────────────────────────────────────── */}
-            <Box sx={{
-              position: 'absolute', bottom: 0, right: 0,
-              width: 'calc(100% - 188px)', bgcolor: 'white',
-              borderTop: `1px solid ${s.divider}`,
-              display: 'flex', justifyContent: 'flex-end', gap: '8px',
-              px: '28px', py: '14px', zIndex: 1,
-            }}>
-              <Button variant="outlined" size="large" onClick={handleClose}
-                sx={{ fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px' }}>
-                Cancel
-              </Button>
-              <Button variant="contained" size="large"
-                disabled={nav === 'library' && !selected} onClick={handleAdd}
-                sx={{ fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px' }}>
-                {nav === 'import' ? 'Import' : 'Add scene'}
-              </Button>
             </Box>
+
+            {/* Template grid — scrollable */}
+            <Box sx={{ flex: 1, overflowY: 'auto', px: '32px', pb: '100px' }}>
+              <Typography sx={{
+                fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
+                fontSize: 14, color: s.textSecondary, mb: '16px',
+              }}>
+                Single Message with Media
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
+                {TEMPLATES.map(t => (
+                  <TemplateThumbnail
+                    key={t.id}
+                    id={t.id}
+                    layout={t.layout}
+                    accent={t.accent}
+                    selected={selected === t.id}
+                    onClick={() => setSelected(prev => prev === t.id ? null : t.id)}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </>
+        )}
+
+        {/* ── Import view ──────────────────────────────────────────────── */}
+        {nav === 'import' && (
+          <Box sx={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: '16px', px: '40px',
+          }}>
+            <UploadFileOutlinedIcon sx={{ fontSize: 60, color: s.textSecondary, opacity: 0.4 }} />
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 18, color: s.textPrimary }}>
+              Import a custom scene
+            </Typography>
+            <Typography sx={{
+              fontFamily: '"Open Sans", sans-serif', fontSize: 14,
+              color: s.textSecondary, textAlign: 'center', maxWidth: 360,
+            }}>
+              Upload a scene file exported from another project to reuse it here.
+            </Typography>
+            <Button variant="outlined" startIcon={<UploadFileOutlinedIcon />}
+              sx={{ mt: 1, fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px' }}>
+              Browse files
+            </Button>
           </Box>
-        </>
-      )}
+        )}
+
+        {/* ── Sticky footer ────────────────────────────────────────────── */}
+        <Box sx={{
+          position: 'absolute', bottom: 0, right: 0,
+          width: `calc(100% - 192px)`,
+          bgcolor: '#fff',
+          borderTop: `1px solid ${s.divider}`,
+          display: 'flex', justifyContent: 'flex-end', gap: '10px',
+          px: '32px', py: '16px', zIndex: 10,
+        }}>
+          <Button
+            variant="outlined" size="large" onClick={handleClose}
+            sx={{ fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px', minWidth: 100 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained" size="large"
+            disabled={nav === 'library' && !selected} onClick={handleAdd}
+            sx={{ fontFamily: '"Open Sans", sans-serif', textTransform: 'none', borderRadius: '8px', minWidth: 120 }}
+          >
+            {nav === 'import' ? 'Import' : 'Add scene'}
+          </Button>
+        </Box>
+      </Box>
     </Dialog>
   )
 }

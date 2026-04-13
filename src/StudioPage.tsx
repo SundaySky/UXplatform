@@ -1112,44 +1112,47 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [sceneTypes,       setSceneTypes]       = useState<('regular' | 'custom')[]>(['regular', 'regular', 'regular', 'regular'])
   const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
   const [placeholderMenuOpen, setPlaceholderMenuOpen] = useState(false)
-  // Track which placeholder types have been added per scene index
+  // Track which placeholder types have been added per scene index (non-bullet items)
   const [scenePlaceholders, setScenePlaceholders] = useState<Record<number, string[]>>({})
   // Button placeholder selection + size
   const [buttonSelected, setButtonSelected] = useState(false)
   const [buttonSize,     setButtonSize]     = useState<'S'|'M'|'L'|'XL'>('L')
-  // Bullet placeholder selection + icon size
-  const [bulletSelected,  setBulletSelected]  = useState<'Vertical bullet point' | 'Horizontal bullet point' | null>(null)
-  const [bulletIconSize,  setBulletIconSize]  = useState<'S'|'M'|'L'|'XL'>('M')
+  // Button position (% of scene)
+  const [buttonPos, setButtonPos] = useState<Record<number, { x: number; y: number }>>({})
 
-  // Draggable element positions: keyed by `${sceneIndex}-${label}`, values are % of canvas
-  const [elementPositions, setElementPositions] = useState<Record<string, { x: number; y: number }>>({})
-  const canvasRef   = useRef<HTMLDivElement | null>(null)
-  const dragInfo    = useRef<{ key: string; startMX: number; startMY: number; startX: number; startY: number; moved: boolean } | null>(null)
+  // Bullet elements — each click in the menu adds a new independent bullet
+  type BulletElement = { id: string; orientation: 'V' | 'H'; text: string; x: number; y: number }
+  const [sceneBullets,    setSceneBullets]    = useState<Record<number, BulletElement[]>>({})
+  const [selectedBulletId, setSelectedBulletId] = useState<string | null>(null)
+  const [editingBulletId,  setEditingBulletId]  = useState<string | null>(null)
+  const [bulletIconSize,   setBulletIconSize]   = useState<'S'|'M'|'L'|'XL'>('M')
 
-  const getPos = (scene: number, label: string, defaultX: number, defaultY: number) => {
-    const key = `${scene}-${label}`
-    return elementPositions[key] ?? { x: defaultX, y: defaultY }
-  }
+  // Drag support — updatePos closure knows which state to update
+  const canvasRef = useRef<HTMLDivElement | null>(null)
+  const dragInfo  = useRef<{
+    startMX: number; startMY: number; startX: number; startY: number
+    moved: boolean; updatePos: (x: number, y: number) => void
+  } | null>(null)
 
-  const startDrag = (e: React.MouseEvent, scene: number, label: string, defaultX: number, defaultY: number) => {
+  // Compute live scene height from canvas width (16/9 aspect ratio)
+  const getSceneH = () => (canvasRef.current?.clientWidth ?? 0) * 9 / 16
+
+  const startDrag = (e: React.MouseEvent, startX: number, startY: number, updatePos: (x: number, y: number) => void) => {
     e.stopPropagation()
-    const pos = getPos(scene, label, defaultX, defaultY)
-    dragInfo.current = { key: `${scene}-${label}`, startMX: e.clientX, startMY: e.clientY, startX: pos.x, startY: pos.y, moved: false }
+    dragInfo.current = { startMX: e.clientX, startMY: e.clientY, startX, startY, moved: false, updatePos }
   }
 
   const onCanvasMouseMove = (e: React.MouseEvent) => {
     if (!dragInfo.current || !canvasRef.current) return
-    const rect = canvasRef.current.getBoundingClientRect()
-    const dx = ((e.clientX - dragInfo.current.startMX) / rect.width)  * 100
-    const dy = ((e.clientY - dragInfo.current.startMY) / rect.height) * 100
+    const sceneW = canvasRef.current.clientWidth
+    const sceneH = sceneW * 9 / 16
+    const dx = ((e.clientX - dragInfo.current.startMX) / sceneW) * 100
+    const dy = ((e.clientY - dragInfo.current.startMY) / sceneH) * 100
     if (Math.abs(dx) > 1 || Math.abs(dy) > 1) dragInfo.current.moved = true
-    setElementPositions(prev => ({
-      ...prev,
-      [dragInfo.current!.key]: {
-        x: Math.max(5, Math.min(95, dragInfo.current!.startX + dx)),
-        y: Math.max(5, Math.min(95, dragInfo.current!.startY + dy)),
-      },
-    }))
+    dragInfo.current.updatePos(
+      Math.max(5, Math.min(95, dragInfo.current.startX + dx)),
+      Math.max(5, Math.min(95, dragInfo.current.startY + dy)),
+    )
   }
 
   const onCanvasMouseUp = () => { dragInfo.current = null }
@@ -1160,6 +1163,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     setHeadingSelected(false)
     setSubheadingSelected(false)
     setFootnoteSelected(false)
+    setSelectedBulletId(null)
+    setEditingBulletId(null)
+    setButtonSelected(false)
     if (sceneTypes[next] !== 'custom') setPlaceholderMenuOpen(false)
   }
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
@@ -1472,11 +1478,27 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       <Box
                         key={label}
                         onClick={() => {
-                          setScenePlaceholders(prev => {
-                            const existing = prev[selectedScene] ?? []
-                            if (existing.includes(label)) return prev
-                            return { ...prev, [selectedScene]: [...existing, label] }
-                          })
+                          if (label === 'Vertical bullet point' || label === 'Horizontal bullet point') {
+                            // Each click adds an independent bullet item
+                            const existing = sceneBullets[selectedScene] ?? []
+                            const offset = existing.length * 8 // stagger positions
+                            setSceneBullets(prev => ({
+                              ...prev,
+                              [selectedScene]: [...(prev[selectedScene] ?? []), {
+                                id: `bullet-${Date.now()}`,
+                                orientation: label === 'Vertical bullet point' ? 'V' : 'H',
+                                text: 'Placeholder',
+                                x: Math.min(90, 30 + offset),
+                                y: Math.min(85, 35 + offset),
+                              }],
+                            }))
+                          } else {
+                            setScenePlaceholders(prev => {
+                              const existing = prev[selectedScene] ?? []
+                              if (existing.includes(label)) return prev
+                              return { ...prev, [selectedScene]: [...existing, label] }
+                            })
+                          }
                           setPlaceholderMenuOpen(false)
                         }}
                         sx={{
@@ -1507,7 +1529,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             {/* Canvas */}
             <Box
               ref={canvasRef}
-              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setButtonSelected(false); setBulletSelected(null) }}
+              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setButtonSelected(false); setSelectedBulletId(null); setEditingBulletId(null) }}
               onMouseMove={onCanvasMouseMove}
               onMouseUp={onCanvasMouseUp}
               onMouseLeave={onCanvasMouseUp}
@@ -1523,216 +1545,214 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             >
               {/* ── Custom scene canvas ──────────────────────────────── */}
               {sceneTypes[selectedScene] === 'custom' && (() => {
-                const added = scenePlaceholders[selectedScene] ?? []
-                const hasButton   = added.includes('Button')
-                const hasVBullet  = added.includes('Vertical bullet point')
-                const hasHBullet  = added.includes('Horizontal bullet point')
+                const added   = scenePlaceholders[selectedScene] ?? []
+                const bullets = sceneBullets[selectedScene] ?? []
+                const hasButton = added.includes('Button')
+                const isEmpty   = added.length === 0 && bullets.length === 0
 
-                // Icon container sizes for bullet items (S/M/L/XL)
-                const bulletIconContainerPx: Record<string, number> = { S: 28, M: 36, L: 44, XL: 56 }
-                const iconContainerPx = bulletIconContainerPx[bulletIconSize]
-                const iconInnerPx     = iconContainerPx * 0.6
-                const badgePx         = Math.max(12, Math.round(iconContainerPx * 0.35))
+                // Bullet icon container size by icon size key
+                const iconContainerPx: Record<string, number> = { S: 28, M: 36, L: 44, XL: 56 }
+                const icoPx    = iconContainerPx[bulletIconSize]
+                const icoInner = icoPx * 0.6
+                const badgePx  = Math.max(12, Math.round(icoPx * 0.35))
+                const textFs   = Math.max(11, Math.round(icoPx * 0.38))
 
-                // One bullet row/column item: image-icon + badge + "Placeholder" text
-                const BulletItem = ({ direction }: { direction: 'row' | 'column' }) => (
-                  <Box sx={{ display: 'flex', flexDirection: direction, alignItems: 'center', gap: direction === 'row' ? '10px' : '6px' }}>
-                    {/* Image icon with + badge */}
-                    <Box sx={{ position: 'relative', flexShrink: 0 }}>
-                      <Box sx={{
-                        width: iconContainerPx, height: iconContainerPx,
-                        bgcolor: '#616161', borderRadius: '8px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <AddPhotoAlternateOutlinedIcon sx={{ fontSize: iconInnerPx, color: '#fff' }} />
-                      </Box>
-                      {/* "+" badge */}
-                      <Box sx={{
-                        position: 'absolute', top: -badgePx * 0.35, right: -badgePx * 0.35,
-                        width: badgePx, height: badgePx, borderRadius: '50%',
-                        bgcolor: '#9E9E9E', border: '2px solid #fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <AddIcon sx={{ fontSize: badgePx * 0.65, color: '#fff' }} />
-                      </Box>
-                    </Box>
-                    <Typography sx={{
-                      fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
-                      fontSize: Math.max(11, Math.round(iconContainerPx * 0.38)),
-                      color: '#03194F', whiteSpace: 'nowrap',
-                    }}>
-                      Placeholder
-                    </Typography>
-                  </Box>
-                )
+                // Button dimensions
+                const btnDims: Record<string, { w: number; h: number; fs: number }> = {
+                  S:{ w:80,h:28,fs:11 }, M:{ w:120,h:36,fs:13 }, L:{ w:160,h:44,fs:14 }, XL:{ w:200,h:52,fs:16 },
+                }
+                const btnPos = buttonPos[selectedScene] ?? { x: 50, y: 80 }
+                const { w: bW, h: bH, fs: bFs } = btnDims[buttonSize]
 
+                // Toolbar top pixel offset within the outer canvasRef box
+                // Element at y% of scene → pixel top = sceneBoxH * y/100
+                // Toolbar sits 10px above element (approx 44px toolbar height)
                 return (
-                  <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF' }}>
-                    {/* Pink top accent */}
-                    <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
+                  <>
+                    {/* ── Clipped scene content (overflow:hidden) ───────── */}
+                    <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF' }}>
+                      {/* Pink top accent */}
+                      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
 
-                    {/* Empty state — show when no placeholders added yet */}
-                    {added.length === 0 && (
-                      <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                        <PlaceholderIcon size={52} />
-                        <Button
-                          variant="contained"
-                          onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
-                          sx={{
-                            fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
-                            fontSize: 14, textTransform: 'none',
-                            borderRadius: '8px', px: '16px', py: '8px',
-                            bgcolor: s.primary,
-                            boxShadow: '0 2px 8px rgba(0,83,229,0.25)',
-                          }}
-                        >
-                          Add placeholder
-                        </Button>
-                      </Box>
-                    )}
-
-                    {/* Vertical bullet point placeholder */}
-                    {hasVBullet && (() => {
-                      const pos = getPos(selectedScene, 'Vertical bullet point', 50, 45)
-                      const isSelected = bulletSelected === 'Vertical bullet point'
-                      return (
-                        <Box
-                          sx={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3 }}
-                          onMouseDown={e => startDrag(e, selectedScene, 'Vertical bullet point', 50, 45)}
-                          onClick={e => {
-                            e.stopPropagation()
-                            if (!dragInfo.current?.moved) {
-                              setBulletSelected(p => p === 'Vertical bullet point' ? null : 'Vertical bullet point')
-                              setButtonSelected(false)
-                            }
-                          }}
-                        >
-                          {/* Toolbar above */}
-                          {isSelected && (
-                            <Box sx={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-                              <BulletPlaceholderToolbar
-                                iconSize={bulletIconSize}
-                                onIconSizeChange={setBulletIconSize}
-                                onDelete={() => {
-                                  setScenePlaceholders(prev => ({ ...prev, [selectedScene]: (prev[selectedScene] ?? []).filter(p => p !== 'Vertical bullet point') }))
-                                  setBulletSelected(null)
-                                }}
-                              />
-                            </Box>
-                          )}
-                          {/* 3 stacked rows */}
-                          <Box sx={{
-                            display: 'flex', flexDirection: 'column', gap: '10px', cursor: 'grab',
-                            p: '8px', borderRadius: '8px',
-                            outline: isSelected ? '2px solid #0053E5' : '2px solid transparent',
-                            outlineOffset: '4px',
-                            boxShadow: isSelected ? '0 0 0 4px rgba(0,83,229,0.12)' : 'none',
-                            transition: 'all 0.15s',
-                          }}>
-                            {[0, 1, 2].map(i => <BulletItem key={i} direction="row" />)}
-                          </Box>
+                      {/* Empty state */}
+                      {isEmpty && (
+                        <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+                          <PlaceholderIcon size={52} />
+                          <Button
+                            variant="contained"
+                            onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                            sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: '16px', py: '8px', bgcolor: s.primary, boxShadow: '0 2px 8px rgba(0,83,229,0.25)' }}
+                          >
+                            Add placeholder
+                          </Button>
                         </Box>
-                      )
-                    })()}
+                      )}
 
-                    {/* Horizontal bullet point placeholder */}
-                    {hasHBullet && (() => {
-                      const pos = getPos(selectedScene, 'Horizontal bullet point', 50, 55)
-                      const isSelected = bulletSelected === 'Horizontal bullet point'
-                      return (
-                        <Box
-                          sx={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3 }}
-                          onMouseDown={e => startDrag(e, selectedScene, 'Horizontal bullet point', 50, 55)}
-                          onClick={e => {
-                            e.stopPropagation()
-                            if (!dragInfo.current?.moved) {
-                              setBulletSelected(p => p === 'Horizontal bullet point' ? null : 'Horizontal bullet point')
-                              setButtonSelected(false)
-                            }
-                          }}
-                        >
-                          {/* Toolbar above */}
-                          {isSelected && (
-                            <Box sx={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-                              <BulletPlaceholderToolbar
-                                iconSize={bulletIconSize}
-                                onIconSizeChange={setBulletIconSize}
-                                onDelete={() => {
-                                  setScenePlaceholders(prev => ({ ...prev, [selectedScene]: (prev[selectedScene] ?? []).filter(p => p !== 'Horizontal bullet point') }))
-                                  setBulletSelected(null)
-                                }}
-                              />
-                            </Box>
-                          )}
-                          {/* 3 side-by-side columns */}
-                          <Box sx={{
-                            display: 'flex', flexDirection: 'row', gap: '16px', cursor: 'grab',
-                            p: '8px', borderRadius: '8px',
-                            outline: isSelected ? '2px solid #0053E5' : '2px solid transparent',
-                            outlineOffset: '4px',
-                            boxShadow: isSelected ? '0 0 0 4px rgba(0,83,229,0.12)' : 'none',
-                            transition: 'all 0.15s',
-                          }}>
-                            {[0, 1, 2].map(i => <BulletItem key={i} direction="column" />)}
-                          </Box>
-                        </Box>
-                      )
-                    })()}
-
-                    {/* Button placeholder — draggable */}
-                    {hasButton && (() => {
-                      const pos = getPos(selectedScene, 'Button', 50, 80)
-                      const dims: Record<string, { w: number; h: number; fs: number }> = {
-                        S:  { w:  80, h: 28, fs: 11 },
-                        M:  { w: 120, h: 36, fs: 13 },
-                        L:  { w: 160, h: 44, fs: 14 },
-                        XL: { w: 200, h: 52, fs: 16 },
-                      }
-                      const { w, h, fs } = dims[buttonSize]
-                      return (
-                        <Box sx={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3 }}>
-                          {/* Toolbar above button */}
-                          {buttonSelected && (
-                            <Box sx={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-                              <ButtonPlaceholderToolbar
-                                size={buttonSize}
-                                onSizeChange={setButtonSize}
-                                onDelete={() => {
-                                  setScenePlaceholders(prev => ({ ...prev, [selectedScene]: (prev[selectedScene] ?? []).filter(p => p !== 'Button') }))
-                                  setButtonSelected(false)
-                                }}
-                              />
-                            </Box>
-                          )}
+                      {/* Bullet elements */}
+                      {bullets.map(bullet => {
+                        const isSelected = selectedBulletId === bullet.id
+                        const isEditing  = editingBulletId  === bullet.id
+                        const flexDir    = bullet.orientation === 'V' ? 'column' : 'row'
+                        const imgDir     = bullet.orientation === 'V' ? 'row'    : 'column'
+                        return (
                           <Box
-                            onMouseDown={e => startDrag(e, selectedScene, 'Button', 50, 80)}
+                            key={bullet.id}
+                            sx={{ position: 'absolute', left: `${bullet.x}%`, top: `${bullet.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3 }}
+                            onMouseDown={e => {
+                              if (isEditing) return
+                              startDrag(e, bullet.x, bullet.y, (nx, ny) => {
+                                setSceneBullets(prev => ({
+                                  ...prev,
+                                  [selectedScene]: (prev[selectedScene] ?? []).map(b =>
+                                    b.id === bullet.id ? { ...b, x: nx, y: ny } : b
+                                  ),
+                                }))
+                              })
+                            }}
                             onClick={e => {
                               e.stopPropagation()
-                              if (!dragInfo.current?.moved) {
-                                setButtonSelected(p => !p)
-                                setBulletSelected(null)
-                              }
+                              if (dragInfo.current?.moved) return
+                              setSelectedBulletId(prev => prev === bullet.id ? null : bullet.id)
+                              setButtonSelected(false)
+                              setPlaceholderMenuOpen(false)
                             }}
+                          >
+                            {/* Bullet group — image icon + editable text */}
+                            <Box sx={{
+                              display: 'flex', flexDirection: flexDir,
+                              alignItems: bullet.orientation === 'V' ? 'center' : 'center',
+                              gap: bullet.orientation === 'V' ? '10px' : '8px',
+                              cursor: isEditing ? 'default' : 'grab', p: '8px', borderRadius: '8px',
+                              outline: isSelected ? '2px solid #0053E5' : '2px solid transparent',
+                              outlineOffset: '4px',
+                              boxShadow: isSelected ? '0 0 0 4px rgba(0,83,229,0.12)' : 'none',
+                              transition: 'outline 0.15s, box-shadow 0.15s',
+                            }}>
+                              {/* Image icon with + badge */}
+                              <Box sx={{ display: 'flex', flexDirection: imgDir, alignItems: 'center', gap: '10px' }}>
+                                <Box sx={{ position: 'relative', flexShrink: 0 }}>
+                                  <Box sx={{ width: icoPx, height: icoPx, bgcolor: '#616161', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: icoInner, color: '#fff' }} />
+                                  </Box>
+                                  <Box sx={{ position: 'absolute', top: -badgePx*0.35, right: -badgePx*0.35, width: badgePx, height: badgePx, borderRadius: '50%', bgcolor: '#9E9E9E', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <AddIcon sx={{ fontSize: badgePx * 0.65, color: '#fff' }} />
+                                  </Box>
+                                </Box>
+
+                                {/* Editable label */}
+                                {isEditing ? (
+                                  <Box
+                                    component="input"
+                                    autoFocus
+                                    value={bullet.text}
+                                    onChange={e => {
+                                      const val = (e.target as HTMLInputElement).value
+                                      setSceneBullets(prev => ({
+                                        ...prev,
+                                        [selectedScene]: (prev[selectedScene] ?? []).map(b =>
+                                          b.id === bullet.id ? { ...b, text: val } : b
+                                        ),
+                                      }))
+                                    }}
+                                    onBlur={() => setEditingBulletId(null)}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingBulletId(null) }}
+                                    onClick={e => e.stopPropagation()}
+                                    sx={{
+                                      fontFamily: '"Open Sans", sans-serif', fontWeight: 600,
+                                      fontSize: textFs, color: '#03194F',
+                                      border: 'none', outline: '2px solid #0053E5',
+                                      borderRadius: '4px', px: '4px', py: '1px',
+                                      bgcolor: 'rgba(0,83,229,0.06)',
+                                      minWidth: 80, width: `${Math.max(80, bullet.text.length * 8)}px`,
+                                    }}
+                                  />
+                                ) : (
+                                  <Typography
+                                    onDoubleClick={e => { e.stopPropagation(); setEditingBulletId(bullet.id); setSelectedBulletId(bullet.id) }}
+                                    sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: textFs, color: '#03194F', whiteSpace: 'nowrap', userSelect: 'none' }}
+                                  >
+                                    {bullet.text}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+                        )
+                      })}
+
+                      {/* Button element */}
+                      {hasButton && (
+                        <Box sx={{ position: 'absolute', left: `${btnPos.x}%`, top: `${btnPos.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3 }}>
+                          <Box
+                            onMouseDown={e => startDrag(e, btnPos.x, btnPos.y, (nx, ny) => {
+                              setButtonPos(prev => ({ ...prev, [selectedScene]: { x: nx, y: ny } }))
+                            })}
+                            onClick={e => { e.stopPropagation(); if (!dragInfo.current?.moved) { setButtonSelected(p => !p); setSelectedBulletId(null); setPlaceholderMenuOpen(false) } }}
                             sx={{
-                              bgcolor: s.primary, color: '#fff',
-                              borderRadius: '6px',
-                              width: w, height: h,
+                              bgcolor: s.primary, color: '#fff', borderRadius: '6px',
+                              width: bW, height: bH,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: fs,
+                              fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: bFs,
                               cursor: 'grab', userSelect: 'none',
                               boxShadow: buttonSelected ? '0 0 0 3px rgba(0,83,229,0.25)' : '0 2px 8px rgba(0,83,229,0.30)',
                               outline: buttonSelected ? '2px solid #0053E5' : '2px solid transparent',
-                              outlineOffset: '2px',
-                              transition: 'outline 0.15s, box-shadow 0.15s',
-                              whiteSpace: 'nowrap',
+                              outlineOffset: '2px', transition: 'outline 0.15s, box-shadow 0.15s', whiteSpace: 'nowrap',
                             }}
                           >
                             Button
                           </Box>
                         </Box>
+                      )}
+                    </Box>
+
+                    {/* ── Toolbars — siblings of scene box, NOT inside overflow:hidden ── */}
+
+                    {/* Bullet toolbar */}
+                    {(() => {
+                      const selBullet = bullets.find(b => b.id === selectedBulletId)
+                      if (!selBullet) return null
+                      const sceneH = getSceneH()
+                      const toolbarTop = Math.max(4, sceneH * (selBullet.y / 100) - 56)
+                      return (
+                        <Box
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={e => e.stopPropagation()}
+                          sx={{ position: 'absolute', left: `${selBullet.x}%`, top: toolbarTop, transform: 'translateX(-50%)', zIndex: 20, pointerEvents: 'auto' }}
+                        >
+                          <BulletPlaceholderToolbar
+                            iconSize={bulletIconSize}
+                            onIconSizeChange={setBulletIconSize}
+                            onDelete={() => {
+                              setSceneBullets(prev => ({ ...prev, [selectedScene]: (prev[selectedScene] ?? []).filter(b => b.id !== selectedBulletId) }))
+                              setSelectedBulletId(null)
+                            }}
+                          />
+                        </Box>
                       )
                     })()}
-                  </Box>
+
+                    {/* Button toolbar */}
+                    {buttonSelected && (() => {
+                      const sceneH = getSceneH()
+                      const toolbarTop = Math.max(4, sceneH * (btnPos.y / 100) - 56)
+                      return (
+                        <Box
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={e => e.stopPropagation()}
+                          sx={{ position: 'absolute', left: `${btnPos.x}%`, top: toolbarTop, transform: 'translateX(-50%)', zIndex: 20 }}
+                        >
+                          <ButtonPlaceholderToolbar
+                            size={buttonSize}
+                            onSizeChange={setButtonSize}
+                            onDelete={() => {
+                              setScenePlaceholders(prev => ({ ...prev, [selectedScene]: (prev[selectedScene] ?? []).filter(p => p !== 'Button') }))
+                              setButtonSelected(false)
+                            }}
+                          />
+                        </Box>
+                      )
+                    })()}
+                  </>
                 )
               })()}
               {/* Image + overlays clipped to canvas shape — regular scenes only */}
