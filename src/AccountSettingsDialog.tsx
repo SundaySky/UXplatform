@@ -70,12 +70,10 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
 ]
 
 // ─── Shared: column header with ⓘ tooltip + seat badge ───────────────────────
-function SeatHeader({ label, tooltip, iconTooltip, chipTooltip, used, total }: { label: string; tooltip: string; iconTooltip?: string; chipTooltip?: string; used: number; total: number }) {
+function SeatHeader({ label, iconTooltip, chipTooltip, used, total }: { label: string; iconTooltip?: string; chipTooltip?: string; used: number; total: number }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-      <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, cursor: 'default' }}>{label}</Typography>
-      </Tooltip>
+      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, cursor: 'default' }}>{label}</Typography>
       {iconTooltip ? (
         <Tooltip title={iconTooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
           <InfoOutlinedIcon sx={{ fontSize: 14, color: c.actionActive, cursor: 'default' }} />
@@ -219,8 +217,12 @@ function UserCell({ row }: { row: AccountUser }) {
 function countEditorSeats(users: AccountUser[]): number {
   return users.filter(u => u.createSpace.includes('Editor') || u.createSpace === 'Account owner').length
 }
+// Users who already have editor access in Create space don't consume a contributor seat
+function hasEditorAccess(u: AccountUser): boolean {
+  return u.createSpace.includes('Editor') || u.createSpace === 'Account owner'
+}
 function countContributorSeats(users: AccountUser[]): number {
-  return users.filter(u => u.amplifySpace === 'Contributor').length
+  return users.filter(u => u.amplifySpace === 'Contributor' && !hasEditorAccess(u)).length
 }
 
 // ─── Add User Dialog ───────────────────────────────────────────────────────
@@ -293,7 +295,7 @@ function AddUserDialog({ open, onClose, onSend, users }: {
               />
             </Box>
             <Box>
-              <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
+              <SeatHeader label="Create space" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
               <Box sx={{ mt: '12px' }}>
                 <CreateSpaceSelector
                   selected={row.createSpaceSelected}
@@ -307,7 +309,7 @@ function AddUserDialog({ open, onClose, onSend, users }: {
               </Box>
             </Box>
             <Box>
-              <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
+              <SeatHeader label="Amplify space" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
               <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
                 <Select value={row.amplifySpace} onChange={e => updateRow(i, 'amplifySpace', e.target.value as string)} sx={selectSx}>
                   {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
@@ -527,7 +529,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 
           {/* Create space */}
           <Box>
-            <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
+            <SeatHeader label="Create space" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
             <Box sx={{ mt: '8px' }}>
               <CreateSpaceSelector
                 selected={createSpaceSelected}
@@ -545,7 +547,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 
           {/* Amplify space */}
           <Box>
-            <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
+            <SeatHeader label="Amplify space" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
             <FormControl fullWidth size="small" sx={{ mt: '8px' }}>
               <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
                 {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
@@ -650,7 +652,7 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
 
         {/* Create space section */}
         <Box sx={{ mb: '24px' }}>
-          <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
+          <SeatHeader label="Create space" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
           <Box sx={{ mt: '12px' }}>
             <CreateSpaceSelector
               selected={createSpaceSelected}
@@ -667,7 +669,7 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
 
         {/* Amplify space section */}
         <Box sx={{ mb: '24px', borderBottom: `1px solid ${c.grey300}`, pb: '12px' }}>
-          <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
+          <SeatHeader label="Amplify space" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
           <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
             <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={selectSx}>
               {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
@@ -964,10 +966,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                         </Box>
                       </TableCell>
                       <TableCell sx={{ ...headCellSx, width: '22%' }}>
-                        <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" iconTooltip="Access to the video and template editors, analytics, and AI features" used={5} total={10} />
+                        <SeatHeader label="Create space" iconTooltip="Access to the video and template editors, analytics, and AI features" used={5} total={10} />
                       </TableCell>
                       <TableCell sx={{ ...headCellSx, width: '22%' }}>
-                        <SeatHeader label="Amplify space" tooltip="Assigned contributor seats compared to total contributor seats" iconTooltip="Access to available templates created by editors and analytics for sent videos" used={4} total={10} />
+                        <SeatHeader label="Amplify space" iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat." used={4} total={10} />
                       </TableCell>
                       <TableCell sx={{ ...headCellSx, width: 180 }}>Added as approver</TableCell>
                       <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: 'sticky', right: 0, zIndex: 4 }} />
@@ -1180,8 +1182,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
               <TableCell sx={{ ...headCellSx }}>
                 <SeatHeader
                   label="Create space"
-                  tooltip="Assigned editor seats compared to total editor seats"
-                  iconTooltip="Access to the video and template editors, analytics, and AI features"
+                                   iconTooltip="Access to the video and template editors, analytics, and AI features"
                   chipTooltip="Number of editors out of the allowed editor seats"
                   used={editorCount} total={10}
                 />
@@ -1189,8 +1190,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
               <TableCell sx={{ ...headCellSx }}>
                 <SeatHeader
                   label="Amplify space"
-                  tooltip="Assigned contributor seats compared to total contributor seats"
-                  iconTooltip="Access to available templates created by editors and analytics for sent videos"
+                                   iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat."
                   chipTooltip="Number of contributors out of the allowed contributor seats"
                   used={contributorCount} total={10}
                 />
