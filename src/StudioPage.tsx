@@ -1156,6 +1156,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   }
 
   const onCanvasMouseUp = () => { dragInfo.current = null }
+
+  // True whenever any element toolbar or floating panel is open —
+  // while active, scene navigation + strip are disabled
+  const isToolbarActive = buttonSelected || selectedBulletId !== null || placeholderMenuOpen
+
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     const next = Math.max(0, Math.min(SCENE_COUNT - 1, idx))
@@ -1419,10 +1424,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
             {/* Prev arrow */}
             <IconButton
-              disabled={selectedScene === 0}
+              disabled={selectedScene === 0 || isToolbarActive}
               onClick={() => goToScene(selectedScene - 1)}
               size="small"
-              sx={{ flexShrink: 0, color: selectedScene === 0 ? s.actionDisabled : s.primary, mx: '4px' }}
+              sx={{ flexShrink: 0, color: (selectedScene === 0 || isToolbarActive) ? s.actionDisabled : s.primary, mx: '4px' }}
             >
               <ChevronLeftIcon />
             </IconButton>
@@ -1947,10 +1952,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
               {/* Next arrow — pushed to bottom by justify-content: space-between */}
               <IconButton
-                disabled={selectedScene === SCENE_COUNT - 1}
+                disabled={selectedScene === SCENE_COUNT - 1 || isToolbarActive}
                 onClick={() => goToScene(selectedScene + 1)}
                 size="small"
-                sx={{ color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary, p: '3px' }}
+                sx={{ color: (selectedScene === SCENE_COUNT - 1 || isToolbarActive) ? s.actionDisabled : s.primary, p: '3px' }}
               >
                 <ChevronRightIcon />
               </IconButton>
@@ -1982,13 +1987,19 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             </Typography>
           </Box>
 
-          {/* Scene lineup */}
+          {/* Scene lineup — dims when toolbar is active */}
           <Box sx={{
             bgcolor: s.white, borderTop: `1px solid ${s.divider}`,
             px: 2, pt: 1.5, pb: 1.5, flexShrink: 0,
+            position: 'relative',
           }}>
             {/* Play bar */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5 }}>
+            <Box sx={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5,
+              opacity: isToolbarActive ? 0.38 : 1,
+              pointerEvents: isToolbarActive ? 'none' : 'auto',
+              transition: 'opacity 0.2s',
+            }}>
               <Box sx={{
                 width: 40, height: 40, borderRadius: '50%',
                 bgcolor: s.editorBg,
@@ -2005,36 +2016,42 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               </Typography>
             </Box>
 
-            {/* Thumbnails row */}
-            <Box sx={{
-              display: 'flex', gap: '8px', overflowX: 'auto', pb: 0.5,
-              '&::-webkit-scrollbar': { height: 4 },
-              '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
-            }}>
-              {sceneTypes.map((type, i) =>
-                type === 'custom'
-                  ? <CustomSceneThumbnail key={i} index={i} selected={i === selectedScene} onClick={() => goToScene(i)} />
-                  : <SceneThumbnail key={i} index={i} selected={i === selectedScene}
-                      headingText={i === 0 ? headingText : (sceneContentFor(videoTitle)[i-1]?.[0] ?? 'Scene ' + (i+1))}
-                      subheadingText={i === 0 ? subheadingText : (sceneContentFor(videoTitle)[i-1]?.[1] ?? '')}
-                      footnoteText={footnoteText} onClick={() => goToScene(i)} />
-              )}
-              {/* Add scene */}
+            {/* Thumbnails row — disabled + dimmed when a toolbar/panel is active */}
+            <Box sx={{ position: 'relative' }}>
               <Box sx={{
-                width: 56, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', gap: '8px', overflowX: 'auto', pb: 0.5,
+                '&::-webkit-scrollbar': { height: 4 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
+                opacity: isToolbarActive ? 0.38 : 1,
+                pointerEvents: isToolbarActive ? 'none' : 'auto',
+                transition: 'opacity 0.2s',
+                userSelect: isToolbarActive ? 'none' : 'auto',
               }}>
-                <Box
-                  onClick={() => { setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedBulletId(null); setButtonSelected(false) }}
-                  sx={{
-                    width: 32, height: 32, borderRadius: '50%',
-                    bgcolor: s.editorBg,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: `1.5px dashed ${s.primary}`,
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-                  }}>
-                  <AddIcon sx={{ fontSize: 18, color: s.primary }} />
+                {sceneTypes.map((type, i) =>
+                  type === 'custom'
+                    ? <CustomSceneThumbnail key={i} index={i} selected={i === selectedScene} onClick={() => goToScene(i)} />
+                    : <SceneThumbnail key={i} index={i} selected={i === selectedScene}
+                        headingText={i === 0 ? headingText : (sceneContentFor(videoTitle)[i-1]?.[0] ?? 'Scene ' + (i+1))}
+                        subheadingText={i === 0 ? subheadingText : (sceneContentFor(videoTitle)[i-1]?.[1] ?? '')}
+                        footnoteText={footnoteText} onClick={() => goToScene(i)} />
+                )}
+                {/* Add scene */}
+                <Box sx={{
+                  width: 56, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Box
+                    onClick={() => { setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedBulletId(null); setButtonSelected(false) }}
+                    sx={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      bgcolor: s.editorBg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: `1.5px dashed ${s.primary}`,
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                    }}>
+                    <AddIcon sx={{ fontSize: 18, color: s.primary }} />
+                  </Box>
                 </Box>
               </Box>
             </Box>
