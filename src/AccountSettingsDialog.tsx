@@ -70,7 +70,7 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
 ]
 
 // ─── Shared: column header with ⓘ tooltip + seat badge ───────────────────────
-function SeatHeader({ label, tooltip, iconTooltip, used, total }: { label: string; tooltip: string; iconTooltip?: string; used: number; total: number }) {
+function SeatHeader({ label, tooltip, iconTooltip, chipTooltip, used, total }: { label: string; tooltip: string; iconTooltip?: string; chipTooltip?: string; used: number; total: number }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
       <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
@@ -83,9 +83,11 @@ function SeatHeader({ label, tooltip, iconTooltip, used, total }: { label: strin
       ) : (
         <InfoOutlinedIcon sx={{ fontSize: 14, color: c.actionActive, cursor: 'default' }} />
       )}
-      <Box sx={{ bgcolor: c.primaryLight, borderRadius: '4px', px: '6px', py: '2px' }}>
-        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 11, fontWeight: 600, color: c.primary }}>{used}/{total}</Typography>
-      </Box>
+      <Tooltip title={chipTooltip || ''} placement="top" arrow disableHoverListener={!chipTooltip} componentsProps={{ tooltip: { sx: navyTipSx } }}>
+        <Box sx={{ bgcolor: c.primaryLight, borderRadius: '4px', px: '6px', py: '2px', cursor: 'default' }}>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 11, fontWeight: 600, color: c.primary }}>{used}/{total}</Typography>
+        </Box>
+      </Tooltip>
     </Box>
   )
 }
@@ -143,9 +145,17 @@ function CreateSpaceSelector({
               key={option}
               onClick={() => {
                 if (!isDisabled) {
-                  const newSelected = isChecked
-                    ? selected.filter(p => p !== option)
-                    : [...selected, option]
+                  let newSelected: string[]
+                  if (option === 'No access') {
+                    // "No access" is exclusive — selecting it clears all others
+                    newSelected = isChecked ? [] : ['No access']
+                  } else {
+                    // Selecting any real permission clears "No access" first
+                    const withoutNoAccess = selected.filter(p => p !== 'No access')
+                    newSelected = isChecked
+                      ? withoutNoAccess.filter(p => p !== option)
+                      : [...withoutNoAccess, option]
+                  }
                   onChange(newSelected)
                 }
               }}
@@ -436,7 +446,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '24px', mb: '20px' }}>
           {/* User autocomplete */}
           <Box>
-            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, mb: '6px' }}>
               Select user
             </Typography>
             <Autocomplete
@@ -975,7 +985,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                             </Typography>
                           </TableCell>
                           <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48, position: 'sticky', right: 0, zIndex: 2, bgcolor: isHovered ? c.grey100 : '#fff' }}>
-                            {isHovered && (
+                            {(isHovered || approverMenuUser?.user.id === row.user.id) && (
                               <IconButton
                                 size="small"
                                 onClick={e => { setApproverMenuAnchor(e.currentTarget); setApproverMenuUser(row) }}
@@ -1106,6 +1116,9 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
     setUsersList(users)
   }, [users])
 
+  const editorCount      = usersList.filter(u => u.createSpace.includes('Editor')).length
+  const contributorCount = usersList.filter(u => u.amplifySpace === 'Contributor').length
+
   const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', whiteSpace: 'nowrap' as const, bgcolor: '#fff', position: 'sticky', top: 0, zIndex: 3 }
   const bodyCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px' }
 
@@ -1151,7 +1164,8 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                   label="Create space"
                   tooltip="Assigned editor seats compared to total editor seats"
                   iconTooltip="Access to the video and template editors, analytics, and AI features"
-                  used={5} total={10}
+                  chipTooltip="Number of editors out of the allowed editor seats"
+                  used={editorCount} total={10}
                 />
               </TableCell>
               <TableCell sx={{ ...headCellSx, width: '22%' }}>
@@ -1159,7 +1173,8 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                   label="Amplify space"
                   tooltip="Assigned contributor seats compared to total contributor seats"
                   iconTooltip="Access to available templates created by editors and analytics for sent videos"
-                  used={4} total={10}
+                  chipTooltip="Number of contributors out of the allowed contributor seats"
+                  used={contributorCount} total={10}
                 />
               </TableCell>
               <TableCell sx={{ ...headCellSx, width: 220 }}>Last login</TableCell>
@@ -1217,7 +1232,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                     </Typography>
                   </TableCell>
                   <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48, position: 'sticky', right: 0, zIndex: 2, bgcolor: isHovered ? c.grey100 : '#fff' }}>
-                    {isHovered && !row.isOwner && (
+                    {(isHovered || userMenuUser?.user.id === row.user.id) && !row.isOwner && (
                       <IconButton
                         size="small"
                         onClick={e => { setUserMenuAnchor(e.currentTarget); setUserMenuUser(row) }}
