@@ -171,15 +171,6 @@ function AddUserDialog({ open, onClose, onSend }: {
           </Box>
         ))}
 
-        {/* Add another user */}
-        <Button
-          startIcon={<AddIcon sx={{ fontSize: '14px !important' }} />}
-          onClick={() => setRows(prev => [...prev, { email: '', createSpace: 'Editor', amplifySpace: 'Contributor' }])}
-          sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, textTransform: 'none', color: c.primary, px: 0, mb: '20px', '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } }}
-        >
-          Add another user
-        </Button>
-
         {/* Info box */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '24px' }}>
           <InfoOutlinedIcon sx={{ fontSize: 16, color: c.primary, mt: '1px', flexShrink: 0 }} />
@@ -245,7 +236,7 @@ function AddApproversPopover({ anchorEl, onClose, allUsers, approverIds, onAdd, 
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '16px', py: '12px', borderBottom: `1px solid ${c.grey300}` }}>
-        <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 600, fontSize: 15, color: c.textPrimary }}>Add approvers</Typography>
+        <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 600, fontSize: 15, color: c.textPrimary }}>Add approver</Typography>
         <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 16 }} /></IconButton>
       </Box>
 
@@ -712,7 +703,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                   )
                 }}
               >
-                Add approvers
+                Add approver
               </Button>
               <OutlinedInput
                 placeholder="Search..."
@@ -728,7 +719,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
             {approvers.length === 0 ? (
               <Box sx={{ bgcolor: c.grey100, borderRadius: '8px', py: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary }}>
-                  Add approvers to change this permission
+                  Add approver to change this permission
                 </Typography>
               </Box>
             ) : (
@@ -904,22 +895,22 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
       </Box>
 
       {/* Table */}
-      <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', borderRadius: '8px', border: `1px solid ${c.grey300}` }}>
-        <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
+      <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', borderRadius: '8px', border: `1px solid ${c.grey300}`, maxWidth: 850 }}>
+        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%', minWidth: 850 }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ ...headCellSx, width: 260, position: 'sticky', left: 0, zIndex: 4 }}>
+              <TableCell sx={{ ...headCellSx, width: 230, position: 'sticky', left: 0, zIndex: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                   User <ArrowDownwardIcon sx={{ fontSize: 14, color: c.actionActive }} />
                 </Box>
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: 200 }}>
+              <TableCell sx={{ ...headCellSx, width: '25%' }}>
                 <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={5} total={10} />
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: 200 }}>
+              <TableCell sx={{ ...headCellSx, width: '25%' }}>
                 <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: 200 }}>Last login</TableCell>
+              <TableCell sx={{ ...headCellSx, width: '25%' }}>Last login</TableCell>
               <TableCell sx={{ ...headCellSx, width: 48, p: 0 }} />
             </TableRow>
           </TableHead>
