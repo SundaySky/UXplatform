@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   Box, Typography, IconButton, Button, Avatar,
   Badge, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Snackbar, Alert, Divider, Checkbox, Switch,
+  TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem,
 } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import UndoIcon                    from '@mui/icons-material/Undo'
@@ -234,19 +234,21 @@ function ButtonPlaceholderToolbar({
 
 // ─── Bullet placeholder toolbar (Figma node 26110-118643) ────────────────────
 function BulletPlaceholderToolbar({
-  iconSize, onIconSizeChange, onDelete,
+  iconSize, onIconSizeChange, onDelete, onEditClick, onOptionsMenuClick,
 }: {
   iconSize: 'S' | 'M' | 'L' | 'XL'
   onIconSizeChange: (s: 'S' | 'M' | 'L' | 'XL') => void
   onDelete: () => void
+  onEditClick: () => void
+  onOptionsMenuClick?: (anchorEl: HTMLElement) => void
 }) {
   const primary = '#0053E5'
   const border  = '1px solid #CFD6EA'
 
   const ActionBtn = ({
-    icon, label, disabled, blue,
-  }: { icon: React.ReactNode; label: string; disabled?: boolean; blue?: boolean }) => (
-    <Box sx={{
+    icon, label, disabled, blue, onClick,
+  }: { icon: React.ReactNode; label: string; disabled?: boolean; blue?: boolean; onClick?: () => void }) => (
+    <Box onClick={onClick} sx={{
       display: 'inline-flex', alignItems: 'center', gap: '6px',
       px: '8px', py: '3.5px', height: 32, flexShrink: 0,
       borderRadius: '8px',
@@ -293,7 +295,7 @@ function BulletPlaceholderToolbar({
       }}
     >
       {/* Edit */}
-      <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" />
+      <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" onClick={onEditClick} />
 
       <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
 
@@ -351,7 +353,7 @@ function BulletPlaceholderToolbar({
       </IconButton>
 
       {/* More */}
-      <IconButton size="small" sx={{ color: primary, p: '4px', flexShrink: 0 }}>
+      <IconButton size="small" onClick={(e) => onOptionsMenuClick?.(e.currentTarget)} sx={{ color: primary, p: '4px', flexShrink: 0 }}>
         <MoreHorizIcon sx={{ fontSize: 18 }} />
       </IconButton>
     </Box>
@@ -554,7 +556,7 @@ interface CommentItem { text: string; checkedNow: boolean; resolved: boolean }
 export interface CommentThread { id: number; author: string; comments: CommentItem[] }
 
 // Export total comment count for use in the "View [x] approver comments" button
-export const TOTAL_COMMENT_COUNT = 3 // Sarah: 2 comments + Emma: 1 comment
+export const TOTAL_COMMENT_COUNT = 4 // Sarah: 2 comments + Emma: 1 comment + Manager: 1 comment
 
 export const INITIAL_THREADS: CommentThread[] = [
   {
@@ -568,6 +570,12 @@ export const INITIAL_THREADS: CommentThread[] = [
     id: 2, author: 'Emma Rodriguez',
     comments: [
       { text: 'Closing scene - A legal disclaimer is required on this screen', checkedNow: false, resolved: false },
+    ],
+  },
+  {
+    id: 3, author: 'Manager',
+    comments: [
+      { text: 'Your manager has asked you to create a new scene in the video. In this scene, include three bullet points that clearly communicate key aspects of the delivery policy. Please come up with short, clear statements for each bullet. For example: Fast delivery within 3–5 business days, Free shipping on orders over $50, Easy returns within 30 days (don\'t change the bullet icon for now).', checkedNow: false, resolved: false },
     ],
   },
 ]
@@ -1130,6 +1138,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [sceneElements,  setSceneElements]  = useState<Record<number, CanvasEl[]>>({})
   const [selectedElId,   setSelectedElId]   = useState<string | null>(null)
   const [editingElId,    setEditingElId]    = useState<string | null>(null)
+  const [bulletMenuAnchor, setBulletMenuAnchor] = useState<HTMLElement | null>(null)
 
   // Helpers
   const sceneEls = (scene = selectedScene) => sceneElements[scene] ?? []
@@ -1148,6 +1157,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         ? { bulletIconSize: 'M', text: 'Placeholder' } : {}),
     }
     setSceneElements(prev => ({ ...prev, [selectedScene]: [...(prev[selectedScene] ?? []), newEl] }))
+    setSelectedElId(newEl.id) // Auto-select newly added element and show toolbar
   }
 
   const updateEl = (id: string, patch: Partial<CanvasEl>) =>
@@ -1470,11 +1480,25 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             <Box sx={{ flex: 1, maxWidth: 720, display: 'flex', alignItems: 'stretch', gap: '8px', position: 'relative', overflow: 'visible' }}>
 
               {/* Placeholder picker panel — floats to the right of canvas, above everything */}
-              {placeholderMenuOpen && (
+              {placeholderMenuOpen && (() => {
+                // Calculate available space on the right side of canvas
+                const canvasRect = canvasRef.current?.getBoundingClientRect()
+                const menuWidth = 260
+                const gap = 8
+                const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024
+                const availableSpaceRight = canvasRect ? viewportWidth - (canvasRect.right + gap) : 0
+                const shouldPositionLeft = availableSpaceRight < menuWidth
+
+                return (
                 <Box
                   onClick={e => e.stopPropagation()}
                   sx={{
-                    position: 'absolute', top: 0, left: 'calc(100% + 8px)', zIndex: 40,
+                    position: 'absolute', top: 0,
+                    ...(shouldPositionLeft
+                      ? { right: 'calc(100% + 8px)', left: 'auto' }
+                      : { left: 'calc(100% + 8px)', right: 'auto' }
+                    ),
+                    zIndex: 40,
                     bgcolor: '#fff', borderRadius: '16px',
                     boxShadow: '0 4px 24px rgba(3,25,79,0.18)',
                     width: 260,
@@ -1560,7 +1584,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                     ))}
                   </Box>
                 </Box>
-              )}
+                )
+              })()}
 
             {/* Canvas */}
             <Box
@@ -1765,6 +1790,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               iconSize={selectedEl.bulletIconSize ?? 'M'}
                               onIconSizeChange={sz => updateEl(selectedEl.id, { bulletIconSize: sz })}
                               onDelete={() => deleteEl(selectedEl.id)}
+                              onEditClick={() => {
+                                window.open('https://www.figma.com/design/zv2AOoz7CqCdmyauhpEymM/Bullet-point-toolbar---placeholder?node-id=22002-49208&t=g1PcWUcmkOSJDYNt-4', '_blank')
+                              }}
+                              onOptionsMenuClick={(anchorEl) => setBulletMenuAnchor(anchorEl)}
                             />
                           )}
                           {!isButton && !isBullet && (
@@ -1773,6 +1802,38 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                         </Box>
                       )
                     })(), document.body)}
+                  {/* Bullet options menu */}
+                  <Menu
+                    open={!!bulletMenuAnchor}
+                    anchorEl={bulletMenuAnchor}
+                    onClose={() => setBulletMenuAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  >
+                    <MenuItem onClick={() => {
+                      // TODO: Implement change order logic (move up/down in list)
+                      setBulletMenuAnchor(null)
+                    }}>
+                      Change order
+                    </MenuItem>
+                    <MenuItem onClick={() => {
+                      if (selectedEl && (selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point')) {
+                        const duplicated: CanvasEl = {
+                          ...selectedEl,
+                          id: `el-${Date.now()}`,
+                          text: selectedEl.text ? `${selectedEl.text} (copy)` : 'Placeholder'
+                        }
+                        setSceneElements(prev => ({
+                          ...prev,
+                          [selectedScene]: [...(prev[selectedScene] ?? []), duplicated]
+                        }))
+                        setSelectedElId(duplicated.id)
+                      }
+                      setBulletMenuAnchor(null)
+                    }}>
+                      Duplicate
+                    </MenuItem>
+                  </Menu>
                   </>
                 )
               })()}
