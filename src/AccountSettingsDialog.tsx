@@ -478,7 +478,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     ? approvers.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
     : approvers
 
-  const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', whiteSpace: 'nowrap' as const, bgcolor: '#fff' }
+  const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', whiteSpace: 'nowrap' as const, bgcolor: '#fff', position: 'sticky', top: 0, zIndex: 3 }
   const bodyCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px' }
 
   return (
@@ -545,7 +545,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                 <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 900 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ ...headCellSx, width: 240, position: 'sticky', left: 0, zIndex: 2 }}>
+                      <TableCell sx={{ ...headCellSx, width: 240, position: 'sticky', left: 0, zIndex: 4 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           User <ArrowDownwardIcon sx={{ fontSize: 13, color: c.actionActive }} />
                         </Box>
@@ -672,7 +672,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
     setUsersList(users)
   }, [users])
 
-  const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', whiteSpace: 'nowrap' as const, bgcolor: '#fff' }
+  const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', whiteSpace: 'nowrap' as const, bgcolor: '#fff', position: 'sticky', top: 0, zIndex: 3 }
   const bodyCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px' }
 
   return (
@@ -707,7 +707,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ ...headCellSx, width: 260, position: 'sticky', left: 0, zIndex: 2 }}>
+              <TableCell sx={{ ...headCellSx, width: 260, position: 'sticky', left: 0, zIndex: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                   User <ArrowDownwardIcon sx={{ fontSize: 14, color: c.actionActive }} />
                 </Box>
