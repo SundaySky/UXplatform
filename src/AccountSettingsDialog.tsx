@@ -4,7 +4,7 @@ import {
   Avatar, Button, OutlinedInput, InputAdornment,
   Table, TableBody, TableCell, TableHead, TableRow,
   Tooltip, Switch, Checkbox,
-  Select, MenuItem, FormControl, Menu,
+  Select, MenuItem, FormControl, Menu, FormHelperText,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
 import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
@@ -330,6 +330,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
   const [amplifySpace, setAmplifySpace] = useState('No access')
   const [alert, setAlert] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
+  const [validationError, setValidationError] = useState('')
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
@@ -339,6 +341,10 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
     : []
 
   const isNewEmail = search.trim() && !filteredUsers.some(u => u.user.email === search.trim())
+
+  const isValidEmail = (email: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
 
   const isPermissionDisabled = (permission: string): boolean => {
     if (permission === 'Viewer' && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))) return true
@@ -358,6 +364,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
   const handleSelectUser = (user: AccountUser) => {
     setSelectedUser(user)
     setSearch(user.user.email)
+    setValidationError('')
 
     // Set permissions based on user's current role
     if (user.createSpace === 'Editor') {
@@ -382,7 +389,12 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
 
   const handleAdd = () => {
     const email = selectedUser ? selectedUser.user.email : search.trim()
-    if (!email) return
+
+    // Validation: must either select from list or enter valid email
+    if (!selectedUser && !isValidEmail(email)) {
+      setValidationError('Select from the list or add email from new users')
+      return
+    }
 
     onAdd(email, createSpace, amplifySpace)
     setSearch('')
@@ -391,6 +403,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
     setCreateSpace('Approver')
     setAmplifySpace('No access')
     setAlert('')
+    setValidationError('')
     onClose()
   }
 
@@ -402,6 +415,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
       setCreateSpace('Approver')
       setAmplifySpace('No access')
       setAlert('')
+      setValidationError('')
+      setInputFocused(false)
     }
   }, [open])
 
@@ -415,13 +430,15 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
         </Box>
 
         {/* Search input */}
-        <Box sx={{ mb: '16px' }}>
+        <FormControl fullWidth size="small" error={!!validationError}>
           <OutlinedInput
+            inputRef={inputRef}
             placeholder="Search user or enter email..."
             value={search}
             onChange={e => {
               setSearch(e.target.value)
               setSelectedUser(null)
+              setValidationError('')
               if (!e.target.value.trim()) {
                 setCreateSpace('Approver')
                 setAmplifySpace('No access')
@@ -437,9 +454,14 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
             fullWidth
             sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
           />
-        </Box>
+          {validationError && (
+            <FormHelperText sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#d32f2f', mt: '4px' }}>
+              {validationError}
+            </FormHelperText>
+          )}
+        </FormControl>
 
-        {/* User suggestions */}
+        {/* User suggestions dropdown */}
         {filteredUsers.length > 0 && (
           <Box sx={{ mb: '16px', border: `1px solid ${c.grey300}`, borderRadius: '8px', maxHeight: 200, overflowY: 'auto' }}>
             {filteredUsers.map(user => (
