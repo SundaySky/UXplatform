@@ -214,15 +214,27 @@ function UserCell({ row }: { row: AccountUser }) {
   )
 }
 
+// ─── Seat-count helpers ────────────────────────────────────────────────────────
+// Account owner counts as an editor seat; "Editor and Approver" contains "Editor"
+function countEditorSeats(users: AccountUser[]): number {
+  return users.filter(u => u.createSpace.includes('Editor') || u.createSpace === 'Account owner').length
+}
+function countContributorSeats(users: AccountUser[]): number {
+  return users.filter(u => u.amplifySpace === 'Contributor').length
+}
+
 // ─── Add User Dialog ───────────────────────────────────────────────────────
 interface InviteRow { email: string; createSpace: string; amplifySpace: string }
 
-function AddUserDialog({ open, onClose, onSend }: {
+function AddUserDialog({ open, onClose, onSend, users }: {
   open: boolean
   onClose: () => void
   onSend: (rows: InviteRow[]) => void
+  users: AccountUser[]
 }) {
   const [rows, setRows] = useState<(InviteRow & { createSpaceSelected: string[] })[]>([{ email: '', createSpace: 'Editor', createSpaceSelected: ['Editor'], amplifySpace: 'Contributor' }])
+  const editorCount      = countEditorSeats(users)
+  const contributorCount = countContributorSeats(users)
 
   const updateRow = (i: number, field: keyof InviteRow, val: string) =>
     setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
@@ -281,7 +293,7 @@ function AddUserDialog({ open, onClose, onSend }: {
               />
             </Box>
             <Box>
-              <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
+              <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
               <Box sx={{ mt: '12px' }}>
                 <CreateSpaceSelector
                   selected={row.createSpaceSelected}
@@ -295,7 +307,7 @@ function AddUserDialog({ open, onClose, onSend }: {
               </Box>
             </Box>
             <Box>
-              <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
+              <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
               <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
                 <Select value={row.amplifySpace} onChange={e => updateRow(i, 'amplifySpace', e.target.value as string)} sx={selectSx}>
                   {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
@@ -343,6 +355,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
   allUsers: AccountUser[]
   existingApproverIds?: string[]
 }) {
+  const editorCount      = countEditorSeats(allUsers)
+  const contributorCount = countContributorSeats(allUsers)
   const [search, setSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<AccountUser | null>(null)
   const [createSpaceSelected, setCreateSpaceSelected] = useState<string[]>(['Approver'])
@@ -513,7 +527,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 
           {/* Create space */}
           <Box>
-            <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
+            <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
             <Box sx={{ mt: '8px' }}>
               <CreateSpaceSelector
                 selected={createSpaceSelected}
@@ -531,7 +545,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 
           {/* Amplify space */}
           <Box>
-            <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
+            <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
             <FormControl fullWidth size="small" sx={{ mt: '8px' }}>
               <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
                 {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
@@ -574,12 +588,15 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 }
 
 // ─── Edit Permissions Dialog ──────────────────────────────────────────────────
-function EditPermissionsDialog({ open, onClose, user, onSave }: {
+function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
   open: boolean
   onClose: () => void
   user: AccountUser | null
+  users: AccountUser[]
   onSave: (createSpace: string, amplifySpace: string) => void
 }) {
+  const editorCount      = countEditorSeats(users)
+  const contributorCount = countContributorSeats(users)
   const initialCreateSpace = user?.createSpace || 'Viewer'
   const [createSpaceSelected, setCreateSpaceSelected] = useState<string[]>(initialCreateSpace ? initialCreateSpace.split(', ') : ['Viewer'])
   const [createSpace, setCreateSpace] = useState(initialCreateSpace)
@@ -633,7 +650,7 @@ function EditPermissionsDialog({ open, onClose, user, onSave }: {
 
         {/* Create space section */}
         <Box sx={{ mb: '24px' }}>
-          <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
+          <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
           <Box sx={{ mt: '12px' }}>
             <CreateSpaceSelector
               selected={createSpaceSelected}
@@ -650,7 +667,7 @@ function EditPermissionsDialog({ open, onClose, user, onSave }: {
 
         {/* Amplify space section */}
         <Box sx={{ mb: '24px', borderBottom: `1px solid ${c.grey300}`, pb: '12px' }}>
-          <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
+          <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
           <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
             <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={selectSx}>
               {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
@@ -1069,6 +1086,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         onSend={rows => { onAddUsers(rows, true); setInviteOpen(false) }}
+        users={users}
       />
 
       {/* Remove Approver Dialog */}
@@ -1116,8 +1134,8 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
     setUsersList(users)
   }, [users])
 
-  const editorCount      = usersList.filter(u => u.createSpace.includes('Editor')).length
-  const contributorCount = usersList.filter(u => u.amplifySpace === 'Contributor').length
+  const editorCount      = countEditorSeats(usersList)
+  const contributorCount = countContributorSeats(usersList)
 
   const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', whiteSpace: 'nowrap' as const, bgcolor: '#fff', position: 'sticky', top: 0, zIndex: 3 }
   const bodyCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px' }
@@ -1253,6 +1271,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         onSend={rows => { onInviteUser(rows); setInviteOpen(false) }}
+        users={usersList}
       />
 
       {/* Edit Permissions Dialog */}
@@ -1260,6 +1279,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         open={editPermOpen}
         onClose={() => setEditPermOpen(false)}
         user={editingUser}
+        users={usersList}
         onSave={(createSpace, amplifySpace) => {
           if (editingUser) {
             setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u))
