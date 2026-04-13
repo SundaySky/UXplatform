@@ -482,6 +482,131 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
   )
 }
 
+// ─── Edit Bullet Point dialog ───────────────────────────────────────────────────
+function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
+  open: boolean
+  currentText: string
+  bulletIconSize: 'S' | 'M' | 'L' | 'XL'
+  onClose: (newText: string) => void
+}) {
+  const [text, setText] = useState(currentText)
+  const iconSizeMap = { S: 16, M: 20, L: 24, XL: 32 }
+
+  useEffect(() => { if (open) setText(currentText) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleClose = () => onClose(text)
+
+  return (
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth={false}
+      PaperProps={{
+        elevation: 8,
+        sx: {
+          width: 480, borderRadius: '16px', overflow: 'hidden',
+          fontFamily: '"Open Sans", sans-serif',
+        },
+      }}
+    >
+      {/* Header */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 3, pt: 3, pb: 2,
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{
+            width: iconSizeMap[bulletIconSize] + 20,
+            height: iconSizeMap[bulletIconSize] + 20,
+            bgcolor: '#0053E5',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <FormatListBulletedIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: '#fff' }} />
+          </Box>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 700, fontSize: 22, color: '#1A1A2E' }}>
+            Bullet point
+          </Typography>
+        </Box>
+        <IconButton size="small" onClick={handleClose} sx={{ color: '#888' }}>
+          <CloseIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Box>
+
+      <DialogContent sx={{ px: 3, pt: 0, pb: 3 }}>
+        {/* Value label */}
+        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: '#323338', mb: 1 }}>
+          Value
+        </Typography>
+
+        {/* Text input with formatting bar */}
+        <Box sx={{
+          border: '2px solid #0053E5', borderRadius: '8px', overflow: 'hidden',
+        }}>
+          {/* Text area */}
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            autoFocus
+            value={text}
+            onChange={e => setText(e.target.value)}
+            variant="standard"
+            placeholder="Enter text"
+            InputProps={{
+              disableUnderline: true,
+              sx: {
+                px: 1.5, pt: 1.5, pb: 1,
+                fontFamily: '"Open Sans", sans-serif',
+                fontWeight: 400,
+                fontSize: 14,
+                color: '#1A1A2E',
+                alignItems: 'flex-start',
+              },
+            }}
+          />
+
+          {/* Divider + format buttons */}
+          <Divider />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75 }}>
+            <Box sx={{
+              px: 1, py: 0.5, borderRadius: '6px', bgcolor: 'rgba(0,83,229,0.10)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+            }}>
+              <Typography sx={{ fontFamily: 'serif', fontWeight: 700, fontSize: 18, color: '#0053E5', lineHeight: 1 }}>
+                B
+              </Typography>
+            </Box>
+            <Box sx={{
+              px: 1, py: 0.5, borderRadius: '6px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+            }}>
+              <Typography sx={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: 18, color: '#1A1A2E', lineHeight: 1 }}>
+                I
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Helper text */}
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: '"Open Sans", sans-serif', fontSize: 13,
+            color: '#0053E5', cursor: 'pointer', mt: 1, display: 'inline-block',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+        >
+          Enter text and personalize using {'{'}
+        </Typography>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const IMG_THUMB = '/thumb.svg'
 
 const GRADIENT_BTN =
@@ -1120,6 +1245,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [footnoteSelected,    setFootnoteSelected]    = useState(false)
   const [footnoteText,        setFootnoteText]        = useState('Footnote placeholder')
   const [editFootnoteOpen,    setEditFootnoteOpen]    = useState(false)
+  const [editBulletOpen,      setEditBulletOpen]      = useState(false)
 
   const [sceneTypes,       setSceneTypes]       = useState<('regular' | 'custom')[]>(['regular', 'regular', 'regular', 'regular'])
   const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
@@ -1131,9 +1257,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   type CanvasEl = {
     id: string; type: PlaceholderType
     x: number; y: number          // % of scene dimensions
+    width?: number; height?: number  // % of scene dimensions (for resizing)
     text?: string                 // editable label (bullets, text types)
     buttonSize?: 'S'|'M'|'L'|'XL'
     bulletIconSize?: 'S'|'M'|'L'|'XL'
+    bulletTextSize?: number       // font size in pixels for bullet text
   }
   const [sceneElements,  setSceneElements]  = useState<Record<number, CanvasEl[]>>({})
   const [selectedElId,   setSelectedElId]   = useState<string | null>(null)
@@ -1175,6 +1303,32 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     setEditingElId(null)
   }
 
+  // Helper: Update bullet text and sync font size to all bullets in scene
+  const updateBulletText = (id: string, text: string) => {
+    // Calculate optimal font size based on text length
+    const calcFontSize = (textLen: number): number => {
+      if (textLen > 50) return 11
+      if (textLen > 40) return 12
+      return 14
+    }
+    const newFontSize = calcFontSize(text.length)
+
+    // Update this bullet and sync font size to all other bullets in scene
+    setSceneElements(prev => ({
+      ...prev,
+      [selectedScene]: (prev[selectedScene] ?? []).map(el => {
+        if (el.id === id) {
+          return { ...el, text, bulletTextSize: newFontSize }
+        }
+        // Sync font size to all other bullets
+        if (el.type === 'Vertical bullet point' || el.type === 'Horizontal bullet point') {
+          return { ...el, bulletTextSize: newFontSize }
+        }
+        return el
+      }),
+    }))
+  }
+
   // Drag support
   const canvasRef  = useRef<HTMLDivElement | null>(null)
   const sceneBoxRef = useRef<HTMLDivElement | null>(null)
@@ -1182,26 +1336,47 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     startMX: number; startMY: number; startX: number; startY: number
     moved: boolean; updatePos: (x: number, y: number) => void
   } | null>(null)
+  const resizeInfo = useRef<{
+    startMX: number; startMY: number; startW: number; startH: number
+    moved: boolean; updateSize: (w: number, h: number) => void
+  } | null>(null)
 
   const startDrag = (e: React.MouseEvent, startX: number, startY: number, updatePos: (x: number, y: number) => void) => {
     e.stopPropagation()
     dragInfo.current = { startMX: e.clientX, startMY: e.clientY, startX, startY, moved: false, updatePos }
   }
 
-  const onCanvasMouseMove = (e: React.MouseEvent) => {
-    if (!dragInfo.current || !canvasRef.current) return
-    const sceneW = canvasRef.current.clientWidth
-    const sceneH = sceneW * 9 / 16
-    const dx = ((e.clientX - dragInfo.current.startMX) / sceneW) * 100
-    const dy = ((e.clientY - dragInfo.current.startMY) / sceneH) * 100
-    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) dragInfo.current.moved = true
-    dragInfo.current.updatePos(
-      Math.max(5, Math.min(95, dragInfo.current.startX + dx)),
-      Math.max(5, Math.min(95, dragInfo.current.startY + dy)),
-    )
+  const startResize = (e: React.MouseEvent, startW: number, startH: number, updateSize: (w: number, h: number) => void) => {
+    e.stopPropagation()
+    resizeInfo.current = { startMX: e.clientX, startMY: e.clientY, startW, startH, moved: false, updateSize }
   }
 
-  const onCanvasMouseUp = () => { dragInfo.current = null }
+  const onCanvasMouseMove = (e: React.MouseEvent) => {
+    if (dragInfo.current && !resizeInfo.current && canvasRef.current) {
+      const sceneW = canvasRef.current.clientWidth
+      const sceneH = sceneW * 9 / 16
+      const dx = ((e.clientX - dragInfo.current.startMX) / sceneW) * 100
+      const dy = ((e.clientY - dragInfo.current.startMY) / sceneH) * 100
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) dragInfo.current.moved = true
+      dragInfo.current.updatePos(
+        Math.max(5, Math.min(95, dragInfo.current.startX + dx)),
+        Math.max(5, Math.min(95, dragInfo.current.startY + dy)),
+      )
+    }
+    if (resizeInfo.current && !dragInfo.current && canvasRef.current) {
+      const sceneW = canvasRef.current.clientWidth
+      const sceneH = sceneW * 9 / 16
+      const dw = ((e.clientX - resizeInfo.current.startMX) / sceneW) * 100
+      const dh = ((e.clientY - resizeInfo.current.startMY) / sceneH) * 100
+      if (Math.abs(dw) > 1 || Math.abs(dh) > 1) resizeInfo.current.moved = true
+      resizeInfo.current.updateSize(
+        Math.max(15, Math.min(90, resizeInfo.current.startW + dw)),
+        Math.max(15, Math.min(90, resizeInfo.current.startH + dh)),
+      )
+    }
+  }
+
+  const onCanvasMouseUp = () => { dragInfo.current = null; resizeInfo.current = null }
 
   // True when any toolbar or panel is open → disables scene navigation
   const isToolbarActive = selectedElId !== null || placeholderMenuOpen
@@ -1672,7 +1847,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                         const icoPx    = icoContainerPx[el.bulletIconSize ?? 'M']
                         const icoInner = icoPx * 0.6
                         const badgePx  = Math.max(12, Math.round(icoPx * 0.35))
-                        const textFs   = Math.max(11, Math.round(icoPx * 0.38))
 
                         return (
                           <Box
@@ -1712,6 +1886,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                             {isBullet && (() => {
                               const isV    = el.type === 'Vertical bullet point'
                               const imgDir = isV ? 'row' : 'column'
+                              const elWidth = el.width ?? 40
+                              const elHeight = el.height ?? 25
+                              // Auto-size text: reduce font size if text is very long
+                              const calcTextSize = () => {
+                                const textLen = (el.text ?? 'Placeholder').length
+                                if (textLen > 40) return Math.max(11, Math.min(14, 14 - (textLen - 40) * 0.1))
+                                return el.bulletTextSize ?? 14
+                              }
+                              const autoTextFs = calcTextSize()
                               return (
                                 <Box sx={{
                                   display: 'flex', flexDirection: isV ? 'column' : 'row',
@@ -1721,6 +1904,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   outlineOffset: '4px',
                                   boxShadow: isSelected ? '0 0 0 4px rgba(0,83,229,0.12)' : 'none',
                                   transition: 'outline 0.15s, box-shadow 0.15s',
+                                  position: 'relative',
+                                  width: isSelected ? '100%' : 'auto',
+                                  minWidth: isSelected ? `${elWidth}px` : 'auto',
                                 }}>
                                   {/* image + text */}
                                   <Box sx={{ display: 'flex', flexDirection: imgDir, alignItems: 'center', gap: '10px' }}>
@@ -1734,19 +1920,32 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                     </Box>
                                     {isEditing ? (
                                       <Box component="input" autoFocus value={el.text ?? ''}
-                                        onChange={e => updateEl(el.id, { text: (e.target as HTMLInputElement).value })}
+                                        onChange={e => updateBulletText(el.id, (e.target as HTMLInputElement).value)}
                                         onBlur={() => setEditingElId(null)}
                                         onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingElId(null) }}
                                         onClick={e => e.stopPropagation()}
-                                        sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: textFs, color: '#03194F', border: 'none', outline: '2px solid #0053E5', borderRadius: '4px', px: '4px', py: '1px', bgcolor: 'rgba(0,83,229,0.06)', minWidth: 80, width: `${Math.max(80, (el.text?.length ?? 0) * 8)}px` }}
+                                        sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: autoTextFs, color: '#03194F', border: 'none', outline: '2px solid #0053E5', borderRadius: '4px', px: '4px', py: '1px', bgcolor: 'rgba(0,83,229,0.06)', minWidth: 80, width: `${Math.max(80, (el.text?.length ?? 0) * 8)}px` }}
                                       />
                                     ) : (
                                       <Typography
                                         onDoubleClick={e => { e.stopPropagation(); setEditingElId(el.id); setSelectedElId(el.id) }}
-                                        sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: textFs, color: '#03194F', whiteSpace: 'nowrap', userSelect: 'none' }}
+                                        sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: autoTextFs, color: '#03194F', whiteSpace: 'nowrap', userSelect: 'none' }}
                                       >{el.text ?? 'Placeholder'}</Typography>
                                     )}
                                   </Box>
+                                  {/* Resize handle — only show when selected */}
+                                  {isSelected && (
+                                    <Box
+                                      onMouseDown={(e) => startResize(e, elWidth, elHeight, (w, h) => updateEl(el.id, { width: w, height: h }))}
+                                      sx={{
+                                        position: 'absolute', bottom: -6, right: -6,
+                                        width: 12, height: 12, borderRadius: '50%',
+                                        bgcolor: '#0053E5', cursor: 'se-resize',
+                                        border: '2px solid #fff', boxShadow: '0 0 0 1px #0053E5',
+                                        '&:hover': { boxShadow: '0 0 0 2px #0053E5' }
+                                      }}
+                                    />
+                                  )}
                                 </Box>
                               )
                             })()}
@@ -1791,7 +1990,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               onIconSizeChange={sz => updateEl(selectedEl.id, { bulletIconSize: sz })}
                               onDelete={() => deleteEl(selectedEl.id)}
                               onEditClick={() => {
-                                window.open('https://www.figma.com/design/zv2AOoz7CqCdmyauhpEymM/Bullet-point-toolbar---placeholder?node-id=22002-49208&t=g1PcWUcmkOSJDYNt-4', '_blank')
+                                setEditBulletOpen(true)
                               }}
                               onOptionsMenuClick={(anchorEl) => setBulletMenuAnchor(anchorEl)}
                             />
@@ -2139,6 +2338,19 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         currentText={footnoteText}
         onClose={(newText) => { setFootnoteText(newText); setEditFootnoteOpen(false) }}
       />
+
+      {/* ── Edit Bullet Point dialog ──────────────────────────────────────── */}
+      {selectedEl && (selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point') && (
+        <EditBulletDialog
+          open={editBulletOpen}
+          currentText={selectedEl.text ?? 'Placeholder'}
+          bulletIconSize={selectedEl.bulletIconSize ?? 'M'}
+          onClose={(newText) => {
+            updateBulletText(selectedEl.id, newText)
+            setEditBulletOpen(false)
+          }}
+        />
+      )}
 
       {/* ── Scene Library dialog ──────────────────────────────────────────── */}
       <SceneLibraryDialog
