@@ -465,11 +465,10 @@ interface ApproverCreateSpacePermission {
   newCreateSpace: string
 }
 
-function ConfirmApproversDialog({ open, onClose, approversNeedingAccess, availableSeats, onConfirm }: {
+function ConfirmApproversDialog({ open, onClose, approversNeedingAccess, onConfirm }: {
   open: boolean
   onClose: () => void
   approversNeedingAccess: ApproverCreateSpacePermission[]
-  availableSeats: number
   onConfirm: (permissions: ApproverCreateSpacePermission[]) => void
 }) {
   const [permissions, setPermissions] = useState<ApproverCreateSpacePermission[]>(approversNeedingAccess)
@@ -478,79 +477,47 @@ function ConfirmApproversDialog({ open, onClose, approversNeedingAccess, availab
     setPermissions(prev => prev.map(p => p.userId === userId ? { ...p, newCreateSpace } : p))
   }
 
-  const seatsUsed = permissions.filter(p => p.newCreateSpace !== 'No access').length
-  const seatsRemaining = availableSeats - seatsUsed
+  // Dynamic title based on number of users
+  const titleSuffix = approversNeedingAccess.length === 1
+    ? `to ${approversNeedingAccess[0].userName}`
+    : `to ${approversNeedingAccess.length} approvers`
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 700, borderRadius: '12px', p: 0 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 600, borderRadius: '12px', p: 0 } }}>
       <Box sx={{ px: '24px', py: '20px' }}>
         {/* Title */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
-            Grant Create space access
+            Grant Create space access {titleSuffix}
           </Typography>
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
 
-        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px' }}>
-          The following users will be granted Create space access as approvers:
-        </Typography>
-
-        {/* Table */}
-        <Box sx={{ borderRadius: '8px', border: `1px solid ${c.grey300}`, overflow: 'hidden', mb: '24px', maxHeight: 400, overflowY: 'auto' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', bgcolor: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>
-                  User
-                </TableCell>
-                <TableCell sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', bgcolor: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>
-                  Create space permission
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {permissions.map((perm) => {
-                const isDisabled = seatsRemaining <= 0 && perm.newCreateSpace === 'No access'
-                return (
-                  <TableRow key={perm.userId}>
-                    <TableCell sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px' }}>
-                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                        {perm.userName}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px' }}>
-                      {isDisabled ? (
-                        <Tooltip title="No available seats for Create space" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                          <FormControl size="small" disabled fullWidth>
-                            <Select value={perm.newCreateSpace} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px' }}>
-                              <MenuItem value="Viewer" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>Viewer</MenuItem>
-                              <MenuItem value="No access" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>No access</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Tooltip>
-                      ) : (
-                        <FormControl size="small" fullWidth>
-                          <Select value={perm.newCreateSpace} onChange={e => updatePermission(perm.userId, e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}>
-                            <MenuItem value="Viewer" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>Viewer</MenuItem>
-                            <MenuItem value="No access" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>No access</MenuItem>
-                          </Select>
-                        </FormControl>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+        {/* Column headers */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', mb: '8px', px: '2px' }}>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
+            User
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
+            Create space
+          </Typography>
         </Box>
 
-        {/* Info box */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '24px' }}>
-          <InfoOutlinedIcon sx={{ fontSize: 16, color: c.primary, mt: '1px', flexShrink: 0 }} />
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-            Available seats: <strong>{seatsRemaining}/{availableSeats}</strong>
-          </Typography>
+        {/* Permission rows */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '0px', borderBottom: `1px solid ${c.grey300}`, pb: '12px', mb: '24px', maxHeight: 400, overflowY: 'auto' }}>
+          {permissions.map((perm) => (
+            <Box key={perm.userId} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'center', py: '12px', borderTop: `1px solid ${c.grey300}`, '&:first-of-type': { borderTopColor: 'transparent' } }}>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                {perm.userName}
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <Select value={perm.newCreateSpace} onChange={e => updatePermission(perm.userId, e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}>
+                  <MenuItem value="Viewer" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>Viewer</MenuItem>
+                  <MenuItem value="No access" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>No access</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          ))}
         </Box>
 
         {/* Actions */}
@@ -795,7 +762,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         open={confirmApproversOpen}
         onClose={() => { setConfirmApproversOpen(false); setPendingApprovers([]) }}
         approversNeedingAccess={pendingApprovers}
-        availableSeats={10}
         onConfirm={handleConfirmApproversWithPermissions}
       />
     </Box>
@@ -915,9 +881,24 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                     </Typography>
                   </TableCell>
                   <TableCell sx={bodyCellSx}>
-                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.amplifySpace === 'No access' ? c.textSecondary : c.textPrimary }}>
-                      {row.amplifySpace}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.amplifySpace === 'No access' ? c.textSecondary : c.textPrimary }}>
+                        {row.amplifySpace}
+                      </Typography>
+                      <Box sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {isHovered && !row.isOwner && (
+                          <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+                            <IconButton
+                              size="small"
+                              onClick={() => { setEditingUser(row); setEditPermOpen(true) }}
+                              sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}
+                            >
+                              <EditOutlinedIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    </Box>
                   </TableCell>
                   <TableCell sx={bodyCellSx}>
                     <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.pending ? c.textSecondary : c.textPrimary, fontStyle: row.pending ? 'italic' : 'normal' }}>
