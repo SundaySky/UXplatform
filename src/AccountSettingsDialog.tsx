@@ -4,7 +4,8 @@ import {
   Avatar, Button, OutlinedInput, InputAdornment,
   Table, TableBody, TableCell, TableHead, TableRow,
   Tooltip, Switch, Checkbox,
-  Select, MenuItem, FormControl, Menu, FormHelperText,
+  Select, MenuItem, FormControl, Menu,
+  Autocomplete, TextField,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
 import HelpOutlineIcon        from '@mui/icons-material/HelpOutline'
@@ -330,18 +331,10 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
   const [createSpace, setCreateSpace] = useState('Approver')
   const [amplifySpace, setAmplifySpace] = useState('No access')
   const [alert, setAlert] = useState('')
-  const [inputFocused, setInputFocused] = useState(false)
   const [validationError, setValidationError] = useState('')
-  const inputRef = React.useRef<HTMLInputElement>(null)
 
   const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
-
-  const filteredUsers = (inputFocused || search.trim())
-    ? allUsers.filter(u => !search.trim() || u.user.email.toLowerCase().includes(search.toLowerCase()) || u.user.name.toLowerCase().includes(search.toLowerCase()))
-    : []
-
-  const isNewEmail = search.trim() && !filteredUsers.some(u => u.user.email === search.trim())
 
   const isValidEmail = (email: string): boolean => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -419,7 +412,6 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
       setAmplifySpace('No access')
       setAlert('')
       setValidationError('')
-      setInputFocused(false)
     }
   }, [open])
 
@@ -432,60 +424,70 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
 
-        {/* Search input */}
-        <FormControl fullWidth size="small" error={!!validationError}>
-          <OutlinedInput
-            inputRef={inputRef}
-            placeholder="Search user or enter email..."
-            value={search}
-            onChange={e => {
-              setSearch(e.target.value)
+        {/* User autocomplete */}
+        <Autocomplete
+          options={allUsers}
+          value={selectedUser}
+          inputValue={search}
+          freeSolo
+          getOptionLabel={option => typeof option === 'string' ? option : option.user.email}
+          onChange={(_, option) => {
+            if (option && typeof option !== 'string') {
+              handleSelectUser(option)
+            } else if (!option) {
+              setSelectedUser(null)
+              setSearch('')
+              setCreateSpace('Approver')
+              setAmplifySpace('No access')
+              setAlert('')
+              setValidationError('')
+            }
+          }}
+          onInputChange={(_, value, reason) => {
+            if (reason === 'input') {
+              setSearch(value)
               setSelectedUser(null)
               setValidationError('')
-              if (!e.target.value.trim()) {
+              if (!value.trim()) {
                 setCreateSpace('Approver')
                 setAmplifySpace('No access')
                 setAlert('')
-              } else if (isNewEmail && e.target.value.trim()) {
-                setCreateSpace('Approver')
-                setAmplifySpace('No access')
-                setAlert('The user will receive an email invitation and will need to create an account to get access.')
+              } else {
+                const matchesExisting = allUsers.some(u => u.user.email === value.trim())
+                if (!matchesExisting) {
+                  setAlert('The user will receive an email invitation and will need to create an account to get access.')
+                }
               }
-            }}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            fullWidth
-            sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
-          />
-          {validationError && (
-            <FormHelperText sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#d32f2f', mt: '4px' }}>
-              {validationError}
-            </FormHelperText>
+            }
+          }}
+          renderOption={(props, option) => (
+            <Box component="li" {...props} key={option.user.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start !important', py: '10px !important', px: '12px !important' }}>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.4 }}>
+                {option.user.name}
+              </Typography>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.4 }}>
+                {option.user.email}
+              </Typography>
+            </Box>
           )}
-        </FormControl>
-
-        {/* User suggestions dropdown */}
-        {filteredUsers.length > 0 && (
-          <Box sx={{ mb: '16px', border: `1px solid ${c.grey300}`, borderRadius: '8px', maxHeight: 200, overflowY: 'auto' }}>
-            {filteredUsers.map(user => (
-              <Box
-                key={user.user.id}
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  handleSelectUser(user)
-                }}
-                sx={{ p: '10px 12px', borderBottom: `1px solid ${c.grey300}`, cursor: 'pointer', '&:hover': { bgcolor: c.grey100 }, '&:last-child': { borderBottom: 'none' } }}
-              >
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
-                  {user.user.name}
-                </Typography>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
-                  {user.user.email}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        )}
+          renderInput={params => (
+            <TextField
+              {...params}
+              label="Select user"
+              placeholder="Search or enter email..."
+              size="small"
+              error={!!validationError}
+              helperText={validationError}
+              sx={{
+                '& .MuiInputLabel-root': { fontFamily: '"Open Sans",sans-serif', fontSize: 14 },
+                '& .MuiInputBase-input': { fontFamily: '"Open Sans",sans-serif', fontSize: 13 },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
+                '& .MuiFormHelperText-root': { fontFamily: '"Open Sans",sans-serif', fontSize: 12 },
+              }}
+            />
+          )}
+          sx={{ mb: '16px' }}
+        />
 
         {/* Permissions */}
         <Box sx={{ mb: '20px' }}>
