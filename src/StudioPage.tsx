@@ -1408,12 +1408,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         />
 
         {/* Stage */}
-        <Box sx={{ flex: 1, bgcolor: s.editorBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, bgcolor: s.editorBg, display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
 
           {/* Live preview area */}
           <Box sx={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            px: 2, py: 3, overflow: 'hidden', position: 'relative',
+            px: 2, py: 3, overflow: 'visible', position: 'relative',
           }}>
 
 
@@ -1428,68 +1428,91 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             </IconButton>
 
             {/* Canvas + right toolbar — inner group aligned at top so toolbar top === canvas top */}
-            <Box sx={{ flex: 1, maxWidth: 720, display: 'flex', alignItems: 'stretch', gap: '8px', position: 'relative' }}>
+            <Box sx={{ flex: 1, maxWidth: 720, display: 'flex', alignItems: 'stretch', gap: '8px', position: 'relative', overflow: 'visible' }}>
 
-              {/* Placeholder picker panel — anchored right edge = toolbar left edge, top = toolbar top */}
+              {/* Placeholder picker panel — floats to the right of canvas, above everything */}
               {placeholderMenuOpen && (
                 <Box
                   onClick={e => e.stopPropagation()}
                   sx={{
-                    position: 'absolute', top: 0, right: 40, zIndex: 30,
-                    bgcolor: '#fff', borderRadius: '12px',
-                    boxShadow: '0 0 5px rgba(3,25,79,0.25)',
-                    width: 232, overflow: 'hidden',
-                    border: `1px solid ${s.divider}`,
+                    position: 'absolute', top: 0, left: 'calc(100% + 8px)', zIndex: 40,
+                    bgcolor: '#fff', borderRadius: '16px',
+                    boxShadow: '0 4px 24px rgba(3,25,79,0.18)',
+                    width: 260,
+                    border: `1px solid rgba(0,83,229,0.10)`,
                   }}
                 >
                   {/* Header */}
                   <Box sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    px: '16px', pt: '14px', pb: '8px',
+                    px: '20px', pt: '18px', pb: '12px',
                   }}>
-                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 16, color: s.textPrimary }}>
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 18, color: s.navy }}>
                       Placeholder
                     </Typography>
-                    <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '2px' }}>
-                      <CloseIcon sx={{ fontSize: 18 }} />
+                    <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '4px' }}>
+                      <CloseIcon sx={{ fontSize: 20 }} />
                     </IconButton>
                   </Box>
 
-                  {/* Items — each in a bordered rounded card */}
-                  <Box sx={{ px: '12px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {/* Items */}
+                  <Box sx={{ px: '12px', pb: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {([
-                      { src: '/heading.png',     label: 'Heading',                labelColor: s.primary,       iconEl: null },
-                      { src: '/sub heading.png', label: 'Sub heading',            labelColor: s.primary,       iconEl: null },
-                      { src: '/media.png',       label: 'Media',                  labelColor: s.primary,       iconEl: null },
-                      { src: null,               label: 'Vertical bullet point',  labelColor: s.primary,       iconEl: (
-                        <Box sx={{ width: 22, height: 22, bgcolor: s.primary, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <FormatListBulletedIcon sx={{ fontSize: 14, color: '#fff' }} />
+                      { label: 'Heading',                blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/heading.png" alt="Heading" style={{ width: 22, height: 22, objectFit: 'contain' }} />
                         </Box>
                       )},
-                      { src: null,               label: 'Horizontal bullet point',labelColor: s.primary,       iconEl: (
-                        <Box sx={{ width: 22, height: 22, bgcolor: s.primary, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <ViewWeekOutlinedIcon sx={{ fontSize: 14, color: '#fff' }} />
+                      { label: 'Sub heading',            blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/sub heading.png" alt="Sub heading" style={{ width: 22, height: 22, objectFit: 'contain' }} />
                         </Box>
                       )},
-                      { src: null,               label: 'Footnote',               labelColor: s.textSecondary, iconEl: null },
-                      { src: '/logo.png',        label: 'Logo',                   labelColor: s.primary,       iconEl: null },
-                      { src: '/button.png',      label: 'Button',                 labelColor: s.primary,       iconEl: null },
-                    ] as { src: string|null; label: string; labelColor: string; iconEl: React.ReactNode }[]).map(({ src, label, labelColor, iconEl }) => (
+                      { label: 'Media',                  blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/media.png" alt="Media" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                      { label: 'Vertical bullet point',  blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: s.primary, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FormatListBulletedIcon sx={{ fontSize: 22, color: '#fff' }} />
+                        </Box>
+                      )},
+                      { label: 'Horizontal bullet point',blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: s.primary, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <ViewWeekOutlinedIcon sx={{ fontSize: 22, color: '#fff' }} />
+                        </Box>
+                      )},
+                      { label: 'Footnote',               blue: false, iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 22, color: s.textSecondary, lineHeight: 1 }}>*</Typography>
+                        </Box>
+                      )},
+                      { label: 'Logo',                   blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/logo.png" alt="Logo" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                      { label: 'Button',                 blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/button.png" alt="Button" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                    ] as { label: string; blue: boolean; iconEl: React.ReactNode }[]).map(({ label, blue, iconEl }) => (
                       <Box
                         key={label}
                         onClick={() => {
                           if (label === 'Vertical bullet point' || label === 'Horizontal bullet point') {
-                            // Each click adds an independent bullet item
                             const existing = sceneBullets[selectedScene] ?? []
-                            const offset = existing.length * 8 // stagger positions
+                            const offset = existing.length * 8
                             setSceneBullets(prev => ({
                               ...prev,
                               [selectedScene]: [...(prev[selectedScene] ?? []), {
                                 id: `bullet-${Date.now()}`,
                                 orientation: label === 'Vertical bullet point' ? 'V' : 'H',
                                 text: 'Placeholder',
-                                x: Math.min(90, 30 + offset),
-                                y: Math.min(85, 35 + offset),
+                                x: Math.min(85, 35 + offset),
+                                y: Math.min(80, 40 + offset),
                               }],
                             }))
                           } else {
@@ -1502,22 +1525,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           setPlaceholderMenuOpen(false)
                         }}
                         sx={{
-                          display: 'flex', alignItems: 'center', gap: '10px',
-                          px: '12px', py: '10px', cursor: 'pointer',
-                          borderRadius: '8px',
-                          border: `1px solid ${s.divider}`,
+                          display: 'flex', alignItems: 'center', gap: '14px',
+                          px: '8px', py: '8px', cursor: 'pointer',
+                          borderRadius: '12px',
                           bgcolor: '#fff',
-                          '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: 'rgba(0,83,229,0.3)' },
+                          '&:hover': { bgcolor: 'rgba(0,83,229,0.05)' },
+                          transition: 'background 0.12s',
                         }}>
-                        <Box sx={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {iconEl
-                            ? iconEl
-                            : src
-                              ? <img src={src} alt={label} style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                              : <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18, color: s.textSecondary, lineHeight: 1 }}>*</Typography>
-                          }
-                        </Box>
-                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: labelColor }}>
+                        {iconEl}
+                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 15, color: blue ? s.primary : s.textSecondary }}>
                           {label}
                         </Typography>
                       </Box>
@@ -1580,7 +1596,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <PlaceholderIcon size={52} />
                           <Button
                             variant="contained"
-                            onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                            onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p); setSelectedBulletId(null); setButtonSelected(false) }}
                             sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: '16px', py: '8px', bgcolor: s.primary, boxShadow: '0 2px 8px rgba(0,83,229,0.25)' }}
                           >
                             Add placeholder
@@ -2009,7 +2025,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Box
-                  onClick={() => setSceneLibOpen(true)}
+                  onClick={() => { setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedBulletId(null); setButtonSelected(false) }}
                   sx={{
                     width: 32, height: 32, borderRadius: '50%',
                     bgcolor: s.editorBg,
