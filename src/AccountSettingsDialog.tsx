@@ -101,10 +101,10 @@ function UserCell({ row }: { row: AccountUser }) {
   )
 }
 
-// ─── Invite User Dialog ───────────────────────────────────────────────────────
+// ─── Add User Dialog ───────────────────────────────────────────────────────
 interface InviteRow { email: string; createSpace: string; amplifySpace: string }
 
-function InviteUserDialog({ open, onClose, onSend }: {
+function AddUserDialog({ open, onClose, onSend }: {
   open: boolean
   onClose: () => void
   onSend: (rows: InviteRow[]) => void
@@ -131,7 +131,7 @@ function InviteUserDialog({ open, onClose, onSend }: {
       <Box sx={{ px: '24px', py: '20px' }}>
         {/* Title */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>Invite user</Typography>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>Add user</Typography>
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
 
@@ -183,14 +183,19 @@ function InviteUserDialog({ open, onClose, onSend }: {
 
         {/* Actions */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-          <Button onClick={onClose} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary }}>Cancel</Button>
+          <Button
+            variant="outlined"
+            onClick={onClose}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}>
+            Cancel
+          </Button>
           <Button
             variant="contained"
             onClick={handleSend}
             disabled={!rows.some(r => r.email.trim())}
             sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
           >
-            Send invitation
+            Add users
           </Button>
         </Box>
       </Box>
@@ -237,14 +242,15 @@ function AddApproversPopover({ anchorEl, onClose, allUsers, approverIds, onAdd, 
         <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 16 }} /></IconButton>
       </Box>
 
-      {/* Invite + Search */}
+      {/* Add + Search */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', px: '12px', py: '10px', borderBottom: `1px solid ${c.grey300}` }}>
         <Button
+          variant="outlined"
           startIcon={<AddIcon sx={{ fontSize: '14px !important' }} />}
           onClick={() => { onClose(); onInviteClick() }}
-          sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 500, textTransform: 'none', color: c.primary, border: `1px solid ${c.grey300}`, borderRadius: '8px', px: '10px', py: '5px', whiteSpace: 'nowrap', flexShrink: 0, '&:hover': { bgcolor: c.primaryLight, borderColor: c.primary } }}
+          sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 500, textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
-          Invite user
+          Add user
         </Button>
         <OutlinedInput
           placeholder="Search..."
@@ -738,8 +744,8 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         onInviteClick={() => setInviteOpen(true)}
       />
 
-      {/* Invite User Dialog */}
-      <InviteUserDialog
+      {/* Add User Dialog */}
+      <AddUserDialog
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         onSend={rows => { onAddUsers(rows, true); setInviteOpen(false) }}
@@ -930,7 +936,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         </Table>
       </Box>
 
-      <InviteUserDialog
+      <AddUserDialog
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         onSend={rows => { onInviteUser(rows); setInviteOpen(false) }}
