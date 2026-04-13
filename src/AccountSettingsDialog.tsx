@@ -329,12 +329,13 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
   const [createSpace, setCreateSpace] = useState('Approver')
   const [amplifySpace, setAmplifySpace] = useState('No access')
   const [alert, setAlert] = useState('')
+  const [inputFocused, setInputFocused] = useState(false)
 
   const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
 
-  const filteredUsers = search.trim()
-    ? allUsers.filter(u => u.user.email.toLowerCase().includes(search.toLowerCase()) || u.user.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredUsers = (inputFocused || search.trim())
+    ? allUsers.filter(u => !search.trim() || u.user.email.toLowerCase().includes(search.toLowerCase()) || u.user.name.toLowerCase().includes(search.toLowerCase()))
     : []
 
   const isNewEmail = search.trim() && !filteredUsers.some(u => u.user.email === search.trim())
@@ -431,6 +432,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
                 setAlert('The user will receive an email invitation and will need to create an account to get access.')
               }
             }}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             fullWidth
             sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
           />
