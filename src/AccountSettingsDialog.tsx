@@ -129,40 +129,43 @@ function AddUserDialog({ open, onClose, onSend }: {
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 760, borderRadius: '12px', p: 0 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 520, borderRadius: '12px', p: 0 } }}>
       <Box sx={{ px: '24px', py: '20px' }}>
         {/* Title */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>Add user</Typography>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>Add users</Typography>
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
-        </Box>
-
-        {/* Column headers */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 180px 180px', gap: '12px', mb: '8px', px: '2px' }}>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>Email</Typography>
-          <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
-          <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
         </Box>
 
         {/* Rows */}
         {rows.map((row, i) => (
-          <Box key={i} sx={{ display: 'grid', gridTemplateColumns: '1fr 180px 180px', gap: '12px', mb: '8px', alignItems: 'center', borderBottom: `1px solid ${c.grey300}`, pb: '8px' }}>
-            <OutlinedInput
-              placeholder="User@SSKY.com"
-              value={row.email}
-              onChange={e => updateRow(i, 'email', e.target.value)}
-              sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
-            />
-            <FormControl size="small">
-              <Select value={row.createSpace} onChange={e => updateRow(i, 'createSpace', e.target.value as string)} sx={selectSx}>
-                {spaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
-              </Select>
-            </FormControl>
-            <FormControl size="small">
-              <Select value={row.amplifySpace} onChange={e => updateRow(i, 'amplifySpace', e.target.value as string)} sx={selectSx}>
-                {spaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
-              </Select>
-            </FormControl>
+          <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px', pb: '20px', borderBottom: `1px solid ${c.grey300}` }}>
+            <Box>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</Typography>
+              <OutlinedInput
+                placeholder="user@example.com"
+                value={row.email}
+                onChange={e => updateRow(i, 'email', e.target.value)}
+                fullWidth
+                sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
+              />
+            </Box>
+            <Box>
+              <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={4} total={10} />
+              <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
+                <Select value={row.createSpace} onChange={e => updateRow(i, 'createSpace', e.target.value as string)} sx={selectSx}>
+                  {spaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box>
+              <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
+              <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
+                <Select value={row.amplifySpace} onChange={e => updateRow(i, 'amplifySpace', e.target.value as string)} sx={selectSx}>
+                  {spaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Box>
           </Box>
         ))}
 
@@ -884,7 +887,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
             onClick={() => setInviteOpen(true)}
             sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: '16px', py: '7px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
           >
-            Invite user
+            Add user
           </Button>
           <OutlinedInput
             placeholder="Search..."
