@@ -317,11 +317,12 @@ function AddUserDialog({ open, onClose, onSend }: {
 }
 
 // ─── Add Approver Dialog ───────────────────────────────────────────────────────
-function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
+function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds = [] }: {
   open: boolean
   onClose: () => void
   onAdd: (email: string, createSpace: string, amplifySpace: string) => void
   allUsers: AccountUser[]
+  existingApproverIds?: string[]
 }) {
   const [search, setSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<AccountUser | null>(null)
@@ -366,8 +367,10 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
     setSearch(user.user.email)
     setValidationError('')
 
-    // Set permissions based on user's current role
-    if (user.createSpace === 'Editor') {
+    // Check if user is already an approver
+    if (existingApproverIds.includes(user.user.id)) {
+      setAlert('This user is already set as an approver')
+    } else if (user.createSpace === 'Editor') {
       setCreateSpaceSelected(['Editor', 'Approver'])
       setCreateSpace('Editor, Approver')
       setAlert('This user will get permission to access the create space')
@@ -467,7 +470,10 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
             {filteredUsers.map(user => (
               <Box
                 key={user.user.id}
-                onClick={() => handleSelectUser(user)}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handleSelectUser(user)
+                }}
                 sx={{ p: '10px 12px', borderBottom: `1px solid ${c.grey300}`, cursor: 'pointer', '&:hover': { bgcolor: c.grey100 }, '&:last-child': { borderBottom: 'none' } }}
               >
                 <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
@@ -1055,6 +1061,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         open={addApproverDialogOpen}
         onClose={() => setAddApproverDialogOpen(false)}
         allUsers={users}
+        existingApproverIds={Array.from(approverIds)}
         onAdd={(email, createSpace, amplifySpace) => {
           // Find if user exists
           const existingUser = users.find(u => u.user.email === email)
@@ -1167,7 +1174,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                 <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
               </TableCell>
               <TableCell sx={{ ...headCellSx, width: '25%' }}>Last login</TableCell>
-              <TableCell sx={{ ...headCellSx, width: 48, p: 0 }} />
+              <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: 'sticky', right: 0, zIndex: 4 }} />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -1213,7 +1220,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                       {row.pending ? 'Pending' : row.lastLogin}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48 }}>
+                  <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48, position: 'sticky', right: 0, zIndex: 2, bgcolor: isHovered ? c.grey100 : '#fff' }}>
                     {isHovered && !row.isOwner && (
                       <IconButton
                         size="small"
