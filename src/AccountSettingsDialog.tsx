@@ -85,19 +85,21 @@ function SeatHeader({ label, tooltip, used, total }: { label: string; tooltip: s
 // ─── Shared user avatar cell ──────────────────────────────────────────────────
 function UserCell({ row }: { row: AccountUser }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <Avatar sx={{ width: 32, height: 32, bgcolor: c.secondary, fontSize: 11, fontFamily: '"Inter",sans-serif', fontWeight: 600, flexShrink: 0, borderRadius: '8px' }}>
-        {row.user.initials}
-      </Avatar>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {row.user.name}
-        </Typography>
-        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {row.user.email}
-        </Typography>
+    <Tooltip title={row.user.email} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'default' }}>
+        <Avatar sx={{ width: 32, height: 32, bgcolor: c.secondary, fontSize: 11, fontFamily: '"Inter",sans-serif', fontWeight: 600, flexShrink: 0, borderRadius: '8px' }}>
+          {row.user.initials}
+        </Avatar>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {row.user.name}
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {row.jobRole}
+          </Typography>
+        </Box>
       </Box>
-    </Box>
+    </Tooltip>
   )
 }
 
@@ -463,6 +465,75 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
   )
 }
 
+// ─── User Details Dialog ──────────────────────────────────────────────────────
+function UserDetailsDialog({ open, onClose, user, onEdit, onRemove }: {
+  open: boolean
+  onClose: () => void
+  user: AccountUser | null
+  onEdit: () => void
+  onRemove: () => void
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 400, borderRadius: '12px', p: 0 } }}>
+      <Box sx={{ px: '24px', py: '20px' }}>
+        {/* Title */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
+            User details
+          </Typography>
+          <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
+        </Box>
+
+        {/* User info */}
+        {user && (
+          <Box sx={{ mb: '24px', pb: '24px', borderBottom: `1px solid ${c.grey300}` }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', mb: '16px' }}>
+              <Avatar sx={{ width: 40, height: 40, bgcolor: c.secondary, fontSize: 12, fontFamily: '"Inter",sans-serif', fontWeight: 600, borderRadius: '8px' }}>
+                {user.user.initials}
+              </Avatar>
+              <Box>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, color: c.textPrimary }}>
+                  {user.user.name}
+                </Typography>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                  {user.jobRole}
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', fontSize: 13, fontFamily: '"Open Sans",sans-serif', color: c.textSecondary }}>
+              <Box>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: c.textSecondary, mb: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</Typography>
+                <Typography sx={{ color: c.textPrimary }}>{user.user.email}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: c.textSecondary, mb: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Creation date</Typography>
+                <Typography sx={{ color: c.textPrimary }}>{user.pending ? '—' : user.createdDate}</Typography>
+              </Box>
+            </Box>
+          </Box>
+        )}
+
+        {/* Actions */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+          <Button
+            onClick={() => { onRemove(); onClose() }}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: '#E53935', '&:hover': { bgcolor: 'rgba(229,57,53,0.1)' } }}
+          >
+            Remove
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => { onEdit(); onClose() }}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', py: '9px', px: '16px', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+          >
+            Edit permissions
+          </Button>
+        </Box>
+      </Box>
+    </Dialog>
+  )
+}
+
 // ─── Confirm Approvers Dialog ──────────────────────────────────────────────────
 interface ApproverCreateSpacePermission {
   userId: string
@@ -783,6 +854,8 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
   const [editingUser, setEditingUser] = useState<AccountUser | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null)
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false)
+  const [selectedUserForDetails, setSelectedUserForDetails] = useState<AccountUser | null>(null)
   const [usersList, setUsersList] = useState<AccountUser[]>(users)
 
   const filtered = search
@@ -834,9 +907,6 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                   User <ArrowDownwardIcon sx={{ fontSize: 14, color: c.actionActive }} />
                 </Box>
               </TableCell>
-              <TableCell sx={{ ...headCellSx, width: 150 }}>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>Role</Typography>
-              </TableCell>
               <TableCell sx={{ ...headCellSx, width: 200 }}>
                 <SeatHeader label="Create space" tooltip="Assigned editor seats compared to total editor seats" used={5} total={10} />
               </TableCell>
@@ -844,7 +914,6 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                 <SeatHeader label="Amplify space" tooltip="Assigned contributor only seats compared to total contributor seats" used={4} total={10} />
               </TableCell>
               <TableCell sx={{ ...headCellSx, width: 200 }}>Last login</TableCell>
-              <TableCell sx={{ ...headCellSx, width: 200 }}>Creation date</TableCell>
               <TableCell sx={{ ...headCellSx, width: 48, p: 0 }} />
             </TableRow>
           </TableHead>
@@ -860,26 +929,6 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                 >
                   <TableCell sx={{ ...bodyCellSx, position: 'sticky', left: 0, zIndex: 1, bgcolor: isHovered ? c.grey100 : '#fff' }}>
                     <UserCell row={row} />
-                  </TableCell>
-                  <TableCell sx={bodyCellSx}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                        {row.jobRole}
-                      </Typography>
-                      <Box sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {isHovered && !row.isOwner && (
-                          <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => { setEditingUser(row); setEditPermOpen(true) }}
-                              sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}
-                            >
-                              <EditOutlinedIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Box>
-                    </Box>
                   </TableCell>
                   <TableCell sx={bodyCellSx}>
                     <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.createSpace === 'No access' ? c.textSecondary : c.textPrimary, whiteSpace: 'pre-line' }}>
@@ -911,22 +960,15 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
                       {row.pending ? 'Pending' : row.lastLogin}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={bodyCellSx}>
-                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                      {row.pending ? '—' : row.createdDate}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48 }}>
+                  <TableCell sx={{ ...bodyCellSx, px: '4px', width: 80 }}>
                     {isHovered && !row.isOwner && (
-                      <Tooltip title="Remove user" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => { setUserToDelete(row); setDeleteOpen(true) }}
-                          sx={{ color: '#E53935', '&:hover': { bgcolor: 'rgba(229,57,53,0.1)' } }}
-                        >
-                          <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Tooltip>
+                      <Button
+                        size="small"
+                        onClick={() => { setSelectedUserForDetails(row); setUserDetailsOpen(true) }}
+                        sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, textTransform: 'none', color: c.textPrimary, p: '4px 8px', '&:hover': { bgcolor: c.grey100 } }}
+                      >
+                        Details
+                      </Button>
                     )}
                   </TableCell>
                 </TableRow>
@@ -964,6 +1006,15 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
             setUsersList(prev => prev.filter(u => u.user.id !== userToDelete.user.id))
           }
         }}
+      />
+
+      {/* User Details Dialog */}
+      <UserDetailsDialog
+        open={userDetailsOpen}
+        onClose={() => setUserDetailsOpen(false)}
+        user={selectedUserForDetails}
+        onEdit={() => { setEditingUser(selectedUserForDetails); setEditPermOpen(true) }}
+        onRemove={() => { setUserToDelete(selectedUserForDetails); setDeleteOpen(true) }}
       />
     </Box>
   )
