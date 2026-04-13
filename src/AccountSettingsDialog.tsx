@@ -56,6 +56,16 @@ const INITIAL_USERS: AccountUser[] = [
   { user: ALL_USERS[3],               createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Creative Agency', lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
   { user: ALL_USERS[4],               createSpace: 'View only',       amplifySpace: 'No access',     jobRole: 'Marketing',       lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
   { user: ALL_USERS[5],               createSpace: 'Builder editor,\nProfessional services', amplifySpace: 'Contributor', jobRole: 'Marketing', lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
+  { user: ALL_USERS[6],               createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Social Media',    lastLogin: 'Sep 7, 2022, 3:45 pm', createdDate: 'Sep 7, 2022, 3:45 pm' },
+  { user: ALL_USERS[7],               createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Graphic Designer', lastLogin: 'Sep 6, 2022, 2:15 pm', createdDate: 'Sep 6, 2022, 2:15 pm' },
+  { user: ALL_USERS[8],               createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Video Editor',    lastLogin: 'Sep 5, 2022, 11:00 am', createdDate: 'Sep 5, 2022, 11:00 am' },
+  { user: ALL_USERS[9],               createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Content Writer',  lastLogin: 'Sep 4, 2022, 4:30 pm', createdDate: 'Sep 4, 2022, 4:30 pm' },
+  { user: ALL_USERS[10],              createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Project Manager', lastLogin: 'Sep 3, 2022, 9:20 am', createdDate: 'Sep 3, 2022, 9:20 am' },
+  { user: ALL_USERS[11],              createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'QA Tester',       lastLogin: 'Sep 2, 2022, 1:00 pm', createdDate: 'Sep 2, 2022, 1:00 pm' },
+  { user: ALL_USERS[12],              createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'UX Designer',     lastLogin: 'Sep 1, 2022, 10:45 am', createdDate: 'Sep 1, 2022, 10:45 am' },
+  { user: ALL_USERS[13],              createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Copywriter',      lastLogin: 'Aug 31, 2022, 2:30 pm', createdDate: 'Aug 31, 2022, 2:30 pm' },
+  { user: ALL_USERS[14],              createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Sound Engineer',  lastLogin: 'Aug 30, 2022, 5:15 pm', createdDate: 'Aug 30, 2022, 5:15 pm' },
+  { user: ALL_USERS[15],              createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Animator',        lastLogin: 'Aug 29, 2022, 11:30 am', createdDate: 'Aug 29, 2022, 11:30 am' },
 ]
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
