@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Box, Typography, IconButton, Button, Avatar,
   Badge, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -1732,10 +1733,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       })}
                     </Box>
 
-                    {/* ── Fixed toolbar — escapes every overflow:hidden ancestor ── */}
-                    {selectedEl && (() => {
-                      const rect = sceneBoxRef.current?.getBoundingClientRect()
-                      if (!rect) return null
+                    {/* ── Portal toolbar — rendered into document.body, immune to all overflow:hidden ── */}
+                    {selectedEl && sceneBoxRef.current && createPortal((() => {
+                      const rect = sceneBoxRef.current!.getBoundingClientRect()
                       const elScreenX = rect.left + (selectedEl.x / 100) * rect.width
                       const elScreenY = rect.top  + (selectedEl.y / 100) * rect.height
                       const isBullet  = selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point'
@@ -1772,7 +1772,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           )}
                         </Box>
                       )
-                    })()}
+                    })(), document.body)}
                   </>
                 )
               })()}
