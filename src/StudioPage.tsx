@@ -1165,13 +1165,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   }
 
   // Drag support
-  const canvasRef = useRef<HTMLDivElement | null>(null)
+  const canvasRef  = useRef<HTMLDivElement | null>(null)
+  const sceneBoxRef = useRef<HTMLDivElement | null>(null)
   const dragInfo  = useRef<{
     startMX: number; startMY: number; startX: number; startY: number
     moved: boolean; updatePos: (x: number, y: number) => void
   } | null>(null)
-
-  const getSceneH = () => (canvasRef.current?.clientWidth ?? 0) * 9 / 16
 
   const startDrag = (e: React.MouseEvent, startX: number, startY: number, updatePos: (x: number, y: number) => void) => {
     e.stopPropagation()
@@ -1620,8 +1619,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                 return (
                   <>
-                    {/* ── Clipped scene content ─────────────────────────── */}
-                    <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF' }}>
+                    {/* ── Clipped scene background (no elements here so nothing clips) ── */}
+                    <Box ref={sceneBoxRef} sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF' }}>
                       <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
 
                       {isEmpty && (
@@ -1633,8 +1632,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           >Add placeholder</Button>
                         </Box>
                       )}
+                    </Box>
 
-                      {/* All canvas elements */}
+                    {/* ── Elements overlay — same bounds as scene box, no overflow:hidden ── */}
+                    <Box sx={{ position: 'absolute', inset: 0, borderRadius: '8px', overflow: 'visible', pointerEvents: 'none' }}>
                       {els.map(el => {
                         const isSelected = el.id === selectedElId
                         const isEditing  = el.id === editingElId
@@ -1650,7 +1651,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                         return (
                           <Box
                             key={el.id}
-                            sx={{ position: 'absolute', left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3 }}
+                            sx={{ position: 'absolute', left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3, pointerEvents: 'auto' }}
                             onMouseDown={e => {
                               if (isEditing) return
                               startDrag(e, el.x, el.y, (nx, ny) => updateEl(el.id, { x: nx, y: ny }))
@@ -1662,6 +1663,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               setPlaceholderMenuOpen(false)
                             }}
                           >
+
                             {/* ── Button ─────────────────────────────────── */}
                             {isButton && (() => {
                               const { w, h, fs } = btnDims[el.buttonSize ?? 'L']
@@ -1730,17 +1732,26 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       })}
                     </Box>
 
-                    {/* ── Toolbar (sibling of clipped scene, never clipped) ── */}
+                    {/* ── Fixed toolbar — escapes every overflow:hidden ancestor ── */}
                     {selectedEl && (() => {
-                      const sceneH     = getSceneH()
-                      const toolbarTop = Math.max(4, sceneH * (selectedEl.y / 100) - 58)
-                      const isBullet   = selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point'
-                      const isButton   = selectedEl.type === 'Button'
+                      const rect = sceneBoxRef.current?.getBoundingClientRect()
+                      if (!rect) return null
+                      const elScreenX = rect.left + (selectedEl.x / 100) * rect.width
+                      const elScreenY = rect.top  + (selectedEl.y / 100) * rect.height
+                      const isBullet  = selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point'
+                      const isButton  = selectedEl.type === 'Button'
                       return (
                         <Box
                           onMouseDown={e => e.stopPropagation()}
                           onClick={e => e.stopPropagation()}
-                          sx={{ position: 'absolute', left: `${selectedEl.x}%`, top: toolbarTop, transform: 'translateX(-50%)', zIndex: 20 }}
+                          sx={{
+                            position: 'fixed',
+                            left: elScreenX,
+                            top: elScreenY - 10,
+                            transform: 'translate(-50%, -100%)',
+                            zIndex: 9999,
+                            whiteSpace: 'nowrap',
+                          }}
                         >
                           {isButton && (
                             <ButtonPlaceholderToolbar
