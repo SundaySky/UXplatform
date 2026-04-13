@@ -41,6 +41,9 @@ import StarBorderIcon              from '@mui/icons-material/StarBorder'
 import DeleteOutlinedIcon         from '@mui/icons-material/DeleteOutlined'
 import LockPersonIcon             from '@mui/icons-material/LockPerson'
 import Tooltip                    from '@mui/material/Tooltip'
+import FormatListBulletedIcon     from '@mui/icons-material/FormatListBulleted'
+import ViewWeekOutlinedIcon       from '@mui/icons-material/ViewWeekOutlined'
+import KeyboardArrowDownIcon      from '@mui/icons-material/KeyboardArrowDown'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
 import AvatarLibraryPanel from './AvatarLibraryPanel'
@@ -211,6 +214,132 @@ function ButtonPlaceholderToolbar({
 
       {/* Copy */}
       <ActionBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Copy" />
+
+      {/* Delete */}
+      <IconButton size="small" onClick={onDelete} sx={{ color: '#F44336', p: '4px', flexShrink: 0 }}>
+        <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+      </IconButton>
+
+      {/* More */}
+      <IconButton size="small" sx={{ color: primary, p: '4px', flexShrink: 0 }}>
+        <MoreHorizIcon sx={{ fontSize: 18 }} />
+      </IconButton>
+    </Box>
+  )
+}
+
+// ─── Bullet placeholder toolbar (Figma node 26110-118643) ────────────────────
+function BulletPlaceholderToolbar({
+  iconSize, onIconSizeChange, onDelete,
+}: {
+  iconSize: 'S' | 'M' | 'L' | 'XL'
+  onIconSizeChange: (s: 'S' | 'M' | 'L' | 'XL') => void
+  onDelete: () => void
+}) {
+  const primary = '#0053E5'
+  const border  = '1px solid #CFD6EA'
+
+  const ActionBtn = ({
+    icon, label, disabled, blue,
+  }: { icon: React.ReactNode; label: string; disabled?: boolean; blue?: boolean }) => (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      px: '8px', py: '3.5px', height: 32, flexShrink: 0,
+      borderRadius: '8px',
+      border: disabled ? '1px solid #CECFD2' : border,
+      bgcolor: '#fff',
+      cursor: disabled ? 'default' : 'pointer',
+      '&:hover': { bgcolor: disabled ? '#fff' : 'rgba(0,83,229,0.06)' },
+    }}>
+      {icon}
+      <Typography sx={{
+        fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+        color: disabled ? 'rgba(50,51,56,0.5)' : blue ? primary : primary,
+        lineHeight: 1.5,
+      }}>
+        {label}
+      </Typography>
+    </Box>
+  )
+
+  const DropdownBtn = ({ label }: { label: string }) => (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      px: '8px', py: '3.5px', height: 32, flexShrink: 0,
+      borderRadius: '8px', border, bgcolor: '#fff', cursor: 'pointer',
+      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+    }}>
+      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14, color: primary, lineHeight: 1.5 }}>
+        {label}
+      </Typography>
+      <KeyboardArrowDownIcon sx={{ fontSize: 16, color: primary }} />
+    </Box>
+  )
+
+  return (
+    <Box
+      onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+      sx={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        bgcolor: '#fff', borderRadius: '8px',
+        px: '6px', py: '5px',
+        border, boxShadow: '0 2px 8px rgba(3,25,79,0.15)',
+        userSelect: 'none', whiteSpace: 'nowrap',
+      }}
+    >
+      {/* Edit */}
+      <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Icon size label + S / M / L / XL toggle */}
+      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13,
+          color: '#323338', letterSpacing: '0.46px',
+        }}>
+          Icon size
+        </Typography>
+        <Box sx={{
+          display: 'inline-flex', alignItems: 'center',
+          border, borderRadius: '8px', overflow: 'hidden',
+        }}>
+          {([ ['S', '16 × 16px'], ['M', '20 × 20px'], ['L', '24 × 24px'], ['XL', '32 × 32px'] ] as const).map(([sz, dims], i, arr) => (
+            <Tooltip key={sz} title={dims} placement="top" arrow>
+              <Box
+                onClick={() => onIconSizeChange(sz)}
+                sx={{
+                  px: '10px', py: '4px', cursor: 'pointer',
+                  bgcolor: iconSize === sz ? 'rgba(0,83,229,0.1)' : 'transparent',
+                  borderRight: i < arr.length - 1 ? '1px solid #CFD6EA' : 'none',
+                  fontFamily: '"Inter", sans-serif', fontWeight: iconSize === sz ? 600 : 400, fontSize: 14,
+                  color: iconSize === sz ? primary : '#323338',
+                  lineHeight: 1.5,
+                  '&:hover': { bgcolor: iconSize === sz ? 'rgba(0,83,229,0.12)' : 'rgba(0,0,0,0.04)' },
+                }}
+              >
+                {sz}
+              </Box>
+            </Tooltip>
+          ))}
+        </Box>
+      </Box>
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Bullet formatting dropdown */}
+      <DropdownBtn label="Bullet formatting" />
+
+      {/* Text formatting dropdown */}
+      <DropdownBtn label="Text formatting" />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Timing (enabled, blue star) */}
+      <ActionBtn icon={<StarBorderIcon sx={{ fontSize: 13, color: primary }} />} label="Timing" />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
 
       {/* Delete */}
       <IconButton size="small" onClick={onDelete} sx={{ color: '#F44336', p: '4px', flexShrink: 0 }}>
@@ -988,6 +1117,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   // Button placeholder selection + size
   const [buttonSelected, setButtonSelected] = useState(false)
   const [buttonSize,     setButtonSize]     = useState<'S'|'M'|'L'|'XL'>('L')
+  // Bullet placeholder selection + icon size
+  const [bulletSelected,  setBulletSelected]  = useState<'Vertical bullet point' | 'Horizontal bullet point' | null>(null)
+  const [bulletIconSize,  setBulletIconSize]  = useState<'S'|'M'|'L'|'XL'>('M')
   const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
     const next = Math.max(0, Math.min(SCENE_COUNT - 1, idx))
@@ -1286,14 +1418,24 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                   {/* Items — each in a bordered rounded card */}
                   <Box sx={{ px: '12px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {[
-                      { src: '/heading.png',     label: 'Heading',     labelColor: s.primary },
-                      { src: '/sub heading.png', label: 'Sub heading', labelColor: s.primary },
-                      { src: null,               label: 'Footnote',    labelColor: s.textSecondary },
-                      { src: '/media.png',       label: 'Media',       labelColor: s.primary },
-                      { src: '/logo.png',        label: 'Logo',        labelColor: s.primary },
-                      { src: '/button.png',      label: 'Button',      labelColor: s.primary },
-                    ].map(({ src, label, labelColor }) => (
+                    {([
+                      { src: '/heading.png',     label: 'Heading',                labelColor: s.primary,       iconEl: null },
+                      { src: '/sub heading.png', label: 'Sub heading',            labelColor: s.primary,       iconEl: null },
+                      { src: '/media.png',       label: 'Media',                  labelColor: s.primary,       iconEl: null },
+                      { src: null,               label: 'Vertical bullet point',  labelColor: s.primary,       iconEl: (
+                        <Box sx={{ width: 22, height: 22, bgcolor: s.primary, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FormatListBulletedIcon sx={{ fontSize: 14, color: '#fff' }} />
+                        </Box>
+                      )},
+                      { src: null,               label: 'Horizontal bullet point',labelColor: s.primary,       iconEl: (
+                        <Box sx={{ width: 22, height: 22, bgcolor: s.primary, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <ViewWeekOutlinedIcon sx={{ fontSize: 14, color: '#fff' }} />
+                        </Box>
+                      )},
+                      { src: null,               label: 'Footnote',               labelColor: s.textSecondary, iconEl: null },
+                      { src: '/logo.png',        label: 'Logo',                   labelColor: s.primary,       iconEl: null },
+                      { src: '/button.png',      label: 'Button',                 labelColor: s.primary,       iconEl: null },
+                    ] as { src: string|null; label: string; labelColor: string; iconEl: React.ReactNode }[]).map(({ src, label, labelColor, iconEl }) => (
                       <Box
                         key={label}
                         onClick={() => {
@@ -1313,9 +1455,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           '&:hover': { bgcolor: 'rgba(0,83,229,0.04)', borderColor: 'rgba(0,83,229,0.3)' },
                         }}>
                         <Box sx={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {src
-                            ? <img src={src} alt={label} style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                            : <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18, color: s.textSecondary, lineHeight: 1 }}>*</Typography>
+                          {iconEl
+                            ? iconEl
+                            : src
+                              ? <img src={src} alt={label} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                              : <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 18, color: s.textSecondary, lineHeight: 1 }}>*</Typography>
                           }
                         </Box>
                         <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: labelColor }}>
@@ -1329,7 +1473,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
             {/* Canvas */}
             <Box
-              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setButtonSelected(false) }}
+              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setButtonSelected(false); setBulletSelected(null) }}
               sx={{
                 flex: 1, position: 'relative',
                 borderRadius: '8px', overflow: 'visible',
@@ -1343,11 +1487,94 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               {/* ── Custom scene canvas ──────────────────────────────── */}
               {sceneTypes[selectedScene] === 'custom' && (() => {
                 const added = scenePlaceholders[selectedScene] ?? []
-                const hasButton = added.includes('Button')
+                const hasButton   = added.includes('Button')
+                const hasVBullet  = added.includes('Vertical bullet point')
+                const hasHBullet  = added.includes('Horizontal bullet point')
+
+                // Icon pixel size for bullet items by size key
+                const bulletIconPx: Record<string, number> = { S: 16, M: 20, L: 24, XL: 32 }
+                const bIconPx = bulletIconPx[bulletIconSize]
+
                 return (
                   <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
                     {/* Pink top accent */}
                     <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
+
+                    {/* Vertical bullet point placeholder */}
+                    {hasVBullet && (
+                      <Box
+                        sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3, display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 160 }}
+                        onClick={e => { e.stopPropagation(); setBulletSelected(p => p === 'Vertical bullet point' ? null : 'Vertical bullet point'); setButtonSelected(false) }}
+                      >
+                        {/* Toolbar above */}
+                        {bulletSelected === 'Vertical bullet point' && (
+                          <Box sx={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+                            <BulletPlaceholderToolbar
+                              iconSize={bulletIconSize}
+                              onIconSizeChange={setBulletIconSize}
+                              onDelete={() => {
+                                setScenePlaceholders(prev => ({ ...prev, [selectedScene]: (prev[selectedScene] ?? []).filter(p => p !== 'Vertical bullet point') }))
+                                setBulletSelected(null)
+                              }}
+                            />
+                          </Box>
+                        )}
+                        {/* 3 stacked rows: circle + two text lines */}
+                        {[0, 1, 2].map(i => (
+                          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                            <Box sx={{
+                              width: bIconPx, height: bIconPx, borderRadius: '50%',
+                              bgcolor: bulletSelected === 'Vertical bullet point' ? s.primary : '#CBD2E0',
+                              flexShrink: 0, transition: 'background 0.15s',
+                            }} />
+                            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <Box sx={{ height: 8, borderRadius: 4, bgcolor: '#CBD2E0', width: '80%' }} />
+                              <Box sx={{ height: 6, borderRadius: 4, bgcolor: '#E4E7EF', width: '60%' }} />
+                            </Box>
+                          </Box>
+                        ))}
+                        {bulletSelected === 'Vertical bullet point' && (
+                          <Box sx={{ position: 'absolute', inset: -6, borderRadius: '8px', border: '2px solid #0053E5', pointerEvents: 'none' }} />
+                        )}
+                      </Box>
+                    )}
+
+                    {/* Horizontal bullet point placeholder */}
+                    {hasHBullet && (
+                      <Box
+                        sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3, display: 'flex', flexDirection: 'row', gap: '16px', minWidth: 240 }}
+                        onClick={e => { e.stopPropagation(); setBulletSelected(p => p === 'Horizontal bullet point' ? null : 'Horizontal bullet point'); setButtonSelected(false) }}
+                      >
+                        {/* Toolbar above */}
+                        {bulletSelected === 'Horizontal bullet point' && (
+                          <Box sx={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+                            <BulletPlaceholderToolbar
+                              iconSize={bulletIconSize}
+                              onIconSizeChange={setBulletIconSize}
+                              onDelete={() => {
+                                setScenePlaceholders(prev => ({ ...prev, [selectedScene]: (prev[selectedScene] ?? []).filter(p => p !== 'Horizontal bullet point') }))
+                                setBulletSelected(null)
+                              }}
+                            />
+                          </Box>
+                        )}
+                        {/* 3 side-by-side columns: circle + text line */}
+                        {[0, 1, 2].map(i => (
+                          <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1, cursor: 'pointer' }}>
+                            <Box sx={{
+                              width: bIconPx, height: bIconPx, borderRadius: '50%',
+                              bgcolor: bulletSelected === 'Horizontal bullet point' ? s.primary : '#CBD2E0',
+                              flexShrink: 0, transition: 'background 0.15s',
+                            }} />
+                            <Box sx={{ height: 7, borderRadius: 4, bgcolor: '#CBD2E0', width: '80%' }} />
+                            <Box sx={{ height: 5, borderRadius: 4, bgcolor: '#E4E7EF', width: '60%' }} />
+                          </Box>
+                        ))}
+                        {bulletSelected === 'Horizontal bullet point' && (
+                          <Box sx={{ position: 'absolute', inset: -6, borderRadius: '8px', border: '2px solid #0053E5', pointerEvents: 'none' }} />
+                        )}
+                      </Box>
+                    )}
 
                     {/* Button placeholder — shown when added */}
                     {hasButton && (
@@ -1379,7 +1606,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           const { w, h, fs } = dims[buttonSize]
                           return (
                             <Box
-                              onClick={e => { e.stopPropagation(); setButtonSelected(p => !p) }}
+                              onClick={e => { e.stopPropagation(); setButtonSelected(p => !p); setBulletSelected(null) }}
                               sx={{
                                 bgcolor: s.primary, color: '#fff',
                                 borderRadius: '6px',
