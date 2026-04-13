@@ -3,7 +3,7 @@ import {
   Box, Typography, Dialog, IconButton,
   Avatar, Button, OutlinedInput, InputAdornment,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Tooltip, Switch, Checkbox, Popover,
+  Tooltip, Switch,
   Select, MenuItem, FormControl,
 } from '@mui/material'
 import CloseIcon              from '@mui/icons-material/Close'
@@ -201,126 +201,176 @@ function AddUserDialog({ open, onClose, onSend }: {
   )
 }
 
-// ─── Add Approvers Popover ────────────────────────────────────────────────────
-function AddApproversPopover({ anchorEl, onClose, allUsers, approverIds, onAdd, onInviteClick }: {
-  anchorEl:    HTMLElement | null
-  onClose:     () => void
-  allUsers:    AccountUser[]
-  approverIds: Set<string>
-  onAdd:       (ids: string[]) => void
-  onInviteClick: () => void
+// ─── Add Approver Dialog ───────────────────────────────────────────────────────
+function AddApproverDialog({ open, onClose, onAdd, allUsers }: {
+  open: boolean
+  onClose: () => void
+  onAdd: (email: string, createSpace: string, amplifySpace: string) => void
+  allUsers: AccountUser[]
 }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set(approverIds))
-  const [search, setSearch]     = useState('')
+  const [search, setSearch] = useState('')
+  const [selectedUser, setSelectedUser] = useState<AccountUser | null>(null)
+  const [createSpace, setCreateSpace] = useState('Approver')
+  const [amplifySpace, setAmplifySpace] = useState('No access')
+  const [alert, setAlert] = useState('')
 
-  const toggle = (id: string) =>
-    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'Editor and Approver', 'No access']
+  const amplifySpaceOptions = ['Contributor', 'No access']
 
-  const filtered = search
-    ? allUsers.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
-    : allUsers
+  const filteredUsers = search.trim()
+    ? allUsers.filter(u => u.user.email.toLowerCase().includes(search.toLowerCase()) || u.user.name.toLowerCase().includes(search.toLowerCase()))
+    : []
 
-  const newCount = [...selected].filter(id => !approverIds.has(id)).length
+  const isNewEmail = search.trim() && !filteredUsers.some(u => u.user.email === search.trim())
 
-  const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '8px', px: '12px' }
-  const bodyCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '6px', px: '12px' }
+  const handleSelectUser = (user: AccountUser) => {
+    setSelectedUser(user)
+    setSearch(user.user.email)
+
+    // Set permissions based on user's current role
+    if (user.createSpace === 'Editor') {
+      setCreateSpace('Editor and Approver')
+      setAlert('This user will get permission to access the create space')
+    } else if (user.createSpace === 'View only') {
+      setCreateSpace('Approver')
+      setAlert('This user will get permission to access the create space')
+    } else if (user.createSpace === 'No access') {
+      setCreateSpace('Approver')
+      setAlert('This user will get permission to access the create space')
+    } else {
+      setCreateSpace('Approver')
+      setAlert('')
+    }
+    setAmplifySpace('No access')
+  }
+
+  const handleAdd = () => {
+    const email = selectedUser ? selectedUser.user.email : search.trim()
+    if (!email) return
+
+    onAdd(email, createSpace, amplifySpace)
+    setSearch('')
+    setSelectedUser(null)
+    setCreateSpace('Approver')
+    setAmplifySpace('No access')
+    setAlert('')
+    onClose()
+  }
+
+  React.useEffect(() => {
+    if (!open) {
+      setSearch('')
+      setSelectedUser(null)
+      setCreateSpace('Approver')
+      setAmplifySpace('No access')
+      setAlert('')
+    }
+  }, [open])
 
   return (
-    <Popover
-      open={Boolean(anchorEl)}
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-      PaperProps={{ sx: { width: 420, borderRadius: '10px', boxShadow: '0 4px 20px rgba(3,25,79,0.18)', mt: '4px', overflow: 'hidden' } }}
-    >
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '16px', py: '12px', borderBottom: `1px solid ${c.grey300}` }}>
-        <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 600, fontSize: 15, color: c.textPrimary }}>Add approver</Typography>
-        <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 16 }} /></IconButton>
-      </Box>
+    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 520, borderRadius: '12px', p: 0 } }}>
+      <Box sx={{ px: '24px', py: '20px' }}>
+        {/* Title */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>Add approver</Typography>
+          <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
+        </Box>
 
-      {/* Add + Search */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', px: '12px', py: '10px', borderBottom: `1px solid ${c.grey300}` }}>
-        <Button
-          variant="outlined"
-          startIcon={<AddIcon sx={{ fontSize: '14px !important' }} />}
-          onClick={() => { onClose(); onInviteClick() }}
-          sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 500, textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', flexShrink: 0 }}
-        >
-          Add user
-        </Button>
-        <OutlinedInput
-          placeholder="Search..."
-          size="small"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          startAdornment={<InputAdornment position="start"><SearchIcon sx={{ fontSize: 14, color: c.actionActive }} /></InputAdornment>}
-          sx={{ flex: 1, fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
-        />
-      </Box>
+        {/* Search input */}
+        <Box sx={{ mb: '16px' }}>
+          <OutlinedInput
+            placeholder="Search user or enter email..."
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value)
+              setSelectedUser(null)
+              if (!e.target.value.trim()) {
+                setCreateSpace('Approver')
+                setAmplifySpace('No access')
+                setAlert('')
+              } else if (isNewEmail && e.target.value.trim()) {
+                setCreateSpace('Approver')
+                setAmplifySpace('No access')
+                setAlert('The user will receive an email invitation and will need to create an account to get access.')
+              }
+            }}
+            fullWidth
+            sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
+          />
+        </Box>
 
-      {/* Table */}
-      <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ ...headCellSx, width: 40, px: '8px' }} />
-              <TableCell sx={{ ...headCellSx }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                  User <ArrowDownwardIcon sx={{ fontSize: 13, color: c.actionActive }} />
-                </Box>
-              </TableCell>
-              <TableCell sx={{ ...headCellSx, width: 120 }}>Job role</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.map(row => {
-              const checked = selected.has(row.user.id)
-              return (
-                <TableRow
-                  key={row.user.id}
-                  onClick={() => toggle(row.user.id)}
-                  sx={{ cursor: 'pointer', bgcolor: checked ? 'rgba(0,83,229,0.06)' : 'transparent', '&:hover': { bgcolor: checked ? 'rgba(0,83,229,0.09)' : c.grey100 } }}
-                >
-                  <TableCell sx={{ ...bodyCellSx, px: '8px' }}>
-                    <Checkbox
-                      checked={checked}
-                      size="small"
-                      sx={{ p: '2px', color: c.grey300, '&.Mui-checked': { color: c.primary } }}
-                    />
-                  </TableCell>
-                  <TableCell sx={bodyCellSx}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Avatar sx={{ width: 28, height: 28, bgcolor: c.secondary, fontSize: 10, fontFamily: '"Inter",sans-serif', fontWeight: 600, flexShrink: 0, borderRadius: '8px' }}>
-                        {row.user.initials}
-                      </Avatar>
-                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {row.user.name}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell sx={{ ...bodyCellSx, color: c.textSecondary }}>{row.jobRole}</TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </Box>
+        {/* User suggestions */}
+        {filteredUsers.length > 0 && (
+          <Box sx={{ mb: '16px', border: `1px solid ${c.grey300}`, borderRadius: '8px', maxHeight: 200, overflowY: 'auto' }}>
+            {filteredUsers.map(user => (
+              <Box
+                key={user.user.id}
+                onClick={() => handleSelectUser(user)}
+                sx={{ p: '10px 12px', borderBottom: `1px solid ${c.grey300}`, cursor: 'pointer', '&:hover': { bgcolor: c.grey100 }, '&:last-child': { borderBottom: 'none' } }}
+              >
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
+                  {user.user.name}
+                </Typography>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                  {user.user.email}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
 
-      {/* Add button */}
-      <Box sx={{ p: '12px', borderTop: `1px solid ${c.grey300}` }}>
-        <Button
-          fullWidth
-          variant="contained"
-          disabled={newCount === 0}
-          onClick={() => { onAdd([...selected]); onClose() }}
-          sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', py: '9px', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' }, '&:disabled': { bgcolor: c.grey300 } }}
-        >
-          {newCount > 0 ? `Add ${newCount} approver${newCount > 1 ? 's' : ''}` : 'Add approvers'}
-        </Button>
+        {/* Permissions */}
+        {search.trim() && (
+          <Box sx={{ mb: '20px' }}>
+            <Box sx={{ mb: '12px' }}>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Create space</Typography>
+              <FormControl fullWidth size="small">
+                <Select value={createSpace} onChange={e => setCreateSpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
+                  {createSpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, fontWeight: 600, color: c.textSecondary, mb: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amplify space</Typography>
+              <FormControl fullWidth size="small">
+                <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}>
+                  {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+        )}
+
+        {/* Alert */}
+        {alert && (
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '20px' }}>
+            <InfoOutlinedIcon sx={{ fontSize: 16, color: c.primary, mt: '1px', flexShrink: 0 }} />
+            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+              {alert}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Actions */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+          <Button
+            variant="outlined"
+            onClick={onClose}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={handleAdd}
+            disabled={!search.trim()}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', color: c.primary, borderColor: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.04)' }, '&:disabled': { color: c.grey300, borderColor: c.grey300 } }}
+          >
+            Add approver
+          </Button>
+        </Box>
       </Box>
-    </Popover>
+    </Dialog>
   )
 }
 
@@ -620,7 +670,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   onAddUsers:     (rows: InviteRow[], asApprover: boolean) => void
 }) {
   const [search, setSearch]         = useState('')
-  const [addAnchor, setAddAnchor]   = useState<HTMLElement | null>(null)
+  const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [removeApproverOpen, setRemoveApproverOpen] = useState(false)
@@ -690,7 +740,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
               <Button
                 startIcon={<AddIcon sx={{ fontSize: '14px !important' }} />}
                 variant={approvers.length > 0 ? 'outlined' : 'contained'}
-                onClick={e => setAddAnchor(e.currentTarget)}
+                onClick={() => setAddApproverDialogOpen(true)}
                 sx={{
                   fontFamily: '"Open Sans",sans-serif',
                   fontSize: 14,
@@ -802,14 +852,22 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         )}
       </Box>
 
-      {/* Add Approvers Popover */}
-      <AddApproversPopover
-        anchorEl={addAnchor}
-        onClose={() => setAddAnchor(null)}
+      {/* Add Approver Dialog */}
+      <AddApproverDialog
+        open={addApproverDialogOpen}
+        onClose={() => setAddApproverDialogOpen(false)}
         allUsers={users}
-        approverIds={approverIds}
-        onAdd={handleAddApprovers}
-        onInviteClick={() => setInviteOpen(true)}
+        onAdd={(email, createSpace, amplifySpace) => {
+          // Find if user exists
+          const existingUser = users.find(u => u.user.email === email)
+          if (existingUser) {
+            // Add existing user as approver
+            handleAddApprovers([existingUser.user.id])
+          } else {
+            // Invite new user as approver
+            onAddUsers([{ email, createSpace, amplifySpace }], true)
+          }
+        }}
       />
 
       {/* Add User Dialog */}
