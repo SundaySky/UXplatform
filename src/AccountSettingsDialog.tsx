@@ -500,16 +500,34 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                   }
                 }
               }}
-              renderOption={(props, option) => (
-                <Box component="li" {...props} key={option.user.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start !important', py: '10px !important', px: '12px !important' }}>
-                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.4 }}>
-                    {option.user.name}
-                  </Typography>
-                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.4 }}>
-                    {option.user.email}
-                  </Typography>
-                </Box>
-              )}
+              getOptionDisabled={option => typeof option !== 'string' && existingApproverIds.includes(option.user.id)}
+              renderOption={(props, option) => {
+                const isAlreadyApprover = existingApproverIds.includes(option.user.id)
+                const tooltipText = isAlreadyApprover ? `${option.user.name} is already an approver` : ''
+                const content = (
+                  <Box component="li" {...props} key={option.user.id}
+                    sx={{
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'flex-start !important',
+                      py: '10px !important', px: '12px !important',
+                      opacity: isAlreadyApprover ? 0.45 : 1,
+                      pointerEvents: isAlreadyApprover ? 'none' : 'auto',
+                    }}
+                  >
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.4 }}>
+                      {option.user.name}
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.4 }}>
+                      {option.user.email}
+                    </Typography>
+                  </Box>
+                )
+                return isAlreadyApprover ? (
+                  <Tooltip key={option.user.id} title={tooltipText} placement="right" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+                    <span>{content}</span>
+                  </Tooltip>
+                ) : content
+              }}
               renderInput={params => (
                 <TextField
                   {...params}
@@ -866,16 +884,18 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     ? approvers.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
     : approvers
 
+  const editorCount      = countEditorSeats(users)
+  const contributorCount = countContributorSeats(users)
+
   const headCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px', whiteSpace: 'nowrap' as const, bgcolor: '#fff', position: 'sticky', top: 0, zIndex: 3 }
   const bodyCellSx = { fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, borderBottom: `1px solid ${c.grey300}`, py: '10px', px: '16px' }
 
-  function handleAddApprovers(ids: string[]) {
-    const newApproverIds = ids.filter(id => !approverIds.has(id))
-    const newApproverUsers = users.filter(u => newApproverIds.includes(u.user.id))
+  function handleAddApprovers(newIds: string[]) {
+    const trulyNew = newIds.filter(id => !approverIds.has(id))
+    const newApproverUsers = users.filter(u => trulyNew.includes(u.user.id))
     const needingCreateAccess = newApproverUsers.filter(u => u.createSpace === 'No access')
 
     if (needingCreateAccess.length > 0) {
-      // Show confirmation dialog for users needing Create space access
       const pendingPerms: ApproverCreateSpacePermission[] = needingCreateAccess.map(u => ({
         userId: u.user.id,
         userName: u.user.name,
@@ -885,14 +905,13 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
       setPendingApprovers(pendingPerms)
       setConfirmApproversOpen(true)
     } else {
-      // Directly add approvers if no Create space access needed
-      onSetApprovers(ids)
+      // Merge new IDs with existing ones so no existing approver is lost
+      onSetApprovers([...Array.from(approverIds), ...trulyNew])
     }
   }
 
   function handleConfirmApproversWithPermissions(permissions: ApproverCreateSpacePermission[]) {
-    // For now, just confirm the approvers (in a real app, would update the user permissions)
-    const allIds = [...approverIds, ...permissions.map(p => p.userId)]
+    const allIds = [...Array.from(approverIds), ...permissions.map(p => p.userId)]
     onSetApprovers(allIds)
   }
 
@@ -965,13 +984,12 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                           User <ArrowDownwardIcon sx={{ fontSize: 13, color: c.actionActive }} />
                         </Box>
                       </TableCell>
-                      <TableCell sx={{ ...headCellSx, width: '22%' }}>
-                        <SeatHeader label="Create space" iconTooltip="Access to the video and template editors, analytics, and AI features" used={5} total={10} />
+                      <TableCell sx={{ ...headCellSx }}>
+                        <SeatHeader label="Create space" iconTooltip="Access to the video and template editors, analytics, and AI features" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
                       </TableCell>
-                      <TableCell sx={{ ...headCellSx, width: '22%' }}>
-                        <SeatHeader label="Amplify space" iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat." used={4} total={10} />
+                      <TableCell sx={{ ...headCellSx }}>
+                        <SeatHeader label="Amplify space" iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
                       </TableCell>
-                      <TableCell sx={{ ...headCellSx, width: 180 }}>Added as approver</TableCell>
                       <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: 'sticky', right: 0, zIndex: 4 }} />
                     </TableRow>
                   </TableHead>
@@ -996,11 +1014,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                           <TableCell sx={bodyCellSx}>
                             <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: row.amplifySpace === 'No access' ? c.textSecondary : c.textPrimary }}>
                               {row.amplifySpace}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={bodyCellSx}>
-                            <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                              {row.addedAsApprover || '—'}
                             </Typography>
                           </TableCell>
                           <TableCell sx={{ ...bodyCellSx, px: '4px', width: 48, position: 'sticky', right: 0, zIndex: 2, bgcolor: isHovered ? c.grey100 : '#fff' }}>
