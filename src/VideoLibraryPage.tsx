@@ -5,6 +5,7 @@ import {
   Menu, MenuItem, ListItemText, Divider,
 } from '@mui/material'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
+import AccountSettingsDialog from './AccountSettingsDialog'
 import ApprovalDialog from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
@@ -850,8 +851,11 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
   onPermChange?:         (key: string, s: VideoPermissionSettings) => void
   onSubmitForApproval?:  (videoKey: string, approvers: string[]) => void
 }) {
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false)
+
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+      <AccountSettingsDialog open={accountSettingsOpen} onClose={() => setAccountSettingsOpen(false)} />
       <AppSidebar />
 
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -892,7 +896,10 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
               sx={{ width: 200, bgcolor: t.bgPaper, fontSize: 14, fontFamily: '"Open Sans", sans-serif' }}
             />
             <NotificationBell notifications={notifications} />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              onClick={() => setAccountSettingsOpen(true)}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', borderRadius: '8px', px: '6px', py: '4px', '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' } }}
+            >
               <Typography sx={{
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
                 fontSize: 14, color: t.textPrimary,
