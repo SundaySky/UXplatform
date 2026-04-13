@@ -490,6 +490,8 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
   onClose: (newText: string) => void
 }) {
   const [text, setText] = useState(currentText)
+  const [byAudience, setByAudience] = useState(false)
+  const [dataSource, setDataSource] = useState<'library' | 'field'>('library')
   const iconSizeMap = { S: 16, M: 20, L: 24, XL: 32 }
 
   useEffect(() => { if (open) setText(currentText) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -504,7 +506,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
       PaperProps={{
         elevation: 8,
         sx: {
-          width: 480, borderRadius: '16px', overflow: 'hidden',
+          width: 1200, borderRadius: '16px', overflow: 'hidden',
           fontFamily: '"Open Sans", sans-serif',
         },
       }}
@@ -515,19 +517,11 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
         px: 3, pt: 3, pb: 2,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{
-            width: iconSizeMap[bulletIconSize] + 20,
-            height: iconSizeMap[bulletIconSize] + 20,
-            bgcolor: '#0053E5',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <FormatListBulletedIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: '#fff' }} />
-          </Box>
           <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 700, fontSize: 22, color: '#1A1A2E' }}>
             Bullet point
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: '#888' }}>
+            Icon size W{iconSizeMap[bulletIconSize]}x H{iconSizeMap[bulletIconSize]}
           </Typography>
         </Box>
         <IconButton size="small" onClick={handleClose} sx={{ color: '#888' }}>
@@ -535,73 +529,176 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ px: 3, pt: 0, pb: 3 }}>
-        {/* Value label */}
-        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: '#323338', mb: 1 }}>
-          Value
-        </Typography>
+      <DialogContent sx={{ px: 3, pt: 2, pb: 3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+        {/* Left side */}
+        <Box>
+          {/* Message by audience toggle */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+            <Switch
+              checked={byAudience}
+              onChange={e => setByAudience(e.target.checked)}
+              size="small"
+            />
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: '#1A1A2E' }}>
+              Message by audience
+            </Typography>
+            <Tooltip title="Personalize the bullet text per viewer" placement="top" arrow>
+              <HelpOutlineIcon sx={{ fontSize: 16, color: '#888', cursor: 'default' }} />
+            </Tooltip>
+          </Box>
 
-        {/* Text input with formatting bar */}
-        <Box sx={{
-          border: '2px solid #0053E5', borderRadius: '8px', overflow: 'hidden',
-        }}>
-          {/* Text area */}
-          <TextField
-            fullWidth
-            multiline
-            minRows={3}
-            autoFocus
-            value={text}
-            onChange={e => setText(e.target.value)}
-            variant="standard"
-            placeholder="Enter text"
-            InputProps={{
-              disableUnderline: true,
-              sx: {
-                px: 1.5, pt: 1.5, pb: 1,
-                fontFamily: '"Open Sans", sans-serif',
-                fontWeight: 400,
-                fontSize: 14,
-                color: '#1A1A2E',
-                alignItems: 'flex-start',
-              },
-            }}
-          />
+          {/* Data source radio buttons */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box
+                onClick={() => setDataSource('library')}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer',
+                  p: 1, borderRadius: '8px',
+                  bgcolor: dataSource === 'library' ? 'rgba(0,83,229,0.08)' : 'transparent',
+                }}
+              >
+                <Box sx={{
+                  width: 20, height: 20, borderRadius: '50%', border: '2px solid #0053E5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: dataSource === 'library' ? '#0053E5' : 'transparent',
+                }}>
+                  {dataSource === 'library' && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#fff' }} />}
+                </Box>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: '#1A1A2E' }}>
+                  Upload/From library
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                onClick={() => setDataSource('field')}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer',
+                  p: 1, borderRadius: '8px',
+                  bgcolor: dataSource === 'field' ? 'rgba(0,83,229,0.08)' : 'transparent',
+                }}
+              >
+                <Box sx={{
+                  width: 20, height: 20, borderRadius: '50%', border: '2px solid #ccc',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: dataSource === 'field' ? '#0053E5' : 'transparent',
+                }}>
+                  {dataSource === 'field' && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#fff' }} />}
+                </Box>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: '#1A1A2E' }}>
+                  From data field
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
 
-          {/* Divider + format buttons */}
-          <Divider />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75 }}>
+          {/* Helper text label */}
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: '#323338', mb: 1.5 }}>
+            Helper text
+          </Typography>
+
+          {/* Icon display */}
+          <Box sx={{
+            width: iconSizeMap[bulletIconSize] + 40,
+            height: iconSizeMap[bulletIconSize] + 40,
+            bgcolor: '#f5f5f5', borderRadius: '12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid #e0e0e0', mb: 2,
+          }}>
             <Box sx={{
-              px: 1, py: 0.5, borderRadius: '6px', bgcolor: 'rgba(0,83,229,0.10)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              width: iconSizeMap[bulletIconSize] + 20,
+              height: iconSizeMap[bulletIconSize] + 20,
+              bgcolor: '#0053E5', borderRadius: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Typography sx={{ fontFamily: 'serif', fontWeight: 700, fontSize: 18, color: '#0053E5', lineHeight: 1 }}>
-                B
-              </Typography>
+              <FormatListBulletedIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: '#fff' }} />
             </Box>
-            <Box sx={{
-              px: 1, py: 0.5, borderRadius: '6px',
-              cursor: 'pointer', display: 'flex', alignItems: 'center',
-              '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
-            }}>
-              <Typography sx={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: 18, color: '#1A1A2E', lineHeight: 1 }}>
-                I
-              </Typography>
-            </Box>
+          </Box>
+
+          {/* Buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" startIcon={<UndoIcon />} sx={{ flex: 1, textTransform: 'none', color: '#0053E5', borderColor: '#0053E5' }}>
+              Replace
+            </Button>
+            <Button variant="outlined" startIcon={<EditOutlinedIcon />} sx={{ flex: 1, textTransform: 'none', color: '#0053E5', borderColor: '#0053E5' }}>
+              Edit
+            </Button>
+            <IconButton sx={{ color: '#0053E5' }}>
+              <MoreHorizIcon />
+            </IconButton>
           </Box>
         </Box>
 
-        {/* Helper text */}
-        <Typography
-          component="span"
-          sx={{
-            fontFamily: '"Open Sans", sans-serif', fontSize: 13,
-            color: '#0053E5', cursor: 'pointer', mt: 1, display: 'inline-block',
-            '&:hover': { textDecoration: 'underline' },
-          }}
-        >
-          Enter text and personalize using {'{'}
-        </Typography>
+        {/* Right side */}
+        <Box>
+          {/* Value label */}
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: '#323338', mb: 1 }}>
+            Value
+          </Typography>
+
+          {/* Text input with formatting bar */}
+          <Box sx={{
+            border: '2px solid #0053E5', borderRadius: '8px', overflow: 'hidden',
+          }}>
+            {/* Text area */}
+            <TextField
+              fullWidth
+              multiline
+              minRows={6}
+              autoFocus
+              value={text}
+              onChange={e => setText(e.target.value)}
+              variant="standard"
+              placeholder="Enter text"
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  px: 1.5, pt: 1.5, pb: 1,
+                  fontFamily: '"Open Sans", sans-serif',
+                  fontWeight: 400,
+                  fontSize: 14,
+                  color: '#1A1A2E',
+                  alignItems: 'flex-start',
+                },
+              }}
+            />
+
+            {/* Divider + format buttons */}
+            <Divider />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75 }}>
+              <Box sx={{
+                px: 1, py: 0.5, borderRadius: '6px', bgcolor: 'rgba(0,83,229,0.10)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+              }}>
+                <Typography sx={{ fontFamily: 'serif', fontWeight: 700, fontSize: 18, color: '#0053E5', lineHeight: 1 }}>
+                  B
+                </Typography>
+              </Box>
+              <Box sx={{
+                px: 1, py: 0.5, borderRadius: '6px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+              }}>
+                <Typography sx={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: 18, color: '#1A1A2E', lineHeight: 1 }}>
+                  I
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Helper text */}
+          <Typography
+            component="span"
+            sx={{
+              fontFamily: '"Open Sans", sans-serif', fontSize: 13,
+              color: '#0053E5', cursor: 'pointer', mt: 1, display: 'inline-block',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            Enter text and personalize using {'{'}
+          </Typography>
+        </Box>
       </DialogContent>
     </Dialog>
   )
@@ -1886,8 +1983,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                             {isBullet && (() => {
                               const isV    = el.type === 'Vertical bullet point'
                               const imgDir = isV ? 'row' : 'column'
-                              const elWidth = el.width ?? 40
-                              const elHeight = el.height ?? 25
+                              const elWidth = el.width ?? 200
+                              const elHeight = el.height ?? 80
+                              const sceneBoxRect = sceneBoxRef.current?.getBoundingClientRect()
+                              const physicalWidth = sceneBoxRect ? (elWidth / 100) * sceneBoxRect.width : 200
                               // Auto-size text: reduce font size if text is very long
                               const calcTextSize = () => {
                                 const textLen = (el.text ?? 'Placeholder').length
@@ -1905,8 +2004,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   boxShadow: isSelected ? '0 0 0 4px rgba(0,83,229,0.12)' : 'none',
                                   transition: 'outline 0.15s, box-shadow 0.15s',
                                   position: 'relative',
-                                  width: isSelected ? '100%' : 'auto',
-                                  minWidth: isSelected ? `${elWidth}px` : 'auto',
+                                  width: isSelected ? `${physicalWidth}px` : 'auto',
+                                  maxWidth: `${physicalWidth}px`,
+                                  minWidth: 80,
                                 }}>
                                   {/* image + text */}
                                   <Box sx={{ display: 'flex', flexDirection: imgDir, alignItems: 'center', gap: '10px' }}>
