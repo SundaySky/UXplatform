@@ -956,14 +956,14 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
 interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
-  { id: 1, label: "You're preparing a video for approval, and your boss told you that Michelle Cohen from Legal needs to approve it.", done: false },
-  { id: 2, label: "Jarvis is no longer with the company.", done: false },
-  { id: 3, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
-  { id: 4, label: ["You want to check and review any response to your approval request.", "You also realized the opening scene heading is missing 2026 and you want to add it at the end of the heading."], done: false },
-  { id: 5, label: "Sarah mentioned she submitted feedback for your approval", done: false },
-  { id: 6, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
-  { id: 7, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
-  { id: 8, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
+  { id: 1, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
+  { id: 2, label: ["You want to check and review any response to your approval request.", "You also realized the opening scene heading is missing 2026 and you want to add it at the end of the heading."], done: false },
+  { id: 3, label: "Sarah mentioned she submitted feedback for your approval", done: false },
+  { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
+  { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
+  { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
+  { id: 7, label: "You're preparing a video for approval, and your boss told you that Michelle Cohen from Legal needs to approve it.", done: false },
+  { id: 8, label: "Jarvis is no longer with the company", done: false },
 ]
 
 type SessionState = 'idle' | 'active' | 'survey' | 'complete'
