@@ -251,25 +251,28 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
 
   const [rows, setRows]         = useState<(InviteRow & { createSpaceSelected: string[] })[]>([defaultRow])
   const [noSeatsOpen, setNoSeatsOpen] = useState(false)
-  const editorCount      = countEditorSeats(users)
-  const contributorCount = countContributorSeats(users)
+  const contributorCount       = countContributorSeats(users)
+  // Create space seat = Editor OR Approver (not Viewer, not No access)
+  const createSpaceSeatsUsed   = countPrivilegedCreateSpaceSeats(users)
 
   // Reset rows when dialog opens with a different mode
   React.useEffect(() => {
     if (open) setRows([defaultRow])
   }, [open, asApprover])
 
-  // Pending seats from rows being configured in this dialog
-  const pendingEditorRows = rows.filter(r =>
-    r.email.trim() !== '' && r.createSpaceSelected.includes('Editor')
+  // Pending rows that would consume a Create space seat (Editor or Approver)
+  const pendingCreateRows = rows.filter(r =>
+    r.email.trim() !== '' &&
+    (r.createSpaceSelected.includes('Editor') || r.createSpaceSelected.includes('Approver'))
   )
+  // Pending contributor rows (Contributor in Amplify, not an Editor)
   const pendingContribRows = rows.filter(r =>
     r.email.trim() !== '' &&
     r.amplifySpace === 'Contributor' &&
     !r.createSpaceSelected.includes('Editor')
   )
-  const displayEditorCount      = editorCount      + pendingEditorRows.length
-  const displayContributorCount = contributorCount + pendingContribRows.length
+  const displayCreateSpaceCount = createSpaceSeatsUsed + pendingCreateRows.length
+  const displayContributorCount = contributorCount     + pendingContribRows.length
 
   const updateRow = (i: number, field: keyof InviteRow, val: string) =>
     setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
@@ -277,9 +280,13 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
   function handleSend() {
     const valid = rows.filter(r => r.email.trim())
     if (!valid.length) return
-    const newEditors  = valid.filter(r => r.createSpaceSelected.includes('Editor')).length
-    const newContribs = valid.filter(r => r.amplifySpace === 'Contributor' && !r.createSpaceSelected.includes('Editor')).length
-    if (editorCount + newEditors > 10 || contributorCount + newContribs > 10) {
+    const newCreateSeats = valid.filter(r =>
+      r.createSpaceSelected.includes('Editor') || r.createSpaceSelected.includes('Approver')
+    ).length
+    const newContribs    = valid.filter(r =>
+      r.amplifySpace === 'Contributor' && !r.createSpaceSelected.includes('Editor')
+    ).length
+    if (createSpaceSeatsUsed + newCreateSeats > 10 || contributorCount + newContribs > 10) {
       setNoSeatsOpen(true)
       return
     }
@@ -333,7 +340,7 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
               />
             </Box>
             <Box>
-              <SeatHeader label="Create space" chipTooltip="Number of editors out of the allowed editor seats" used={displayEditorCount} total={10} />
+              <SeatHeader label="Create space" chipTooltip="Number of Create space seats used (Editor or Approver roles)" used={displayCreateSpaceCount} total={10} />
               <Box sx={{ mt: '12px' }}>
                 <CreateSpaceSelector
                   selected={row.createSpaceSelected}
@@ -419,8 +426,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
   existingApproverIds?: string[]
   onOpenAddUser?:       () => void
 }) {
-  const editorCount             = countEditorSeats(allUsers)
   const contributorCount        = countContributorSeats(allUsers)
+  // Create space seat = Editor or Approver (privileged role)
   const privilegedSeats         = countPrivilegedCreateSpaceSeats(allUsers)
 
   const [inputValue,          setInputValue]          = useState('')
@@ -448,15 +455,17 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
   const userNeedsCreateAccess = !!selectedUser && !userHasPrivilegedAccess
 
   // Seat warnings
-  const noSeatsForExisting     = userNeedsCreateAccess  && privilegedSeats >= 10
-  const newUserEditorSeat      = isNewEmail && createSpaceSelected.includes('Editor')
-  const newUserContribSeat     = isNewEmail && amplifySpace === 'Contributor' && !createSpaceSelected.includes('Editor')
-  const notEnoughEditorSeats   = newUserEditorSeat  && editorCount    >= 10
-  const notEnoughContribSeats  = newUserContribSeat && contributorCount >= 10
-  const notEnoughSeats         = notEnoughEditorSeats || notEnoughContribSeats
+  // Existing user with no privileged access → adding as Approver uses 1 Create space seat
+  const noSeatsForExisting    = userNeedsCreateAccess && privilegedSeats >= 10
+  // New email → check if their selected role would use a Create space seat
+  const newUserCreateSeat     = isNewEmail && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))
+  const newUserContribSeat    = isNewEmail && amplifySpace === 'Contributor' && !createSpaceSelected.includes('Editor')
+  const notEnoughCreateSeats  = newUserCreateSeat  && privilegedSeats  >= 10
+  const notEnoughContribSeats = newUserContribSeat && contributorCount >= 10
+  const notEnoughSeats        = notEnoughCreateSeats || notEnoughContribSeats
 
   // Live seat counts for new-user section (include the pending user)
-  const pendingEditorCount  = editorCount    + (newUserEditorSeat  ? 1 : 0)
+  const pendingCreateCount = privilegedSeats   + (newUserCreateSeat  ? 1 : 0)
   const pendingContribCount = contributorCount + (newUserContribSeat ? 1 : 0)
 
   const addDisabled =
@@ -615,8 +624,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
               <Box>
                 <SeatHeader
                   label="Create space"
-                  chipTooltip="Number of editors out of the allowed editor seats"
-                  used={pendingEditorCount}
+                  chipTooltip="Number of Create space seats used (Editor or Approver roles)"
+                  used={pendingCreateCount}
                   total={10}
                 />
                 <Box sx={{ mt: '8px' }}>
@@ -682,15 +691,15 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
             </Box>
           )}
 
-          {notEnoughEditorSeats && (
+          {notEnoughCreateSeats && (
             <Box sx={warningSx}>
               <InfoOutlinedIcon sx={warningIconSx} />
               <Box>
                 <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, fontWeight: 600, mb: '2px' }}>
-                  No editor seats available
+                  No Create space seats available
                 </Typography>
                 <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                  You've reached the editor seat limit.{' '}
+                  You've reached the Create space seat limit.{' '}
                   <Box component="span" sx={{ color: c.primary, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
                     Contact sales
                   </Box>{' '}
