@@ -238,27 +238,37 @@ function countPrivilegedCreateSpaceSeats(users: AccountUser[]): number {
 // ─── Add User Dialog ───────────────────────────────────────────────────────
 interface InviteRow { email: string; createSpace: string; amplifySpace: string }
 
-function AddUserDialog({ open, onClose, onSend, users }: {
+function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
   open: boolean
   onClose: () => void
   onSend: (rows: InviteRow[]) => void
   users: AccountUser[]
+  asApprover?: boolean
 }) {
-  const [rows, setRows] = useState<(InviteRow & { createSpaceSelected: string[] })[]>([{ email: '', createSpace: 'Editor', createSpaceSelected: ['Editor'], amplifySpace: 'Contributor' }])
+  const defaultRow = asApprover
+    ? { email: '', createSpace: 'Approver', createSpaceSelected: ['Approver'], amplifySpace: 'No access' }
+    : { email: '', createSpace: 'Editor',   createSpaceSelected: ['Editor'],   amplifySpace: 'Contributor' }
+
+  const [rows, setRows]         = useState<(InviteRow & { createSpaceSelected: string[] })[]>([defaultRow])
+  const [noSeatsOpen, setNoSeatsOpen] = useState(false)
   const editorCount      = countEditorSeats(users)
   const contributorCount = countContributorSeats(users)
 
+  // Reset rows when dialog opens with a different mode
+  React.useEffect(() => {
+    if (open) setRows([defaultRow])
+  }, [open, asApprover])
+
   // Pending seats from rows being configured in this dialog
   const pendingEditorRows = rows.filter(r =>
-    r.email.trim() !== '' && (r.createSpaceSelected.includes('Editor') || r.createSpaceSelected.includes('Account owner'))
+    r.email.trim() !== '' && r.createSpaceSelected.includes('Editor')
   )
   const pendingContribRows = rows.filter(r =>
     r.email.trim() !== '' &&
     r.amplifySpace === 'Contributor' &&
-    !r.createSpaceSelected.includes('Editor') &&
-    !r.createSpaceSelected.includes('Account owner')
+    !r.createSpaceSelected.includes('Editor')
   )
-  const displayEditorCount    = editorCount    + pendingEditorRows.length
+  const displayEditorCount      = editorCount      + pendingEditorRows.length
   const displayContributorCount = contributorCount + pendingContribRows.length
 
   const updateRow = (i: number, field: keyof InviteRow, val: string) =>
@@ -266,13 +276,18 @@ function AddUserDialog({ open, onClose, onSend, users }: {
 
   function handleSend() {
     const valid = rows.filter(r => r.email.trim())
-    if (valid.length) {
-      onSend(valid.map(({ createSpaceSelected, ...r }) => r))
-      setRows([{ email: '', createSpace: 'Editor', createSpaceSelected: ['Editor'], amplifySpace: 'Contributor' }])
+    if (!valid.length) return
+    const newEditors  = valid.filter(r => r.createSpaceSelected.includes('Editor')).length
+    const newContribs = valid.filter(r => r.amplifySpace === 'Contributor' && !r.createSpaceSelected.includes('Editor')).length
+    if (editorCount + newEditors > 10 || contributorCount + newContribs > 10) {
+      setNoSeatsOpen(true)
+      return
     }
+    onSend(valid.map(({ createSpaceSelected, ...r }) => r))
+    setRows([defaultRow])
   }
 
-  const createSpaceOptions = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
+  const createSpaceOptions = ['Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
   const selectSx = {
     fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px',
@@ -328,6 +343,7 @@ function AddUserDialog({ open, onClose, onSend, users }: {
                   options={createSpaceOptions}
                   isPermissionDisabled={(option) => isPermissionDisabled(option, row.createSpaceSelected)}
                   getDisabledTooltip={(option) => getDisabledTooltip(option, row.createSpaceSelected)}
+                  lockedOption={asApprover ? 'Approver' : undefined}
                 />
               </Box>
             </Box>
@@ -368,6 +384,28 @@ function AddUserDialog({ open, onClose, onSend, users }: {
           </Button>
         </Box>
       </Box>
+
+      {/* No seats dialog */}
+      <Dialog open={noSeatsOpen} onClose={() => setNoSeatsOpen(false)} maxWidth={false} PaperProps={{ sx: { width: 440, borderRadius: '12px', p: 0 } }}>
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '16px' }}>
+            <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>No seats available</Typography>
+            <IconButton size="small" onClick={() => setNoSeatsOpen(false)} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
+          </Box>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textPrimary, mb: '24px', lineHeight: 1.6 }}>
+            You've reached your seat limit and can't add more users with the selected permissions.
+            Contact sales to increase your plan and get more seats.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button variant="outlined" onClick={() => setNoSeatsOpen(false)} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}>
+              Close
+            </Button>
+            <Button variant="contained" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}>
+              Contact sales
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
     </Dialog>
   )
 }
@@ -392,7 +430,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
   const [validationError,     setValidationError]     = useState('')
   const [seatConfirmOpen,     setSeatConfirmOpen]     = useState(false)
 
-  const createSpaceOptions  = ['Account owner', 'Viewer', 'Approver', 'Editor', 'No access']
+  const createSpaceOptions  = ['Viewer', 'Approver', 'Editor', 'No access']
   const amplifySpaceOptions = ['Contributor', 'No access']
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
@@ -1022,9 +1060,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   onSetApprovers: (ids: string[]) => void
   onAddUsers:     (rows: InviteRow[], asApprover: boolean) => void
 }) {
-  const [search, setSearch]         = useState('')
+  const [search, setSearch]               = useState('')
   const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false)
-  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteOpen, setInviteOpen]       = useState(false)
+  const [inviteAsApprover, setInviteAsApprover] = useState(false)
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [removeApproverOpen, setRemoveApproverOpen] = useState(false)
   const [approverToRemove, setApproverToRemove] = useState<AccountUser | null>(null)
@@ -1237,7 +1276,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         onClose={() => setAddApproverDialogOpen(false)}
         allUsers={users}
         existingApproverIds={Array.from(approverIds)}
-        onOpenAddUser={() => setInviteOpen(true)}
+        onOpenAddUser={() => { setInviteAsApprover(true); setInviteOpen(true) }}
         onAdd={(email, createSpace, amplifySpace) => {
           // Find if user exists
           const existingUser = users.find(u => u.user.email === email)
@@ -1254,9 +1293,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
       {/* Add User Dialog */}
       <AddUserDialog
         open={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        onSend={rows => { onAddUsers(rows, true); setInviteOpen(false) }}
+        onClose={() => { setInviteOpen(false); setInviteAsApprover(false) }}
+        onSend={rows => { onAddUsers(rows, true); setInviteOpen(false); setInviteAsApprover(false) }}
         users={users}
+        asApprover={inviteAsApprover}
       />
 
       {/* Remove Approver Dialog */}
