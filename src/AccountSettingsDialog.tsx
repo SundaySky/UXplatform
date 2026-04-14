@@ -1371,12 +1371,16 @@ function UsersSection({
   users,
   onInviteUser,
   onUserDeleted,
-  onPermissionsChanged
+  onPermissionsChanged,
+  approvalsEnabled = false,
+  approverIds = new Set()
 }: {
   users: AccountUser[]
   onInviteUser: (rows: InviteRow[]) => void
   onUserDeleted?: (userId: string) => void
   onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
+  approvalsEnabled?: boolean
+  approverIds?: Set<string>
 }) {
   const [search, setSearch]     = useState('')
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
@@ -1385,6 +1389,7 @@ function UsersSection({
   const [editingUser, setEditingUser] = useState<AccountUser | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null)
+  const [cannotRemoveApproverOpen, setCannotRemoveApproverOpen] = useState(false)
   const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(null)
   const [userMenuUser, setUserMenuUser]     = useState<AccountUser | null>(null)
   const [usersList, setUsersList] = useState<AccountUser[]>(users)
@@ -1563,6 +1568,42 @@ function UsersSection({
         }}
       />
 
+      {/* Cannot Remove Only Approver Dialog */}
+      <Dialog
+        open={cannotRemoveApproverOpen}
+        onClose={() => setCannotRemoveApproverOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 460, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+            Cannot remove this user
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
+            <strong>{userToDelete?.user.name}</strong> is currently the only approver in your account. To remove this user, you must either:
+          </Typography>
+          <Box sx={{ bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '24px' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                • <strong>Turn off</strong> the "Require approvals from specific users for videos and templates" setting
+              </Typography>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                • <strong>Add another approver</strong> first, then remove this user
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setCannotRemoveApproverOpen(false)}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+            >
+              Close
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+
       {/* Options popup menu — media-library style */}
       <Menu
         anchorEl={userMenuAnchor}
@@ -1603,7 +1644,21 @@ function UsersSection({
           </MenuItem>,
           <MenuItem
             key="remove"
-            onClick={() => { setUserToDelete(userMenuUser); setDeleteOpen(true); setUserMenuAnchor(null) }}
+            onClick={() => {
+              if (userMenuUser) {
+                // Check if this user is the only approver and approvals are enabled
+                const isOnlyApprover = approvalsEnabled && approverIds.size === 1 && approverIds.has(userMenuUser.user.id)
+                if (isOnlyApprover) {
+                  setUserToDelete(userMenuUser)
+                  setCannotRemoveApproverOpen(true)
+                  setUserMenuAnchor(null)
+                } else {
+                  setUserToDelete(userMenuUser)
+                  setDeleteOpen(true)
+                  setUserMenuAnchor(null)
+                }
+              }
+            }}
             sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
           >
             <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
@@ -1632,6 +1687,8 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
   const [users, setUsers]               = useState<AccountUser[]>(INITIAL_USERS)
   const [approverIds, setApproverIds]   = useState<Set<string>>(new Set())
   const [approvalsEnabled, setApprovalsEnabled] = useState(false)
+  const [noApproversConfirmOpen, setNoApproversConfirmOpen] = useState(false)
+  const [pendingNav, setPendingNav] = useState<NavKey | null>(null)
 
   function handleInviteUser(rows: InviteRow[], asApprover = false) {
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -1672,7 +1729,14 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
         <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>Account settings</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <IconButton size="small" sx={{ color: c.actionActive }}><HelpOutlineIcon sx={{ fontSize: 18 }} /></IconButton>
-          <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => {
+            // Check if approvals are enabled but no approvers set
+            if (approvalsEnabled && approverIds.size === 0) {
+              setNoApproversConfirmOpen(true)
+            } else {
+              onClose()
+            }
+          }} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
       </Box>
 
@@ -1683,7 +1747,15 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
           {NAV.map(item => (
             <Box
               key={item.key}
-              onClick={() => setNav(item.key)}
+              onClick={() => {
+                // Check if approvals are enabled but no approvers set when leaving the Approvals tab
+                if (nav === 'approvals' && approvalsEnabled && approverIds.size === 0 && item.key !== 'approvals') {
+                  setPendingNav(item.key)
+                  setNoApproversConfirmOpen(true)
+                } else {
+                  setNav(item.key)
+                }
+              }}
               sx={{ display: 'flex', alignItems: 'center', gap: '8px', px: '12px', py: '8px', borderRadius: '8px', cursor: 'pointer', bgcolor: nav === item.key ? c.primaryLight : 'transparent', color: nav === item.key ? c.primary : c.textPrimary, '&:hover': { bgcolor: nav === item.key ? c.primaryLight : 'rgba(0,0,0,0.04)' } }}
             >
               <Box sx={{ color: nav === item.key ? c.primary : c.actionActive, display: 'flex', flexShrink: 0 }}>{item.icon}</Box>
@@ -1720,6 +1792,8 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
                 return s
               })
             }}
+            approvalsEnabled={approvalsEnabled}
+            approverIds={approverIds}
           />
         )}
           {nav === 'permissions' && <PlaceholderSection label="Permissions" />}
@@ -1741,6 +1815,54 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
           {nav === 'access'      && <PlaceholderSection label="Access" />}
         </Box>
       </Box>
+
+      {/* No Approvers Warning Dialog */}
+      <Dialog
+        open={noApproversConfirmOpen}
+        onClose={() => setNoApproversConfirmOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 480, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+            Approvals feature requires approvers
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
+            You've enabled "Require approvals from specific users for videos and templates" but haven't added any approvers yet. You must add at least one approver to keep this feature enabled, or turn it off.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setNoApproversConfirmOpen(false)
+                // Disable approvals
+                setApprovalsEnabled(false)
+                setPendingNav(null)
+                // Navigate to pending tab if set
+                if (pendingNav) {
+                  setNav(pendingNav)
+                }
+              }}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+            >
+              Disable approvals
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setNoApproversConfirmOpen(false)
+                setPendingNav(null)
+                // Stay on approvals tab and focus the add approver button
+                setNav('approvals')
+                // The AddApproverDialog will be opened via ApprovalsSection state
+              }}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            >
+              Add approvers
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
     </Dialog>
   )
 }
