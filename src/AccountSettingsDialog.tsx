@@ -1361,6 +1361,37 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
           // Find if user exists
           const existingUser = users.find(u => u.user.email === email)
           if (existingUser) {
+            // Determine new permission based on current role
+            let newCreateSpace = existingUser.createSpace
+
+            if (existingUser.createSpace === 'Viewer') {
+              // Viewer → Approver
+              newCreateSpace = 'Approver'
+            } else if (existingUser.createSpace === 'No access') {
+              // No access → Approver
+              newCreateSpace = 'Approver'
+            } else if (existingUser.createSpace === 'Account owner') {
+              // Account owner → Account owner, Approver (if not already)
+              if (!newCreateSpace.includes('Approver')) {
+                newCreateSpace = 'Account owner, Approver'
+              }
+            } else if (existingUser.createSpace === 'Editor') {
+              // Editor → Editor and Approver (if not already)
+              if (!newCreateSpace.includes('Approver')) {
+                newCreateSpace = 'Editor and Approver'
+              }
+            } else if (existingUser.createSpace.includes('Editor')) {
+              // Editor and Approver or similar → add Approver if not already there
+              if (!newCreateSpace.includes('Approver')) {
+                newCreateSpace = existingUser.createSpace + ', Approver'
+              }
+            }
+
+            // Update permission if it changed
+            if (newCreateSpace !== existingUser.createSpace) {
+              onPermissionsChanged?.(existingUser.user.id, newCreateSpace, existingUser.amplifySpace)
+            }
+
             // Add existing user as approver
             handleAddApprovers([existingUser.user.id])
           } else {
