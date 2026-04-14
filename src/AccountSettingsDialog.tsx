@@ -238,12 +238,13 @@ function countPrivilegedCreateSpaceSeats(users: AccountUser[]): number {
 // ─── Add User Dialog ───────────────────────────────────────────────────────
 interface InviteRow { email: string; createSpace: string; amplifySpace: string }
 
-function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
+function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEditExistingUser }: {
   open: boolean
   onClose: () => void
   onSend: (rows: InviteRow[]) => void
   users: AccountUser[]
   asApprover?: boolean
+  onEditExistingUser?: (user: AccountUser) => void
 }) {
   const defaultRow = asApprover
     ? { email: '', createSpace: 'Approver', createSpaceSelected: ['Approver'], amplifySpace: 'No access' }
@@ -252,6 +253,8 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
   const [rows, setRows]         = useState<(InviteRow & { createSpaceSelected: string[], emailError?: string })[]>([defaultRow])
   const [noSeatsOpen, setNoSeatsOpen] = useState(false)
   const [validationTimeouts, setValidationTimeouts] = useState<Record<number, ReturnType<typeof setTimeout>>>({})
+  const [existingUserDialogOpen, setExistingUserDialogOpen] = useState(false)
+  const [existingUser, setExistingUser] = useState<AccountUser | null>(null)
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
   const contributorCount       = countContributorSeats(users)
@@ -320,6 +323,20 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
   function handleSend() {
     const valid = rows.filter(r => r.email.trim())
     if (!valid.length) return
+
+    // Check if any email already exists in the account
+    const firstExisting = valid.find(r =>
+      users.some(u => u.user.email.toLowerCase() === r.email.trim().toLowerCase())
+    )
+    if (firstExisting) {
+      const user = users.find(u => u.user.email.toLowerCase() === firstExisting.email.trim().toLowerCase())
+      if (user) {
+        setExistingUser(user)
+        setExistingUserDialogOpen(true)
+      }
+      return
+    }
+
     const newCreateSeats = valid.filter(r =>
       r.createSpaceSelected.includes('Editor') || r.createSpaceSelected.includes('Approver')
     ).length
@@ -474,6 +491,58 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
             </Button>
             <Button variant="contained" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}>
               Contact sales
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+
+      {/* Existing user dialog */}
+      <Dialog open={existingUserDialogOpen} onClose={() => setExistingUserDialogOpen(false)} maxWidth={false} PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}>
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '16px' }}>
+            Add user
+          </Typography>
+          {existingUser && (
+            <>
+              <OutlinedInput
+                fullWidth
+                disabled
+                value={existingUser.user.email}
+                placeholder="user@example.com"
+                sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, mb: '16px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
+              />
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '12px', bgcolor: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '8px', px: '14px', py: '12px', mb: '24px' }}>
+                <InfoOutlinedIcon sx={{ fontSize: 16, color: '#D97706', mt: '1px', flexShrink: 0 }} />
+                <Box>
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, fontWeight: 600, mb: '4px' }}>
+                    This email is already in use in this account.
+                  </Typography>
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                    You can edit the user type if necessary.
+                  </Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setExistingUserDialogOpen(false)}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                if (existingUser) {
+                  onEditExistingUser?.(existingUser)
+                  setExistingUserDialogOpen(false)
+                }
+              }}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            >
+              Edit user type
             </Button>
           </Box>
         </Box>
@@ -1308,6 +1377,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         onSend={rows => { onAddUsers(rows, true); setInviteOpen(false); setInviteAsApprover(false) }}
         users={users}
         asApprover={inviteAsApprover}
+        onEditExistingUser={() => {
+          // For approvals, we don't need to edit the user - just acknowledge
+          setInviteOpen(false)
+        }}
       />
 
       {/* Remove Approver Dialog */}
@@ -1539,6 +1612,11 @@ function UsersSection({
         onClose={() => setInviteOpen(false)}
         onSend={rows => { onInviteUser(rows); setInviteOpen(false) }}
         users={usersList}
+        onEditExistingUser={(user) => {
+          setEditingUser(user)
+          setEditPermOpen(true)
+          setInviteOpen(false)
+        }}
       />
 
       {/* Edit Permissions Dialog */}
