@@ -249,15 +249,27 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
     ? { email: '', createSpace: 'Approver', createSpaceSelected: ['Approver'], amplifySpace: 'No access' }
     : { email: '', createSpace: 'Editor',   createSpaceSelected: ['Editor'],   amplifySpace: 'Contributor' }
 
-  const [rows, setRows]         = useState<(InviteRow & { createSpaceSelected: string[] })[]>([defaultRow])
+  const [rows, setRows]         = useState<(InviteRow & { createSpaceSelected: string[], emailError?: string })[]>([defaultRow])
   const [noSeatsOpen, setNoSeatsOpen] = useState(false)
+  const [validationTimeouts, setValidationTimeouts] = useState<Record<number, ReturnType<typeof setTimeout>>>({})
+
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
   const contributorCount       = countContributorSeats(users)
   // Create space seat = Editor OR Approver (not Viewer, not No access)
   const createSpaceSeatsUsed   = countPrivilegedCreateSpaceSeats(users)
 
-  // Reset rows when dialog opens with a different mode
+  // Reset rows when dialog opens with a different mode, and cleanup timeouts
   React.useEffect(() => {
-    if (open) setRows([defaultRow])
+    if (open) {
+      setRows([defaultRow])
+      setValidationTimeouts({})
+    }
+    return () => {
+      // Clean up all timeouts
+      Object.values(validationTimeouts).forEach(timeout => {
+        if (timeout) clearTimeout(timeout)
+      })
+    }
   }, [open, asApprover])
 
   // Pending rows that would consume a Create space seat (Editor or Approver)
@@ -274,8 +286,36 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
   const displayCreateSpaceCount = createSpaceSeatsUsed + pendingCreateRows.length
   const displayContributorCount = contributorCount     + pendingContribRows.length
 
-  const updateRow = (i: number, field: keyof InviteRow, val: string) =>
+  const updateRow = (i: number, field: string, val: string) => {
     setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
+
+    // Handle email field validation with delay
+    if (field === 'email') {
+      // Clear existing timeout for this row
+      if (validationTimeouts[i]) {
+        clearTimeout(validationTimeouts[i])
+      }
+
+      // Clear error immediately while typing
+      setRows(prev => prev.map((r, idx) => idx === i ? { ...r, emailError: '' } : r))
+
+      // Set new timeout to validate after 500ms
+      if (val.trim().length > 0) {
+        const timeout = setTimeout(() => {
+          setRows(prevRows =>
+            prevRows.map((row, idx) => {
+              if (idx !== i) return row
+              return {
+                ...row,
+                emailError: isValidEmail(val.trim()) ? '' : 'Enter a valid email address'
+              }
+            })
+          )
+        }, 500)
+        setValidationTimeouts(prev => ({ ...prev, [i]: timeout }))
+      }
+    }
+  }
 
   function handleSend() {
     const valid = rows.filter(r => r.email.trim())
@@ -335,9 +375,15 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
                 placeholder="user@example.com"
                 value={row.email}
                 onChange={e => updateRow(i, 'email', e.target.value)}
+                error={!!row.emailError}
                 fullWidth
-                sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
+                sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: row.emailError ? '#F87171' : c.grey300 } }}
               />
+              {row.emailError && (
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F87171', mt: '4px' }}>
+                  {row.emailError}
+                </Typography>
+              )}
             </Box>
             <Box>
               <SeatHeader label="Create space" chipTooltip="Number of Create space seats used (Editor or Approver roles)" used={displayCreateSpaceCount} total={10} />
@@ -366,12 +412,31 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
         ))}
 
         {/* Info box */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '24px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '20px' }}>
           <InfoOutlinedIcon sx={{ fontSize: 16, color: c.primary, mt: '1px', flexShrink: 0 }} />
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
             The user will receive an email invitation and will need to create an account to get access.
           </Typography>
         </Box>
+
+        {/* Seat warning */}
+        {(displayCreateSpaceCount > 10 || displayContributorCount > 10) && (
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: '#FFF8E7', border: '1px solid #FFD54F', borderRadius: '8px', px: '14px', py: '12px', mb: '20px' }}>
+            <InfoOutlinedIcon sx={{ fontSize: 16, color: '#F59E0B', mt: '1px', flexShrink: 0 }} />
+            <Box>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, mb: '2px' }}>
+                No seats available
+              </Typography>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                You've reached your seat limit.{' '}
+                <Box component="span" sx={{ color: c.primary, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
+                  Contact sales
+                </Box>{' '}
+                to get more seats. (Note: Viewer permission does not consume a Create space seat.)
+              </Typography>
+            </Box>
+          </Box>
+        )}
 
         {/* Actions */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -384,8 +449,8 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false }: {
           <Button
             variant="contained"
             onClick={handleSend}
-            disabled={!rows.some(r => r.email.trim())}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' }, '&:disabled': { bgcolor: c.grey300, boxShadow: 'none' } }}
+            disabled={!rows.some(r => r.email.trim()) || displayCreateSpaceCount > 10 || displayContributorCount > 10 || rows.some(r => r.emailError)}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' }, '&.Mui-disabled': { bgcolor: c.grey300, color: '#fff', boxShadow: 'none' } }}
           >
             Add users
           </Button>
@@ -426,23 +491,19 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
   existingApproverIds?: string[]
   onOpenAddUser?:       () => void
 }) {
-  const contributorCount        = countContributorSeats(allUsers)
   // Create space seat = Editor or Approver (privileged role)
   const privilegedSeats         = countPrivilegedCreateSpaceSeats(allUsers)
 
-  const [inputValue,          setInputValue]          = useState('')
-  const [selectedUser,        setSelectedUser]        = useState<AccountUser | null>(null)
-  const [createSpaceSelected, setCreateSpaceSelected] = useState<string[]>(['Approver'])
-  const [amplifySpace,        setAmplifySpace]        = useState('No access')
-  const [validationError,     setValidationError]     = useState('')
-  const [seatConfirmOpen,     setSeatConfirmOpen]     = useState(false)
-
-  const createSpaceOptions  = ['Viewer', 'Approver', 'Editor', 'No access']
-  const amplifySpaceOptions = ['Contributor', 'No access']
+  const [inputValue,         setInputValue]         = useState('')
+  const [selectedUser,       setSelectedUser]       = useState<AccountUser | null>(null)
+  const [validationError,    setValidationError]    = useState('')
+  const [seatConfirmOpen,    setSeatConfirmOpen]    = useState(false)
+  const [newUserConfirmOpen, setNewUserConfirmOpen] = useState(false)
+  const [validationTimeout,  setValidationTimeout]  = useState<ReturnType<typeof setTimeout> | null>(null)
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 
-  const trimmed   = inputValue.trim()
+  const trimmed    = inputValue.trim()
   const isNewEmail = trimmed.length > 0 && !selectedUser &&
     allUsers.every(u => u.user.email.toLowerCase() !== trimmed.toLowerCase())
 
@@ -454,55 +515,32 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
   )
   const userNeedsCreateAccess = !!selectedUser && !userHasPrivilegedAccess
 
-  // Seat warnings
   // Existing user with no privileged access → adding as Approver uses 1 Create space seat
-  const noSeatsForExisting    = userNeedsCreateAccess && privilegedSeats >= 10
-  // New email → check if their selected role would use a Create space seat
-  const newUserCreateSeat     = isNewEmail && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))
-  const newUserContribSeat    = isNewEmail && amplifySpace === 'Contributor' && !createSpaceSelected.includes('Editor')
-  const notEnoughCreateSeats  = newUserCreateSeat  && privilegedSeats  >= 10
-  const notEnoughContribSeats = newUserContribSeat && contributorCount >= 10
-  const notEnoughSeats        = notEnoughCreateSeats || notEnoughContribSeats
-
-  // Live seat counts for new-user section (include the pending user)
-  const pendingCreateCount = privilegedSeats   + (newUserCreateSeat  ? 1 : 0)
-  const pendingContribCount = contributorCount + (newUserContribSeat ? 1 : 0)
+  const noSeatsForExisting = userNeedsCreateAccess && privilegedSeats >= 10
+  // New email always uses a Create space seat (Approver role)
+  const noSeatsForNewEmail = isNewEmail && privilegedSeats >= 10
 
   const addDisabled =
     !trimmed ||
     noSeatsForExisting ||
-    notEnoughSeats ||
-    (isNewEmail && !isValidEmail(trimmed))
-
-  const isPermissionDisabled = (perm: string) => {
-    if (perm === 'Viewer' && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))) return true
-    if (perm === 'Editor'   && createSpaceSelected.includes('Viewer')) return true
-    if (perm === 'Approver' && createSpaceSelected.includes('Viewer')) return true
-    return false
-  }
-  const getDisabledTooltip = (perm: string): string | null => {
-    if (perm === 'Viewer'   && createSpaceSelected.includes('Editor'))   return 'Viewer cannot be combined with Editor'
-    if (perm === 'Viewer'   && createSpaceSelected.includes('Approver')) return 'Viewer cannot be combined with Approver'
-    if (perm === 'Editor'   && createSpaceSelected.includes('Viewer'))   return 'Editor cannot be combined with Viewer'
-    if (perm === 'Approver' && createSpaceSelected.includes('Viewer'))   return 'Approver cannot be combined with Viewer'
-    return null
-  }
+    noSeatsForNewEmail ||
+    !!validationError
 
   const reset = () => {
     setInputValue('')
     setSelectedUser(null)
-    setCreateSpaceSelected(['Approver'])
-    setAmplifySpace('No access')
     setValidationError('')
     setSeatConfirmOpen(false)
+    setNewUserConfirmOpen(false)
+    if (validationTimeout) clearTimeout(validationTimeout)
   }
 
   const performAdd = () => {
     const email       = selectedUser ? selectedUser.user.email : trimmed
     const createSpace = isNewEmail
-      ? (createSpaceSelected.join(', ') || 'No access')
+      ? 'Approver'
       : (selectedUser ? selectedUser.createSpace + (userNeedsCreateAccess ? ', Approver' : '') : 'Approver')
-    onAdd(email, createSpace, amplifySpace)
+    onAdd(email, createSpace, 'No access')
     reset()
     onClose()
   }
@@ -512,15 +550,25 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
       setValidationError('Enter a valid email address')
       return
     }
-    if (userNeedsCreateAccess && !noSeatsForExisting) {
-      // show seat-use confirmation first
+    if (isNewEmail && !noSeatsForNewEmail) {
+      // New user - show invitation and seat confirmation
+      setNewUserConfirmOpen(true)
+    } else if (userNeedsCreateAccess && !noSeatsForExisting) {
+      // Existing user needing seat - show seat-use confirmation
       setSeatConfirmOpen(true)
     } else {
       performAdd()
     }
   }
 
-  React.useEffect(() => { if (!open) reset() }, [open])
+  React.useEffect(() => {
+    if (!open) {
+      reset()
+    }
+    return () => {
+      if (validationTimeout) clearTimeout(validationTimeout)
+    }
+  }, [open])
 
   const warningSx = {
     display: 'flex', alignItems: 'flex-start', gap: '8px',
@@ -571,6 +619,21 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                   setInputValue(value)
                   setSelectedUser(null)
                   setValidationError('')
+
+                  // Clear existing timeout
+                  if (validationTimeout) clearTimeout(validationTimeout)
+
+                  // Set new timeout to validate after 500ms of inactivity
+                  if (value.trim().length > 0) {
+                    const timeout = setTimeout(() => {
+                      const trimmed = value.trim()
+                      const isNew = trimmed.length > 0 && allUsers.every(u => u.user.email.toLowerCase() !== trimmed.toLowerCase())
+                      if (isNew && !isValidEmail(trimmed)) {
+                        setValidationError('Enter a valid email address')
+                      }
+                    }, 500)
+                    setValidationTimeout(timeout)
+                  }
                 }
               }}
               getOptionDisabled={opt => typeof opt !== 'string' && existingApproverIds.includes(opt.user.id)}
@@ -617,63 +680,18 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
             />
           </Box>
 
-          {/* ── New-user mode: space permissions + invitation note ── */}
+          {/* ── New-user mode: invitation note ── */}
           {isNewEmail && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '24px', mb: '20px' }}>
-              {/* Create space */}
-              <Box>
-                <SeatHeader
-                  label="Create space"
-                  chipTooltip="Number of Create space seats used (Editor or Approver roles)"
-                  used={pendingCreateCount}
-                  total={10}
-                />
-                <Box sx={{ mt: '8px' }}>
-                  <CreateSpaceSelector
-                    selected={createSpaceSelected}
-                    onChange={sel => setCreateSpaceSelected(sel)}
-                    options={createSpaceOptions}
-                    isPermissionDisabled={isPermissionDisabled}
-                    getDisabledTooltip={getDisabledTooltip}
-                    lockedOption="Approver"
-                  />
-                </Box>
-              </Box>
-
-              {/* Amplify space */}
-              <Box>
-                <SeatHeader
-                  label="Amplify space"
-                  iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat."
-                  chipTooltip="Number of contributors out of the allowed contributor seats"
-                  used={pendingContribCount}
-                  total={10}
-                />
-                <FormControl fullWidth size="small" sx={{ mt: '8px' }}>
-                  <Select
-                    value={amplifySpace}
-                    onChange={e => setAmplifySpace(e.target.value as string)}
-                    sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 }, height: 40 }}
-                  >
-                    {amplifySpaceOptions.map(o => (
-                      <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-
-              {/* Invitation info */}
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px' }}>
-                <InfoOutlinedIcon sx={{ fontSize: 16, color: c.primary, mt: '1px', flexShrink: 0 }} />
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                  This user will receive an email invitation and will need to create an account to get access.
-                </Typography>
-              </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '20px' }}>
+              <InfoOutlinedIcon sx={{ fontSize: 16, color: c.primary, mt: '1px', flexShrink: 0 }} />
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                This user will receive an email invitation and will need to create an account to get access.
+              </Typography>
             </Box>
           )}
 
           {/* ── Not-enough-seats warnings ── */}
-          {noSeatsForExisting && (
+          {(noSeatsForExisting || noSeatsForNewEmail) && (
             <Box sx={warningSx}>
               <InfoOutlinedIcon sx={warningIconSx} />
               <Box>
@@ -685,43 +703,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                   <Box component="span" sx={{ color: c.primary, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
                     Contact sales
                   </Box>{' '}
-                  to get more seats.
-                </Typography>
-              </Box>
-            </Box>
-          )}
-
-          {notEnoughCreateSeats && (
-            <Box sx={warningSx}>
-              <InfoOutlinedIcon sx={warningIconSx} />
-              <Box>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, fontWeight: 600, mb: '2px' }}>
-                  No Create space seats available
-                </Typography>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                  You've reached the Create space seat limit.{' '}
-                  <Box component="span" sx={{ color: c.primary, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
-                    Contact sales
-                  </Box>{' '}
-                  to get more seats.
-                </Typography>
-              </Box>
-            </Box>
-          )}
-
-          {notEnoughContribSeats && (
-            <Box sx={warningSx}>
-              <InfoOutlinedIcon sx={warningIconSx} />
-              <Box>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, fontWeight: 600, mb: '2px' }}>
-                  No contributor seats available
-                </Typography>
-                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                  You've reached the contributor seat limit.{' '}
-                  <Box component="span" sx={{ color: c.primary, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
-                    Contact sales
-                  </Box>{' '}
-                  to get more seats.
+                  to get more seats. (Note: Viewer permission does not consume a Create space seat.)
                 </Typography>
               </Box>
             </Box>
@@ -760,7 +742,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
         </Box>
       </Dialog>
 
-      {/* ── Seat-use confirmation dialog ── */}
+      {/* ── Seat-use confirmation dialog for existing user ── */}
       {selectedUser && (
         <Dialog
           open={seatConfirmOpen}
@@ -804,6 +786,50 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
           </Box>
         </Dialog>
       )}
+
+      {/* ── New user invitation confirmation dialog ── */}
+      <Dialog
+        open={newUserConfirmOpen}
+        onClose={() => setNewUserConfirmOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 460, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '16px' }}>
+            <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
+              Add new approver
+            </Typography>
+            <IconButton size="small" onClick={() => setNewUserConfirmOpen(false)} sx={{ color: c.actionActive }}>
+              <CloseIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Box>
+
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textPrimary, mb: '16px', lineHeight: 1.6 }}>
+            <strong>{trimmed}</strong> will receive an email invitation and will need to create an account to get access.
+          </Typography>
+
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textPrimary, mb: '24px', lineHeight: 1.6 }}>
+            Adding them as an approver will use <strong>1 Create space seat</strong> ({privilegedSeats + 1}/10 used after this action).
+          </Typography>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setNewUserConfirmOpen(false)}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => { performAdd(); setNewUserConfirmOpen(false) }}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            >
+              Add approver
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
     </>
   )
 }
@@ -816,7 +842,8 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
   users: AccountUser[]
   onSave: (createSpace: string, amplifySpace: string) => void
 }) {
-  const editorCount      = countEditorSeats(users)
+  const privilegedSeats = countPrivilegedCreateSpaceSeats(users)
+  const editorCount = countEditorSeats(users)
   const contributorCount = countContributorSeats(users)
   const initialCreateSpace = user?.createSpace || 'Viewer'
   const [createSpaceSelected, setCreateSpaceSelected] = useState<string[]>(initialCreateSpace ? initialCreateSpace.split(', ') : ['Viewer'])
@@ -830,6 +857,19 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
     '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 },
     height: 40,
   }
+
+  // Check if current user has privileged access
+  const userCurrentlyHasPrivilegedAccess = user && (
+    user.createSpace.includes('Editor') ||
+    user.createSpace.includes('Approver') ||
+    user.createSpace === 'Account owner'
+  )
+  // Check if new permission would require privileged access
+  const newPermissionIsPrivileged = createSpaceSelected.includes('Editor') ||
+    createSpaceSelected.includes('Approver') ||
+    createSpaceSelected.includes('Account owner')
+  // Show warning if upgrading from non-privileged to privileged and no seats available
+  const noSeatsForUpgrade = !userCurrentlyHasPrivilegedAccess && newPermissionIsPrivileged && privilegedSeats >= 10
 
   const isPermissionDisabled = (permission: string): boolean => {
     if (permission === 'Viewer' && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))) return true
@@ -871,7 +911,7 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
 
         {/* Create space section */}
         <Box sx={{ mb: '24px' }}>
-          <SeatHeader label="Create space" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
+          <SeatHeader label="Create space" iconTooltip="Access to the video and template editors, analytics, and AI features" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
           <Box sx={{ mt: '12px' }}>
             <CreateSpaceSelector
               selected={createSpaceSelected}
@@ -887,8 +927,8 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
         </Box>
 
         {/* Amplify space section */}
-        <Box sx={{ mb: '24px', borderBottom: `1px solid ${c.grey300}`, pb: '12px' }}>
-          <SeatHeader label="Amplify space" chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
+        <Box sx={{ mb: '24px' }}>
+          <SeatHeader label="Amplify space" iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
           <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
             <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={selectSx}>
               {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
@@ -896,13 +936,33 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
           </FormControl>
         </Box>
 
+        {/* No seats warning */}
+        {noSeatsForUpgrade && (
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: '#FFF8E7', border: '1px solid #FFD54F', borderRadius: '8px', px: '14px', py: '12px', mb: '20px' }}>
+            <InfoOutlinedIcon sx={{ fontSize: 16, color: '#F59E0B', mt: '1px', flexShrink: 0 }} />
+            <Box>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, fontWeight: 600, mb: '2px' }}>
+                No seats available
+              </Typography>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                You've reached your seat limit.{' '}
+                <Box component="span" sx={{ color: c.primary, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
+                  Contact sales
+                </Box>{' '}
+                to get more seats. (Note: Viewer permission does not consume a Create space seat.)
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
         {/* Actions */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
           <Button onClick={onClose} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary }}>Cancel</Button>
           <Button
             variant="contained"
             onClick={handleSave}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            disabled={noSeatsForUpgrade}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' }, '&.Mui-disabled': { bgcolor: c.grey300, color: '#fff', boxShadow: 'none' } }}
           >
             Save
           </Button>
@@ -981,93 +1041,15 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
 }
 
 
-// ─── Confirm Approvers Dialog ──────────────────────────────────────────────────
-interface ApproverCreateSpacePermission {
-  userId: string
-  userName: string
-  currentCreateSpace: string
-  newCreateSpace: string
-}
-
-function ConfirmApproversDialog({ open, onClose, approversNeedingAccess, onConfirm }: {
-  open: boolean
-  onClose: () => void
-  approversNeedingAccess: ApproverCreateSpacePermission[]
-  onConfirm: (permissions: ApproverCreateSpacePermission[]) => void
-}) {
-  const [permissions, setPermissions] = useState<ApproverCreateSpacePermission[]>(approversNeedingAccess)
-
-  const updatePermission = (userId: string, newCreateSpace: string) => {
-    setPermissions(prev => prev.map(p => p.userId === userId ? { ...p, newCreateSpace } : p))
-  }
-
-  // Dynamic title based on number of users
-  const titleSuffix = approversNeedingAccess.length === 1
-    ? `to ${approversNeedingAccess[0].userName}`
-    : `to ${approversNeedingAccess.length} approvers`
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 600, borderRadius: '12px', p: 0 } }}>
-      <Box sx={{ px: '24px', py: '20px' }}>
-        {/* Title */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
-            Grant Create space access {titleSuffix}
-          </Typography>
-          <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
-        </Box>
-
-        {/* Column headers */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', mb: '8px', px: '2px' }}>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
-            User
-          </Typography>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
-            Create space
-          </Typography>
-        </Box>
-
-        {/* Permission rows */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '0px', borderBottom: `1px solid ${c.grey300}`, pb: '12px', mb: '24px', maxHeight: 400, overflowY: 'auto' }}>
-          {permissions.map((perm) => (
-            <Box key={perm.userId} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'center', py: '12px', borderTop: `1px solid ${c.grey300}`, '&:first-of-type': { borderTopColor: 'transparent' } }}>
-              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                {perm.userName}
-              </Typography>
-              <FormControl size="small" fullWidth>
-                <Select value={perm.newCreateSpace} onChange={e => updatePermission(perm.userId, e.target.value as string)} sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}>
-                  <MenuItem value="Viewer" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>Viewer</MenuItem>
-                  <MenuItem value="No access" sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>No access</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          ))}
-        </Box>
-
-        {/* Actions */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-          <Button onClick={onClose} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary }}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() => { onConfirm(permissions); onClose() }}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
-          >
-            Confirm
-          </Button>
-        </Box>
-      </Box>
-    </Dialog>
-  )
-}
-
 // ─── Approvals Section ────────────────────────────────────────────────────────
-function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers }: {
+function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged }: {
   users:          AccountUser[]
   approverIds:    Set<string>
   enabled:        boolean
   onToggle:       (v: boolean) => void
   onSetApprovers: (ids: string[]) => void
   onAddUsers:     (rows: InviteRow[], asApprover: boolean) => void
+  onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
 }) {
   const [search, setSearch]               = useState('')
   const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false)
@@ -1078,8 +1060,18 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [approverToRemove, setApproverToRemove] = useState<AccountUser | null>(null)
   const [approverMenuAnchor, setApproverMenuAnchor] = useState<HTMLElement | null>(null)
   const [approverMenuUser, setApproverMenuUser]     = useState<AccountUser | null>(null)
-  const [confirmApproversOpen, setConfirmApproversOpen] = useState(false)
-  const [pendingApprovers, setPendingApprovers] = useState<ApproverCreateSpacePermission[]>([])
+  const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
+
+  // Initialize approverIds from users with Approver role when section loads
+  // This ensures approvers show even when the feature is initially disabled
+  React.useEffect(() => {
+    if (approverIds.size === 0) {
+      const usersWithApproverRole = users.filter(u => u.createSpace.includes('Approver')).map(u => u.user.id)
+      if (usersWithApproverRole.length > 0) {
+        onSetApprovers(usersWithApproverRole)
+      }
+    }
+  }, [])
 
   const approvers = users.filter(u => approverIds.has(u.user.id))
   const filtered  = search
@@ -1094,28 +1086,24 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
 
   function handleAddApprovers(newIds: string[]) {
     const trulyNew = newIds.filter(id => !approverIds.has(id))
-    const newApproverUsers = users.filter(u => trulyNew.includes(u.user.id))
-    const needingCreateAccess = newApproverUsers.filter(u => u.createSpace === 'No access')
+    // Merge new IDs with existing ones so no existing approver is lost
+    onSetApprovers([...Array.from(approverIds), ...trulyNew])
+  }
 
-    if (needingCreateAccess.length > 0) {
-      const pendingPerms: ApproverCreateSpacePermission[] = needingCreateAccess.map(u => ({
-        userId: u.user.id,
-        userName: u.user.name,
-        currentCreateSpace: u.createSpace,
-        newCreateSpace: 'Viewer',
-      }))
-      setPendingApprovers(pendingPerms)
-      setConfirmApproversOpen(true)
+  function handleToggle(v: boolean) {
+    if (v) {
+      // Turning ON - no need for confirmation
+      onToggle(true)
+    } else if (!v && approverIds.size > 0) {
+      // Turning OFF with approvers - show confirmation
+      setToggleConfirmOpen(true)
     } else {
-      // Merge new IDs with existing ones so no existing approver is lost
-      onSetApprovers([...Array.from(approverIds), ...trulyNew])
+      // Turning OFF with no approvers - proceed directly
+      onToggle(false)
     }
   }
 
-  function handleConfirmApproversWithPermissions(permissions: ApproverCreateSpacePermission[]) {
-    const allIds = [...Array.from(approverIds), ...permissions.map(p => p.userId)]
-    onSetApprovers(allIds)
-  }
+  const isLastApprover = enabled && approverIds.size === 1 && approverMenuUser && approverIds.has(approverMenuUser.user.id)
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -1132,7 +1120,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
           </Typography>
           <Switch
             checked={enabled}
-            onChange={e => onToggle(e.target.checked)}
+            onChange={e => handleToggle(e.target.checked)}
             sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#fff' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: c.primary } }}
           />
         </Box>
@@ -1265,14 +1253,28 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                   ))}
                 </Box>,
                 <Divider key="divider" sx={{ my: '4px' }} />,
-                <MenuItem
-                  key="remove"
-                  onClick={() => { setApproverToRemove(approverMenuUser); setRemoveApproverOpen(true); setApproverMenuAnchor(null) }}
-                  sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
-                >
-                  <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
-                  Remove approver role
-                </MenuItem>,
+                isLastApprover ? (
+                  <Tooltip key="remove" title="Cannot remove the last approver when approvals are required" placement="right" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
+                    <span>
+                      <MenuItem
+                        disabled
+                        sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px', opacity: 0.5 }}
+                      >
+                        <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
+                        Remove approver role
+                      </MenuItem>
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <MenuItem
+                    key="remove"
+                    onClick={() => { setApproverToRemove(approverMenuUser); setRemoveApproverOpen(true); setApproverMenuAnchor(null) }}
+                    sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
+                  >
+                    <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
+                    Remove approver role
+                  </MenuItem>
+                ),
               ]}
             </Menu>
           </Box>
@@ -1315,24 +1317,67 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         userName={approverToRemove?.user.name || ''}
         onConfirm={() => {
           if (approverToRemove) {
-            onSetApprovers([...approverIds].filter(id => id !== approverToRemove.user.id))
+            // Remove from approvers
+            const newApproverIds = [...approverIds].filter(id => id !== approverToRemove.user.id)
+            onSetApprovers(newApproverIds)
+
+            // If Approver was the only permission, downgrade to Viewer
+            if (approverToRemove.createSpace === 'Approver') {
+              onPermissionsChanged?.(approverToRemove.user.id, 'Viewer', approverToRemove.amplifySpace)
+            }
           }
         }}
       />
 
-      {/* Confirm Approvers Dialog */}
-      <ConfirmApproversDialog
-        open={confirmApproversOpen}
-        onClose={() => { setConfirmApproversOpen(false); setPendingApprovers([]) }}
-        approversNeedingAccess={pendingApprovers}
-        onConfirm={handleConfirmApproversWithPermissions}
-      />
+      {/* Toggle OFF confirmation dialog */}
+      <Dialog
+        open={toggleConfirmOpen}
+        onClose={() => setToggleConfirmOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 460, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+            Turn off approvals?
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
+            You have {approverIds.size} approver{approverIds.size !== 1 ? 's' : ''} set. Turning off approvals will disable the requirement for approvals from specific users for videos and templates.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setToggleConfirmOpen(false)}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => { onToggle(false); setToggleConfirmOpen(false) }}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            >
+              Turn off
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+
     </Box>
   )
 }
 
 // ─── Users Section ────────────────────────────────────────────────────────────
-function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteUser: (rows: InviteRow[]) => void }) {
+function UsersSection({
+  users,
+  onInviteUser,
+  onUserDeleted,
+  onPermissionsChanged
+}: {
+  users: AccountUser[]
+  onInviteUser: (rows: InviteRow[]) => void
+  onUserDeleted?: (userId: string) => void
+  onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
+}) {
   const [search, setSearch]     = useState('')
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -1500,6 +1545,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         onSave={(createSpace, amplifySpace) => {
           if (editingUser) {
             setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u))
+            onPermissionsChanged?.(editingUser.user.id, createSpace, amplifySpace)
           }
         }}
       />
@@ -1512,6 +1558,7 @@ function UsersSection({ users, onInviteUser }: { users: AccountUser[]; onInviteU
         onConfirm={() => {
           if (userToDelete) {
             setUsersList(prev => prev.filter(u => u.user.id !== userToDelete.user.id))
+            onUserDeleted?.(userToDelete.user.id)
           }
         }}
       />
@@ -1649,7 +1696,32 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
 
         {/* Content */}
         <Box sx={{ flex: 1, overflow: 'hidden', px: '24px', py: '20px', display: 'flex', flexDirection: 'column' }}>
-          {nav === 'users'       && <UsersSection users={users} onInviteUser={rows => handleInviteUser(rows, false)} />}
+          {nav === 'users'       && (
+          <UsersSection
+            users={users}
+            onInviteUser={rows => handleInviteUser(rows, false)}
+            onUserDeleted={(userId) => {
+              setUsers(prev => prev.filter(u => u.user.id !== userId))
+              setApproverIds(prev => { const s = new Set(prev); s.delete(userId); return s })
+            }}
+            onPermissionsChanged={(userId, createSpace, amplifySpace) => {
+              setUsers(prev => prev.map(u =>
+                u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
+              ))
+              // If user now has Approver role, add to approverIds
+              const userHasApprover = createSpace.includes('Approver')
+              setApproverIds(prev => {
+                const s = new Set(prev)
+                if (userHasApprover && !s.has(userId)) {
+                  s.add(userId)
+                } else if (!userHasApprover && s.has(userId)) {
+                  s.delete(userId)
+                }
+                return s
+              })
+            }}
+          />
+        )}
           {nav === 'permissions' && <PlaceholderSection label="Permissions" />}
           {nav === 'approvals'   && (
             <ApprovalsSection
@@ -1659,6 +1731,11 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
               onToggle={setApprovalsEnabled}
               onSetApprovers={handleSetApprovers}
               onAddUsers={(rows, asApprover) => handleInviteUser(rows, asApprover)}
+              onPermissionsChanged={(userId, createSpace, amplifySpace) => {
+                setUsers(prev => prev.map(u =>
+                  u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
+                ))
+              }}
             />
           )}
           {nav === 'access'      && <PlaceholderSection label="Access" />}
