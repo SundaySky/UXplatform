@@ -976,10 +976,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
               </Box>
             ) : (
               <Box sx={{ borderRadius: '8px', border: `1px solid ${c.grey300}`, overflow: 'auto', maxHeight: 300 }}>
-                <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 850, width: '100%' }}>
+                <Table size="small" sx={{ width: '100%' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ ...headCellSx, width: 230, position: 'sticky', left: 0, zIndex: 4 }}>
+                      <TableCell sx={{ ...headCellSx, width: 220, position: 'sticky', left: 0, zIndex: 4 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           User <ArrowDownwardIcon sx={{ fontSize: 13, color: c.actionActive }} />
                         </Box>
