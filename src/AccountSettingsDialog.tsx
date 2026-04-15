@@ -938,14 +938,13 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 }
 
 // ─── Edit Permissions Dialog ──────────────────────────────────────────────────
-function EditPermissionsDialog({ open, onClose, user, users, onSave, approverIds, videoStates }: {
+function EditPermissionsDialog({ open, onClose, user, users, onSave, approverIds }: {
   open: boolean
   onClose: () => void
   user: AccountUser | null
   users: AccountUser[]
   onSave: (createSpace: string, amplifySpace: string, approverPermissionAdded?: boolean) => void
   approverIds?: Set<string>
-  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
 }) {
   const privilegedSeats = countPrivilegedCreateSpaceSeats(users)
   const editorCount = countEditorSeats(users)
@@ -992,10 +991,7 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave, approverIds
     if (permission === 'Approver' && createSpaceSelected.includes('Viewer')) return 'Approver cannot be combined with Viewer'
     // Last approver tooltip
     if (permission === 'Approver' && isLastApprover && createSpaceSelected.includes('Approver')) {
-      if (hasPendingApprovals) {
-        return `Add another approver and cancel or resolve ${user?.user.name} pending approvals to remove`
-      }
-      return `Add another approver to remove ${user?.user.name} approver access, Require approvals must have at least 1 user with approver permission.`
+      return `To remove ${user?.user.name}, resolve pending approvals and add another approver.\nApproval settings require at least one user with approver permissions.`
     }
     return null
   }
@@ -1014,12 +1010,6 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave, approverIds
   // Determine if this user is the last approver
   const approversCount = (approverIds?.size ?? 0) + (user && !approverIds?.has(user.user.id) && user.createSpace.includes('Approver') ? 1 : 0)
   const isLastApprover = user && (approverIds?.has(user.user.id) || user.createSpace.includes('Approver')) && approversCount === 1
-
-  // Check if this user has pending approvals
-  const userPendingApprovals = user && videoStates ? Object.entries(videoStates).filter(
-    ([_, state]) => state.sentApprovers?.includes(user.user.id)
-  ).length : 0
-  const hasPendingApprovals = userPendingApprovals > 0
 
   function handleSave() {
     // Check if approver permission was added (newly selected but not in original)
@@ -2034,7 +2024,6 @@ function UsersSection({
         user={editingUser}
         users={usersList}
         approverIds={approverIds}
-        videoStates={videoStates}
         onSave={(createSpace, amplifySpace, approverPermissionAdded) => {
           if (editingUser) {
             setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u))
