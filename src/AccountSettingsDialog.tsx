@@ -2196,6 +2196,7 @@ export default function AccountSettingsDialog({
   const [approverIds, setApproverIds]   = useState<Set<string>>(externalApproverIds)
   const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled)
   const [noApproversConfirmOpen, setNoApproversConfirmOpen] = useState(false)
+  const [enableApprovalsPromptOpen, setEnableApprovalsPromptOpen] = useState(false)
   const [pendingNav, setPendingNav] = useState<NavKey | null>(null)
 
   // Sync nav when initialTab changes
@@ -2237,11 +2238,18 @@ export default function AccountSettingsDialog({
     setUsers(prev => [...prev, ...newUsers])
     if (asApprover) {
       setApproverIds(prev => { const s = new Set(prev); newUsers.forEach(u => s.add(u.user.id)); return s })
+      // Show "Enable request approvals?" prompt if approvals are disabled
+      if (!approvalsEnabled) {
+        setEnableApprovalsPromptOpen(true)
+      }
     }
   }
 
   function handleSetApprovers(ids: string[]) {
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    // Check if any new approvers are being added (not already in approverIds)
+    const newApproverAdded = ids.some(id => !approverIds.has(id))
+
     setUsers(prev => prev.map(u => ({
       ...u,
       addedAsApprover: ids.includes(u.user.id) && !u.addedAsApprover ? today : u.addedAsApprover,
@@ -2249,6 +2257,11 @@ export default function AccountSettingsDialog({
     const newApproverIds = new Set(ids)
     setApproverIds(newApproverIds)
     onApproversChange?.(newApproverIds)
+
+    // Show "Enable request approvals?" prompt if new approvers were added and approvals are disabled
+    if (newApproverAdded && !approvalsEnabled) {
+      setEnableApprovalsPromptOpen(true)
+    }
   }
 
   // Whenever the users list or approver IDs change, push the filtered approver list to parent
@@ -2449,6 +2462,43 @@ export default function AccountSettingsDialog({
               sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
             >
               Add approvers
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+
+      {/* Enable Request Approvals Prompt */}
+      <Dialog
+        open={enableApprovalsPromptOpen}
+        onClose={() => setEnableApprovalsPromptOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 480, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+            Enable request approvals?
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
+            Editors will be able to request approvals from users with approval access.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setEnableApprovalsPromptOpen(false)}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+            >
+              I'll do it later
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setEnableApprovalsPromptOpen(false)
+                setApprovalsEnabled(true)
+                onApprovalsEnabledChange?.(true)
+              }}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            >
+              Enable request approvals for all videos and templates
             </Button>
           </Box>
         </Box>
