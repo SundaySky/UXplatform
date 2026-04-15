@@ -904,7 +904,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
         <Box sx={{ px: '24px', py: '20px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '16px' }}>
             <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
-              Create new user for {trimmed}?
+              Add {trimmed} as a new user?
             </Typography>
             <IconButton size="small" onClick={() => setNewUserConfirmOpen(false)} sx={{ color: c.actionActive }}>
               <CloseIcon sx={{ fontSize: 18 }} />
