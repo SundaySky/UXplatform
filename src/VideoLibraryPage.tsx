@@ -384,7 +384,7 @@ export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?
   )
 }
 
-function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval, approversList }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void; onSubmitForApproval?: (videoKey: string, approvers: string[]) => void; approversList?: { value: string; label: string }[] }) {
+function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval, approversList, approvalsEnabled = false, onApprovalsDisabled }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void; onSubmitForApproval?: (videoKey: string, approvers: string[]) => void; approversList?: { value: string; label: string }[]; approvalsEnabled?: boolean; onApprovalsDisabled?: () => void }) {
   const [hovered,       setHovered]    = useState(false)
   const [menuAnchor,    setMenuAnchor] = useState<HTMLElement | null>(null)
   const [videoPermOpen, setVideoPermOpen] = useState(false)
@@ -534,7 +534,7 @@ function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApprova
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => { closeMenu(e); setApprovalOpen(true) }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+        <MenuItem onClick={e => { closeMenu(e); if (approvalsEnabled) { setApprovalOpen(true) } else { onApprovalsDisabled?.() } }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
           <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ImageCircleCheckIcon /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
         </MenuItem>
@@ -852,6 +852,7 @@ export default function VideoLibraryPage({
   onPermChange,
   onSubmitForApproval,
   approvalsEnabled = false,
+  onApprovalsDisabled,
   approverIds = new Set(),
   approversList = [],
   onApprovalsEnabledChange,
@@ -868,6 +869,7 @@ export default function VideoLibraryPage({
   onPermChange?:         (key: string, s: VideoPermissionSettings) => void
   onSubmitForApproval?:  (videoKey: string, approvers: string[]) => void
   approvalsEnabled?:     boolean
+  onApprovalsDisabled?:  () => void
   approverIds?:          Set<string>
   approversList?:        { value: string; label: string }[]
   onApprovalsEnabledChange?: (enabled: boolean, hasPendingApprovals?: boolean) => void
@@ -1016,6 +1018,8 @@ export default function VideoLibraryPage({
                     onPermChange={onPermChange}
                     onSubmitForApproval={onSubmitForApproval}
                     approversList={approversList}
+                    approvalsEnabled={approvalsEnabled}
+                    onApprovalsDisabled={onApprovalsDisabled}
                   />
                 </Box>
               ))}
@@ -1062,6 +1066,10 @@ export default function VideoLibraryPage({
                   liveState={videoStates?.[v.title]}
                   onClick={() => onSelectVideo(v)}
                   onPermChange={onPermChange}
+                  onSubmitForApproval={onSubmitForApproval}
+                  approversList={approversList}
+                  approvalsEnabled={approvalsEnabled}
+                  onApprovalsDisabled={onApprovalsDisabled}
                 />
               </Box>
             ))}

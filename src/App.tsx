@@ -623,8 +623,32 @@ function VideoPreviewCard({
       )
     }
 
-    // ── Phase 3+: "Approve video" — outlined, checkmark, tooltip ─────────────
-    if (videoPhase >= 3) {
+    // ── Phase 4: "Approved" status — green button, disabled ──────────────────
+    if (videoPhase === 4) {
+      return (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
+          sx={{
+            fontFamily: '"Open Sans", sans-serif',
+            fontWeight: 600,
+            bgcolor: '#D4EDDA',
+            color: '#155724',
+            '&:hover': { bgcolor: '#C3E6CB' },
+            boxShadow: 'none',
+            textTransform: 'none',
+            fontSize: 14
+          }}
+          disabled
+        >
+          Approved
+        </Button>
+      )
+    }
+
+    // ── Phase 3: "Approve video" — outlined, checkmark, tooltip ─────────────
+    if (videoPhase === 3) {
       return (
         <Tooltip
           title="Allows you to share the video with viewers"
@@ -1441,6 +1465,7 @@ export default function App() {
             onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
             onSubmitForApproval={(key, approvers) => updateVideoState(key, { sentApprovers: approvers, pageState: 'pending', sentAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) })}
             approvalsEnabled={approvalsEnabled}
+            onApprovalsDisabled={() => setApprovalsDisabledDialogOpen(true)}
             approverIds={approverIds}
             onApprovalsEnabledChange={(enabled, hasPendingApprovals) => {
               if (!enabled && hasPendingApprovals) {

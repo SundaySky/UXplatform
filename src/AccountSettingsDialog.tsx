@@ -1545,7 +1545,13 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
             Cannot remove last approver
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
-            <strong>{approverMenuUser?.user.name}</strong> is the only approver in your account. You must add another approver before removing this one{lastApproverPendingVideos.length > 0 && ' or stop the approval process for pending videos'}.
+            <strong>{approverMenuUser?.user.name}</strong> is the only approver in your account{lastApproverPendingVideos.length > 0 ? ' and has pending approvals' : ''}.
+            <br/><br/>
+            To remove them, you must first:
+            <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+              <li>Add another approver to your account</li>
+              {lastApproverPendingVideos.length > 0 && <li>Cancel or complete the pending approval process</li>}
+            </ul>
           </Typography>
           {lastApproverPendingVideos.length > 0 && (
             <>
