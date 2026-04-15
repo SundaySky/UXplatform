@@ -900,6 +900,7 @@ export default function VideoLibraryPage({
         }}
         approvalsEnabled={approvalsEnabled}
         approverIds={approverIds}
+        approversList={approversList}
         videoStates={videoStates}
         onApprovalsEnabledChange={(enabled, hasPendingApprovals) => {
           onApprovalsEnabledChange?.(enabled, hasPendingApprovals && pendingApprovalsCount > 0)

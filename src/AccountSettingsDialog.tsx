@@ -2093,6 +2093,7 @@ interface AccountSettingsDialogProps {
   onClose: () => void
   approvalsEnabled?: boolean
   approverIds?: Set<string>
+  approversList?: { value: string; label: string }[]
   onApprovalsEnabledChange?: (enabled: boolean, hasPendingApprovals?: boolean) => void
   onApproversChange?: (approverIds: Set<string>) => void
   onApproversListChange?: (approvers: { value: string; label: string }[]) => void
@@ -2107,6 +2108,7 @@ export default function AccountSettingsDialog({
   onClose,
   approvalsEnabled: externalApprovalsEnabled = false,
   approverIds: externalApproverIds = new Set(),
+  approversList: externalApproversList = [],
   onApprovalsEnabledChange,
   onApproversChange,
   onApproversListChange,
@@ -2175,13 +2177,21 @@ export default function AccountSettingsDialog({
     onApproversChange?.(newApproverIds)
   }
 
-  // Whenever the users list or their permissions change, push the filtered approver list to parent
+  // Whenever the users list or approver IDs change, push the filtered approver list to parent
+  // Include both users with Approver role AND users in the approverIds set to ensure consistency
+  // Also use external approversList as a source for users not in local users list (e.g., invited users)
   React.useEffect(() => {
-    const approverUsers = users
-      .filter(u => u.createSpace.includes('Approver'))
+    const usersWithApproverRole = users
+      .filter(u => u.createSpace.includes('Approver') || approverIds.has(u.user.id))
       .map(u => ({ value: u.user.id, label: `${u.user.name} (${u.user.email})` }))
-    onApproversListChange?.(approverUsers)
-  }, [users])
+
+    // Add any approvers from external list that aren't already in the local list
+    const localIds = new Set(usersWithApproverRole.map(u => u.value))
+    const externalApprovers = externalApproversList.filter(u => !localIds.has(u.value))
+
+    const allApprovers = [...usersWithApproverRole, ...externalApprovers]
+    onApproversListChange?.(allApprovers)
+  }, [users, approverIds, externalApproversList])
 
   // Helper function to check if a user has pending approvals
   function getUserPendingApprovals(userId: string) {
