@@ -1809,16 +1809,16 @@ function UsersSection({
               </TableCell>
               <TableCell sx={{ ...headCellSx }}>
                 <SeatHeader
-                  label="Create space"
-                                   iconTooltip="Access to the video and template editors, analytics, and AI features"
+                  label="Create access"
+                                   iconTooltip="Access to the Create workspace, including video and template editing, analytics, and AI features."
                   chipTooltip="Number of editors out of the allowed editor seats"
                   used={editorCount} total={10}
                 />
               </TableCell>
               <TableCell sx={{ ...headCellSx }}>
                 <SeatHeader
-                  label="Amplify space"
-                                   iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat."
+                  label="Amplify access"
+                                   iconTooltip="Access to published templates and analytics for sent videos. Users with Create editor access don't require a contributor seat."
                   chipTooltip="Number of contributors out of the allowed contributor seats"
                   used={contributorCount} total={10}
                 />

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import {
   Box, Typography, Button, Avatar, IconButton, Tooltip, SvgIcon,
   InputAdornment, OutlinedInput,
@@ -888,6 +888,23 @@ export default function VideoLibraryPage({
   // Count pending approvals across all videos
   const pendingApprovalsCount = videoStates ? Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length : 0
 
+  // Memoize callbacks to prevent infinite loops in child components
+  const handleApprovalsEnabledChange = useCallback((enabled: boolean, hasPendingApprovals?: boolean) => {
+    onApprovalsEnabledChange?.(enabled, hasPendingApprovals && pendingApprovalsCount > 0)
+  }, [onApprovalsEnabledChange, pendingApprovalsCount])
+
+  const handleApproversChange = useCallback((ids: Set<string>) => {
+    onApproversChange?.(ids)
+  }, [onApproversChange])
+
+  const handleApproversListChange = useCallback((approvers: { value: string; label: string }[]) => {
+    onApproversListChange?.(approvers)
+  }, [onApproversListChange])
+
+  const handleUserDeletionBlocked = useCallback((userId: string, reason: 'only-approver' | 'pending-approvals') => {
+    parentOnUserDeletionBlocked?.(userId, reason)
+  }, [parentOnUserDeletionBlocked])
+
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: '#FFFFFF', overflow: 'hidden' }}>
       <AccountSettingsDialog
@@ -902,18 +919,10 @@ export default function VideoLibraryPage({
         approverIds={approverIds}
         approversList={approversList}
         videoStates={videoStates}
-        onApprovalsEnabledChange={(enabled, hasPendingApprovals) => {
-          onApprovalsEnabledChange?.(enabled, hasPendingApprovals && pendingApprovalsCount > 0)
-        }}
-        onApproversChange={(ids) => {
-          onApproversChange?.(ids)
-        }}
-        onApproversListChange={(approvers) => {
-          onApproversListChange?.(approvers)
-        }}
-        onUserDeletionBlocked={(userId, reason) => {
-          parentOnUserDeletionBlocked?.(userId, reason)
-        }}
+        onApprovalsEnabledChange={handleApprovalsEnabledChange}
+        onApproversChange={handleApproversChange}
+        onApproversListChange={handleApproversListChange}
+        onUserDeletionBlocked={handleUserDeletionBlocked}
         pendingApprovalsCount={pendingApprovalsCount}
       />
       <AppSidebar />
