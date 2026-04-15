@@ -22,7 +22,7 @@ const ds = {
   labelInfoColor: '#284862',
 }
 
-const USERS = [
+const DEFAULT_USERS = [
   { value: 'sjohnson',   label: 'Sarah Johnson (sjohnson@company.com)' },
   { value: 'mchen',      label: 'Michael Chen (mchen@company.com)' },
   { value: 'erodriguez', label: 'Emma Rodriguez (erodriguez@company.com)' },
@@ -36,9 +36,11 @@ interface Props {
   open: boolean
   onClose: () => void
   onSend: (approvers: string[]) => void
+  availableApprovers?: { value: string; label: string }[]
 }
 
-export default function ApprovalDialog({ open, onClose, onSend }: Props) {
+export default function ApprovalDialog({ open, onClose, onSend, availableApprovers }: Props) {
+  const USERS = availableApprovers !== undefined ? availableApprovers : DEFAULT_USERS
   const [comment,   setComment]   = useState('')
   const [approvers, setApprovers] = useState<ApproverRow[]>([{ value: '', logic: 'AND' }])
 

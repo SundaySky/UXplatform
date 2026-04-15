@@ -51,13 +51,13 @@ interface AccountUser {
   addedAsApprover?: string
 }
 
-const INITIAL_USERS: AccountUser[] = [
+export const INITIAL_USERS: AccountUser[] = [
   { user: OWNER_USER,    isOwner: true, createSpace: 'Account owner', amplifySpace: 'Contributor', jobRole: 'Integrator',      lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
   { user: ALL_USERS[1],               createSpace: 'Editor',          amplifySpace: 'Contributor',   jobRole: 'Data Analyst',    lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
   { user: ALL_USERS[2],               createSpace: 'Editor',          amplifySpace: 'No access',     jobRole: 'Marketing',       lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
   { user: ALL_USERS[3],               createSpace: 'No access',       amplifySpace: 'Contributor',   jobRole: 'Creative Agency', lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
   { user: ALL_USERS[4],               createSpace: 'Viewer',          amplifySpace: 'No access',     jobRole: 'Marketing',       lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
-  { user: ALL_USERS[5],               createSpace: 'Editor and Approver', amplifySpace: 'Contributor', jobRole: 'Marketing', lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
+  { user: ALL_USERS[5],               createSpace: 'Editor',              amplifySpace: 'Contributor', jobRole: 'Marketing', lastLogin: 'Sep 8, 2022, 10:23 am', createdDate: 'Sep 8, 2022, 10:23 am' },
 ]
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
@@ -104,6 +104,15 @@ function CreateSpaceSelector({
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const displayText = selected.length > 0 ? selected.join(', ') : 'No access'
 
+  // Permission descriptions
+  const permissionDescriptions: Record<string, string> = {
+    'Account owner': 'Can edit, add users and change permissions',
+    'Editor': 'Can edit videos and templates',
+    'Approver': 'Can approve videos and templates and leave feedback',
+    'Viewer': 'Have access to videos and template content with no option to share or edit',
+    'No access': 'Cannot view or edit videos and templates'
+  }
+
   return (
     <>
       <FormControl fullWidth size="small">
@@ -130,13 +139,14 @@ function CreateSpaceSelector({
         anchorEl={anchorEl}
         open={!!anchorEl}
         onClose={() => setAnchorEl(null)}
-        PaperProps={{ sx: { borderRadius: '8px', minWidth: 280 } }}
+        PaperProps={{ sx: { borderRadius: '8px', minWidth: 320 } }}
       >
         {options.map(option => {
           const isLocked   = option === lockedOption
           const isDisabled = isLocked || isPermissionDisabled(option)
           const tooltip    = isLocked ? `${option} is required and cannot be removed` : getDisabledTooltip(option)
           const isChecked  = isLocked ? true : selected.includes(option)
+          const description = permissionDescriptions[option] || ''
 
           const menuItem = (
             <Box
@@ -159,7 +169,7 @@ function CreateSpaceSelector({
               }}
               sx={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: '8px',
                 px: '12px',
                 py: '10px',
@@ -172,11 +182,18 @@ function CreateSpaceSelector({
                 checked={isChecked}
                 disabled={isDisabled}
                 size="small"
-                sx={{ '&.Mui-checked': { color: isLocked ? c.textSecondary : c.primary }, '&.Mui-checked.Mui-disabled': { color: c.textSecondary } }}
+                sx={{ '&.Mui-checked': { color: isLocked ? c.textSecondary : c.primary }, '&.Mui-checked.Mui-disabled': { color: c.textSecondary }, mt: '2px', flexShrink: 0 }}
               />
-              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: isDisabled ? c.textSecondary : c.textPrimary }}>
-                {option}
-              </Typography>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: isDisabled ? c.textSecondary : c.textPrimary }}>
+                  {option}
+                </Typography>
+                {description && (
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mt: '2px', lineHeight: 1.4 }}>
+                    {description}
+                  </Typography>
+                )}
+              </Box>
             </Box>
           )
 
@@ -194,21 +211,19 @@ function CreateSpaceSelector({
 // ─── Shared user avatar cell ──────────────────────────────────────────────────
 function UserCell({ row }: { row: AccountUser }) {
   return (
-    <Tooltip title={row.user.email} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'default' }}>
-        <Avatar sx={{ width: 32, height: 32, bgcolor: c.secondary, fontSize: 11, fontFamily: '"Inter",sans-serif', fontWeight: 600, flexShrink: 0, borderRadius: '8px' }}>
-          {row.user.initials}
-        </Avatar>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {row.user.name}
-          </Typography>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {row.jobRole}
-          </Typography>
-        </Box>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'default' }}>
+      <Avatar sx={{ width: 32, height: 32, bgcolor: c.secondary, fontSize: 11, fontFamily: '"Inter",sans-serif', fontWeight: 600, flexShrink: 0, borderRadius: '8px' }}>
+        {row.user.initials}
+      </Avatar>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {row.user.name}
+        </Typography>
+        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {row.jobRole}
+        </Typography>
       </Box>
-    </Tooltip>
+    </Box>
   )
 }
 
@@ -253,7 +268,7 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
   const [rows, setRows]         = useState<(InviteRow & { createSpaceSelected: string[], emailError?: string })[]>([defaultRow])
   const [noSeatsOpen, setNoSeatsOpen] = useState(false)
   const [validationTimeouts, setValidationTimeouts] = useState<Record<number, ReturnType<typeof setTimeout>>>({})
-  const [existingUserDialogOpen, setExistingUserDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<'add' | 'existing'>('add')
   const [existingUser, setExistingUser] = useState<AccountUser | null>(null)
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
@@ -305,15 +320,34 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
       // Set new timeout to validate after 500ms
       if (val.trim().length > 0) {
         const timeout = setTimeout(() => {
-          setRows(prevRows =>
-            prevRows.map((row, idx) => {
-              if (idx !== i) return row
-              return {
-                ...row,
-                emailError: isValidEmail(val.trim()) ? '' : 'Enter a valid email address'
-              }
-            })
-          )
+          const trimmedEmail = val.trim()
+          const isValid = isValidEmail(trimmedEmail)
+
+          if (!isValid) {
+            setRows(prevRows =>
+              prevRows.map((row, idx) => {
+                if (idx !== i) return row
+                return {
+                  ...row,
+                  emailError: 'Enter a valid email address'
+                }
+              })
+            )
+          } else {
+            // Check if email matches an existing user
+            const existingMatch = users.find(u => u.user.email.toLowerCase() === trimmedEmail.toLowerCase())
+            if (existingMatch) {
+              setExistingUser(existingMatch)
+              setDialogMode('existing')
+            } else {
+              setRows(prevRows =>
+                prevRows.map((row, idx) => {
+                  if (idx !== i) return row
+                  return { ...row, emailError: '' }
+                })
+              )
+            }
+          }
         }, 500)
         setValidationTimeouts(prev => ({ ...prev, [i]: timeout }))
       }
@@ -323,19 +357,6 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
   function handleSend() {
     const valid = rows.filter(r => r.email.trim())
     if (!valid.length) return
-
-    // Check if any email already exists in the account
-    const firstExisting = valid.find(r =>
-      users.some(u => u.user.email.toLowerCase() === r.email.trim().toLowerCase())
-    )
-    if (firstExisting) {
-      const user = users.find(u => u.user.email.toLowerCase() === firstExisting.email.trim().toLowerCase())
-      if (user) {
-        setExistingUser(user)
-        setExistingUserDialogOpen(true)
-      }
-      return
-    }
 
     const newCreateSeats = valid.filter(r =>
       r.createSpaceSelected.includes('Editor') || r.createSpaceSelected.includes('Approver')
@@ -375,15 +396,63 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 520, borderRadius: '12px', p: 0 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: dialogMode === 'existing' ? 500 : 520, borderRadius: '12px', p: 0 } }}>
       <Box sx={{ px: '24px', py: '20px' }}>
         {/* Title */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>Add users</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: dialogMode === 'existing' ? '16px' : '24px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
+            {dialogMode === 'existing' ? 'Add user' : 'Add users'}
+          </Typography>
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
 
-        {/* Rows */}
+        {dialogMode === 'existing' && existingUser ? (
+          <>
+            {/* Existing user dialog content */}
+            <OutlinedInput
+              fullWidth
+              disabled
+              value={existingUser.user.email}
+              placeholder="user@example.com"
+              sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, mb: '16px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '12px', bgcolor: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '8px', px: '14px', py: '12px', mb: '24px' }}>
+              <InfoOutlinedIcon sx={{ fontSize: 16, color: '#D97706', mt: '1px', flexShrink: 0 }} />
+              <Box>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, fontWeight: 600, mb: '4px' }}>
+                  This email is already in use in this account.
+                </Typography>
+                <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
+                  You can edit the user type if necessary.
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <Button
+                variant="outlined"
+                onClick={() => setDialogMode('add')}
+                sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  if (existingUser) {
+                    onEditExistingUser?.(existingUser)
+                    setDialogMode('add')
+                  }
+                }}
+                sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+              >
+                Edit user type
+              </Button>
+            </Box>
+          </>
+        ) : (
+          <>
+            {/* Add users dialog content */}
+            {/* Rows */}
         {rows.map((row, i) => (
           <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: '24px', mb: '20px', pb: '20px', borderBottom: `1px solid ${c.grey300}` }}>
             <Box>
@@ -420,8 +489,26 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
             <Box>
               <SeatHeader label="Amplify space" chipTooltip="Number of contributors out of the allowed contributor seats" used={displayContributorCount} total={10} />
               <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
-                <Select value={row.amplifySpace} onChange={e => updateRow(i, 'amplifySpace', e.target.value as string)} sx={selectSx}>
-                  {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
+                <Select value={row.amplifySpace} onChange={e => updateRow(i, 'amplifySpace', e.target.value as string)} renderValue={v => v as string} sx={selectSx}>
+                  {amplifySpaceOptions.map(o => (
+                    <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, py: '12px' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
+                          {o}
+                        </Typography>
+                        {o === 'Contributor' && (
+                          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                            Can access templates made by editors
+                          </Typography>
+                        )}
+                        {o === 'No access' && (
+                          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                            Cannot access any templates or contributors features
+                          </Typography>
+                        )}
+                      </Box>
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Box>
@@ -455,23 +542,25 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
           </Box>
         )}
 
-        {/* Actions */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-          <Button
-            variant="outlined"
-            onClick={onClose}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSend}
-            disabled={!rows.some(r => r.email.trim()) || displayCreateSpaceCount > 10 || displayContributorCount > 10 || rows.some(r => r.emailError)}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' }, '&.Mui-disabled': { bgcolor: c.grey300, color: '#fff', boxShadow: 'none' } }}
-          >
-            Add users
-          </Button>
-        </Box>
+            {/* Actions */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <Button
+                variant="outlined"
+                onClick={onClose}
+                sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleSend}
+                disabled={!rows.some(r => r.email.trim()) || displayCreateSpaceCount > 10 || displayContributorCount > 10 || rows.some(r => r.emailError)}
+                sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' }, '&.Mui-disabled': { bgcolor: c.grey300, color: '#fff', boxShadow: 'none' } }}
+              >
+                Add users
+              </Button>
+            </Box>
+          </>
+        )}
       </Box>
 
       {/* No seats dialog */}
@@ -496,57 +585,6 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
         </Box>
       </Dialog>
 
-      {/* Existing user dialog */}
-      <Dialog open={existingUserDialogOpen} onClose={() => setExistingUserDialogOpen(false)} maxWidth={false} PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}>
-        <Box sx={{ px: '24px', py: '20px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '16px' }}>
-            Add user
-          </Typography>
-          {existingUser && (
-            <>
-              <OutlinedInput
-                fullWidth
-                disabled
-                value={existingUser.user.email}
-                placeholder="user@example.com"
-                sx={{ fontSize: 13, fontFamily: '"Open Sans",sans-serif', borderRadius: '8px', height: 40, mb: '16px', '& .MuiOutlinedInput-notchedOutline': { borderColor: c.grey300 } }}
-              />
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '12px', bgcolor: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '8px', px: '14px', py: '12px', mb: '24px' }}>
-                <InfoOutlinedIcon sx={{ fontSize: 16, color: '#D97706', mt: '1px', flexShrink: 0 }} />
-                <Box>
-                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, fontWeight: 600, mb: '4px' }}>
-                    This email is already in use in this account.
-                  </Typography>
-                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                    You can edit the user type if necessary.
-                  </Typography>
-                </Box>
-              </Box>
-            </>
-          )}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <Button
-              variant="outlined"
-              onClick={() => setExistingUserDialogOpen(false)}
-              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => {
-                if (existingUser) {
-                  onEditExistingUser?.(existingUser)
-                  setExistingUserDialogOpen(false)
-                }
-              }}
-              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
-            >
-              Edit user type
-            </Button>
-          </Box>
-        </Box>
-      </Dialog>
     </Dialog>
   )
 }
@@ -957,7 +995,11 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
 
   React.useEffect(() => {
     const initial = user?.createSpace || 'Viewer'
-    setCreateSpaceSelected(initial ? initial.split(', ') : ['Viewer'])
+    // Normalize: handle both ', ' and ' and ' as separators
+    const parsed = initial
+      ? initial.split(/,\s*|\s+and\s+/).map(s => s.trim()).filter(Boolean)
+      : ['Viewer']
+    setCreateSpaceSelected(parsed)
     setCreateSpace(initial)
     setAmplifySpace(user?.amplifySpace || 'No access')
   }, [user, open])
@@ -999,8 +1041,26 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
         <Box sx={{ mb: '24px' }}>
           <SeatHeader label="Amplify space" iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
           <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
-            <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} sx={selectSx}>
-              {amplifySpaceOptions.map(o => <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13 }}>{o}</MenuItem>)}
+            <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} renderValue={v => v as string} sx={selectSx}>
+              {amplifySpaceOptions.map(o => (
+                <MenuItem key={o} value={o} sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, py: '12px' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>
+                      {o}
+                    </Typography>
+                    {o === 'Contributor' && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                        Can access templates made by editors
+                      </Typography>
+                    )}
+                    {o === 'No access' && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                        Cannot access any templates or contributors features
+                      </Typography>
+                    )}
+                  </Box>
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Box>
@@ -1111,7 +1171,7 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
 
 
 // ─── Approvals Section ────────────────────────────────────────────────────────
-function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged }: {
+function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, pendingApprovalsCount = 0, onTurnOffBlocked, videoStates = {} }: {
   users:          AccountUser[]
   approverIds:    Set<string>
   enabled:        boolean
@@ -1119,6 +1179,9 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   onSetApprovers: (ids: string[]) => void
   onAddUsers:     (rows: InviteRow[], asApprover: boolean) => void
   onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
+  pendingApprovalsCount?: number
+  onTurnOffBlocked?: () => void
+  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
 }) {
   const [search, setSearch]               = useState('')
   const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false)
@@ -1130,6 +1193,8 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [approverMenuAnchor, setApproverMenuAnchor] = useState<HTMLElement | null>(null)
   const [approverMenuUser, setApproverMenuUser]     = useState<AccountUser | null>(null)
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
+  const [lastApproverDialogOpen, setLastApproverDialogOpen] = useState(false)
+  const [lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string }[]>([])
 
   // Initialize approverIds from users with Approver role when section loads
   // This ensures approvers show even when the feature is initially disabled
@@ -1161,13 +1226,13 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
 
   function handleToggle(v: boolean) {
     if (v) {
-      // Turning ON - no need for confirmation
       onToggle(true)
+    } else if (pendingApprovalsCount > 0) {
+      onTurnOffBlocked?.()  // notify parent to show Cannot Turn Off dialog
+      // Do NOT call onToggle(false) — keep it ON
     } else if (!v && approverIds.size > 0) {
-      // Turning OFF with approvers - show confirmation
       setToggleConfirmOpen(true)
     } else {
-      // Turning OFF with no approvers - proceed directly
       onToggle(false)
     }
   }
@@ -1322,28 +1387,30 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                   ))}
                 </Box>,
                 <Divider key="divider" sx={{ my: '4px' }} />,
-                isLastApprover ? (
-                  <Tooltip key="remove" title="Cannot remove the last approver when approvals are required" placement="right" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                    <span>
-                      <MenuItem
-                        disabled
-                        sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px', opacity: 0.5 }}
-                      >
-                        <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
-                        Remove approver role
-                      </MenuItem>
-                    </span>
-                  </Tooltip>
-                ) : (
-                  <MenuItem
-                    key="remove"
-                    onClick={() => { setApproverToRemove(approverMenuUser); setRemoveApproverOpen(true); setApproverMenuAnchor(null) }}
-                    sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
-                  >
-                    <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
-                    Remove approver role
-                  </MenuItem>
-                ),
+                <MenuItem
+                  key="remove"
+                  onClick={() => {
+                    setApproverMenuAnchor(null)
+                    if (!approverMenuUser) return
+
+                    if (isLastApprover) {
+                      // Check for pending approvals for this last approver
+                      const pendingVideos = Object.entries(videoStates)
+                        .filter(([_, state]) => state.sentApprovers?.includes(approverMenuUser.user.id))
+                        .map(([title, state]) => ({ title, sentAt: state.sentAt }))
+
+                      setLastApproverPendingVideos(pendingVideos)
+                      setLastApproverDialogOpen(true)
+                    } else {
+                      setApproverToRemove(approverMenuUser)
+                      setRemoveApproverOpen(true)
+                    }
+                  }}
+                  sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
+                >
+                  <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
+                  Remove approver role
+                </MenuItem>,
               ]}
             </Menu>
           </Box>
@@ -1466,6 +1533,61 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         </Box>
       </Dialog>
 
+      {/* Last Approver Dialog */}
+      <Dialog
+        open={lastApproverDialogOpen}
+        onClose={() => setLastApproverDialogOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
+            Cannot remove last approver
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
+            <strong>{approverMenuUser?.user.name}</strong> is the only approver in your account. You must add another approver before removing this one{lastApproverPendingVideos.length > 0 && ' or stop the approval process for pending videos'}.
+          </Typography>
+          {lastApproverPendingVideos.length > 0 && (
+            <>
+              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '8px', fontWeight: 600 }}>
+                Pending approvals:
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
+                {lastApproverPendingVideos.map(v => (
+                  <Box key={v.title} sx={{ display: 'flex', gap: '12px', alignItems: 'flex-start', bgcolor: '#FAFBFD', borderRadius: '8px', p: '12px' }}>
+                    <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
+                        {v.title}
+                      </Typography>
+                      {v.sentAt && (
+                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                          Sent for approval: {v.sentAt}
+                        </Typography>
+                      )}
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
+                        Awaiting approval
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
+          <Button
+            variant="contained"
+            onClick={() => setLastApproverDialogOpen(false)}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+          >
+            Got it
+          </Button>
+        </Box>
+      </Dialog>
+
     </Box>
   )
 }
@@ -1477,7 +1599,8 @@ function UsersSection({
   onUserDeleted,
   onPermissionsChanged,
   approvalsEnabled = false,
-  approverIds = new Set()
+  approverIds = new Set(),
+  videoStates = {}
 }: {
   users: AccountUser[]
   onInviteUser: (rows: InviteRow[]) => void
@@ -1485,15 +1608,18 @@ function UsersSection({
   onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
   approvalsEnabled?: boolean
   approverIds?: Set<string>
+  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
 }) {
   const [search, setSearch]     = useState('')
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [editPermOpen, setEditPermOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<'closed' | 'add' | 'edit'>('closed')
   const [editingUser, setEditingUser] = useState<AccountUser | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null)
   const [cannotRemoveApproverOpen, setCannotRemoveApproverOpen] = useState(false)
+  const [soleApproverWarningOpen, setSoleApproverWarningOpen] = useState(false)
+  const [pendingApprovalDeleteOpen, setPendingApprovalDeleteOpen] = useState(false)
+  const [pendingVideosForUser, setPendingVideosForUser] = useState<{ title: string; sentAt?: string; otherApprovers: string[] }[]>([])
   const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(null)
   const [userMenuUser, setUserMenuUser]     = useState<AccountUser | null>(null)
   const [usersList, setUsersList] = useState<AccountUser[]>(users)
@@ -1524,7 +1650,7 @@ function UsersSection({
           <Button
             startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
             variant="outlined"
-            onClick={() => setInviteOpen(true)}
+            onClick={() => setDialogMode('add')}
             sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: '16px', py: '7px', color: c.primary, borderColor: c.grey300, '&:hover': { bgcolor: c.primaryLight, borderColor: c.primary, boxShadow: 'none' } }}
           >
             Add user
@@ -1591,7 +1717,7 @@ function UsersSection({
                       <Box sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {isHovered && !row.isOwner && (
                           <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                            <IconButton size="small" onClick={() => { setEditingUser(row); setEditPermOpen(true) }} sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}>
+                            <IconButton size="small" onClick={() => { setEditingUser(row); setDialogMode('edit') }} sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}>
                               <EditOutlinedIcon sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
@@ -1607,7 +1733,7 @@ function UsersSection({
                       <Box sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {isHovered && !row.isOwner && (
                           <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                            <IconButton size="small" onClick={() => { setEditingUser(row); setEditPermOpen(true) }} sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}>
+                            <IconButton size="small" onClick={() => { setEditingUser(row); setDialogMode('edit') }} sx={{ color: c.primary, '&:hover': { bgcolor: 'rgba(0,83,229,0.1)' }, p: '4px' }}>
                               <EditOutlinedIcon sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
@@ -1639,21 +1765,20 @@ function UsersSection({
       </Box>
 
       <AddUserDialog
-        open={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        onSend={rows => { onInviteUser(rows); setInviteOpen(false) }}
+        open={dialogMode === 'add'}
+        onClose={() => setDialogMode('closed')}
+        onSend={rows => { onInviteUser(rows); setDialogMode('closed') }}
         users={usersList}
         onEditExistingUser={(user) => {
           setEditingUser(user)
-          setEditPermOpen(true)
-          setInviteOpen(false)
+          setDialogMode('edit')
         }}
       />
 
       {/* Edit Permissions Dialog */}
       <EditPermissionsDialog
-        open={editPermOpen}
-        onClose={() => setEditPermOpen(false)}
+        open={dialogMode === 'edit'}
+        onClose={() => setDialogMode('closed')}
         user={editingUser}
         users={usersList}
         onSave={(createSpace, amplifySpace) => {
@@ -1713,6 +1838,115 @@ function UsersSection({
         </Box>
       </Dialog>
 
+      {/* Sole Approver Warning — Cannot Remove */}
+      <Dialog
+        open={soleApproverWarningOpen}
+        onClose={() => setSoleApproverWarningOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
+            Cannot remove this user
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
+            <strong>{userToDelete?.user.name}</strong> is the only approver on a video currently awaiting approval. To remove this user, first stop the approval process for the following {pendingVideosForUser.filter(v => v.otherApprovers.length === 0).length > 1 ? 'videos' : 'video'}:
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
+            {pendingVideosForUser.filter(v => v.otherApprovers.length === 0).map(v => (
+              <Box key={v.title} sx={{ display: 'flex', gap: '12px', alignItems: 'flex-start', bgcolor: '#FAFBFD', borderRadius: '8px', p: '12px' }}>
+                <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
+                    {v.title}
+                  </Typography>
+                  {v.sentAt && (
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                      Sent for approval: {v.sentAt}
+                    </Typography>
+                  )}
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
+                    Awaiting approval
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
+          <Button
+            variant="contained"
+            onClick={() => setSoleApproverWarningOpen(false)}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+          >
+            Got it
+          </Button>
+        </Box>
+      </Dialog>
+
+      {/* Pending Approvals Delete Warning */}
+      <Dialog
+        open={pendingApprovalDeleteOpen}
+        onClose={() => setPendingApprovalDeleteOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
+            This user has pending approvals
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
+            <strong>{userToDelete?.user.name}</strong> will no longer be an approver for the following {pendingVideosForUser.length > 1 ? 'videos' : 'video'}. All existing comments made by this user will still remain.
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
+            {pendingVideosForUser.map(v => (
+              <Box key={v.title} sx={{ display: 'flex', gap: '12px', alignItems: 'flex-start', bgcolor: '#FAFBFD', borderRadius: '8px', p: '12px' }}>
+                <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
+                    {v.title}
+                  </Typography>
+                  {v.sentAt && (
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                      Sent for approval: {v.sentAt}
+                    </Typography>
+                  )}
+                  <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
+                    Awaiting approval
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
+          <Button
+            variant="outlined"
+            onClick={() => setPendingApprovalDeleteOpen(false)}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setPendingApprovalDeleteOpen(false)
+              if (userToDelete) {
+                setUsersList(prev => prev.filter(u => u.user.id !== userToDelete.user.id))
+                onUserDeleted?.(userToDelete.user.id)
+              }
+            }}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: '#E62843', boxShadow: 'none', '&:hover': { bgcolor: '#C81E38', boxShadow: 'none' } }}
+          >
+            Delete user anyway
+          </Button>
+        </Box>
+      </Dialog>
+
       {/* Options popup menu — media-library style */}
       <Menu
         anchorEl={userMenuAnchor}
@@ -1745,7 +1979,7 @@ function UsersSection({
           <Divider key="divider" sx={{ my: '4px' }} />,
           <MenuItem
             key="edit"
-            onClick={() => { setEditingUser(userMenuUser); setEditPermOpen(true); setUserMenuAnchor(null) }}
+            onClick={() => { setEditingUser(userMenuUser); setDialogMode('edit'); setUserMenuAnchor(null) }}
             sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, px: '16px', py: '8px', gap: '10px' }}
           >
             <EditOutlinedIcon sx={{ fontSize: 16, color: c.actionActive }} />
@@ -1755,16 +1989,34 @@ function UsersSection({
             key="remove"
             onClick={() => {
               if (userMenuUser) {
-                // Check if this user is the only approver and approvals are enabled
-                const isOnlyApprover = approvalsEnabled && approverIds.size === 1 && approverIds.has(userMenuUser.user.id)
-                if (isOnlyApprover) {
-                  setUserToDelete(userMenuUser)
-                  setCannotRemoveApproverOpen(true)
-                  setUserMenuAnchor(null)
+                setUserMenuAnchor(null)
+                setUserToDelete(userMenuUser)
+
+                // Get videos where this user is an approver and approval is pending
+                const pendingVideos = Object.entries(videoStates)
+                  .filter(([_, state]) => state.sentApprovers?.includes(userMenuUser.user.id))
+                  .map(([title, state]) => ({
+                    title,
+                    sentAt: state.sentAt,
+                    otherApprovers: (state.sentApprovers || []).filter(id => id !== userMenuUser.user.id)
+                  }))
+
+                if (pendingVideos.length > 0) {
+                  const isSoleOnAny = pendingVideos.some(v => v.otherApprovers.length === 0)
+                  setPendingVideosForUser(pendingVideos)
+                  if (isSoleOnAny) {
+                    setSoleApproverWarningOpen(true)
+                  } else {
+                    setPendingApprovalDeleteOpen(true)
+                  }
                 } else {
-                  setUserToDelete(userMenuUser)
-                  setDeleteOpen(true)
-                  setUserMenuAnchor(null)
+                  // No pending approvals — check normal approver rules
+                  const isOnlyApprover = approvalsEnabled && approverIds.size === 1 && approverIds.has(userMenuUser.user.id)
+                  if (isOnlyApprover) {
+                    setCannotRemoveApproverOpen(true)
+                  } else {
+                    setDeleteOpen(true)
+                  }
                 }
               }
             }}
@@ -1791,13 +2043,53 @@ function PlaceholderSection({ label }: { label: string }) {
 }
 
 // ─── Main dialog ──────────────────────────────────────────────────────────────
-export default function AccountSettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [nav, setNav]                   = useState<NavKey>('users')
+interface VideoStateForApprovals {
+  sentApprovers?: string[]
+  sentAt?: string
+}
+
+interface AccountSettingsDialogProps {
+  open: boolean
+  onClose: () => void
+  approvalsEnabled?: boolean
+  approverIds?: Set<string>
+  onApprovalsEnabledChange?: (enabled: boolean, hasPendingApprovals?: boolean) => void
+  onApproversChange?: (approverIds: Set<string>) => void
+  onApproversListChange?: (approvers: { value: string; label: string }[]) => void
+  onUserDeletionBlocked?: (userId: string, reason: 'only-approver' | 'pending-approvals') => void
+  videoStates?: Record<string, VideoStateForApprovals>
+  pendingApprovalsCount?: number
+  initialTab?: 'users' | 'permissions' | 'approvals' | 'access'
+}
+
+export default function AccountSettingsDialog({
+  open,
+  onClose,
+  approvalsEnabled: externalApprovalsEnabled = false,
+  approverIds: externalApproverIds = new Set(),
+  onApprovalsEnabledChange,
+  onApproversChange,
+  onApproversListChange,
+  onUserDeletionBlocked,
+  videoStates = {},
+  pendingApprovalsCount = 0,
+  initialTab = 'users',
+}: AccountSettingsDialogProps) {
+  const [nav, setNav]                   = useState<NavKey>(initialTab)
   const [users, setUsers]               = useState<AccountUser[]>(INITIAL_USERS)
-  const [approverIds, setApproverIds]   = useState<Set<string>>(new Set())
-  const [approvalsEnabled, setApprovalsEnabled] = useState(false)
+  const [approverIds, setApproverIds]   = useState<Set<string>>(externalApproverIds)
+  const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled)
   const [noApproversConfirmOpen, setNoApproversConfirmOpen] = useState(false)
   const [pendingNav, setPendingNav] = useState<NavKey | null>(null)
+
+  // Sync external approvals state
+  React.useEffect(() => {
+    setApprovalsEnabled(externalApprovalsEnabled)
+  }, [externalApprovalsEnabled])
+
+  React.useEffect(() => {
+    setApproverIds(externalApproverIds)
+  }, [externalApproverIds])
 
   function handleInviteUser(rows: InviteRow[], asApprover = false) {
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -1823,7 +2115,33 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
       ...u,
       addedAsApprover: ids.includes(u.user.id) && !u.addedAsApprover ? today : u.addedAsApprover,
     })))
-    setApproverIds(new Set(ids))
+    const newApproverIds = new Set(ids)
+    setApproverIds(newApproverIds)
+    onApproversChange?.(newApproverIds)
+  }
+
+  // Whenever the users list or their permissions change, push the filtered approver list to parent
+  React.useEffect(() => {
+    const approverUsers = users
+      .filter(u => u.createSpace.includes('Approver'))
+      .map(u => ({ value: u.user.id, label: `${u.user.name} (${u.user.email})` }))
+    onApproversListChange?.(approverUsers)
+  }, [users])
+
+  // Helper function to check if a user has pending approvals
+  function getUserPendingApprovals(userId: string) {
+    const videoTitles: string[] = []
+    Object.entries(videoStates).forEach(([videoTitle, state]) => {
+      if (state.sentApprovers?.includes(userId)) {
+        videoTitles.push(videoTitle)
+      }
+    })
+    return videoTitles
+  }
+
+  // Helper function to check how many approvers are on a specific pending approval
+  function getApproverCountForVideo(videoTitle: string): number {
+    return videoStates[videoTitle]?.sentApprovers?.length ?? 0
   }
 
   return (
@@ -1882,6 +2200,18 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
             users={users}
             onInviteUser={rows => handleInviteUser(rows, false)}
             onUserDeleted={(userId) => {
+              const pendingApprovalsForUser = getUserPendingApprovals(userId)
+              if (approvalsEnabled && pendingApprovalsForUser.length > 0) {
+                // Check if this user is the only approver on any pending approval
+                const isOnlyApproverOnAny = pendingApprovalsForUser.some(videoTitle => {
+                  const approvalCount = getApproverCountForVideo(videoTitle)
+                  return approvalCount === 1
+                })
+                if (isOnlyApproverOnAny) {
+                  onUserDeletionBlocked?.(userId, 'only-approver')
+                  return
+                }
+              }
               setUsers(prev => prev.filter(u => u.user.id !== userId))
               setApproverIds(prev => { const s = new Set(prev); s.delete(userId); return s })
             }}
@@ -1903,6 +2233,7 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
             }}
             approvalsEnabled={approvalsEnabled}
             approverIds={approverIds}
+            videoStates={videoStates}
           />
         )}
           {nav === 'permissions' && <PlaceholderSection label="Permissions" />}
@@ -1911,14 +2242,30 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
               users={users}
               approverIds={approverIds}
               enabled={approvalsEnabled}
-              onToggle={setApprovalsEnabled}
-              onSetApprovers={handleSetApprovers}
+              onToggle={(enabled) => {
+                setApprovalsEnabled(enabled)
+                // Notify parent if approvals are being turned OFF with pending approvals
+                if (!enabled && pendingApprovalsCount > 0) {
+                  onApprovalsEnabledChange?.(enabled, true)
+                } else {
+                  onApprovalsEnabledChange?.(enabled)
+                }
+              }}
+              onSetApprovers={(ids) => {
+                handleSetApprovers(ids)
+              }}
               onAddUsers={(rows, asApprover) => handleInviteUser(rows, asApprover)}
               onPermissionsChanged={(userId, createSpace, amplifySpace) => {
                 setUsers(prev => prev.map(u =>
                   u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
                 ))
               }}
+              pendingApprovalsCount={pendingApprovalsCount}
+              onTurnOffBlocked={() => {
+                onApprovalsEnabledChange?.(false, true)
+                // do NOT call setApprovalsEnabled(false) — keep it ON
+              }}
+              videoStates={videoStates}
             />
           )}
           {nav === 'access'      && <PlaceholderSection label="Access" />}
@@ -1946,6 +2293,7 @@ export default function AccountSettingsDialog({ open, onClose }: { open: boolean
                 setNoApproversConfirmOpen(false)
                 // Disable approvals
                 setApprovalsEnabled(false)
+                onApprovalsEnabledChange?.(false)
                 setPendingNav(null)
                 // Navigate to pending tab if set
                 if (pendingNav) {
