@@ -938,12 +938,14 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 }
 
 // ─── Edit Permissions Dialog ──────────────────────────────────────────────────
-function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
+function EditPermissionsDialog({ open, onClose, user, users, onSave, approverIds, videoStates }: {
   open: boolean
   onClose: () => void
   user: AccountUser | null
   users: AccountUser[]
   onSave: (createSpace: string, amplifySpace: string, approverPermissionAdded?: boolean) => void
+  approverIds?: Set<string>
+  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
 }) {
   const privilegedSeats = countPrivilegedCreateSpaceSeats(users)
   const editorCount = countEditorSeats(users)
@@ -978,6 +980,8 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
     if (permission === 'Viewer' && (createSpaceSelected.includes('Editor') || createSpaceSelected.includes('Approver'))) return true
     if (permission === 'Editor' && createSpaceSelected.includes('Viewer')) return true
     if (permission === 'Approver' && createSpaceSelected.includes('Viewer')) return true
+    // Disable Approver option if this is the last approver and it's currently selected
+    if (permission === 'Approver' && isLastApprover && createSpaceSelected.includes('Approver')) return true
     return false
   }
 
@@ -986,6 +990,13 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
     if (permission === 'Viewer' && createSpaceSelected.includes('Approver')) return 'Viewer cannot be combined with Approver'
     if (permission === 'Editor' && createSpaceSelected.includes('Viewer')) return 'Editor cannot be combined with Viewer'
     if (permission === 'Approver' && createSpaceSelected.includes('Viewer')) return 'Approver cannot be combined with Viewer'
+    // Last approver tooltip
+    if (permission === 'Approver' && isLastApprover && createSpaceSelected.includes('Approver')) {
+      if (hasPendingApprovals) {
+        return `Add another approver and cancel or resolve ${user?.user.name} pending approvals to remove`
+      }
+      return `Add another approver to remove ${user?.user.name} approver access, Require approvals must have at least 1 user with approver permission.`
+    }
     return null
   }
 
@@ -999,6 +1010,16 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
     setCreateSpace(initial)
     setAmplifySpace(user?.amplifySpace || 'No access')
   }, [user, open])
+
+  // Determine if this user is the last approver
+  const approversCount = (approverIds?.size ?? 0) + (user && !approverIds?.has(user.user.id) && user.createSpace.includes('Approver') ? 1 : 0)
+  const isLastApprover = user && (approverIds?.has(user.user.id) || user.createSpace.includes('Approver')) && approversCount === 1
+
+  // Check if this user has pending approvals
+  const userPendingApprovals = user && videoStates ? Object.entries(videoStates).filter(
+    ([_, state]) => state.sentApprovers?.includes(user.user.id)
+  ).length : 0
+  const hasPendingApprovals = userPendingApprovals > 0
 
   function handleSave() {
     // Check if approver permission was added (newly selected but not in original)
@@ -2012,6 +2033,8 @@ function UsersSection({
         onClose={() => setDialogMode('closed')}
         user={editingUser}
         users={usersList}
+        approverIds={approverIds}
+        videoStates={videoStates}
         onSave={(createSpace, amplifySpace, approverPermissionAdded) => {
           if (editingUser) {
             setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u))
