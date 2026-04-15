@@ -1190,6 +1190,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
   const [cannotTurnOffWithPendingOpen, setCannotTurnOffWithPendingOpen] = useState(false)
   const [turnOffPendingVideos, setTurnOffPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([])
+  const [lastApproverNoPendingDialogOpen, setLastApproverNoPendingDialogOpen] = useState(false)
   const [lastApproverDialogOpen, setLastApproverDialogOpen] = useState(false)
   const [_lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string; approverNames: string[] }[]>([])
   const [cannotRemoveApproverPendingOpen, setCannotRemoveApproverPendingOpen] = useState(false)
@@ -1420,17 +1421,22 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                       })
 
                     if (isLastApprover) {
-                      // Check for pending approvals for this last approver
-                      const approverNames = (videoStates[Object.keys(videoStates)[0]]?.sentApprovers || [])
-                        .map(id => {
-                          const approver = users.find(u => u.user.id === id)
-                          return approver?.user.name || id
-                        })
+                      if (pendingVideos.length > 0) {
+                        // Last approver WITH pending approvals
+                        const approverNames = (videoStates[Object.keys(videoStates)[0]]?.sentApprovers || [])
+                          .map(id => {
+                            const approver = users.find(u => u.user.id === id)
+                            return approver?.user.name || id
+                          })
 
-                      setLastApproverPendingVideos(
-                        pendingVideos.map(v => ({ ...v, approverNames }))
-                      )
-                      setLastApproverDialogOpen(true)
+                        setLastApproverPendingVideos(
+                          pendingVideos.map(v => ({ ...v, approverNames }))
+                        )
+                        setLastApproverDialogOpen(true)
+                      } else {
+                        // Last approver with NO pending approvals
+                        setLastApproverNoPendingDialogOpen(true)
+                      }
                     } else if (pendingVideos.length > 0) {
                       // If has pending approvals (but not last approver), show blocking dialog
                       setApproverPendingVideos(pendingVideos)
@@ -1777,6 +1783,32 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
           >
             Got it
           </Button>
+        </Box>
+      </Dialog>
+
+      {/* Last Approver (No Pending) Dialog */}
+      <Dialog
+        open={lastApproverNoPendingDialogOpen}
+        onClose={() => setLastApproverNoPendingDialogOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 460, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+            Add another approver to remove {approverMenuUser?.user.name}
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
+            Require approvals must have at least 1 user with approver permission.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="contained"
+              onClick={() => setLastApproverNoPendingDialogOpen(false)}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            >
+              Got it
+            </Button>
+          </Box>
         </Box>
       </Dialog>
 
