@@ -2088,6 +2088,11 @@ export default function AccountSettingsDialog({
   const [noApproversConfirmOpen, setNoApproversConfirmOpen] = useState(false)
   const [pendingNav, setPendingNav] = useState<NavKey | null>(null)
 
+  // Sync nav when initialTab changes
+  React.useEffect(() => {
+    setNav(initialTab)
+  }, [initialTab])
+
   // Sync external approvals state
   React.useEffect(() => {
     setApprovalsEnabled(externalApprovalsEnabled)
