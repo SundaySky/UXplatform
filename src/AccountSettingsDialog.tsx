@@ -2098,8 +2098,14 @@ export default function AccountSettingsDialog({
     setApprovalsEnabled(externalApprovalsEnabled)
   }, [externalApprovalsEnabled])
 
+  // Sync external approver IDs - compare content since Set reference equality is unreliable
   React.useEffect(() => {
-    setApproverIds(externalApproverIds)
+    // Only update if content actually changed (convert to sorted arrays for comparison)
+    const externalArray = JSON.stringify(Array.from(externalApproverIds).sort())
+    const currentArray = JSON.stringify(Array.from(approverIds).sort())
+    if (externalArray !== currentArray) {
+      setApproverIds(new Set(externalApproverIds))
+    }
   }, [externalApproverIds])
 
   function handleInviteUser(rows: InviteRow[], asApprover = false) {
