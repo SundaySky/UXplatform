@@ -1194,7 +1194,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [approverMenuUser, setApproverMenuUser]     = useState<AccountUser | null>(null)
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
   const [lastApproverDialogOpen, setLastApproverDialogOpen] = useState(false)
-  const [lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string }[]>([])
+  const [lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string; approverNames: string[] }[]>([])
 
   // Initialize approverIds from users with Approver role when section loads
   // This ensures approvers show even when the feature is initially disabled
@@ -1397,7 +1397,15 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                       // Check for pending approvals for this last approver
                       const pendingVideos = Object.entries(videoStates)
                         .filter(([_, state]) => state.sentApprovers?.includes(approverMenuUser.user.id))
-                        .map(([title, state]) => ({ title, sentAt: state.sentAt }))
+                        .map(([title, state]) => {
+                          // Get approver names for this video
+                          const approverNames = (state.sentApprovers || [])
+                            .map(id => {
+                              const approver = users.find(u => u.user.id === id)
+                              return approver?.user.name || id
+                            })
+                          return { title, sentAt: state.sentAt, approverNames }
+                        })
 
                       setLastApproverPendingVideos(pendingVideos)
                       setLastApproverDialogOpen(true)
@@ -1488,14 +1496,18 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         userName={approverToRemove?.user.name || ''}
         onConfirm={() => {
           if (approverToRemove) {
-            // Remove from approvers
-            const newApproverIds = [...approverIds].filter(id => id !== approverToRemove.user.id)
-            onSetApprovers(newApproverIds)
+            // Never remove pending users from approverIds — keep them as approvers
+            if (!approverToRemove.pending) {
+              // Remove from approvers only if not pending
+              const newApproverIds = [...approverIds].filter(id => id !== approverToRemove.user.id)
+              onSetApprovers(newApproverIds)
 
-            // If Approver was the only permission, downgrade to Viewer
-            if (approverToRemove.createSpace === 'Approver') {
-              onPermissionsChanged?.(approverToRemove.user.id, 'Viewer', approverToRemove.amplifySpace)
+              // If Approver was the only permission, downgrade to Viewer
+              if (approverToRemove.createSpace === 'Approver') {
+                onPermissionsChanged?.(approverToRemove.user.id, 'Viewer', approverToRemove.amplifySpace)
+              }
             }
+            setRemoveApproverOpen(false)
           }
         }}
       />
@@ -1560,7 +1572,24 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
                 {lastApproverPendingVideos.map(v => (
-                  <Box key={v.title} sx={{ display: 'flex', gap: '12px', alignItems: 'flex-start', bgcolor: '#FAFBFD', borderRadius: '8px', p: '12px' }}>
+                  <Box
+                    key={v.title}
+                    onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, '_blank')}
+                    sx={{
+                      display: 'flex',
+                      gap: '12px',
+                      alignItems: 'flex-start',
+                      bgcolor: '#FAFBFD',
+                      borderRadius: '8px',
+                      p: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: '#F0F3FB',
+                        boxShadow: '0 2px 8px rgba(0, 83, 229, 0.15)',
+                      },
+                    }}
+                  >
                     <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </Box>
@@ -1569,8 +1598,13 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                         {v.title}
                       </Typography>
                       {v.sentAt && (
-                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
+                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
                           Sent for approval: {v.sentAt}
+                        </Typography>
+                      )}
+                      {v.approverNames.length > 0 && (
+                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                          By: {v.approverNames.join(', ')}
                         </Typography>
                       )}
                       <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
@@ -2237,12 +2271,17 @@ export default function AccountSettingsDialog({
                 u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
               ))
               // If user now has Approver role, add to approverIds
+              // Never remove pending users from approverIds — keep them as approvers even if their role changes
               const userHasApprover = createSpace.includes('Approver')
+              const user = users.find(u => u.user.id === userId)
+              const isPending = user?.pending ?? false
+
               setApproverIds(prev => {
                 const s = new Set(prev)
                 if (userHasApprover && !s.has(userId)) {
                   s.add(userId)
-                } else if (!userHasApprover && s.has(userId)) {
+                } else if (!userHasApprover && s.has(userId) && !isPending) {
+                  // Only remove if not pending
                   s.delete(userId)
                 }
                 return s
