@@ -943,7 +943,7 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
   onClose: () => void
   user: AccountUser | null
   users: AccountUser[]
-  onSave: (createSpace: string, amplifySpace: string) => void
+  onSave: (createSpace: string, amplifySpace: string, approverPermissionAdded?: boolean) => void
 }) {
   const privilegedSeats = countPrivilegedCreateSpaceSeats(users)
   const editorCount = countEditorSeats(users)
@@ -1001,7 +1001,12 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
   }, [user, open])
 
   function handleSave() {
-    onSave(createSpace, amplifySpace)
+    // Check if approver permission was added (newly selected but not in original)
+    const hadApproverBefore = user?.createSpace?.includes('Approver') || false
+    const hasApproverNow = createSpaceSelected.includes('Approver')
+    const approverPermissionAdded = !hadApproverBefore && hasApproverNow
+
+    onSave(createSpace, amplifySpace, approverPermissionAdded)
     onClose()
   }
 
@@ -1824,7 +1829,8 @@ function UsersSection({
   onPermissionsChanged,
   approvalsEnabled = false,
   approverIds = new Set(),
-  videoStates = {}
+  videoStates = {},
+  onEnableApprovalsPrompt
 }: {
   users: AccountUser[]
   onInviteUser: (rows: InviteRow[]) => void
@@ -1833,6 +1839,7 @@ function UsersSection({
   approvalsEnabled?: boolean
   approverIds?: Set<string>
   videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
+  onEnableApprovalsPrompt?: () => void
 }) {
   const [search, setSearch]     = useState('')
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
@@ -2005,10 +2012,15 @@ function UsersSection({
         onClose={() => setDialogMode('closed')}
         user={editingUser}
         users={usersList}
-        onSave={(createSpace, amplifySpace) => {
+        onSave={(createSpace, amplifySpace, approverPermissionAdded) => {
           if (editingUser) {
             setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u))
             onPermissionsChanged?.(editingUser.user.id, createSpace, amplifySpace)
+
+            // Show enable approvals prompt if approver permission was added and approvals are disabled
+            if (approverPermissionAdded && !approvalsEnabled) {
+              onEnableApprovalsPrompt?.()
+            }
           }
         }}
       />
@@ -2477,6 +2489,7 @@ export default function AccountSettingsDialog({
             approvalsEnabled={approvalsEnabled}
             approverIds={approverIds}
             videoStates={videoStates}
+            onEnableApprovalsPrompt={() => setEnableApprovalsPromptOpen(true)}
           />
         )}
           {nav === 'permissions' && <PlaceholderSection label="Permissions" />}
@@ -2569,10 +2582,10 @@ export default function AccountSettingsDialog({
       >
         <Box sx={{ px: '24px', py: '20px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
-            Enable request approvals?
+            Enable requesting approvals for videos and templates
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
-            Editors will be able to request approvals from users with approval access.
+            After requesting approvals is enabled you will be able to request approvals from approvers, approvers can add their comments in SundaySky.
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <Button
@@ -2580,7 +2593,7 @@ export default function AccountSettingsDialog({
               onClick={() => setEnableApprovalsPromptOpen(false)}
               sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
             >
-              I'll do it later
+              Cancel
             </Button>
             <Button
               variant="contained"
@@ -2591,7 +2604,7 @@ export default function AccountSettingsDialog({
               }}
               sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
             >
-              Enable request approvals for all videos and templates
+              Enable requesting approvals
             </Button>
           </Box>
         </Box>
