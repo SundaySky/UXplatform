@@ -1542,7 +1542,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
       >
         <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
-            Cannot remove last approver
+            Cannot remove approver
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
             <strong>{approverMenuUser?.user.name}</strong> is the only approver in your account{lastApproverPendingVideos.length > 0 ? ' and has pending approvals' : ''}.

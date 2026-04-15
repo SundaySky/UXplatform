@@ -1715,6 +1715,7 @@ export default function App() {
             variant="contained"
             onClick={() => {
               setApprovalsDisabledDialogOpen(false)
+              setApprovalsEnabled(true)
               setAccountSettingsInitialTab('approvals')
               setAccountSettingsOpen(true)
             }}
