@@ -1741,8 +1741,11 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
       >
         <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '16px' }}>
-            Add another approver and cancel or resolve {approverMenuUser?.user.name} pending approvals to remove
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+            To remove {approverMenuUser?.user.name}, resolve pending approvals and add another approver
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '20px', lineHeight: 1.6 }}>
+            Approval settings require at least one user with approver permissions.
           </Typography>
           {_lastApproverPendingVideos.length > 0 && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
