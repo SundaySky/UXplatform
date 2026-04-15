@@ -1195,6 +1195,9 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
   const [lastApproverDialogOpen, setLastApproverDialogOpen] = useState(false)
   const [lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string; approverNames: string[] }[]>([])
+  const [cannotRemoveApproverPendingOpen, setCannotRemoveApproverPendingOpen] = useState(false)
+  const [approverPendingVideos, setApproverPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([])
+  const [approverToRemovePending, setApproverToRemovePending] = useState<AccountUser | null>(null)
 
   // Initialize approverIds from users with Approver role when section loads
   // This ensures approvers show even when the feature is initially disabled
@@ -1393,23 +1396,39 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     setApproverMenuAnchor(null)
                     if (!approverMenuUser) return
 
+                    // Get videos where this approver has pending approvals
+                    const pendingVideos = Object.entries(videoStates)
+                      .filter(([_, state]) => state.sentApprovers?.includes(approverMenuUser.user.id))
+                      .map(([title, state]) => {
+                        // Get the user who requested this approval (first approver in the list)
+                        const sentByUserId = state.sentApprovers?.[0]
+                        const sentByUser = sentByUserId ? users.find(u => u.user.id === sentByUserId) : null
+                        return {
+                          title,
+                          sentAt: state.sentAt,
+                          sentBy: sentByUser?.user.name || 'Unknown'
+                        }
+                      })
+
                     if (isLastApprover) {
                       // Check for pending approvals for this last approver
-                      const pendingVideos = Object.entries(videoStates)
-                        .filter(([_, state]) => state.sentApprovers?.includes(approverMenuUser.user.id))
-                        .map(([title, state]) => {
-                          // Get approver names for this video
-                          const approverNames = (state.sentApprovers || [])
-                            .map(id => {
-                              const approver = users.find(u => u.user.id === id)
-                              return approver?.user.name || id
-                            })
-                          return { title, sentAt: state.sentAt, approverNames }
+                      const approverNames = (videoStates[Object.keys(videoStates)[0]]?.sentApprovers || [])
+                        .map(id => {
+                          const approver = users.find(u => u.user.id === id)
+                          return approver?.user.name || id
                         })
 
-                      setLastApproverPendingVideos(pendingVideos)
+                      setLastApproverPendingVideos(
+                        pendingVideos.map(v => ({ ...v, approverNames }))
+                      )
                       setLastApproverDialogOpen(true)
+                    } else if (pendingVideos.length > 0) {
+                      // If has pending approvals (but not last approver), show blocking dialog
+                      setApproverPendingVideos(pendingVideos)
+                      setApproverToRemovePending(approverMenuUser)
+                      setCannotRemoveApproverPendingOpen(true)
                     } else {
+                      // No pending approvals — show regular confirmation
                       setApproverToRemove(approverMenuUser)
                       setRemoveApproverOpen(true)
                     }
@@ -1511,6 +1530,78 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
           }
         }}
       />
+
+      {/* Cannot Remove Approver with Pending Approvals Dialog */}
+      <Dialog
+        open={cannotRemoveApproverPendingOpen}
+        onClose={() => setCannotRemoveApproverPendingOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
+            Cannot remove this approver
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
+            <strong>{approverToRemovePending?.user.name}</strong> has pending approvals and cannot be removed until the approval process is completed or cancelled for the following {approverPendingVideos.length > 1 ? 'videos' : 'video'}:
+          </Typography>
+          {approverPendingVideos.length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
+              {approverPendingVideos.map(v => (
+                <Box
+                  key={v.title}
+                  onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, '_blank')}
+                  sx={{
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'flex-start',
+                    bgcolor: '#FAFBFD',
+                    borderRadius: '8px',
+                    p: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: '#F0F3FB',
+                      boxShadow: '0 2px 8px rgba(0, 83, 229, 0.15)',
+                    },
+                  }}
+                >
+                  <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
+                      {v.title}
+                    </Typography>
+                    {v.sentAt && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        Sent for approval: {v.sentAt}
+                      </Typography>
+                    )}
+                    {v.sentBy && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        Requested by: {v.sentBy}
+                      </Typography>
+                    )}
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
+                      Awaiting approval
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
+          <Button
+            variant="contained"
+            onClick={() => setCannotRemoveApproverPendingOpen(false)}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+          >
+            Got it
+          </Button>
+        </Box>
+      </Dialog>
 
       {/* Toggle OFF confirmation dialog */}
       <Dialog
