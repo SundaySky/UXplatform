@@ -860,7 +860,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
           <Box sx={{ px: '24px', py: '20px' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '16px' }}>
               <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
-                Use a Create space seat?
+                Use a create access seat for {selectedUser?.user.name}?
               </Typography>
               <IconButton size="small" onClick={() => setSeatConfirmOpen(false)} sx={{ color: c.actionActive }}>
                 <CloseIcon sx={{ fontSize: 18 }} />
@@ -870,8 +870,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
             <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textPrimary, mb: '24px', lineHeight: 1.6 }}>
               <strong>{selectedUser.user.name}</strong> currently has{' '}
               <strong>{selectedUser.createSpace === 'No access' ? 'no access' : 'Viewer access'}</strong>{' '}
-              to Create space. Adding them as an approver will give them Create space access and use{' '}
-              <strong>1 seat</strong> ({privilegedSeats + 1}/10 used after this action).
+              to Create access. Adding them as an approver will give them Create access and use{' '}
+              <strong>1 create access seat</strong> ({privilegedSeats + 1}/10 used after this action).
             </Typography>
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -887,7 +887,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                 onClick={performAdd}
                 sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
               >
-                Add approver
+                Use create access seat for {selectedUser?.user.name}
               </Button>
             </Box>
           </Box>
@@ -904,19 +904,15 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
         <Box sx={{ px: '24px', py: '20px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '16px' }}>
             <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
-              Add new approver
+              Create new user for {trimmed}?
             </Typography>
             <IconButton size="small" onClick={() => setNewUserConfirmOpen(false)} sx={{ color: c.actionActive }}>
               <CloseIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Box>
 
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textPrimary, mb: '16px', lineHeight: 1.6 }}>
-            <strong>{trimmed}</strong> will receive an email invitation and will need to create an account to get access.
-          </Typography>
-
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textPrimary, mb: '24px', lineHeight: 1.6 }}>
-            Adding them as an approver will use <strong>1 Create space seat</strong> ({privilegedSeats + 1}/10 used after this action).
+            <strong>{trimmed}</strong> is not yet a SundaySky user. They will receive an email invitation to SundaySky. Adding them as an approver will use 1 create access seat ({privilegedSeats + 1}/10 used after this action).
           </Typography>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -932,7 +928,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
               onClick={() => { performAdd(); setNewUserConfirmOpen(false) }}
               sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
             >
-              Add approver
+              Add new user
             </Button>
           </Box>
         </Box>
@@ -1147,7 +1143,7 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
       <Box sx={{ px: '24px', py: '20px' }}>
         {/* Title */}
         <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
-          Remove approver
+          Remove approver success?
         </Typography>
         <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px' }}>
           Are you sure you want to remove <strong>{userName}</strong> as an approver?
@@ -1161,7 +1157,7 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
             onClick={() => { onConfirm(); onClose() }}
             sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: '#E53935', boxShadow: 'none', '&:hover': { bgcolor: '#C62828', boxShadow: 'none' } }}
           >
-            Remove
+            Remove approver
           </Button>
         </Box>
       </Box>
@@ -1540,7 +1536,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
       >
         <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
-            Cannot remove this approver
+            Cancel pending approvals to remove {approverToRemovePending?.user.name}?
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
             <strong>{approverToRemovePending?.user.name}</strong> has pending approvals and cannot be removed until the approval process is completed or cancelled for the following {approverPendingVideos.length > 1 ? 'videos' : 'video'}:
@@ -1612,10 +1608,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
       >
         <Box sx={{ px: '24px', py: '20px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
-            Turn off approvals?
+            Disable requiring approvals?
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
-            You have {approverIds.size} approver{approverIds.size !== 1 ? 's' : ''} set. Turning off approvals will disable the requirement for approvals from specific users for videos and templates.
+            If you disable this feature, any editor can approve any video or template
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <Button
@@ -1630,7 +1626,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
               onClick={() => { onToggle(false); setToggleConfirmOpen(false) }}
               sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
             >
-              Turn off
+              Disable requiring approvals
             </Button>
           </Box>
         </Box>
@@ -1645,7 +1641,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
       >
         <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
-            Cannot remove approver
+            Add another approver to remove {approverMenuUser?.user.name}?
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
             <strong>{approverMenuUser?.user.name}</strong> is the only approver in your account{lastApproverPendingVideos.length > 0 ? ' and has pending approvals' : ''}.
