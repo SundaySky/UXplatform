@@ -1935,10 +1935,10 @@ function UsersSection({
       >
         <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
-            This user has pending approvals
+            Cannot remove this user
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
-            <strong>{userToDelete?.user.name}</strong> will no longer be an approver for the following {pendingVideosForUser.length > 1 ? 'videos' : 'video'}. All existing comments made by this user will still remain.
+            <strong>{userToDelete?.user.name}</strong> has pending approvals and cannot be removed until the approval process is completed or cancelled for the following {pendingVideosForUser.length > 1 ? 'videos' : 'video'}:
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
             {pendingVideosForUser.map(v => (
@@ -1963,26 +1963,13 @@ function UsersSection({
             ))}
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
-          <Button
-            variant="outlined"
-            onClick={() => setPendingApprovalDeleteOpen(false)}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, textTransform: 'none', color: c.textPrimary, borderColor: c.grey300 }}
-          >
-            Cancel
-          </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
           <Button
             variant="contained"
-            onClick={() => {
-              setPendingApprovalDeleteOpen(false)
-              if (userToDelete) {
-                setUsersList(prev => prev.filter(u => u.user.id !== userToDelete.user.id))
-                onUserDeleted?.(userToDelete.user.id)
-              }
-            }}
-            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: '#E62843', boxShadow: 'none', '&:hover': { bgcolor: '#C81E38', boxShadow: 'none' } }}
+            onClick={() => setPendingApprovalDeleteOpen(false)}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
           >
-            Delete user anyway
+            Got it
           </Button>
         </Box>
       </Dialog>
@@ -2204,11 +2191,6 @@ export default function AccountSettingsDialog({
     return videoTitles
   }
 
-  // Helper function to check how many approvers are on a specific pending approval
-  function getApproverCountForVideo(videoTitle: string): number {
-    return videoStates[videoTitle]?.sentApprovers?.length ?? 0
-  }
-
   return (
     <Dialog
       open={open}
@@ -2267,15 +2249,9 @@ export default function AccountSettingsDialog({
             onUserDeleted={(userId) => {
               const pendingApprovalsForUser = getUserPendingApprovals(userId)
               if (approvalsEnabled && pendingApprovalsForUser.length > 0) {
-                // Check if this user is the only approver on any pending approval
-                const isOnlyApproverOnAny = pendingApprovalsForUser.some(videoTitle => {
-                  const approvalCount = getApproverCountForVideo(videoTitle)
-                  return approvalCount === 1
-                })
-                if (isOnlyApproverOnAny) {
-                  onUserDeletionBlocked?.(userId, 'only-approver')
-                  return
-                }
+                // Block deletion if user has ANY pending approvals - they must cancel them first
+                onUserDeletionBlocked?.(userId, 'pending-approvals')
+                return
               }
               setUsers(prev => prev.filter(u => u.user.id !== userId))
               setApproverIds(prev => { const s = new Set(prev); s.delete(userId); return s })
