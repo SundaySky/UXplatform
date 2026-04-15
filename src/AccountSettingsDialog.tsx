@@ -2132,14 +2132,18 @@ export default function AccountSettingsDialog({
     setApprovalsEnabled(externalApprovalsEnabled)
   }, [externalApprovalsEnabled])
 
-  // Sync external approver IDs - compare content since Set reference equality is unreliable
+  // Sync external approver IDs - but don't clear if local has content and external is empty
   React.useEffect(() => {
-    // Only update if content actually changed (convert to sorted arrays for comparison)
-    const externalArray = JSON.stringify(Array.from(externalApproverIds).sort())
-    const currentArray = JSON.stringify(Array.from(approverIds).sort())
-    if (externalArray !== currentArray) {
-      setApproverIds(new Set(externalApproverIds))
+    // Only sync if: (1) external is non-empty, OR (2) both are empty, OR (3) external has content
+    // Don't sync if external is empty but local has content (prevents losing locally added approvers)
+    if (externalApproverIds.size > 0 || approverIds.size === 0) {
+      const externalArray = JSON.stringify(Array.from(externalApproverIds).sort())
+      const currentArray = JSON.stringify(Array.from(approverIds).sort())
+      if (externalArray !== currentArray) {
+        setApproverIds(new Set(externalApproverIds))
+      }
     }
+    // If external is empty but local has content, don't overwrite local
   }, [externalApproverIds])
 
   function handleInviteUser(rows: InviteRow[], asApprover = false) {
