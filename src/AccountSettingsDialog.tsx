@@ -1143,7 +1143,7 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
       <Box sx={{ px: '24px', py: '20px' }}>
         {/* Title */}
         <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
-          Remove approver success?
+          Remove approver access
         </Typography>
         <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px' }}>
           Are you sure you want to remove <strong>{userName}</strong> as an approver?
@@ -1157,7 +1157,7 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
             onClick={() => { onConfirm(); onClose() }}
             sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: '#E53935', boxShadow: 'none', '&:hover': { bgcolor: '#C62828', boxShadow: 'none' } }}
           >
-            Remove approver
+            Remove approver access
           </Button>
         </Box>
       </Box>
@@ -1189,6 +1189,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [approverMenuUser, setApproverMenuUser]     = useState<AccountUser | null>(null)
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
   const [cannotTurnOffWithPendingOpen, setCannotTurnOffWithPendingOpen] = useState(false)
+  const [turnOffPendingVideos, setTurnOffPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([])
   const [lastApproverDialogOpen, setLastApproverDialogOpen] = useState(false)
   const [_lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string; approverNames: string[] }[]>([])
   const [cannotRemoveApproverPendingOpen, setCannotRemoveApproverPendingOpen] = useState(false)
@@ -1227,6 +1228,18 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     if (v) {
       onToggle(true)
     } else if (pendingApprovalsCount > 0) {
+      // Collect all pending videos
+      const pendingVideos = Object.entries(videoStates)
+        .map(([title, state]) => {
+          const sentByUserId = state.sentApprovers?.[0]
+          const sentByUser = sentByUserId ? users.find(u => u.user.id === sentByUserId) : null
+          return {
+            title,
+            sentAt: state.sentAt,
+            sentBy: sentByUser?.user.name || 'Unknown'
+          }
+        })
+      setTurnOffPendingVideos(pendingVideos)
       setCannotTurnOffWithPendingOpen(true)
       // Do NOT call onToggle(false) — keep it ON
     } else if (!v && approverIds.size > 0) {
@@ -1534,10 +1547,56 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         maxWidth={false}
         PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
       >
-        <Box sx={{ px: '24px', py: '20px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '24px' }}>
+        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '16px' }}>
             Cancel or resolve pending approvals for {approverToRemovePending?.user.name} to remove its approver access
           </Typography>
+          {_approverPendingVideos.length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
+              {_approverPendingVideos.map(v => (
+                <Box
+                  key={v.title}
+                  onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, '_blank')}
+                  sx={{
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'flex-start',
+                    bgcolor: '#FAFBFD',
+                    borderRadius: '8px',
+                    p: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: '#F0F3FB',
+                      boxShadow: '0 2px 8px rgba(0, 83, 229, 0.15)',
+                    },
+                  }}
+                >
+                  <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
+                      {v.title}
+                    </Typography>
+                    {v.sentAt && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        Sent for approval: {v.sentAt}
+                      </Typography>
+                    )}
+                    {v.sentBy && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        Requested by: {v.sentBy}
+                      </Typography>
+                    )}
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
+                      Awaiting approval
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
           <Button
@@ -1588,24 +1647,67 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         open={cannotTurnOffWithPendingOpen}
         onClose={() => setCannotTurnOffWithPendingOpen(false)}
         maxWidth={false}
-        PaperProps={{ sx: { width: 460, borderRadius: '12px', p: 0 } }}
+        PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
       >
-        <Box sx={{ px: '24px', py: '20px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '16px' }}>
             Cancel or resolve pending approvals to disable request approvals
           </Typography>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
-            You have {pendingApprovalsCount} video{pendingApprovalsCount !== 1 ? 's' : ''} awaiting approval. You must cancel all pending approvals before disabling the "Require approvals" feature.
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <Button
-              variant="contained"
-              onClick={() => setCannotTurnOffWithPendingOpen(false)}
-              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
-            >
-              Got it
-            </Button>
-          </Box>
+          {turnOffPendingVideos.length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
+              {turnOffPendingVideos.map(v => (
+                <Box
+                  key={v.title}
+                  onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, '_blank')}
+                  sx={{
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'flex-start',
+                    bgcolor: '#FAFBFD',
+                    borderRadius: '8px',
+                    p: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: '#F0F3FB',
+                      boxShadow: '0 2px 8px rgba(0, 83, 229, 0.15)',
+                    },
+                  }}
+                >
+                  <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
+                      {v.title}
+                    </Typography>
+                    {v.sentAt && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        Sent for approval: {v.sentAt}
+                      </Typography>
+                    )}
+                    {v.sentBy && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        Requested by: {v.sentBy}
+                      </Typography>
+                    )}
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
+                      Awaiting approval
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
+          <Button
+            variant="contained"
+            onClick={() => setCannotTurnOffWithPendingOpen(false)}
+            sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+          >
+            Got it
+          </Button>
         </Box>
       </Dialog>
 
@@ -1616,10 +1718,56 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         maxWidth={false}
         PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
       >
-        <Box sx={{ px: '24px', py: '20px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '24px' }}>
-            Add another approver or cancel or resolve pending approvals for {approverMenuUser?.user.name} to remove its approver access
+        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '16px' }}>
+            Add another approver and cancel or resolve {approverMenuUser?.user.name} pending approvals to remove
           </Typography>
+          {_lastApproverPendingVideos.length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
+              {_lastApproverPendingVideos.map(v => (
+                <Box
+                  key={v.title}
+                  onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, '_blank')}
+                  sx={{
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'flex-start',
+                    bgcolor: '#FAFBFD',
+                    borderRadius: '8px',
+                    p: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: '#F0F3FB',
+                      boxShadow: '0 2px 8px rgba(0, 83, 229, 0.15)',
+                    },
+                  }}
+                >
+                  <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
+                      {v.title}
+                    </Typography>
+                    {v.sentAt && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        Sent for approval: {v.sentAt}
+                      </Typography>
+                    )}
+                    {v.approverNames.length > 0 && (
+                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
+                        By: {v.approverNames.join(', ')}
+                      </Typography>
+                    )}
+                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
+                      Awaiting approval
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
           <Button
