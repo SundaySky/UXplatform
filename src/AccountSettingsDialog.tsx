@@ -107,10 +107,10 @@ function CreateSpaceSelector({
   // Permission descriptions
   const permissionDescriptions: Record<string, string> = {
     'Account owner': 'Can edit, add users and change permissions',
-    'Editor': 'Can edit videos and templates',
-    'Approver': 'Can approve videos and templates and leave feedback',
-    'Viewer': 'Have access to videos and template content with no option to share or edit',
-    'No access': 'Cannot view or edit videos and templates'
+    'Editor': 'Can edit videos and templates. Uses a seat.',
+    'Approver': 'Can approve videos and templates and leave feedback. Uses a seat.',
+    'Viewer': 'Has access to videos and template content with no option to share or edit.',
+    'No access': 'Cannot view or edit videos and templates.'
   }
 
   return (
@@ -388,10 +388,10 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
   }
 
   const getDisabledTooltip = (permission: string, selected: string[]): string | null => {
-    if (permission === 'Viewer' && selected.includes('Editor')) return 'Viewer cannot be combined with Editor'
-    if (permission === 'Viewer' && selected.includes('Approver')) return 'Viewer cannot be combined with Approver'
-    if (permission === 'Editor' && selected.includes('Viewer')) return 'Editor cannot be combined with Viewer'
-    if (permission === 'Approver' && selected.includes('Viewer')) return 'Approver cannot be combined with Viewer'
+    if (permission === 'Viewer' && selected.includes('Editor')) return "Viewer and Editor can't be selected together"
+    if (permission === 'Viewer' && selected.includes('Approver')) return "Viewer and Approver can't be selected together"
+    if (permission === 'Editor' && selected.includes('Viewer')) return "Editor and Viewer can't be selected together"
+    if (permission === 'Approver' && selected.includes('Viewer')) return "Approver and Viewer can't be selected together"
     return null
   }
 
@@ -472,7 +472,7 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
               )}
             </Box>
             <Box>
-              <SeatHeader label="Create space" chipTooltip="Number of Create space seats used (Editor or Approver roles)" used={displayCreateSpaceCount} total={10} />
+              <SeatHeader label="Create access" chipTooltip="Number of Create access seats used (Editor or Approver roles)" used={displayCreateSpaceCount} total={10} />
               <Box sx={{ mt: '12px' }}>
                 <CreateSpaceSelector
                   selected={row.createSpaceSelected}
@@ -792,7 +792,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', bgcolor: c.primaryLight, borderRadius: '8px', px: '14px', py: '12px', mb: '20px' }}>
               <InfoOutlinedIcon sx={{ fontSize: 16, color: c.primary, mt: '1px', flexShrink: 0 }} />
               <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary }}>
-                This user will receive an email invitation and will need to create an account to get access.
+                The user will be notified by email and will need to create an account to access SundaySky.
               </Typography>
             </Box>
           )}
@@ -1015,14 +1015,14 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
         {/* Title */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '24px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary }}>
-            Edit permissions for {user?.user.name}
+            Edit access for {user?.user.name}
           </Typography>
           <IconButton size="small" onClick={onClose} sx={{ color: c.actionActive }}><CloseIcon sx={{ fontSize: 18 }} /></IconButton>
         </Box>
 
         {/* Create space section */}
         <Box sx={{ mb: '24px' }}>
-          <SeatHeader label="Create space" iconTooltip="Access to the video and template editors, analytics, and AI features" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
+          <SeatHeader label="Create access" iconTooltip="Access to the Create workspace, including video and template editing, analytics, and AI features." chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
           <Box sx={{ mt: '12px' }}>
             <CreateSpaceSelector
               selected={createSpaceSelected}
@@ -1039,7 +1039,7 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
 
         {/* Amplify space section */}
         <Box sx={{ mb: '24px' }}>
-          <SeatHeader label="Amplify space" iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
+          <SeatHeader label="Amplify access" iconTooltip="Access to published templates and analytics for sent videos. Users with Create editor access don't require a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
           <FormControl fullWidth size="small" sx={{ mt: '6px' }}>
             <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} renderValue={v => v as string} sx={selectSx}>
               {amplifySpaceOptions.map(o => (
@@ -1050,12 +1050,12 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
                     </Typography>
                     {o === 'Contributor' && (
                       <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
-                        Can access templates made by editors
+                        Can access templates and analytics. Uses a seat unless they have Create editor or approver access.
                       </Typography>
                     )}
                     {o === 'No access' && (
                       <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary }}>
-                        Cannot access any templates or contributors features
+                        Cannot access templates or contributor features.
                       </Typography>
                     )}
                   </Box>
@@ -1312,10 +1312,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                         </Box>
                       </TableCell>
                       <TableCell sx={{ ...headCellSx }}>
-                        <SeatHeader label="Create space" iconTooltip="Access to the video and template editors, analytics, and AI features" chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
+                        <SeatHeader label="Create access" iconTooltip="Access to the Create workspace, including video and template editing, analytics, and AI features." chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
                       </TableCell>
                       <TableCell sx={{ ...headCellSx }}>
-                        <SeatHeader label="Amplify space" iconTooltip="Access to available templates made by editors and analytics for sent videos. Users with editor access in Create space don't use a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
+                        <SeatHeader label="Amplify access" iconTooltip="Access to published templates and analytics for sent videos. Users with Create editor access don't require a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
                       </TableCell>
                       <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: 'sticky', right: 0, zIndex: 4 }} />
                     </TableRow>
@@ -2101,7 +2101,7 @@ function UsersSection({
             sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: c.textPrimary, px: '16px', py: '8px', gap: '10px' }}
           >
             <EditOutlinedIcon sx={{ fontSize: 16, color: c.actionActive }} />
-            Edit permissions
+            Edit access
           </MenuItem>,
           <MenuItem
             key="remove"
@@ -2141,7 +2141,7 @@ function UsersSection({
             sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 13, color: '#E53935', px: '16px', py: '8px', gap: '10px' }}
           >
             <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
-            Remove from account
+            Remove user
           </MenuItem>,
         ]}
       </Menu>
