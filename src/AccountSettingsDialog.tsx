@@ -1167,7 +1167,7 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
 
 
 // ─── Approvals Section ────────────────────────────────────────────────────────
-function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, pendingApprovalsCount = 0, onTurnOffBlocked, videoStates = {} }: {
+function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, pendingApprovalsCount = 0, videoStates = {} }: {
   users:          AccountUser[]
   approverIds:    Set<string>
   enabled:        boolean
@@ -1176,7 +1176,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   onAddUsers:     (rows: InviteRow[], asApprover: boolean) => void
   onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
   pendingApprovalsCount?: number
-  onTurnOffBlocked?: () => void
   videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
 }) {
   const [search, setSearch]               = useState('')
@@ -1189,10 +1188,11 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
   const [approverMenuAnchor, setApproverMenuAnchor] = useState<HTMLElement | null>(null)
   const [approverMenuUser, setApproverMenuUser]     = useState<AccountUser | null>(null)
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
+  const [cannotTurnOffWithPendingOpen, setCannotTurnOffWithPendingOpen] = useState(false)
   const [lastApproverDialogOpen, setLastApproverDialogOpen] = useState(false)
-  const [lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string; approverNames: string[] }[]>([])
+  const [_lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string; approverNames: string[] }[]>([])
   const [cannotRemoveApproverPendingOpen, setCannotRemoveApproverPendingOpen] = useState(false)
-  const [approverPendingVideos, setApproverPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([])
+  const [_approverPendingVideos, setApproverPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([])
   const [approverToRemovePending, setApproverToRemovePending] = useState<AccountUser | null>(null)
 
   // Initialize approverIds from users with Approver role when section loads
@@ -1227,7 +1227,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     if (v) {
       onToggle(true)
     } else if (pendingApprovalsCount > 0) {
-      onTurnOffBlocked?.()  // notify parent to show Cannot Turn Off dialog
+      setCannotTurnOffWithPendingOpen(true)
       // Do NOT call onToggle(false) — keep it ON
     } else if (!v && approverIds.size > 0) {
       setToggleConfirmOpen(true)
@@ -1534,59 +1534,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         maxWidth={false}
         PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
       >
-        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
-            Cancel pending approvals to remove {approverToRemovePending?.user.name}?
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '24px' }}>
+            Cancel or resolve pending approvals for {approverToRemovePending?.user.name} to remove its approver access
           </Typography>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
-            <strong>{approverToRemovePending?.user.name}</strong> has pending approvals and cannot be removed until the approval process is completed or cancelled for the following {approverPendingVideos.length > 1 ? 'videos' : 'video'}:
-          </Typography>
-          {approverPendingVideos.length > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
-              {approverPendingVideos.map(v => (
-                <Box
-                  key={v.title}
-                  onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, '_blank')}
-                  sx={{
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'flex-start',
-                    bgcolor: '#FAFBFD',
-                    borderRadius: '8px',
-                    p: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: '#F0F3FB',
-                      boxShadow: '0 2px 8px rgba(0, 83, 229, 0.15)',
-                    },
-                  }}
-                >
-                  <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
-                      {v.title}
-                    </Typography>
-                    {v.sentAt && (
-                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
-                        Sent for approval: {v.sentAt}
-                      </Typography>
-                    )}
-                    {v.sentBy && (
-                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
-                        Requested by: {v.sentBy}
-                      </Typography>
-                    )}
-                    <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
-                      Awaiting approval
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          )}
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
           <Button
@@ -1632,6 +1583,32 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         </Box>
       </Dialog>
 
+      {/* Cannot Turn Off Approvals with Pending Approvals Dialog */}
+      <Dialog
+        open={cannotTurnOffWithPendingOpen}
+        onClose={() => setCannotTurnOffWithPendingOpen(false)}
+        maxWidth={false}
+        PaperProps={{ sx: { width: 460, borderRadius: '12px', p: 0 } }}
+      >
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
+            Cancel or resolve pending approvals to disable request approvals
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
+            You have {pendingApprovalsCount} video{pendingApprovalsCount !== 1 ? 's' : ''} awaiting approval. You must cancel all pending approvals before disabling the "Require approvals" feature.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              variant="contained"
+              onClick={() => setCannotTurnOffWithPendingOpen(false)}
+              sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+            >
+              Got it
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+
       {/* Last Approver Dialog */}
       <Dialog
         open={lastApproverDialogOpen}
@@ -1639,70 +1616,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         maxWidth={false}
         PaperProps={{ sx: { width: 500, borderRadius: '12px', p: 0 } }}
       >
-        <Box sx={{ px: '24px', pt: '20px', pb: '8px' }}>
-          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '8px' }}>
-            Add another approver to remove {approverMenuUser?.user.name}?
+        <Box sx={{ px: '24px', py: '20px' }}>
+          <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '24px' }}>
+            Add another approver or cancel or resolve pending approvals for {approverMenuUser?.user.name} to remove its approver access
           </Typography>
-          <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '16px', lineHeight: 1.6 }}>
-            <strong>{approverMenuUser?.user.name}</strong> is the only approver in your account{lastApproverPendingVideos.length > 0 ? ' and has pending approvals' : ''}.
-            <br/><br/>
-            To remove them, you must first:
-            <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-              <li>Add another approver to your account</li>
-              {lastApproverPendingVideos.length > 0 && <li>Cancel or complete the pending approval process</li>}
-            </ul>
-          </Typography>
-          {lastApproverPendingVideos.length > 0 && (
-            <>
-              <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '8px', fontWeight: 600 }}>
-                Pending approvals:
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '20px' }}>
-                {lastApproverPendingVideos.map(v => (
-                  <Box
-                    key={v.title}
-                    onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, '_blank')}
-                    sx={{
-                      display: 'flex',
-                      gap: '12px',
-                      alignItems: 'flex-start',
-                      bgcolor: '#FAFBFD',
-                      borderRadius: '8px',
-                      p: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: '#F0F3FB',
-                        boxShadow: '0 2px 8px rgba(0, 83, 229, 0.15)',
-                      },
-                    }}
-                  >
-                    <Box sx={{ width: 64, height: 48, borderRadius: '6px', bgcolor: '#E8ECF4', flexShrink: 0, border: `1px solid ${c.grey300}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src="/thumb.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontWeight: 600, fontSize: 13, color: c.textPrimary, mb: '2px' }}>
-                        {v.title}
-                      </Typography>
-                      {v.sentAt && (
-                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
-                          Sent for approval: {v.sentAt}
-                        </Typography>
-                      )}
-                      {v.approverNames.length > 0 && (
-                        <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: c.textSecondary, mb: '4px' }}>
-                          By: {v.approverNames.join(', ')}
-                        </Typography>
-                      )}
-                      <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 12, color: '#F46900', mt: '2px' }}>
-                        Awaiting approval
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </>
-          )}
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: '24px', py: '16px', borderTop: `1px solid ${c.grey300}` }}>
           <Button
@@ -2407,10 +2324,6 @@ export default function AccountSettingsDialog({
                 ))
               }}
               pendingApprovalsCount={pendingApprovalsCount}
-              onTurnOffBlocked={() => {
-                onApprovalsEnabledChange?.(false, true)
-                // do NOT call setApprovalsEnabled(false) — keep it ON
-              }}
               videoStates={videoStates}
             />
           )}
