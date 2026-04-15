@@ -2582,7 +2582,7 @@ export default function AccountSettingsDialog({
       >
         <Box sx={{ px: '24px', py: '20px' }}>
           <Typography sx={{ fontFamily: '"Inter",sans-serif', fontWeight: 700, fontSize: 18, color: c.textPrimary, mb: '12px' }}>
-            Enable requesting approvals for videos and templates
+            Enable requesting approvals for videos and templates?
           </Typography>
           <Typography sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, color: c.textSecondary, mb: '24px', lineHeight: 1.6 }}>
             After requesting approvals is enabled you will be able to request approvals from approvers, approvers can add their comments in SundaySky.
@@ -2600,6 +2600,7 @@ export default function AccountSettingsDialog({
               onClick={() => {
                 setEnableApprovalsPromptOpen(false)
                 setApprovalsEnabled(true)
+                setNav('approvals')
                 onApprovalsEnabledChange?.(true)
               }}
               sx={{ fontFamily: '"Open Sans",sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: c.primary, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
