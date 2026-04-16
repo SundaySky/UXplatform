@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import {
   Box, Typography, Button, Avatar, IconButton, Tooltip, SvgIcon,
   InputAdornment, OutlinedInput,
   Menu, MenuItem, ListItemText, Divider,
 } from '@mui/material'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
+import AccountSettingsDialog from './AccountSettingsDialog'
 import ApprovalDialog from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
@@ -363,7 +364,7 @@ export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?
   )
 }
 
-function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void; onSubmitForApproval?: (videoKey: string, approvers: string[]) => void }) {
+function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApproval, approversList, approvalsEnabled = false, onApprovalsDisabled }: { video: VideoItem; onClick?: () => void; liveState?: LiveVideoState; onPermChange?: (key: string, s: VideoPermissionSettings) => void; onSubmitForApproval?: (videoKey: string, approvers: string[]) => void; approversList?: { value: string; label: string }[]; approvalsEnabled?: boolean; onApprovalsDisabled?: () => void }) {
   const [hovered,       setHovered]    = useState(false)
   const [menuAnchor,    setMenuAnchor] = useState<HTMLElement | null>(null)
   const [videoPermOpen, setVideoPermOpen] = useState(false)
@@ -513,7 +514,7 @@ function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApprova
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
         </MenuItem>
 
-        <MenuItem onClick={e => { closeMenu(e); setApprovalOpen(true) }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
+        <MenuItem onClick={e => { closeMenu(e); if (approvalsEnabled) { setApprovalOpen(true) } else { onApprovalsDisabled?.() } }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
           <Box sx={{ color: t.actionActive, display: 'flex', alignItems: 'center', flexShrink: 0 }}><ImageCircleCheckIcon /></Box>
           <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
         </MenuItem>
@@ -566,6 +567,7 @@ function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApprova
           setConfirmationOpen(true)
           onSubmitForApproval?.(video.title, approvers)
         }}
+        availableApprovers={approversList}
       />
 
       {/* Approval confirmation dialog */}
@@ -823,15 +825,86 @@ const FOLDERS = [
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function VideoLibraryPage({ onSelectVideo, notifications, videoStates, onPermChange, onSubmitForApproval }: {
+export default function VideoLibraryPage({
+  onSelectVideo,
+  notifications,
+  videoStates,
+  onPermChange,
+  onSubmitForApproval,
+  approvalsEnabled = false,
+  onApprovalsDisabled,
+  approverIds = new Set(),
+  approversList = [],
+  onApprovalsEnabledChange,
+  onApproversChange,
+  onApproversListChange,
+  onUserDeletionBlocked: parentOnUserDeletionBlocked,
+  accountSettingsOpen: externalAccountSettingsOpen = false,
+  accountSettingsInitialTab: externalAccountSettingsInitialTab = 'users',
+  onAccountSettingsOpen,
+}: {
   onSelectVideo:         (v: VideoItem) => void
   notifications?:        NotificationItem[]
   videoStates?:          Record<string, LiveVideoState>
   onPermChange?:         (key: string, s: VideoPermissionSettings) => void
   onSubmitForApproval?:  (videoKey: string, approvers: string[]) => void
+  approvalsEnabled?:     boolean
+  onApprovalsDisabled?:  () => void
+  approverIds?:          Set<string>
+  approversList?:        { value: string; label: string }[]
+  onApprovalsEnabledChange?: (enabled: boolean, hasPendingApprovals?: boolean) => void
+  onApproversChange?:    (ids: Set<string>) => void
+  onApproversListChange?: (approvers: { value: string; label: string }[]) => void
+  onUserDeletionBlocked?: (userId: string, reason: 'only-approver' | 'pending-approvals') => void
+  accountSettingsOpen?:  boolean
+  accountSettingsInitialTab?: 'users' | 'permissions' | 'approvals' | 'access'
+  onAccountSettingsOpen?: (open: boolean) => void
 }) {
+  const [_accountSettingsOpen, setAccountSettingsOpen] = useState(false)
+  const [_accountSettingsInitialTab, setAccountSettingsInitialTab] = useState<'users' | 'permissions' | 'approvals' | 'access'>('users')
+  const accountSettingsOpen = externalAccountSettingsOpen ?? _accountSettingsOpen
+  const accountSettingsInitialTab = externalAccountSettingsInitialTab ?? _accountSettingsInitialTab
+
+  // Count pending approvals across all videos
+  const pendingApprovalsCount = videoStates ? Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length : 0
+
+  // Memoize callbacks to prevent infinite loops in child components
+  const handleApprovalsEnabledChange = useCallback((enabled: boolean, hasPendingApprovals?: boolean) => {
+    onApprovalsEnabledChange?.(enabled, hasPendingApprovals && pendingApprovalsCount > 0)
+  }, [onApprovalsEnabledChange, pendingApprovalsCount])
+
+  const handleApproversChange = useCallback((ids: Set<string>) => {
+    onApproversChange?.(ids)
+  }, [onApproversChange])
+
+  const handleApproversListChange = useCallback((approvers: { value: string; label: string }[]) => {
+    onApproversListChange?.(approvers)
+  }, [onApproversListChange])
+
+  const handleUserDeletionBlocked = useCallback((userId: string, reason: 'only-approver' | 'pending-approvals') => {
+    parentOnUserDeletionBlocked?.(userId, reason)
+  }, [parentOnUserDeletionBlocked])
+
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+      <AccountSettingsDialog
+        open={accountSettingsOpen}
+        initialTab={accountSettingsInitialTab}
+        onClose={() => {
+          setAccountSettingsOpen(false)
+          setAccountSettingsInitialTab('users')
+          onAccountSettingsOpen?.(false)
+        }}
+        approvalsEnabled={approvalsEnabled}
+        approverIds={approverIds}
+        approversList={approversList}
+        videoStates={videoStates}
+        onApprovalsEnabledChange={handleApprovalsEnabledChange}
+        onApproversChange={handleApproversChange}
+        onApproversListChange={handleApproversListChange}
+        onUserDeletionBlocked={handleUserDeletionBlocked}
+        pendingApprovalsCount={pendingApprovalsCount}
+      />
       <AppSidebar />
 
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -872,7 +945,14 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
               sx={{ width: 200, bgcolor: t.bgPaper, fontSize: 14, fontFamily: '"Open Sans", sans-serif' }}
             />
             <NotificationBell notifications={notifications} />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              onClick={() => {
+                setAccountSettingsOpen(true)
+                setAccountSettingsInitialTab('users')
+                onAccountSettingsOpen?.(true)
+              }}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', borderRadius: '8px', px: '6px', py: '4px', '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' } }}
+            >
               <Typography sx={{
                 fontFamily: '"Open Sans", sans-serif', fontWeight: 400,
                 fontSize: 14, color: t.textPrimary,
@@ -927,6 +1007,9 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
                     onClick={() => onSelectVideo(v)}
                     onPermChange={onPermChange}
                     onSubmitForApproval={onSubmitForApproval}
+                    approversList={approversList}
+                    approvalsEnabled={approvalsEnabled}
+                    onApprovalsDisabled={onApprovalsDisabled}
                   />
                 </Box>
               ))}
@@ -973,6 +1056,10 @@ export default function VideoLibraryPage({ onSelectVideo, notifications, videoSt
                   liveState={videoStates?.[v.title]}
                   onClick={() => onSelectVideo(v)}
                   onPermChange={onPermChange}
+                  onSubmitForApproval={onSubmitForApproval}
+                  approversList={approversList}
+                  approvalsEnabled={approvalsEnabled}
+                  onApprovalsDisabled={onApprovalsDisabled}
                 />
               </Box>
             ))}

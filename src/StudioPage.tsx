@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Box, Typography, IconButton, Button, Avatar,
   Badge, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Snackbar, Alert, Divider, Checkbox, Switch,
+  TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem,
 } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import UndoIcon                    from '@mui/icons-material/Undo'
@@ -17,6 +18,10 @@ import MicOutlinedIcon             from '@mui/icons-material/MicOutlined'
 import StorageOutlinedIcon         from '@mui/icons-material/StorageOutlined'
 import InputOutlinedIcon           from '@mui/icons-material/InputOutlined'
 import AspectRatioOutlinedIcon     from '@mui/icons-material/AspectRatioOutlined'
+// ImageOutlinedIcon removed — placeholder panel now uses PNGs
+import GridViewOutlinedIcon       from '@mui/icons-material/GridViewOutlined'
+import InfoOutlinedIcon           from '@mui/icons-material/InfoOutlined'
+// SmartButtonOutlinedIcon removed — placeholder panel now uses PNGs
 import LanguageOutlinedIcon        from '@mui/icons-material/LanguageOutlined'
 import CommentOutlinedIcon         from '@mui/icons-material/CommentOutlined'
 import ChevronLeftIcon             from '@mui/icons-material/ChevronLeft'
@@ -34,16 +39,21 @@ import RemoveIcon                  from '@mui/icons-material/Remove'
 import TitleIcon                   from '@mui/icons-material/Title'
 import PaletteIcon                 from '@mui/icons-material/Palette'
 import StarBorderIcon              from '@mui/icons-material/StarBorder'
+import DeleteOutlinedIcon         from '@mui/icons-material/DeleteOutlined'
 import LockPersonIcon             from '@mui/icons-material/LockPerson'
 import Tooltip                    from '@mui/material/Tooltip'
+import FormatListBulletedIcon     from '@mui/icons-material/FormatListBulleted'
+import ViewWeekOutlinedIcon       from '@mui/icons-material/ViewWeekOutlined'
+import KeyboardArrowDownIcon      from '@mui/icons-material/KeyboardArrowDown'
 import { NotificationBell, type NotificationItem } from './NotificationsPanel'
 import MediaLibraryPanel from './MediaLibraryPanel'
 import AvatarLibraryPanel from './AvatarLibraryPanel'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
 import { OWNER_USER } from './ManageAccessDialog'
+import SceneLibraryDialog from './SceneLibraryDialog'
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
-function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
+function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void; onDelete?: () => void }) {
   const c = '#0053E5'
   const border = '1px solid #E0E0E0' // grey/300
 
@@ -106,6 +116,246 @@ function PlaceholderToolbar({ onEditClick }: { onEditClick: () => void }) {
       <Pill icon={<ContentCopyOutlinedIcon  sx={{ fontSize: 14 }} />} label="Copy" />
       <Pill icon={<VisibilityOutlinedIcon   sx={{ fontSize: 14 }} />} />
       <Pill icon={<MoreHorizIcon            sx={{ fontSize: 16 }} />} />
+      {onDelete && (
+        <Pill icon={<DeleteOutlinedIcon sx={{ fontSize: 14 }} />} onClick={onDelete} />
+      )}
+    </Box>
+  )
+}
+
+// ─── Button placeholder toolbar (Figma node 23002-12178) ─────────────────────
+function ButtonPlaceholderToolbar({
+  size, onSizeChange, onDelete,
+}: {
+  size: 'S' | 'M' | 'L' | 'XL'
+  onSizeChange: (s: 'S' | 'M' | 'L' | 'XL') => void
+  onDelete: () => void
+}) {
+  const primary = '#0053E5'
+  const border  = '1px solid #CFD6EA'
+
+  const ActionBtn = ({ icon, label, disabled }: { icon: React.ReactNode; label: string; disabled?: boolean }) => (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      px: '8px', py: '3.5px', height: 32, flexShrink: 0,
+      borderRadius: '8px',
+      border: disabled ? '1px solid #CECFD2' : border,
+      bgcolor: '#fff',
+      cursor: disabled ? 'default' : 'pointer',
+      '&:hover': { bgcolor: disabled ? '#fff' : 'rgba(0,83,229,0.06)' },
+    }}>
+      {icon}
+      <Typography sx={{
+        fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+        color: disabled ? 'rgba(50,51,56,0.5)' : primary,
+        lineHeight: 1.5,
+      }}>
+        {label}
+      </Typography>
+    </Box>
+  )
+
+  return (
+    <Box
+      onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+      sx={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        bgcolor: '#fff', borderRadius: '8px',
+        px: '6px', py: '5px',
+        border, boxShadow: '0 2px 8px rgba(3,25,79,0.15)',
+        userSelect: 'none', whiteSpace: 'nowrap',
+      }}
+    >
+      {/* Edit */}
+      <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Size label + S / M / L / XL toggle */}
+      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13,
+          color: '#323338', letterSpacing: '0.46px',
+        }}>
+          Size
+        </Typography>
+        <Box sx={{
+          display: 'inline-flex', alignItems: 'center',
+          border, borderRadius: '8px', overflow: 'hidden',
+        }}>
+          {([ ['S', '80 × 28px'], ['M', '120 × 36px'], ['L', '160 × 44px'], ['XL', '200 × 52px'] ] as const).map(([sz, dims], i, arr) => (
+            <Tooltip key={sz} title={dims} placement="top" arrow>
+              <Box
+                onClick={() => onSizeChange(sz)}
+                sx={{
+                  px: '10px', py: '4px', cursor: 'pointer',
+                  bgcolor: size === sz ? 'rgba(0,83,229,0.1)' : 'transparent',
+                  borderRight: i < arr.length - 1 ? '1px solid #CFD6EA' : 'none',
+                  fontFamily: '"Inter", sans-serif', fontWeight: size === sz ? 600 : 400, fontSize: 14,
+                  color: size === sz ? primary : '#323338',
+                  lineHeight: 1.5,
+                  '&:hover': { bgcolor: size === sz ? 'rgba(0,83,229,0.12)' : 'rgba(0,0,0,0.04)' },
+                }}
+              >
+                {sz}
+              </Box>
+            </Tooltip>
+          ))}
+        </Box>
+      </Box>
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Timing (disabled) */}
+      <ActionBtn
+        icon={<StarBorderIcon sx={{ fontSize: 13, color: 'rgba(50,51,56,0.5)' }} />}
+        label="Timing"
+        disabled
+      />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Copy */}
+      <ActionBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Copy" />
+
+      {/* Delete */}
+      <IconButton size="small" onClick={onDelete} sx={{ color: '#F44336', p: '4px', flexShrink: 0 }}>
+        <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+      </IconButton>
+
+      {/* More */}
+      <IconButton size="small" sx={{ color: primary, p: '4px', flexShrink: 0 }}>
+        <MoreHorizIcon sx={{ fontSize: 18 }} />
+      </IconButton>
+    </Box>
+  )
+}
+
+// ─── Bullet placeholder toolbar (Figma node 26110-118643) ────────────────────
+function BulletPlaceholderToolbar({
+  iconSize, onIconSizeChange, onDelete, onEditClick, onOptionsMenuClick,
+}: {
+  iconSize: 'S' | 'M' | 'L' | 'XL'
+  onIconSizeChange: (s: 'S' | 'M' | 'L' | 'XL') => void
+  onDelete: () => void
+  onEditClick: () => void
+  onOptionsMenuClick?: (anchorEl: HTMLElement) => void
+}) {
+  const primary = '#0053E5'
+  const border  = '1px solid #CFD6EA'
+
+  const ActionBtn = ({
+    icon, label, disabled, blue, onClick,
+  }: { icon: React.ReactNode; label: string; disabled?: boolean; blue?: boolean; onClick?: () => void }) => (
+    <Box onClick={onClick} sx={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      px: '8px', py: '3.5px', height: 32, flexShrink: 0,
+      borderRadius: '8px',
+      border: disabled ? '1px solid #CECFD2' : border,
+      bgcolor: '#fff',
+      cursor: disabled ? 'default' : 'pointer',
+      '&:hover': { bgcolor: disabled ? '#fff' : 'rgba(0,83,229,0.06)' },
+    }}>
+      {icon}
+      <Typography sx={{
+        fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14,
+        color: disabled ? 'rgba(50,51,56,0.5)' : blue ? primary : primary,
+        lineHeight: 1.5,
+      }}>
+        {label}
+      </Typography>
+    </Box>
+  )
+
+  const DropdownBtn = ({ label }: { label: string }) => (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      px: '8px', py: '3.5px', height: 32, flexShrink: 0,
+      borderRadius: '8px', border, bgcolor: '#fff', cursor: 'pointer',
+      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+    }}>
+      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 14, color: primary, lineHeight: 1.5 }}>
+        {label}
+      </Typography>
+      <KeyboardArrowDownIcon sx={{ fontSize: 16, color: primary }} />
+    </Box>
+  )
+
+  return (
+    <Box
+      onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+      sx={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        bgcolor: '#fff', borderRadius: '8px',
+        px: '6px', py: '5px',
+        border, boxShadow: '0 2px 8px rgba(3,25,79,0.15)',
+        userSelect: 'none', whiteSpace: 'nowrap',
+      }}
+    >
+      {/* Edit */}
+      <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" onClick={onEditClick} />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Icon size label + S / M / L / XL toggle */}
+      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <Typography sx={{
+          fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13,
+          color: '#323338', letterSpacing: '0.46px',
+        }}>
+          Icon size
+        </Typography>
+        <Box sx={{
+          display: 'inline-flex', alignItems: 'center',
+          border, borderRadius: '8px', overflow: 'hidden',
+        }}>
+          {([ ['S', '16 × 16px'], ['M', '20 × 20px'], ['L', '24 × 24px'], ['XL', '32 × 32px'] ] as const).map(([sz, dims], i, arr) => (
+            <Tooltip key={sz} title={dims} placement="top" arrow>
+              <Box
+                onClick={() => onIconSizeChange(sz)}
+                sx={{
+                  px: '10px', py: '4px', cursor: 'pointer',
+                  bgcolor: iconSize === sz ? 'rgba(0,83,229,0.1)' : 'transparent',
+                  borderRight: i < arr.length - 1 ? '1px solid #CFD6EA' : 'none',
+                  fontFamily: '"Inter", sans-serif', fontWeight: iconSize === sz ? 600 : 400, fontSize: 14,
+                  color: iconSize === sz ? primary : '#323338',
+                  lineHeight: 1.5,
+                  '&:hover': { bgcolor: iconSize === sz ? 'rgba(0,83,229,0.12)' : 'rgba(0,0,0,0.04)' },
+                }}
+              >
+                {sz}
+              </Box>
+            </Tooltip>
+          ))}
+        </Box>
+      </Box>
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Bullet formatting dropdown */}
+      <DropdownBtn label="Bullet formatting" />
+
+      {/* Text formatting dropdown */}
+      <DropdownBtn label="Text formatting" />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Timing (enabled, blue star) */}
+      <ActionBtn icon={<StarBorderIcon sx={{ fontSize: 13, color: primary }} />} label="Timing" />
+
+      <Divider orientation="vertical" flexItem sx={{ borderColor: '#CFD6EA', mx: '2px' }} />
+
+      {/* Delete */}
+      <IconButton size="small" onClick={onDelete} sx={{ color: '#F44336', p: '4px', flexShrink: 0 }}>
+        <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+      </IconButton>
+
+      {/* More */}
+      <IconButton size="small" onClick={(e) => onOptionsMenuClick?.(e.currentTarget)} sx={{ color: primary, p: '4px', flexShrink: 0 }}>
+        <MoreHorizIcon sx={{ fontSize: 18 }} />
+      </IconButton>
     </Box>
   )
 }
@@ -232,6 +482,228 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
   )
 }
 
+// ─── Edit Bullet Point dialog ───────────────────────────────────────────────────
+function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
+  open: boolean
+  currentText: string
+  bulletIconSize: 'S' | 'M' | 'L' | 'XL'
+  onClose: (newText: string) => void
+}) {
+  const [text, setText] = useState(currentText)
+  const [byAudience, setByAudience] = useState(false)
+  const [dataSource, setDataSource] = useState<'library' | 'field'>('library')
+  const iconSizeMap = { S: 16, M: 20, L: 24, XL: 32 }
+
+  useEffect(() => { if (open) setText(currentText) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleClose = () => onClose(text)
+
+  return (
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth={false}
+      PaperProps={{
+        elevation: 8,
+        sx: {
+          width: 1200, borderRadius: '16px', overflow: 'hidden',
+          fontFamily: '"Open Sans", sans-serif',
+        },
+      }}
+    >
+      {/* Header */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 3, pt: 3, pb: 2,
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 700, fontSize: 22, color: '#1A1A2E' }}>
+            Bullet point
+          </Typography>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, color: '#888' }}>
+            Icon size W{iconSizeMap[bulletIconSize]}x H{iconSizeMap[bulletIconSize]}
+          </Typography>
+        </Box>
+        <IconButton size="small" onClick={handleClose} sx={{ color: '#888' }}>
+          <CloseIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Box>
+
+      <DialogContent sx={{ px: 3, pt: 2, pb: 3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+        {/* Left side */}
+        <Box>
+          {/* Message by audience toggle */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+            <Switch
+              checked={byAudience}
+              onChange={e => setByAudience(e.target.checked)}
+              size="small"
+            />
+            <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: '#1A1A2E' }}>
+              Message by audience
+            </Typography>
+            <Tooltip title="Personalize the bullet text per viewer" placement="top" arrow>
+              <HelpOutlineIcon sx={{ fontSize: 16, color: '#888', cursor: 'default' }} />
+            </Tooltip>
+          </Box>
+
+          {/* Data source radio buttons */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box
+                onClick={() => setDataSource('library')}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer',
+                  p: 1, borderRadius: '8px',
+                  bgcolor: dataSource === 'library' ? 'rgba(0,83,229,0.08)' : 'transparent',
+                }}
+              >
+                <Box sx={{
+                  width: 20, height: 20, borderRadius: '50%', border: '2px solid #0053E5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: dataSource === 'library' ? '#0053E5' : 'transparent',
+                }}>
+                  {dataSource === 'library' && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#fff' }} />}
+                </Box>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: '#1A1A2E' }}>
+                  Upload/From library
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                onClick={() => setDataSource('field')}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer',
+                  p: 1, borderRadius: '8px',
+                  bgcolor: dataSource === 'field' ? 'rgba(0,83,229,0.08)' : 'transparent',
+                }}
+              >
+                <Box sx={{
+                  width: 20, height: 20, borderRadius: '50%', border: '2px solid #ccc',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: dataSource === 'field' ? '#0053E5' : 'transparent',
+                }}>
+                  {dataSource === 'field' && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#fff' }} />}
+                </Box>
+                <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 500, fontSize: 14, color: '#1A1A2E' }}>
+                  From data field
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Helper text label */}
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: '#323338', mb: 1.5 }}>
+            Helper text
+          </Typography>
+
+          {/* Icon display */}
+          <Box sx={{
+            width: iconSizeMap[bulletIconSize] + 40,
+            height: iconSizeMap[bulletIconSize] + 40,
+            bgcolor: '#f5f5f5', borderRadius: '12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid #e0e0e0', mb: 2,
+          }}>
+            <Box sx={{
+              width: iconSizeMap[bulletIconSize] + 20,
+              height: iconSizeMap[bulletIconSize] + 20,
+              bgcolor: '#0053E5', borderRadius: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FormatListBulletedIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: '#fff' }} />
+            </Box>
+          </Box>
+
+          {/* Buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" startIcon={<UndoIcon />} sx={{ flex: 1, textTransform: 'none', color: '#0053E5', borderColor: '#0053E5' }}>
+              Replace
+            </Button>
+            <Button variant="outlined" startIcon={<EditOutlinedIcon />} sx={{ flex: 1, textTransform: 'none', color: '#0053E5', borderColor: '#0053E5' }}>
+              Edit
+            </Button>
+            <IconButton sx={{ color: '#0053E5' }}>
+              <MoreHorizIcon />
+            </IconButton>
+          </Box>
+        </Box>
+
+        {/* Right side */}
+        <Box>
+          {/* Value label */}
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: '#323338', mb: 1 }}>
+            Value
+          </Typography>
+
+          {/* Text input with formatting bar */}
+          <Box sx={{
+            border: '2px solid #0053E5', borderRadius: '8px', overflow: 'hidden',
+          }}>
+            {/* Text area */}
+            <TextField
+              fullWidth
+              multiline
+              minRows={6}
+              autoFocus
+              value={text}
+              onChange={e => setText(e.target.value)}
+              variant="standard"
+              placeholder="Enter text"
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  px: 1.5, pt: 1.5, pb: 1,
+                  fontFamily: '"Open Sans", sans-serif',
+                  fontWeight: 400,
+                  fontSize: 14,
+                  color: '#1A1A2E',
+                  alignItems: 'flex-start',
+                },
+              }}
+            />
+
+            {/* Divider + format buttons */}
+            <Divider />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75 }}>
+              <Box sx={{
+                px: 1, py: 0.5, borderRadius: '6px', bgcolor: 'rgba(0,83,229,0.10)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+              }}>
+                <Typography sx={{ fontFamily: 'serif', fontWeight: 700, fontSize: 18, color: '#0053E5', lineHeight: 1 }}>
+                  B
+                </Typography>
+              </Box>
+              <Box sx={{
+                px: 1, py: 0.5, borderRadius: '6px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+              }}>
+                <Typography sx={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: 18, color: '#1A1A2E', lineHeight: 1 }}>
+                  I
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Helper text */}
+          <Typography
+            component="span"
+            sx={{
+              fontFamily: '"Open Sans", sans-serif', fontSize: 13,
+              color: '#0053E5', cursor: 'pointer', mt: 1, display: 'inline-block',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            Enter text and personalize using {'{'}
+          </Typography>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const IMG_THUMB = '/thumb.svg'
 
 const GRADIENT_BTN =
@@ -306,7 +778,7 @@ interface CommentItem { text: string; checkedNow: boolean; resolved: boolean }
 export interface CommentThread { id: number; author: string; comments: CommentItem[] }
 
 // Export total comment count for use in the "View [x] approver comments" button
-export const TOTAL_COMMENT_COUNT = 3 // Sarah: 2 comments + Emma: 1 comment
+export const TOTAL_COMMENT_COUNT = 4 // Sarah: 2 comments + Emma: 1 comment + Manager: 1 comment
 
 export const INITIAL_THREADS: CommentThread[] = [
   {
@@ -320,6 +792,12 @@ export const INITIAL_THREADS: CommentThread[] = [
     id: 2, author: 'Emma Rodriguez',
     comments: [
       { text: 'Closing scene - A legal disclaimer is required on this screen', checkedNow: false, resolved: false },
+    ],
+  },
+  {
+    id: 3, author: 'Manager',
+    comments: [
+      { text: 'Your manager has asked you to create a new scene in the video. In this scene, include three bullet points that clearly communicate key aspects of the delivery policy. Please come up with short, clear statements for each bullet. For example: Fast delivery within 3–5 business days, Free shipping on orders over $50, Easy returns within 30 days (don\'t change the bullet icon for now).', checkedNow: false, resolved: false },
     ],
   },
 ]
@@ -726,6 +1204,60 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
   )
 }
 
+// ─── Custom scene thumbnail ───────────────────────────────────────────────────
+// Custom icon: corner handles + plus — matches the shared design
+function PlaceholderIcon({ size = 28, color = s.primary }: { size?: number; color?: string }) {
+  const d = size
+  const corner = d * 0.15   // corner square size
+  const gap    = d * 0.28   // inset from edge
+  const arm    = d * 0.12   // half-length of plus arms
+  const cx     = d / 2
+  return (
+    <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`} fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
+      {/* Corner squares */}
+      <rect x={0}            y={0}            width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      <rect x={d - corner}   y={0}            width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      <rect x={0}            y={d - corner}   width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      <rect x={d - corner}   y={d - corner}   width={corner} height={corner} rx={corner * 0.25} fill={color} />
+      {/* Corner connector lines */}
+      <line x1={corner}    y1={corner * 0.5} x2={gap}        y2={corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner} y1={corner * 0.5} x2={d - gap}   y2={corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={corner * 0.5} y1={corner}    x2={corner * 0.5} y2={gap}        stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={corner * 0.5} y1={d - corner} x2={corner * 0.5} y2={d - gap}  stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner * 0.5} y1={corner}  x2={d - corner * 0.5} y2={gap}       stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner * 0.5} y1={d - corner} x2={d - corner * 0.5} y2={d - gap} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={corner}    y1={d - corner * 0.5} x2={gap}        y2={d - corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      <line x1={d - corner} y1={d - corner * 0.5} x2={d - gap}  y2={d - corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+      {/* Plus sign */}
+      <line x1={cx - arm} y1={cx} x2={cx + arm} y2={cx} stroke={color} strokeWidth={corner * 0.6} strokeLinecap="round" />
+      <line x1={cx} y1={cx - arm} x2={cx} y2={cx + arm} stroke={color} strokeWidth={corner * 0.6} strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function CustomSceneThumbnail({ index, selected, onClick }: { index: number; selected: boolean; onClick?: () => void }) {
+  return (
+    <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+      <Typography sx={{
+        fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 12,
+        color: s.textSecondary, letterSpacing: '0.4px',
+      }}>
+        Scene {index + 1}
+      </Typography>
+      <Box sx={{
+        width: '100%', aspectRatio: '16/9',
+        bgcolor: '#FAFAFA',
+        border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
+        borderRadius: '8px', overflow: 'hidden',
+        position: 'relative',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <PlaceholderIcon size={28} />
+      </Box>
+    </Box>
+  )
+}
+
 // ─── Per-scene content lookup ─────────────────────────────────────────────────
 function sceneContentFor(title?: string): [string, string][] {
   const map: Record<string, [string, string][]> = {
@@ -810,13 +1342,153 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const [footnoteSelected,    setFootnoteSelected]    = useState(false)
   const [footnoteText,        setFootnoteText]        = useState('Footnote placeholder')
   const [editFootnoteOpen,    setEditFootnoteOpen]    = useState(false)
+  const [editBulletOpen,      setEditBulletOpen]      = useState(false)
 
-  const SCENE_COUNT = 4
+  const [sceneTypes,       setSceneTypes]       = useState<('regular' | 'custom')[]>(['regular', 'regular', 'regular', 'regular'])
+  const [sceneLibOpen,     setSceneLibOpen]     = useState(false)
+  const [placeholderMenuOpen, setPlaceholderMenuOpen] = useState(false)
+  // ── Unified canvas elements ──────────────────────────────────────────────────
+  type PlaceholderType =
+    | 'Heading' | 'Sub heading' | 'Media' | 'Footnote' | 'Logo'
+    | 'Button' | 'Vertical bullet point' | 'Horizontal bullet point'
+  type CanvasEl = {
+    id: string; type: PlaceholderType
+    x: number; y: number          // % of scene dimensions
+    width?: number; height?: number  // % of scene dimensions (for resizing)
+    text?: string                 // editable label (bullets, text types)
+    buttonSize?: 'S'|'M'|'L'|'XL'
+    bulletIconSize?: 'S'|'M'|'L'|'XL'
+    bulletTextSize?: number       // font size in pixels for bullet text
+  }
+  const [sceneElements,  setSceneElements]  = useState<Record<number, CanvasEl[]>>({})
+  const [selectedElId,   setSelectedElId]   = useState<string | null>(null)
+  const [editingElId,    setEditingElId]    = useState<string | null>(null)
+  const [bulletMenuAnchor, setBulletMenuAnchor] = useState<HTMLElement | null>(null)
+
+  // Helpers
+  const sceneEls = (scene = selectedScene) => sceneElements[scene] ?? []
+  const selectedEl = sceneEls().find(el => el.id === selectedElId) ?? null
+
+  const addElement = (type: PlaceholderType) => {
+    const els = sceneEls()
+    const i   = els.length % 6
+    const newEl: CanvasEl = {
+      id: `el-${Date.now()}`,
+      type,
+      x: Math.min(85, 25 + i * 10),
+      y: Math.min(80, 28 + i * 10),
+      ...(type === 'Button' ? { buttonSize: 'L' } : {}),
+      ...(type === 'Vertical bullet point' || type === 'Horizontal bullet point'
+        ? { bulletIconSize: 'M', text: 'Placeholder' } : {}),
+    }
+    setSceneElements(prev => ({ ...prev, [selectedScene]: [...(prev[selectedScene] ?? []), newEl] }))
+    setSelectedElId(newEl.id) // Auto-select newly added element and show toolbar
+  }
+
+  const updateEl = (id: string, patch: Partial<CanvasEl>) =>
+    setSceneElements(prev => ({
+      ...prev,
+      [selectedScene]: (prev[selectedScene] ?? []).map(el => el.id === id ? { ...el, ...patch } : el),
+    }))
+
+  const deleteEl = (id: string) => {
+    setSceneElements(prev => ({
+      ...prev,
+      [selectedScene]: (prev[selectedScene] ?? []).filter(el => el.id !== id),
+    }))
+    setSelectedElId(null)
+    setEditingElId(null)
+  }
+
+  // Helper: Update bullet text and sync font size to all bullets in scene
+  const updateBulletText = (id: string, text: string) => {
+    // Calculate optimal font size based on text length
+    const calcFontSize = (textLen: number): number => {
+      if (textLen > 50) return 11
+      if (textLen > 40) return 12
+      return 14
+    }
+    const newFontSize = calcFontSize(text.length)
+
+    // Update this bullet and sync font size to all other bullets in scene
+    setSceneElements(prev => ({
+      ...prev,
+      [selectedScene]: (prev[selectedScene] ?? []).map(el => {
+        if (el.id === id) {
+          return { ...el, text, bulletTextSize: newFontSize }
+        }
+        // Sync font size to all other bullets
+        if (el.type === 'Vertical bullet point' || el.type === 'Horizontal bullet point') {
+          return { ...el, bulletTextSize: newFontSize }
+        }
+        return el
+      }),
+    }))
+  }
+
+  // Drag support
+  const canvasRef     = useRef<HTMLDivElement | null>(null)
+  const sceneBoxRef   = useRef<HTMLDivElement | null>(null)
+  const selectedElRef = useRef<HTMLDivElement | null>(null)
+  const dragInfo  = useRef<{
+    startMX: number; startMY: number; startX: number; startY: number
+    moved: boolean; updatePos: (x: number, y: number) => void
+  } | null>(null)
+  const resizeInfo = useRef<{
+    startMX: number; startMY: number; startW: number; startH: number
+    moved: boolean; updateSize: (w: number, h: number) => void
+  } | null>(null)
+
+  const startDrag = (e: React.MouseEvent, startX: number, startY: number, updatePos: (x: number, y: number) => void) => {
+    e.stopPropagation()
+    dragInfo.current = { startMX: e.clientX, startMY: e.clientY, startX, startY, moved: false, updatePos }
+  }
+
+  const startResize = (e: React.MouseEvent, startW: number, startH: number, updateSize: (w: number, h: number) => void) => {
+    e.stopPropagation()
+    resizeInfo.current = { startMX: e.clientX, startMY: e.clientY, startW, startH, moved: false, updateSize }
+  }
+
+  const onCanvasMouseMove = (e: React.MouseEvent) => {
+    if (dragInfo.current && !resizeInfo.current && canvasRef.current) {
+      const sceneW = canvasRef.current.clientWidth
+      const sceneH = sceneW * 9 / 16
+      const dx = ((e.clientX - dragInfo.current.startMX) / sceneW) * 100
+      const dy = ((e.clientY - dragInfo.current.startMY) / sceneH) * 100
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) dragInfo.current.moved = true
+      dragInfo.current.updatePos(
+        Math.max(5, Math.min(95, dragInfo.current.startX + dx)),
+        Math.max(5, Math.min(95, dragInfo.current.startY + dy)),
+      )
+    }
+    if (resizeInfo.current && !dragInfo.current && canvasRef.current) {
+      const sceneW = canvasRef.current.clientWidth
+      const sceneH = sceneW * 9 / 16
+      const dw = ((e.clientX - resizeInfo.current.startMX) / sceneW) * 100
+      const dh = ((e.clientY - resizeInfo.current.startMY) / sceneH) * 100
+      if (Math.abs(dw) > 1 || Math.abs(dh) > 1) resizeInfo.current.moved = true
+      resizeInfo.current.updateSize(
+        Math.max(15, Math.min(90, resizeInfo.current.startW + dw)),
+        Math.max(15, Math.min(90, resizeInfo.current.startH + dh)),
+      )
+    }
+  }
+
+  const onCanvasMouseUp = () => { dragInfo.current = null; resizeInfo.current = null }
+
+  // True when any toolbar or panel is open → disables scene navigation
+  const isToolbarActive = selectedElId !== null || placeholderMenuOpen
+
+  const SCENE_COUNT = sceneTypes.length
   const goToScene = (idx: number) => {
-    setSelectedScene(Math.max(0, Math.min(SCENE_COUNT - 1, idx)))
+    const next = Math.max(0, Math.min(SCENE_COUNT - 1, idx))
+    setSelectedScene(next)
     setHeadingSelected(false)
     setSubheadingSelected(false)
     setFootnoteSelected(false)
+    setSelectedElId(null)
+    setEditingElId(null)
+    if (sceneTypes[next] !== 'custom') setPlaceholderMenuOpen(false)
   }
   const [threads,          setThreads]          = useState<CommentThread[]>(initialThreads ?? [])
   const [snackbarMsg,      setSnackbarMsg]      = useState<string | null>(null)
@@ -1058,28 +1730,145 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         />
 
         {/* Stage */}
-        <Box sx={{ flex: 1, bgcolor: s.editorBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, bgcolor: s.editorBg, display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
 
           {/* Live preview area */}
           <Box sx={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            px: 6, py: 3, overflow: 'hidden', position: 'relative',
+            px: 2, py: 3, overflow: 'visible', position: 'relative',
           }}>
+
+
             {/* Prev arrow */}
             <IconButton
-              disabled={selectedScene === 0}
+              disabled={selectedScene === 0 || isToolbarActive}
               onClick={() => goToScene(selectedScene - 1)}
               size="small"
-              sx={{ position: 'absolute', left: 16, color: selectedScene === 0 ? s.actionDisabled : s.primary }}
+              sx={{ flexShrink: 0, color: (selectedScene === 0 || isToolbarActive) ? s.actionDisabled : s.primary, mx: '4px' }}
             >
               <ChevronLeftIcon />
             </IconButton>
 
+            {/* Canvas + right toolbar — inner group aligned at top so toolbar top === canvas top */}
+            <Box sx={{ flex: 1, maxWidth: 720, display: 'flex', alignItems: 'stretch', gap: '8px', position: 'relative', overflow: 'visible' }}>
+
+              {/* Placeholder picker panel — floats to the right of canvas, above everything */}
+              {placeholderMenuOpen && (() => {
+                // Calculate available space on the right side of canvas
+                const canvasRect = canvasRef.current?.getBoundingClientRect()
+                const menuWidth = 260
+                const gap = 8
+                const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024
+                const availableSpaceRight = canvasRect ? viewportWidth - (canvasRect.right + gap) : 0
+                const shouldPositionLeft = availableSpaceRight < menuWidth
+
+                return (
+                <Box
+                  onClick={e => e.stopPropagation()}
+                  sx={{
+                    position: 'absolute', top: 0,
+                    ...(shouldPositionLeft
+                      ? { right: 'calc(100% + 8px)', left: 'auto' }
+                      : { left: 'calc(100% + 8px)', right: 'auto' }
+                    ),
+                    zIndex: 40,
+                    bgcolor: '#fff', borderRadius: '16px',
+                    boxShadow: '0 4px 24px rgba(3,25,79,0.18)',
+                    width: 260,
+                    border: `1px solid rgba(0,83,229,0.10)`,
+                  }}
+                >
+                  {/* Header */}
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    px: '20px', pt: '18px', pb: '12px',
+                  }}>
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 18, color: s.navy }}>
+                      Placeholder
+                    </Typography>
+                    <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: '4px' }}>
+                      <CloseIcon sx={{ fontSize: 20 }} />
+                    </IconButton>
+                  </Box>
+
+                  {/* Items */}
+                  <Box sx={{ px: '12px', pb: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {([
+                      { label: 'Heading',                blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/heading.png" alt="Heading" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                      { label: 'Sub heading',            blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/sub heading.png" alt="Sub heading" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                      { label: 'Media',                  blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/media.png" alt="Media" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                      { label: 'Vertical bullet point',  blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: s.primary, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FormatListBulletedIcon sx={{ fontSize: 22, color: '#fff' }} />
+                        </Box>
+                      )},
+                      { label: 'Horizontal bullet point',blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: s.primary, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <ViewWeekOutlinedIcon sx={{ fontSize: 22, color: '#fff' }} />
+                        </Box>
+                      )},
+                      { label: 'Footnote',               blue: false, iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 22, color: s.textSecondary, lineHeight: 1 }}>*</Typography>
+                        </Box>
+                      )},
+                      { label: 'Logo',                   blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/logo.png" alt="Logo" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                      { label: 'Button',                 blue: true,  iconEl: (
+                        <Box sx={{ width: 40, height: 40, bgcolor: '#fff', border: `1.5px solid rgba(0,83,229,0.18)`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src="/button.png" alt="Button" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        </Box>
+                      )},
+                    ] as { label: string; blue: boolean; iconEl: React.ReactNode }[]).map(({ label, blue, iconEl }) => (
+                      <Box
+                        key={label}
+                        onClick={() => {
+                          addElement(label as PlaceholderType)
+                          setPlaceholderMenuOpen(false)
+                        }}
+                        sx={{
+                          display: 'flex', alignItems: 'center', gap: '14px',
+                          px: '8px', py: '8px', cursor: 'pointer',
+                          borderRadius: '12px',
+                          bgcolor: '#fff',
+                          '&:hover': { bgcolor: 'rgba(0,83,229,0.05)' },
+                          transition: 'background 0.12s',
+                        }}>
+                        {iconEl}
+                        <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 15, color: blue ? s.primary : s.textSecondary }}>
+                          {label}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+                )
+              })()}
+
             {/* Canvas */}
             <Box
-              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false) }}
+              ref={canvasRef}
+              onClick={() => { setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setSelectedElId(null); setEditingElId(null) }}
+              onMouseMove={onCanvasMouseMove}
+              onMouseUp={onCanvasMouseUp}
+              onMouseLeave={onCanvasMouseUp}
               sx={{
-                maxWidth: 680, width: '100%', position: 'relative',
+                flex: 1, position: 'relative',
                 borderRadius: '8px', overflow: 'visible',
                 border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? '#0053E5' : s.divider}`,
                 boxShadow: headingSelected || subheadingSelected || footnoteSelected
@@ -1088,8 +1877,267 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                 transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
             >
-              {/* Image + overlays clipped to canvas shape */}
-              <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative' }}>
+              {/* ── Custom scene canvas ──────────────────────────────── */}
+              {sceneTypes[selectedScene] === 'custom' && (() => {
+                const els     = sceneEls()
+                const isEmpty = els.length === 0
+
+                // Icon sizes for bullet elements
+                const icoContainerPx: Record<string, number> = { S: 28, M: 36, L: 44, XL: 56 }
+                // Button pill sizes
+                const btnDims: Record<string, { w: number; h: number; fs: number }> = {
+                  S:{ w:80,h:28,fs:11 }, M:{ w:120,h:36,fs:13 }, L:{ w:160,h:44,fs:14 }, XL:{ w:200,h:52,fs:16 },
+                }
+                // Generic placeholder tile visual (Heading, Sub heading, Media, Logo, Footnote)
+                const GenericTile = ({ el, isSelected }: { el: CanvasEl; isSelected: boolean }) => {
+                  const iconSrc: Record<string, string> = {
+                    Heading: '/heading.png', 'Sub heading': '/sub heading.png',
+                    Media: '/media.png', Logo: '/logo.png', Button: '/button.png',
+                  }
+                  const src = iconSrc[el.type]
+                  return (
+                    <Box sx={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      px: '12px', py: '8px', borderRadius: '8px',
+                      border: `2px dashed ${isSelected ? s.primary : 'rgba(0,83,229,0.3)'}`,
+                      bgcolor: isSelected ? 'rgba(0,83,229,0.05)' : 'rgba(255,255,255,0.85)',
+                      cursor: 'grab', userSelect: 'none', whiteSpace: 'nowrap',
+                      boxShadow: isSelected ? '0 0 0 3px rgba(0,83,229,0.12)' : 'none',
+                      transition: 'all 0.15s',
+                    }}>
+                      {src
+                        ? <img src={src} style={{ width: 18, height: 18, objectFit: 'contain' }} alt={el.type} />
+                        : <Typography sx={{ fontSize: 16, lineHeight: 1, color: s.textSecondary }}>*</Typography>
+                      }
+                      <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: s.primary }}>
+                        {el.type}
+                      </Typography>
+                    </Box>
+                  )
+                }
+
+                return (
+                  <>
+                    {/* ── Clipped scene background (no elements here so nothing clips) ── */}
+                    <Box ref={sceneBoxRef} sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative', aspectRatio: '16/9', bgcolor: '#FFFFFF' }}>
+                      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, bgcolor: '#E040FB', zIndex: 1 }} />
+
+                      {isEmpty && (
+                        <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+                          <PlaceholderIcon size={52} />
+                          <Button variant="contained"
+                            onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p); setSelectedElId(null); setEditingElId(null) }}
+                            sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 400, fontSize: 14, textTransform: 'none', borderRadius: '8px', px: '16px', py: '8px', bgcolor: s.primary, boxShadow: '0 2px 8px rgba(0,83,229,0.25)' }}
+                          >Add placeholder</Button>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* ── Elements overlay — same bounds as scene box, no overflow:hidden ── */}
+                    <Box sx={{ position: 'absolute', inset: 0, borderRadius: '8px', overflow: 'visible', pointerEvents: 'none' }}>
+                      {els.map(el => {
+                        const isSelected = el.id === selectedElId
+                        const isEditing  = el.id === editingElId
+                        const isBullet   = el.type === 'Vertical bullet point' || el.type === 'Horizontal bullet point'
+                        const isButton   = el.type === 'Button'
+
+                        // Bullet sizing
+                        const icoPx    = icoContainerPx[el.bulletIconSize ?? 'M']
+                        const icoInner = icoPx * 0.6
+                        const badgePx  = Math.max(12, Math.round(icoPx * 0.35))
+
+                        return (
+                          <Box
+                            key={el.id}
+                            ref={isSelected ? selectedElRef : undefined}
+                            sx={{ position: 'absolute', left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)', zIndex: 3, pointerEvents: 'auto' }}
+                            onMouseDown={e => {
+                              if (isEditing) return
+                              startDrag(e, el.x, el.y, (nx, ny) => updateEl(el.id, { x: nx, y: ny }))
+                            }}
+                            onClick={e => {
+                              e.stopPropagation()
+                              if (dragInfo.current?.moved) return
+                              setSelectedElId(prev => prev === el.id ? null : el.id)
+                              setPlaceholderMenuOpen(false)
+                            }}
+                          >
+
+                            {/* ── Button ─────────────────────────────────── */}
+                            {isButton && (() => {
+                              const { w, h, fs } = btnDims[el.buttonSize ?? 'L']
+                              return (
+                                <Box sx={{
+                                  bgcolor: s.primary, color: '#fff', borderRadius: '999px',
+                                  width: w, height: h,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: fs,
+                                  cursor: 'grab', userSelect: 'none',
+                                  border: isSelected ? `2px dashed rgba(255,255,255,0.7)` : '2px solid transparent',
+                                  boxShadow: isSelected ? '0 0 0 3px rgba(0,83,229,0.35)' : '0 2px 8px rgba(0,83,229,0.30)',
+                                  outline: isSelected ? '2px solid #0053E5' : '2px solid transparent',
+                                  outlineOffset: '2px', transition: 'outline 0.15s, box-shadow 0.15s', whiteSpace: 'nowrap',
+                                }}>Button</Box>
+                              )
+                            })()}
+
+                            {/* ── Bullet (V or H) ────────────────────────── */}
+                            {isBullet && (() => {
+                              const isV    = el.type === 'Vertical bullet point'
+                              const imgDir = isV ? 'row' : 'column'
+                              const elWidth = el.width ?? 200
+                              const elHeight = el.height ?? 80
+                              const sceneBoxRect = sceneBoxRef.current?.getBoundingClientRect()
+                              const physicalWidth = sceneBoxRect ? (elWidth / 100) * sceneBoxRect.width : 200
+                              // Auto-size text: reduce font size if text is very long
+                              const calcTextSize = () => {
+                                const textLen = (el.text ?? 'Placeholder').length
+                                if (textLen > 40) return Math.max(11, Math.min(14, 14 - (textLen - 40) * 0.1))
+                                return el.bulletTextSize ?? 14
+                              }
+                              const autoTextFs = calcTextSize()
+                              return (
+                                <Box sx={{
+                                  display: 'flex', flexDirection: isV ? 'column' : 'row',
+                                  alignItems: 'center', gap: isV ? '10px' : '16px',
+                                  cursor: isEditing ? 'default' : 'grab', p: '8px', borderRadius: '8px',
+                                  outline: isSelected ? '2px solid #0053E5' : '2px solid transparent',
+                                  outlineOffset: '4px',
+                                  boxShadow: isSelected ? '0 0 0 4px rgba(0,83,229,0.12)' : 'none',
+                                  transition: 'outline 0.15s, box-shadow 0.15s',
+                                  position: 'relative',
+                                  width: isSelected ? `${physicalWidth}px` : 'auto',
+                                  maxWidth: `${physicalWidth}px`,
+                                  minWidth: 80,
+                                }}>
+                                  {/* image + text */}
+                                  <Box sx={{ display: 'flex', flexDirection: imgDir, alignItems: 'center', gap: '10px' }}>
+                                    <Box sx={{ position: 'relative', flexShrink: 0 }}>
+                                      <Box sx={{ width: icoPx, height: icoPx, bgcolor: '#616161', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <AddPhotoAlternateOutlinedIcon sx={{ fontSize: icoInner, color: '#fff' }} />
+                                      </Box>
+                                      <Box sx={{ position: 'absolute', top: -badgePx*0.35, right: -badgePx*0.35, width: badgePx, height: badgePx, borderRadius: '50%', bgcolor: '#9E9E9E', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <AddIcon sx={{ fontSize: badgePx * 0.65, color: '#fff' }} />
+                                      </Box>
+                                    </Box>
+                                    {isEditing ? (
+                                      <Box component="input" autoFocus value={el.text ?? ''}
+                                        onChange={e => updateBulletText(el.id, (e.target as HTMLInputElement).value)}
+                                        onBlur={() => setEditingElId(null)}
+                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingElId(null) }}
+                                        onClick={e => e.stopPropagation()}
+                                        sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: autoTextFs, color: '#03194F', border: 'none', outline: '2px solid #0053E5', borderRadius: '4px', px: '4px', py: '1px', bgcolor: 'rgba(0,83,229,0.06)', minWidth: 80, width: `${Math.max(80, (el.text?.length ?? 0) * 8)}px` }}
+                                      />
+                                    ) : (
+                                      <Typography
+                                        onDoubleClick={e => { e.stopPropagation(); setEditingElId(el.id); setSelectedElId(el.id) }}
+                                        sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: autoTextFs, color: '#03194F', whiteSpace: 'nowrap', userSelect: 'none' }}
+                                      >{el.text ?? 'Placeholder'}</Typography>
+                                    )}
+                                  </Box>
+                                  {/* Resize handle — only show when selected */}
+                                  {isSelected && (
+                                    <Box
+                                      onMouseDown={(e) => startResize(e, elWidth, elHeight, (w, h) => updateEl(el.id, { width: w, height: h }))}
+                                      sx={{
+                                        position: 'absolute', bottom: -6, right: -6,
+                                        width: 12, height: 12, borderRadius: '50%',
+                                        bgcolor: '#0053E5', cursor: 'se-resize',
+                                        border: '2px solid #fff', boxShadow: '0 0 0 1px #0053E5',
+                                        '&:hover': { boxShadow: '0 0 0 2px #0053E5' }
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+                              )
+                            })()}
+
+                            {/* ── Generic (Heading, Sub heading, Media, Logo, Footnote) ── */}
+                            {!isButton && !isBullet && <GenericTile el={el} isSelected={isSelected} />}
+                          </Box>
+                        )
+                      })}
+                    </Box>
+
+                    {/* ── Portal toolbar — rendered into document.body, immune to all overflow:hidden ── */}
+                    {selectedEl && selectedElRef.current && createPortal((() => {
+                      const elRect    = selectedElRef.current!.getBoundingClientRect()
+                      const isBullet  = selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point'
+                      const isButton  = selectedEl.type === 'Button'
+                      return (
+                        <Box
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={e => e.stopPropagation()}
+                          sx={{
+                            position: 'fixed',
+                            left: elRect.left + elRect.width / 2,
+                            top: elRect.top - 10,
+                            transform: 'translate(-50%, -100%)',
+                            zIndex: 9999,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {isButton && (
+                            <ButtonPlaceholderToolbar
+                              size={selectedEl.buttonSize ?? 'L'}
+                              onSizeChange={sz => updateEl(selectedEl.id, { buttonSize: sz })}
+                              onDelete={() => deleteEl(selectedEl.id)}
+                            />
+                          )}
+                          {isBullet && (
+                            <BulletPlaceholderToolbar
+                              iconSize={selectedEl.bulletIconSize ?? 'M'}
+                              onIconSizeChange={sz => updateEl(selectedEl.id, { bulletIconSize: sz })}
+                              onDelete={() => deleteEl(selectedEl.id)}
+                              onEditClick={() => {
+                                setEditBulletOpen(true)
+                              }}
+                              onOptionsMenuClick={(anchorEl) => setBulletMenuAnchor(anchorEl)}
+                            />
+                          )}
+                          {!isButton && !isBullet && (
+                            <PlaceholderToolbar onEditClick={() => {}} onDelete={() => deleteEl(selectedEl.id)} />
+                          )}
+                        </Box>
+                      )
+                    })(), document.body)}
+                  {/* Bullet options menu */}
+                  <Menu
+                    open={!!bulletMenuAnchor}
+                    anchorEl={bulletMenuAnchor}
+                    onClose={() => setBulletMenuAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  >
+                    <MenuItem onClick={() => {
+                      // TODO: Implement change order logic (move up/down in list)
+                      setBulletMenuAnchor(null)
+                    }}>
+                      Change order
+                    </MenuItem>
+                    <MenuItem onClick={() => {
+                      if (selectedEl && (selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point')) {
+                        const duplicated: CanvasEl = {
+                          ...selectedEl,
+                          id: `el-${Date.now()}`,
+                          text: selectedEl.text ? `${selectedEl.text} (copy)` : 'Placeholder'
+                        }
+                        setSceneElements(prev => ({
+                          ...prev,
+                          [selectedScene]: [...(prev[selectedScene] ?? []), duplicated]
+                        }))
+                        setSelectedElId(duplicated.id)
+                      }
+                      setBulletMenuAnchor(null)
+                    }}>
+                      Duplicate
+                    </MenuItem>
+                  </Menu>
+                  </>
+                )
+              })()}
+              {/* Image + overlays clipped to canvas shape — regular scenes only */}
+              {sceneTypes[selectedScene] !== 'custom' && <Box sx={{ overflow: 'hidden', borderRadius: '8px', position: 'relative' }}>
                 <Box component="img" src={IMG_THUMB} alt={videoTitle}
                   sx={{ width: '100%', display: 'block' }} />
 
@@ -1176,35 +2224,104 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                     {footnoteText}
                   </Typography>
                 </Box>
-              </Box>
+              </Box>}
 
               {/* Toolbars — outside overflow:hidden so they render above the canvas edge */}
-              {headingSelected && (
+              {sceneTypes[selectedScene] !== 'custom' && headingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '30%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
                   <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditHeadingOpen(true) }} />
                 </Box>
               )}
-              {subheadingSelected && (
+              {sceneTypes[selectedScene] !== 'custom' && subheadingSelected && (
                 <Box sx={{ position: 'absolute', left: '25%', top: '55%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
                   <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditSubheadingOpen(true) }} />
                 </Box>
               )}
-              {footnoteSelected && (
+              {sceneTypes[selectedScene] !== 'custom' && footnoteSelected && (
                 <Box sx={{ position: 'absolute', left: '50%', bottom: '3%', transform: 'translate(-50%, -100%)', mb: '4px', zIndex: 20, pointerEvents: 'auto' }}>
                   <PlaceholderToolbar onEditClick={() => { onEditAttempt ? onEditAttempt() : setEditFootnoteOpen(true) }} />
                 </Box>
               )}
             </Box>
 
-            {/* Next arrow */}
-            <IconButton
-              disabled={selectedScene === SCENE_COUNT - 1}
-              onClick={() => goToScene(selectedScene + 1)}
-              size="small"
-              sx={{ position: 'absolute', right: 16, color: selectedScene === SCENE_COUNT - 1 ? s.actionDisabled : s.primary }}
-            >
-              <ChevronRightIcon />
-            </IconButton>
+            {/* Right column: scene action toolbar + next arrow — sibling of canvas in stretch group */}
+            <Box sx={{ width: 32, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+
+              {/* Scene action toolbar — white pill card, top-aligned */}
+              <Box sx={{
+                width: 32,
+                bgcolor: '#ffffff',
+                border: `1px solid ${s.divider}`,
+                borderRadius: '24px',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: '8px',
+                p: '4px',
+              }}>
+                {/* 1. Layout / grid */}
+                <Tooltip title="Layout" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <GridViewOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* 2. Theme / palette */}
+                <Tooltip title="Theme" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <PaletteOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* 3. Add placeholder — active only on custom scenes */}
+                <Tooltip title={sceneTypes[selectedScene] === 'custom' ? 'Add placeholder' : ''} placement="left" arrow>
+                  <span>
+                    <IconButton
+                      size="small"
+                      disabled={sceneTypes[selectedScene] !== 'custom'}
+                      onClick={e => { e.stopPropagation(); setPlaceholderMenuOpen(p => !p) }}
+                      sx={{
+                        p: '3px', borderRadius: '6px',
+                        bgcolor: placeholderMenuOpen && sceneTypes[selectedScene] === 'custom' ? s.primary : 'transparent',
+                        color:   placeholderMenuOpen && sceneTypes[selectedScene] === 'custom' ? '#fff' : undefined,
+                        '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' },
+                        '&.Mui-disabled': { opacity: 0.3 },
+                      }}
+                    >
+                      <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === 'custom' ? '#ffffff' : s.primary} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+
+                {/* 4. Info */}
+                <Tooltip title="Info" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <InfoOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* 5. More */}
+                <Tooltip title="More" placement="left" arrow>
+                  <IconButton size="small" onClick={e => e.stopPropagation()}
+                    sx={{ p: '3px', color: s.primary, borderRadius: '6px', '&:hover': { bgcolor: 'rgba(0,83,229,0.08)' } }}>
+                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+
+              {/* Next arrow — pushed to bottom by justify-content: space-between */}
+              <IconButton
+                disabled={selectedScene === SCENE_COUNT - 1 || isToolbarActive}
+                onClick={() => goToScene(selectedScene + 1)}
+                size="small"
+                sx={{ color: (selectedScene === SCENE_COUNT - 1 || isToolbarActive) ? s.actionDisabled : s.primary, p: '3px' }}
+              >
+                <ChevronRightIcon />
+              </IconButton>
+            </Box>
+
+            </Box>{/* end canvas + toolbar group */}
           </Box>
 
           {/* Narration bar */}
@@ -1230,13 +2347,19 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
             </Typography>
           </Box>
 
-          {/* Scene lineup */}
+          {/* Scene lineup — dims when toolbar is active */}
           <Box sx={{
             bgcolor: s.white, borderTop: `1px solid ${s.divider}`,
             px: 2, pt: 1.5, pb: 1.5, flexShrink: 0,
+            position: 'relative',
           }}>
             {/* Play bar */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5 }}>
+            <Box sx={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5,
+              opacity: isToolbarActive ? 0.38 : 1,
+              pointerEvents: isToolbarActive ? 'none' : 'auto',
+              transition: 'opacity 0.2s',
+            }}>
               <Box sx={{
                 width: 40, height: 40, borderRadius: '50%',
                 bgcolor: s.editorBg,
@@ -1253,32 +2376,42 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               </Typography>
             </Box>
 
-            {/* Thumbnails row */}
-            <Box sx={{
-              display: 'flex', gap: '8px', overflowX: 'auto', pb: 0.5,
-              '&::-webkit-scrollbar': { height: 4 },
-              '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
-            }}>
-              {[0, 1, 2, 3].map(i => (
-                <SceneThumbnail key={i} index={i} selected={i === selectedScene}
-                  headingText={i === 0 ? headingText : (sceneContentFor(videoTitle)[i-1]?.[0] ?? 'Scene ' + (i+1))}
-                  subheadingText={i === 0 ? subheadingText : (sceneContentFor(videoTitle)[i-1]?.[1] ?? '')}
-                  footnoteText={footnoteText} onClick={() => goToScene(i)} />
-              ))}
-              {/* Add scene */}
+            {/* Thumbnails row — disabled + dimmed when a toolbar/panel is active */}
+            <Box sx={{ position: 'relative' }}>
               <Box sx={{
-                width: 56, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', gap: '8px', overflowX: 'auto', pb: 0.5,
+                '&::-webkit-scrollbar': { height: 4 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: s.primaryLight, borderRadius: 2 },
+                opacity: isToolbarActive ? 0.38 : 1,
+                pointerEvents: isToolbarActive ? 'none' : 'auto',
+                transition: 'opacity 0.2s',
+                userSelect: isToolbarActive ? 'none' : 'auto',
               }}>
+                {sceneTypes.map((type, i) =>
+                  type === 'custom'
+                    ? <CustomSceneThumbnail key={i} index={i} selected={i === selectedScene} onClick={() => goToScene(i)} />
+                    : <SceneThumbnail key={i} index={i} selected={i === selectedScene}
+                        headingText={i === 0 ? headingText : (sceneContentFor(videoTitle)[i-1]?.[0] ?? 'Scene ' + (i+1))}
+                        subheadingText={i === 0 ? subheadingText : (sceneContentFor(videoTitle)[i-1]?.[1] ?? '')}
+                        footnoteText={footnoteText} onClick={() => goToScene(i)} />
+                )}
+                {/* Add scene */}
                 <Box sx={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  bgcolor: s.editorBg,
+                  width: 56, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: `1.5px dashed ${s.primary}`,
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
                 }}>
-                  <AddIcon sx={{ fontSize: 18, color: s.primary }} />
+                  <Box
+                    onClick={() => { setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedElId(null) }}
+                    sx={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      bgcolor: s.editorBg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: `1.5px dashed ${s.primary}`,
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: 'rgba(0,83,229,0.06)' },
+                    }}>
+                    <AddIcon sx={{ fontSize: 18, color: s.primary }} />
+                  </Box>
                 </Box>
               </Box>
             </Box>
@@ -1304,6 +2437,30 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
         title="Footnote"
         currentText={footnoteText}
         onClose={(newText) => { setFootnoteText(newText); setEditFootnoteOpen(false) }}
+      />
+
+      {/* ── Edit Bullet Point dialog ──────────────────────────────────────── */}
+      {selectedEl && (selectedEl.type === 'Vertical bullet point' || selectedEl.type === 'Horizontal bullet point') && (
+        <EditBulletDialog
+          open={editBulletOpen}
+          currentText={selectedEl.text ?? 'Placeholder'}
+          bulletIconSize={selectedEl.bulletIconSize ?? 'M'}
+          onClose={(newText) => {
+            updateBulletText(selectedEl.id, newText)
+            setEditBulletOpen(false)
+          }}
+        />
+      )}
+
+      {/* ── Scene Library dialog ──────────────────────────────────────────── */}
+      <SceneLibraryDialog
+        open={sceneLibOpen}
+        onClose={() => setSceneLibOpen(false)}
+        onAddScene={(templateId) => {
+          const type = templateId === 'custom' ? 'custom' : 'regular'
+          setSceneTypes(prev => { const next: ('regular' | 'custom')[] = [...prev, type]; setSelectedScene(next.length - 1); return next })
+          setSceneLibOpen(false)
+        }}
       />
 
       {/* ── Comments panel — draggable + resizable ────────────────────────── */}

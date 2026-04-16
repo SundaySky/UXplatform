@@ -971,6 +971,23 @@ export default function MediaLibraryPanel({
         }}>
           Details
         </MenuItem>
+        {menuTarget?.type === 'folder' && (
+          <MenuItem
+            dense
+            onClick={() => {
+              closeMenu()
+              openManageAccess(menuTarget.name, 'folder', folder)
+            }}
+            sx={{
+              borderRadius: '6px',
+              fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary,
+              display: 'flex', alignItems: 'center', gap: '8px',
+            }}
+          >
+            <LockOutlinedIcon sx={{ fontSize: 16, color: c.actionActive }} />
+            Permissions
+          </MenuItem>
+        )}
         <MenuItem dense onClick={closeMenu} sx={{
           borderRadius: '6px',
           fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: c.textPrimary,

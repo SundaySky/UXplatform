@@ -21,13 +21,13 @@ import {
   TextField,
   Menu,
   MenuItem,
-  SvgIcon,
 } from '@mui/material'
 import ApprovalDialog     from './ApprovalDialog'
 import ConfirmationDialog from './ConfirmationDialog'
 import ApproveVideoDialog    from './ApproveVideoDialog'
 import CancelApprovalDialog       from './CancelApprovalDialog'
 import VideoLibraryPage, { type VideoItem, PermAvatarGroup } from './VideoLibraryPage'
+import { INITIAL_USERS } from './AccountSettingsDialog'
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from './StudioPage'
 import { type NotificationItem } from './NotificationsPanel'
 import VideoPermissionDialog, { type VideoPermissionSettings } from './VideoPermissionDialog'
@@ -71,21 +71,6 @@ import ArchiveOutlinedIcon      from '@mui/icons-material/ArchiveOutlined'
 import FolderOutlinedIcon       from '@mui/icons-material/FolderOutlined'
 import VpnKeyOutlinedIcon       from '@mui/icons-material/VpnKeyOutlined'
 import VisibilityOutlinedIcon   from '@mui/icons-material/VisibilityOutlined'
-
-// ─── Custom icon: FA "image-circle-check" approximation ──────────────────────
-function ImageCircleCheckIcon() {
-  return (
-    <SvgIcon sx={{ fontSize: 'inherit' }} viewBox="0 0 22 22">
-      {/* Photo frame */}
-      <path d="M14.5 2h-12C1.67 2 1 2.67 1 3.5v9C1 13.33 1.67 14 2.5 14H9.4a5.52 5.52 0 0 1-.4-2H2.5v-8h12v5.9a5.52 5.52 0 0 1 1.5.95V3.5c0-.83-.67-1.5-1.5-1.5z"/>
-      <path d="M3 12 5.5 8 8 11 10.5 7 13 12H3z"/>
-      <circle cx="12" cy="4.5" r="1"/>
-      {/* Check-circle badge */}
-      <circle cx="16.5" cy="16.5" r="5"/>
-      <path d="M14 16.5l2 2 4-4" fill="none" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-    </SvgIcon>
-  )
-}
 
 // ─── Figma asset: split-template preview (template left + media right)
 const imgVideoPreview = '/thumb.svg'
@@ -312,14 +297,12 @@ function Sidebar({
   onNavigateToLibrary,
   videoPermSettings,
   onManageAccess,
-  onSubmitForApproval,
 }: {
   effectiveStatus: 'draft' | 'pending' | 'approved'
   videoTitle: string
   onNavigateToLibrary: () => void
   videoPermSettings?: VideoPermissionSettings
   onManageAccess?: () => void
-  onSubmitForApproval?: () => void
 }) {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   return (
@@ -399,18 +382,6 @@ function Sidebar({
             <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
             <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Permissions</ListItemText>
             <PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />
-          </MenuItem>
-
-          <Divider sx={{ my: '4px', borderColor: t.divider }} />
-
-          <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: '4px', py: '8px', px: '16px' }}>
-            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive }}><ShareOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Share video</ListItemText>
-          </MenuItem>
-
-          <MenuItem onClick={() => { setMenuAnchor(null); onSubmitForApproval?.() }} sx={{ gap: '4px', py: '8px', px: '16px' }}>
-            <ListItemIcon sx={{ minWidth: 'unset', color: t.actionActive, fontSize: 16 }}><ImageCircleCheckIcon /></ListItemIcon>
-            <ListItemText primaryTypographyProps={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textPrimary }}>Submit for approval</ListItemText>
           </MenuItem>
 
           <Divider sx={{ my: '4px', borderColor: t.divider }} />
@@ -550,6 +521,7 @@ function VideoPreviewCard({
   onApproveVideo,
   videoPermSettings,
   onManageAccess,
+  approvalsEnabled = false,
 }: {
   videoPhase:          number
   effectiveStatus:     'draft' | 'pending' | 'approved'
@@ -563,6 +535,7 @@ function VideoPreviewCard({
   onApproveVideo:      () => void
   videoPermSettings?:  VideoPermissionSettings
   onManageAccess:      () => void
+  approvalsEnabled?:   boolean
 }) {
   function ActionButton() {
     // ── Phase 0 + pending: after approval dialog sent ─────────────────────
@@ -650,8 +623,32 @@ function VideoPreviewCard({
       )
     }
 
-    // ── Phase 3+: "Approve video" — outlined, checkmark, tooltip ─────────────
-    if (videoPhase >= 3) {
+    // ── Phase 4: "Approved" status — green button, disabled ──────────────────
+    if (videoPhase === 4) {
+      return (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
+          sx={{
+            fontFamily: '"Open Sans", sans-serif',
+            fontWeight: 600,
+            bgcolor: '#D4EDDA',
+            color: '#155724',
+            '&:hover': { bgcolor: '#C3E6CB' },
+            boxShadow: 'none',
+            textTransform: 'none',
+            fontSize: 14
+          }}
+          disabled
+        >
+          Approved
+        </Button>
+      )
+    }
+
+    // ── Phase 3: "Approve video" — outlined, checkmark, tooltip ─────────────
+    if (videoPhase === 3) {
       return (
         <Tooltip
           title="Allows you to share the video with viewers"
@@ -675,7 +672,20 @@ function VideoPreviewCard({
       )
     }
 
-    // ── Phase 0, draft: "Send for approval" ──────────────────────────────────
+    // ── Phase 0, draft: button depends on approvalsEnabled ───────────────────
+    if (!approvalsEnabled) {
+      // When approvals are OFF: show "Approve for sharing"
+      return (
+        <Button variant="contained" size="small" color="primary"
+          startIcon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
+          onClick={onApproveVideo}
+        >
+          Approve for sharing
+        </Button>
+      )
+    }
+
+    // When approvals are ON: show "Submit for approval"
     return (
       <Button variant="contained" size="small" color="primary"
         startIcon={
@@ -962,6 +972,8 @@ const INITIAL_TASKS: Task[] = [
   { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
   { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
   { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
+  { id: 7, label: "You're preparing a video for approval, and your boss told you that Michelle Cohen from Legal needs to approve it.", done: false },
+  { id: 8, label: "Jarvis is no longer with the company", done: false },
 ]
 
 type SessionState = 'idle' | 'active' | 'survey' | 'complete'
@@ -1288,7 +1300,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 const PHASE_STATUS: Record<number, 'draft' | 'pending' | 'approved'> = { 0: 'draft', 1: 'pending', 2: 'pending', 3: 'approved', 4: 'approved' }
 
 // Per-video state — each video has its own phase, pageState, sentApprovers, and commentsCleared flag
-type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string; permSettings?: VideoPermissionSettings }
+type VideoState = { phase: number; pageState: 'draft' | 'pending'; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string; permSettings?: VideoPermissionSettings; sentAt?: string }
 const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: 'draft', sentApprovers: [] }
 
 export default function App() {
@@ -1301,6 +1313,19 @@ export default function App() {
   const [openCommentsOnStudio,  setOpenCommentsOnStudio]  = useState(false)
   const [openCommentsCounter,   setOpenCommentsCounter]   = useState(0)
   const [videoPermDialogOpen,   setVideoPermDialogOpen]   = useState(false)
+  // Approval settings
+  const [approvalsEnabled, setApprovalsEnabled] = useState(false)
+  const [approverIds, setApproverIds] = useState<Set<string>>(new Set())
+  const [approversList, setApproversList] = useState<{ value: string; label: string }[]>(
+    () => INITIAL_USERS
+      .filter(u => u.createSpace.includes('Approver'))
+      .map(u => ({ value: u.user.id, label: `${u.user.name} (${u.user.email})` }))
+  )
+  const [pendingApprovalsDialogOpen, setPendingApprovalsDialogOpen] = useState(false)
+  const [pendingApprovalsWarningReason, setPendingApprovalsWarningReason] = useState<'turn-off' | 'delete-user' | null>(null)
+  const [approvalsDisabledDialogOpen, setApprovalsDisabledDialogOpen] = useState(false)
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false)
+  const [accountSettingsInitialTab, setAccountSettingsInitialTab] = useState<'users' | 'permissions' | 'approvals' | 'access'>('users')
 
   // Derive current video's state from the map (defaults to fresh draft)
   const currentKey = selectedVideo?.title || 'Stay Safe During Missile Threats'
@@ -1396,7 +1421,7 @@ export default function App() {
   }
 
   const handleApprovalSend = (approvers: string[]) => {
-    updateVideoState(currentKey, { sentApprovers: approvers, pageState: 'pending' })
+    updateVideoState(currentKey, { sentApprovers: approvers, pageState: 'pending', sentAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) })
     setDialogStep('confirmed')
   }
 
@@ -1420,7 +1445,34 @@ export default function App() {
             notifications={notifications}
             videoStates={videoStates}
             onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
-            onSubmitForApproval={(key, approvers) => updateVideoState(key, { sentApprovers: approvers, pageState: 'pending' })}
+            onSubmitForApproval={(key, approvers) => updateVideoState(key, { sentApprovers: approvers, pageState: 'pending', sentAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) })}
+            approvalsEnabled={approvalsEnabled}
+            onApprovalsDisabled={() => setApprovalsDisabledDialogOpen(true)}
+            approverIds={approverIds}
+            onApprovalsEnabledChange={(enabled, hasPendingApprovals) => {
+              if (!enabled && hasPendingApprovals) {
+                // Show pending approvals warning dialog
+                setPendingApprovalsWarningReason('turn-off')
+                setPendingApprovalsDialogOpen(true)
+              } else {
+                setApprovalsEnabled(enabled)
+              }
+            }}
+            approversList={approversList}
+            accountSettingsOpen={accountSettingsOpen}
+            accountSettingsInitialTab={accountSettingsInitialTab}
+            onAccountSettingsOpen={(open) => setAccountSettingsOpen(open)}
+            onApproversChange={(ids) => {
+              setApproverIds(ids)
+            }}
+            onApproversListChange={(approvers) => {
+              setApproversList(approvers)
+            }}
+            onUserDeletionBlocked={(_userId, _reason) => {
+              // Show user deletion blocked dialog
+              setPendingApprovalsWarningReason('delete-user')
+              setPendingApprovalsDialogOpen(true)
+            }}
           />
 
         ) : currentPage === 'studio' ? (
@@ -1454,7 +1506,6 @@ export default function App() {
               onNavigateToLibrary={() => setCurrentPage('library')}
               videoPermSettings={videoPermSettings}
               onManageAccess={() => setVideoPermDialogOpen(true)}
-              onSubmitForApproval={() => setDialogStep('form')}
             />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -1505,6 +1556,7 @@ export default function App() {
                       onApproveVideo={() => setApproveDialogOpen(true)}
                       videoPermSettings={videoPermSettings}
                       onManageAccess={() => setVideoPermDialogOpen(true)}
+                      approvalsEnabled={approvalsEnabled}
                     />
                   </Box>
                   <ReviewOptionsPanel isPending={effectiveStatus === 'pending' && videoPhase !== 2} />
@@ -1537,6 +1589,7 @@ export default function App() {
         open={dialogStep === 'form'}
         onClose={() => setDialogStep('closed')}
         onSend={handleApprovalSend}
+        availableApprovers={approversList}
       />
       <ConfirmationDialog
         open={dialogStep === 'confirmed'}
@@ -1559,6 +1612,101 @@ export default function App() {
           setCurrentPage('studio')
         }}
       />
+
+      {/* Pending Approvals Warning Dialog — when turning off or deleting with pending approvals */}
+      <Dialog
+        open={pendingApprovalsDialogOpen}
+        onClose={() => setPendingApprovalsDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '12px' } }}
+      >
+        <DialogTitle sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: 18, color: t.textPrimary, pb: 1 }}>
+          {pendingApprovalsWarningReason === 'turn-off'
+            ? 'Cannot turn off approvals'
+            : 'Cannot remove user'}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textSecondary, mb: 2, lineHeight: 1.6 }}>
+            {pendingApprovalsWarningReason === 'turn-off'
+              ? `You have ${Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length} video${
+                  Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length !== 1 ? 's' : ''
+                } awaiting approval. You must remove all pending approvals before turning off the "Require approvals" feature.`
+              : 'This user has pending approvals. You must remove all pending approvals or add other approvers before removing this user.'}
+          </Typography>
+
+          {/* List of pending approvals */}
+          <Box sx={{ bgcolor: '#FAFBFD', borderRadius: '8px', p: 2, mb: 2 }}>
+            {Object.entries(videoStates)
+              .filter(([_, state]) => state.sentApprovers?.length > 0)
+              .slice(0, 5)
+              .map(([videoTitle, state]) => (
+                <Box key={videoTitle} sx={{ display: 'flex', gap: 2, mb: 1.5, alignItems: 'flex-start', '&:last-child': { mb: 0 } }}>
+                  <Box sx={{ width: 60, height: 60, borderRadius: '6px', bgcolor: t.bgDefault, flexShrink: 0, border: `1px solid ${t.divider}` }} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontWeight: 600, fontSize: 13, color: t.textPrimary, mb: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {videoTitle}
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 12, color: t.textSecondary }}>
+                      Awaiting approval • {formatApproverNames(state.sentApprovers)}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setPendingApprovalsDialogOpen(false)
+              // Don't allow the action
+            }}
+            sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: t.primaryMain, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+          >
+            Got it
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Approvals Disabled Dialog */}
+      <Dialog
+        open={approvalsDisabledDialogOpen}
+        onClose={() => setApprovalsDisabledDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '12px' } }}
+      >
+        <DialogTitle sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: 18, color: t.textPrimary, pb: 1 }}>
+          Enable approvals
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, color: t.textSecondary, mb: 2, lineHeight: 1.6 }}>
+            To use this feature, set up approvers in Account Settings and turn on "Require approvals from specific users for videos and templates".
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setApprovalsDisabledDialogOpen(false)}
+            sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, textTransform: 'none', color: t.textPrimary, borderColor: t.divider }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setApprovalsDisabledDialogOpen(false)
+              setApprovalsEnabled(true)
+              setAccountSettingsInitialTab('approvals')
+              setAccountSettingsOpen(true)
+            }}
+            sx={{ fontFamily: '"Open Sans", sans-serif', fontSize: 14, fontWeight: 600, textTransform: 'none', borderRadius: '8px', bgcolor: t.primaryMain, boxShadow: 'none', '&:hover': { bgcolor: '#0047C8', boxShadow: 'none' } }}
+          >
+            Set approvers
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
