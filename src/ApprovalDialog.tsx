@@ -2,12 +2,12 @@ import { useState } from "react";
 import type {
     SelectChangeEvent } from "@mui/material";
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
+    Dialog, DialogContent, DialogActions,
     TextField, FormControl, Select, MenuItem,
     Button, IconButton, Box, Stack, Alert, Typography
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
+import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 const DEFAULT_USERS = [
@@ -76,20 +76,10 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
                 }
             }}
         >
-            {/* ── Title: Open Sans SemiBold 20px, pl-32 pr-22 pt-20 pb-16 ──────────── */}
-            <DialogTitle
-                component="div"
-                sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                    pl: "32px", pr: "22px", pt: "20px", pb: "16px", gap: 1 }}
-            >
-                <Typography variant="h3" sx={{ color: "text.primary", flex: 1 }}>
-          Ask an approver to approve this video
-                </Typography>
-                {/* DS: Size=Medium, Color=Default IconButton */}
-                <IconButton size="medium" color="default" onClick={handleClose}>
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
+            {/* ── Title ──────────────────────────────────────────────────────────── */}
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: handleClose }}>
+                Ask an approver to approve this video
+            </TruffleDialogTitle>
 
             {/* ── Content ──────────────────────────────────────────────────────────── */}
             <DialogContent sx={{ px: "32px", pt: "0 !important", pb: "8px" }}>

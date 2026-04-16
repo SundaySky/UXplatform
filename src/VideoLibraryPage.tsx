@@ -5,6 +5,7 @@ import {
     InputAdornment, OutlinedInput,
     Menu, MenuItem, ListItemText, Divider
 } from "@mui/material";
+import { Label, TypographyWithTooltipOnOverflow } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import AccountSettingsDialog from "./AccountSettingsDialog";
 import ApprovalDialog from "./ApprovalDialog";
@@ -116,44 +117,20 @@ export type StatusKey =
   | "Shared"
   | "Pending approval"
 
-interface StatusConfig { bg: string; color: string; Icon?: React.ElementType }
-const STATUS: Record<StatusKey, StatusConfig> = {
-    "Draft":                  { bg: "grey.200", color: "text.secondary" },
-    "Approved for sharing":   { bg: "info.light", color: "info.main", Icon: SyncIcon },
-    "Downloaded for Sharing": { bg: "success.light", color: "success.main", Icon: SyncIcon },
-    "Downloaded":             { bg: "info.light", color: "info.main", Icon: SyncIcon },
-    "Live":                   { bg: "error.light", color: "error.main" },
-    "Shared":                 { bg: "info.light", color: "info.main" },
-    "Pending approval":       { bg: "grey.200", color: "text.secondary" }
+const STATUS_LABEL_MAP: Record<StatusKey, { color: "default" | "info" | "success" | "error"; icon?: React.ReactNode }> = {
+    "Draft":                  { color: "default" },
+    "Approved for sharing":   { color: "info", icon: <SyncIcon /> },
+    "Downloaded for Sharing": { color: "success", icon: <SyncIcon /> },
+    "Downloaded":             { color: "info", icon: <SyncIcon /> },
+    "Live":                   { color: "error" },
+    "Shared":                 { color: "info" },
+    "Pending approval":       { color: "default" }
 };
 
 function StatusLabel({ status }: { status: StatusKey }) {
-    const cfg = STATUS[status];
+    const cfg = STATUS_LABEL_MAP[status];
     return (
-        <Box sx={{
-            display: "inline-flex", alignItems: "center", gap: "4px",
-            bgcolor: cfg.bg, borderRadius: "4px", px: "6px", pt: "2px", pb: "3px", flexShrink: 0
-        }}>
-            {cfg.Icon && <cfg.Icon sx={{ fontSize: 12, color: cfg.color }} />}
-            <Typography variant="caption" sx={{ color: cfg.color, whiteSpace: "nowrap", lineHeight: 1.5 }}>
-                {status}
-            </Typography>
-        </Box>
-    );
-}
-
-function PersonalizedChip() {
-    return (
-        <Box sx={(theme) => ({
-            display: "inline-flex", alignItems: "center", gap: "4px",
-            border: `1px solid ${theme.palette.grey[500]}`, borderRadius: "4px",
-            px: "6px", pt: "2px", pb: "3px", flexShrink: 0
-        })}>
-            <PeopleAltOutlinedIcon sx={{ fontSize: 12, color: "action.active" }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "nowrap", lineHeight: 1.5 }}>
-        Personalized
-            </Typography>
-        </Box>
+        <Label label={status} color={cfg.color} startIcon={cfg.icon} />
     );
 }
 
@@ -423,13 +400,13 @@ function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApprova
             <Box sx={{ pt: "8px", display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
                 {/* Title + 3-dots */}
                 <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                    <Typography variant="h5" sx={{
+                    <TypographyWithTooltipOnOverflow variant="h5" multiline sx={{
                         color: "text.primary", flex: 1,
                         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                         overflow: "hidden", minHeight: "42px", lineHeight: 1.5
                     }}>
                         {video.title}
-                    </Typography>
+                    </TypographyWithTooltipOnOverflow>
                     <IconButton
                         size="small"
                         onClick={openMenu}
@@ -452,7 +429,7 @@ function VideoCard({ video, onClick, liveState, onPermChange, onSubmitForApprova
                 {/* Status chips + inline approval icon */}
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
                     {video.statuses.map(s => <StatusLabel key={s} status={s} />)}
-                    {video.personalized && <PersonalizedChip />}
+                    {video.personalized && <Label label="Personalized" color="default" variant="outlined" startIcon={<PeopleAltOutlinedIcon sx={{ fontSize: 12 }} />} />}
                     {liveState && <ApprovalStatusIcon state={liveState} totalComments={TOTAL_COMMENT_COUNT} />}
                 </Box>
             </Box>
@@ -603,12 +580,11 @@ function FolderCard({ name, count }: { name: string; count: number }) {
                 <FolderOutlinedIcon sx={{ fontSize: 20, color: "primary.main" }} />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-                <Typography variant="subtitle2" sx={{
-                    color: "text.primary", lineHeight: 1.5,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                <TypographyWithTooltipOnOverflow variant="subtitle2" sx={{
+                    color: "text.primary", lineHeight: 1.5
                 }}>
                     {name}
-                </Typography>
+                </TypographyWithTooltipOnOverflow>
                 <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.5 }}>
                     {count} {count === 1 ? "item" : "items"}
                 </Typography>
@@ -649,9 +625,9 @@ function AppSidebar() {
             }}>
                 {[{ chars: "SUN", color: "common.white" }, { chars: "DAY", color: "common.white" }, { chars: "SKY", color: "primary.main" }]
                     .map(({ chars, color }) => (
-                        <Typography key={chars} sx={{
-                            fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: 11,
-                            letterSpacing: "0.22em", lineHeight: 1.4, color, display: "block"
+                        <Typography key={chars} variant="caption" sx={{
+                            letterSpacing: "0.22em", lineHeight: 1.4, color, display: "block",
+                            textTransform: "uppercase"
                         }}>
                             {chars}
                         </Typography>
@@ -685,9 +661,8 @@ function AppSidebar() {
                     "&:hover": { bgcolor: selected ? theme.palette.secondary.main : "rgba(255,255,255,0.06)" }
                 })}>
                     <Box sx={{ color: "common.white" }}>{icon}</Box>
-                    <Typography sx={{
-                        fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600,
-                        fontSize: 13, lineHeight: 1.3, letterSpacing: "0.46px",
+                    <Typography variant="subtitle2" sx={{
+                        lineHeight: 1.3, letterSpacing: "0.46px",
                         color: "common.white", textAlign: "center", textTransform: "capitalize"
                     }}>
                         {label}

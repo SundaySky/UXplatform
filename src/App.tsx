@@ -33,6 +33,8 @@ import { type NotificationItem } from "./NotificationsPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import { OWNER_USER, type PermissionUser } from "./ManageAccessDialog";
 
+import { Label, AttentionBox, AttentionBoxTitle, AttentionBoxContent, AttentionBoxActions, TruffleLink } from "@sundaysky/smartvideo-hub-truffle-component-library";
+
 // MUI icons
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -99,19 +101,7 @@ function formatApproverNames(approvers: string[]): string {
 
 // ─── "Updated" link label (primary blue text, DS: TruffleLink color=Primary) ──
 function UpdatedLabel() {
-    return (
-        <Box sx={{
-            display: "inline-flex", alignItems: "center",
-            bgcolor: "info.light", borderRadius: "4px",
-            px: "6px", py: "2px", flexShrink: 0
-        }}>
-            <Typography variant="caption" sx={{
-                color: "#284862", whiteSpace: "nowrap"
-            }}>
-        Updated
-            </Typography>
-        </Box>
-    );
+    return <Label label="Updated" color="info" size="small" />;
 }
 
 // ─── Circular icon avatar ─────────────────────────────────────────────────────
@@ -261,8 +251,7 @@ function VideoPermissionStrip({
 function SundaySkyLogo() {
     return (
         <Box sx={{ px: 1, pb: 0.5 }}>
-            <Typography sx={{
-                fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: 13,
+            <Typography variant="caption" sx={{
                 letterSpacing: "0.25em", color: "text.primary", textTransform: "uppercase", lineHeight: 1
             }}>
         SUNDAY<Box component="span" sx={{ color: "primary.main" }}>SKY</Box>
@@ -399,29 +388,12 @@ function Sidebar({
             {/* Status chip — "Video/template status bank"
           Figma spec: display:flex, flex-direction:column, justify-content:center,
           align-items:flex-start, padding:1px 0px, width:246px, height:25px         */}
-            <Box sx={{
-                display:        "flex",
-                flexDirection:  "column",
-                justifyContent: "center",
-                alignItems:     "flex-start",
-                pl:             "20px", // 20px left = sidebar px:2.5 (8×2.5)
-                pr:             0,
-                pt:             "1px",
-                pb:             "1px",
-                width:          "280px",
-                height:         "25px"
-            }}>
-                <Box sx={{
-                    display: "inline-flex", alignItems: "baseline", gap: "2px",
-                    bgcolor: effectiveStatus === "approved" ? "info.light" : "grey.200",
-                    borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
-                }}>
-                    <Typography variant="caption" sx={{
-                        color: effectiveStatus === "approved" ? "#284862" : "text.secondary"
-                    }}>
-                        {effectiveStatus === "pending" ? "Pending approval" : effectiveStatus === "approved" ? "Approved for sharing" : "Draft"}
-                    </Typography>
-                </Box>
+            <Box sx={{ pl: "20px", py: "1px" }}>
+                <Label
+                    label={effectiveStatus === "pending" ? "Pending approval" : effectiveStatus === "approved" ? "Approved for sharing" : "Draft"}
+                    color={effectiveStatus === "approved" ? "info" : "default"}
+                    size="small"
+                />
             </Box>
 
             <Divider sx={{ borderColor: "divider", mx: 2.5, my: 1 }} />
@@ -892,45 +864,23 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
             </Paper>
 
             {/* ── 3. Approval in progress AttentionBox (pending only, bottom) ───── */}
-            {/* Figma: bg warning/light #FFF5CE, p-16, rounded-8, gap-4 */}
             {isPending && !attentionDismissed && (
-                <Paper
-                    variant="outlined"
-                    sx={{ borderRadius: 2, border: "none", bgcolor: "warning.light", p: 2, display: "flex", flexDirection: "column", gap: "4px" }}
+                <AttentionBox
+                    color="warning"
+                    icon={<WarningAmberOutlinedIcon />}
+                    CloseIconButtonProps={{ onClick: () => setAttentionDismissed(true) }}
+                    HelpCenterIconButtonProps={{ onClick: () => {} }}
                 >
-                    {/* Title row: icon + title + help + close */}
-                    <Box sx={{ display: "flex", alignItems: "center", minHeight: 32 }}>
-                        {/* exclamation-triangle 18px warning/main */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", pr: 1, flexShrink: 0 }}>
-                            <WarningAmberOutlinedIcon sx={{ fontSize: 18, color: "warning.main" }} />
-                        </Box>
-                        {/* Title text */}
-                        <Typography variant="subtitle2" sx={{ color: "text.primary", flex: 1, pr: "4px" }}>
-              Approval in progress
+                    <AttentionBoxTitle>Approval in progress</AttentionBoxTitle>
+                    <AttentionBoxContent>
+                        <Typography variant="body1">
+                            Approval request sent to the approver. You can also share the video using the link.
                         </Typography>
-                        {/* circle-question icon button */}
-                        <IconButton size="small" sx={{ p: "8px", color: "action.active" }}>
-                            <HelpOutlineIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                        {/* x-mark / close icon button */}
-                        <IconButton size="small" sx={{ p: "8px", color: "action.active" }} onClick={() => setAttentionDismissed(true)}>
-                            <CloseIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Box>
-
-                    {/* Body text */}
-                    <Typography sx={{ color: "text.primary" }}>
-            Approval request sent to the approver. You can also share the video using the link.
-                    </Typography>
-
-                    {/* Share video using link */}
-                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: "4px", mt: "4px", cursor: "pointer" }}>
-                        <LinkIcon sx={{ fontSize: 14, color: "warning.main" }} />
-                        <Typography sx={{ color: "warning.main", textDecoration: "underline" }}>
-              Share video using link
-                        </Typography>
-                    </Box>
-                </Paper>
+                    </AttentionBoxContent>
+                    <AttentionBoxActions>
+                        <TruffleLink startIcon={<LinkIcon sx={{ fontSize: 14 }} />}>Share video using link</TruffleLink>
+                    </AttentionBoxActions>
+                </AttentionBox>
             )}
         </Box>
     );
@@ -1638,7 +1588,6 @@ export default function App() {
                             setPendingApprovalsDialogOpen(false);
                             // Don't allow the action
                         }}
-                        sx={{ boxShadow: "none", "&:hover": { boxShadow: "none" } }}
                     >
             Got it
                     </Button>
@@ -1677,7 +1626,6 @@ export default function App() {
                             setAccountSettingsInitialTab("approvals");
                             setAccountSettingsOpen(true);
                         }}
-                        sx={{ boxShadow: "none", "&:hover": { boxShadow: "none" } }}
                     >
             Set approvers
                     </Button>

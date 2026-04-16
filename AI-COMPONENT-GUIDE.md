@@ -1064,6 +1064,44 @@ const actionsSx: SxProps<Theme> = {
 
 ---
 
+## Edge Cases & Exceptions
+
+### Visual/Canvas Text (cqw units)
+
+Typography inside video previews or canvas overlays often uses container-query units (`fontSize: "9cqw"`, `"4cqw"`, etc.). These are **not UI text** — they are visual elements that scale with the preview container. For these elements:
+
+- **Keep** explicit `fontFamily`, `fontWeight`, `fontSize` overrides (variants don't support cqw)
+- **Still replace** hardcoded colors with palette paths (`"secondary.main"`, `"text.primary"`, etc.)
+
+### Typography Sizes Without Exact Variant Match
+
+The theme defines specific font sizes. When you encounter text at sizes like 11px, 13px, or 9px that don't have exact variant matches:
+
+| Needed size | Use variant | Notes |
+|---|---|---|
+| 11px | `caption` | Closest match (12px). Accept the 1px difference. |
+| 13px | `caption` or `subtitle2` | Use `caption` for light text, `subtitle2` for emphasized text. If the 1-2px difference matters, add `sx={{ fontSize: 13 }}` but still drop `fontFamily`/`fontWeight`. |
+| 9px–10px | `caption` with fontSize override | `variant="caption" sx={{ fontSize: 10 }}` |
+
+### Brand/Logo Text
+
+The SundaySky wordmark and app sidebar navigation use brand-specific typography (e.g., Inter 700, 11px, letter-spacing 0.22em, uppercase). These **may** keep explicit font overrides since they are brand identity elements, not standard UI text. Still replace colors with palette paths.
+
+### Tooltip Navy Background
+
+Many tooltips use a dark navy background for contrast. Use `"secondary.main"` as the bgcolor:
+
+```tsx
+<Tooltip
+  componentsProps={{
+    tooltip: { sx: { bgcolor: "secondary.main" } },
+    arrow: { sx: { color: "secondary.main" } }
+  }}
+>
+```
+
+---
+
 ## Deprecated Components
 
 The following are deprecated. Do not use in new code:

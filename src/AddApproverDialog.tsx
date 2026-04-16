@@ -2,12 +2,12 @@ import { useState } from "react";
 import type {
     SelectChangeEvent } from "@mui/material";
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
+    Dialog, DialogContent, DialogActions,
     TextField, FormControl, Select, MenuItem,
-    Button, IconButton, Box, Chip, Typography, Avatar
+    Button, Box, Chip, Typography, Avatar
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
+import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 
 // ─── User list (matches ApprovalDialog) ───────────────────────────────────────
@@ -74,23 +74,12 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
             }}
         >
             {/* ── Title ─────────────────────────────────────────────────────────── */}
-            <DialogTitle
-                component="div"
-                sx={{
-                    display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                    pl: "32px", pr: "22px", pt: "20px", pb: "16px", gap: 1
-                }}
-            >
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: handleClose }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <PersonAddOutlinedIcon sx={{ fontSize: 22, color: "action.active", mt: "2px" }} />
-                    <Typography variant="h3" color="text.primary">
-            Add an approver
-                    </Typography>
+                    <PersonAddOutlinedIcon sx={{ fontSize: 22, color: "action.active" }} />
+                    Add an approver
                 </Box>
-                <IconButton size="medium" color="default" onClick={handleClose}>
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
+            </TruffleDialogTitle>
 
             {/* ── Content ───────────────────────────────────────────────────────── */}
             <DialogContent sx={{ px: "32px", pt: "0 !important", pb: "8px" }}>

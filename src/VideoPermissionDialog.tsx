@@ -673,7 +673,7 @@ export default function VideoPermissionDialog({
                                                 sx={{
                                                     bgcolor: "rgba(1,118,215,0.06)",
                                                     color: "text.primary",
-                                                    "& .MuiAlert-icon": { color: "#0176D7" },
+                                                    "& .MuiAlert-icon": { color: "info.main" },
                                                     p: "6px 12px"
                                                 }}
                                             >

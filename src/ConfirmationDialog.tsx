@@ -1,9 +1,9 @@
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, IconButton, Box, Typography
+    Dialog, DialogContent, DialogActions,
+    Button, Box, Typography
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import LinkIcon from "@mui/icons-material/Link";
+import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 interface Props {
   open: boolean
@@ -36,23 +36,11 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
             }}
         >
             {/* ── Title ──────────────────────────────────────────────────────────── */}
-            <DialogTitle
-                component="div"
-                sx={{
-                    display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                    pl: "32px", pr: "22px", pt: "20px", pb: "16px", gap: 1
-                }}
-            >
-                <Typography variant="h3" sx={{ color: "text.primary", flex: 1 }}>
-                    {isMulti
-                        ? "Approval request sent. You'll be notified by email when approvers respond."
-                        : "Approval request sent, you'll be notified when the approver respond"}
-                </Typography>
-                {/* DS: Size=Medium, Color=Default IconButton */}
-                <IconButton size="medium" color="default" onClick={onClose}>
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
+                {isMulti
+                    ? "Approval request sent. You'll be notified by email when approvers respond."
+                    : "Approval request sent, you'll be notified when the approver respond"}
+            </TruffleDialogTitle>
 
             {/* ── Content ────────────────────────────────────────────────────────── */}
             <DialogContent sx={{ px: "32px", pt: "0 !important", pb: "8px" }}>

@@ -380,7 +380,7 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
             </Box>
 
             {/* ── Main content ─────────────────────────────────────────────────── */}
-            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", bgcolor: "#fff" }}>
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", bgcolor: "background.paper" }}>
 
                 {/* Title bar */}
                 <Box sx={{
@@ -509,7 +509,7 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
                 <Box sx={{
                     position: "absolute", bottom: 0, right: 0,
                     width: "calc(100% - 192px)",
-                    bgcolor: "#fff",
+                    bgcolor: "background.paper",
                     borderTop: `1px solid ${DIVIDER_COLOR}`,
                     display: "flex", justifyContent: "flex-end", gap: "10px",
                     px: "32px", py: "16px", zIndex: 10

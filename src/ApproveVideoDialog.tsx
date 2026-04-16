@@ -1,9 +1,8 @@
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, IconButton, Typography, Box
+    Dialog, DialogContent,
+    Button, Typography
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 interface Props {
   open: boolean
@@ -25,19 +24,12 @@ export default function ApproveVideoDialog({ open, onClose, onApprove }: Props) 
                 }
             }}
         >
-            <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
-                <Typography variant="h3" color="text.primary">
-          Approve Video?
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <IconButton size="small" sx={{ color: "action.active" }}>
-                        <HelpOutlineIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                    <IconButton size="small" onClick={onClose} sx={{ color: "action.active" }}>
-                        <CloseIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                </Box>
-            </DialogTitle>
+            <TruffleDialogTitle
+                CloseIconButtonProps={{ onClick: onClose }}
+                HelpCenterIconButtonProps={{ onClick: () => {} }}
+            >
+                Approve Video?
+            </TruffleDialogTitle>
 
             <DialogContent sx={{ pt: 1, pb: 2 }}>
                 <Typography variant="subtitle1" color="text.primary">
@@ -45,7 +37,7 @@ export default function ApproveVideoDialog({ open, onClose, onApprove }: Props) 
                 </Typography>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 3, pt: 1, gap: 1, justifyContent: "flex-end" }}>
+            <TruffleDialogActions>
                 <Button
                     variant="text"
                     color="primary"
@@ -64,7 +56,7 @@ export default function ApproveVideoDialog({ open, onClose, onApprove }: Props) 
                 >
           Approve
                 </Button>
-            </DialogActions>
+            </TruffleDialogActions>
         </Dialog>
     );
 }

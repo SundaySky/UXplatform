@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import {
     Box, Typography, IconButton, Button, Avatar,
     Badge, Dialog, DialogTitle, DialogContent, DialogActions,
-    TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem
+    TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem,
+    useTheme
 } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import UndoIcon from "@mui/icons-material/Undo";
@@ -54,25 +55,23 @@ import SceneLibraryDialog from "./SceneLibraryDialog";
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
 function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void; onDelete?: () => void }) {
-    const c = "#0053E5";
-    const border = "1px solid #E0E0E0"; // grey/300
-
     const Pill = ({ icon, label, onClick }: { icon: React.ReactNode; label?: string; onClick?: () => void }) => (
         <Box
             onClick={onClick}
             sx={{
                 display: "inline-flex", alignItems: "center", gap: "5px",
                 px: label ? "10px" : "7px", py: "5px",
-                borderRadius: "8px", border,
-                cursor: "pointer", bgcolor: "#fff", color: c,
+                borderRadius: "8px",
+                borderWidth: 1, borderStyle: "solid", borderColor: "grey.400",
+                cursor: "pointer", bgcolor: "background.paper", color: "primary.main",
                 transition: "background 0.15s",
-                "&:hover": { bgcolor: "rgba(0,83,229,0.06)" },
+                "&:hover": { bgcolor: "action.hover" },
                 flexShrink: 0
             }}
         >
             {icon}
             {label && (
-                <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 13, color: c, whiteSpace: "nowrap", lineHeight: 1 }}>
+                <Typography variant="caption" sx={{ color: "primary.main", whiteSpace: "nowrap", lineHeight: 1, fontSize: 13 }}>
                     {label}
                 </Typography>
             )}
@@ -84,7 +83,7 @@ function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void
             onMouseDown={e => e.stopPropagation()}
             sx={{
                 display: "inline-flex", alignItems: "center",
-                bgcolor: "#fff", borderRadius: "8px",
+                bgcolor: "background.paper", borderRadius: "8px",
                 px: "8px", py: "6px", gap: "6px",
                 boxShadow: "0px 4px 16px rgba(3,25,79,0.18)",
                 userSelect: "none"
@@ -95,13 +94,14 @@ function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void
             {/* Zoom — single bordered box */}
             <Box sx={{
                 display: "inline-flex", alignItems: "center", gap: "2px",
-                px: "8px", py: "5px", borderRadius: "8px", border,
-                bgcolor: "#fff", color: c, flexShrink: 0
+                px: "8px", py: "5px", borderRadius: "8px",
+                borderWidth: 1, borderStyle: "solid", borderColor: "grey.400",
+                bgcolor: "background.paper", color: "primary.main", flexShrink: 0
             }}>
                 <Box sx={{ display: "flex", cursor: "pointer", "&:hover": { opacity: 0.6 } }}>
                     <RemoveIcon sx={{ fontSize: 12 }} />
                 </Box>
-                <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 12, color: c, mx: "3px", minWidth: 28, textAlign: "center" }}>
+                <Typography variant="caption" sx={{ color: "primary.main", mx: "3px", minWidth: 28, textAlign: "center" }}>
           100%
                 </Typography>
                 <Box sx={{ display: "flex", cursor: "pointer", "&:hover": { opacity: 0.6 } }}>
@@ -131,23 +131,19 @@ function ButtonPlaceholderToolbar({
   onSizeChange: (s: "S" | "M" | "L" | "XL") => void
   onDelete: () => void
 }) {
-    const primary = "#0053E5";
-    const border = "1px solid #CFD6EA";
-
     const ActionBtn = ({ icon, label, disabled }: { icon: React.ReactNode; label: string; disabled?: boolean }) => (
         <Box sx={{
             display: "inline-flex", alignItems: "center", gap: "6px",
             px: "8px", py: "3.5px", height: 32, flexShrink: 0,
             borderRadius: "8px",
-            border: disabled ? "1px solid #CECFD2" : border,
-            bgcolor: "#fff",
+            borderWidth: 1, borderStyle: "solid", borderColor: disabled ? "grey.400" : "grey.300",
+            bgcolor: "background.paper",
             cursor: disabled ? "default" : "pointer",
-            "&:hover": { bgcolor: disabled ? "#fff" : "rgba(0,83,229,0.06)" }
+            "&:hover": { bgcolor: disabled ? "background.paper" : "action.hover" }
         }}>
             {icon}
-            <Typography sx={{
-                fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14,
-                color: disabled ? "rgba(50,51,56,0.5)" : primary,
+            <Typography variant="h6" sx={{
+                color: disabled ? "text.disabled" : "primary.main",
                 lineHeight: 1.5
             }}>
                 {label}
@@ -161,42 +157,42 @@ function ButtonPlaceholderToolbar({
             onClick={e => e.stopPropagation()}
             sx={{
                 display: "inline-flex", alignItems: "center", gap: "4px",
-                bgcolor: "#fff", borderRadius: "8px",
+                bgcolor: "background.paper", borderRadius: "8px",
                 px: "6px", py: "5px",
-                border, boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
+                borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
+                boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
                 userSelect: "none", whiteSpace: "nowrap"
             }}
         >
             {/* Edit */}
-            <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" />
+            <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Edit" />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "#CFD6EA", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
 
             {/* Size label + S / M / L / XL toggle */}
             <Box sx={{ display: "inline-flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                <Typography sx={{
-                    fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 13,
-                    color: "#323338", letterSpacing: "0.46px"
+                <Typography variant="caption" sx={{
+                    color: "text.primary", letterSpacing: "0.46px", fontSize: 13
                 }}>
           Size
                 </Typography>
                 <Box sx={{
                     display: "inline-flex", alignItems: "center",
-                    border, borderRadius: "8px", overflow: "hidden"
+                    borderWidth: 1, borderStyle: "solid", borderColor: "grey.300", borderRadius: "8px", overflow: "hidden"
                 }}>
                     {([ ["S", "80 × 28px"], ["M", "120 × 36px"], ["L", "160 × 44px"], ["XL", "200 × 52px"] ] as const).map(([sz, dims], i, arr) => (
                         <Tooltip key={sz} title={dims} placement="top" arrow>
                             <Box
                                 onClick={() => onSizeChange(sz)}
-                                sx={{
+                                sx={(theme) => ({
                                     px: "10px", py: "4px", cursor: "pointer",
-                                    bgcolor: size === sz ? "rgba(0,83,229,0.1)" : "transparent",
-                                    borderRight: i < arr.length - 1 ? "1px solid #CFD6EA" : "none",
-                                    fontFamily: "\"Inter\", sans-serif", fontWeight: size === sz ? 600 : 400, fontSize: 14,
-                                    color: size === sz ? primary : "#323338",
+                                    bgcolor: size === sz ? "action.selected" : "transparent",
+                                    borderRight: i < arr.length - 1 ? `1px solid ${theme.palette.grey[300]}` : "none",
+                                    fontWeight: size === sz ? 600 : 400, fontSize: 14,
+                                    color: size === sz ? "primary.main" : "text.primary",
                                     lineHeight: 1.5,
-                                    "&:hover": { bgcolor: size === sz ? "rgba(0,83,229,0.12)" : "rgba(0,0,0,0.04)" }
-                                }}
+                                    "&:hover": { bgcolor: size === sz ? "divider" : "action.hover" }
+                                })}
                             >
                                 {sz}
                             </Box>
@@ -205,27 +201,27 @@ function ButtonPlaceholderToolbar({
                 </Box>
             </Box>
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "#CFD6EA", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
 
             {/* Timing (disabled) */}
             <ActionBtn
-                icon={<StarBorderIcon sx={{ fontSize: 13, color: "rgba(50,51,56,0.5)" }} />}
+                icon={<StarBorderIcon sx={{ fontSize: 13, color: "text.disabled" }} />}
                 label="Timing"
                 disabled
             />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "#CFD6EA", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
 
             {/* Copy */}
-            <ActionBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Copy" />
+            <ActionBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Copy" />
 
             {/* Delete */}
-            <IconButton size="small" onClick={onDelete} sx={{ color: "#F44336", p: "4px", flexShrink: 0 }}>
+            <IconButton size="small" onClick={onDelete} sx={{ color: "error.main", p: "4px", flexShrink: 0 }}>
                 <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
             </IconButton>
 
             {/* More */}
-            <IconButton size="small" sx={{ color: primary, p: "4px", flexShrink: 0 }}>
+            <IconButton size="small" sx={{ color: "primary.main", p: "4px", flexShrink: 0 }}>
                 <MoreHorizIcon sx={{ fontSize: 18 }} />
             </IconButton>
         </Box>
@@ -242,25 +238,21 @@ function BulletPlaceholderToolbar({
   onEditClick: () => void
   onOptionsMenuClick?: (anchorEl: HTMLElement) => void
 }) {
-    const primary = "#0053E5";
-    const border = "1px solid #CFD6EA";
-
     const ActionBtn = ({
-        icon, label, disabled, blue, onClick
+        icon, label, disabled, onClick
     }: { icon: React.ReactNode; label: string; disabled?: boolean; blue?: boolean; onClick?: () => void }) => (
         <Box onClick={onClick} sx={{
             display: "inline-flex", alignItems: "center", gap: "6px",
             px: "8px", py: "3.5px", height: 32, flexShrink: 0,
             borderRadius: "8px",
-            border: disabled ? "1px solid #CECFD2" : border,
-            bgcolor: "#fff",
+            borderWidth: 1, borderStyle: "solid", borderColor: disabled ? "grey.400" : "grey.300",
+            bgcolor: "background.paper",
             cursor: disabled ? "default" : "pointer",
-            "&:hover": { bgcolor: disabled ? "#fff" : "rgba(0,83,229,0.06)" }
+            "&:hover": { bgcolor: disabled ? "background.paper" : "action.hover" }
         }}>
             {icon}
-            <Typography sx={{
-                fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14,
-                color: disabled ? "rgba(50,51,56,0.5)" : blue ? primary : primary,
+            <Typography variant="h6" sx={{
+                color: disabled ? "text.disabled" : "primary.main",
                 lineHeight: 1.5
             }}>
                 {label}
@@ -272,13 +264,15 @@ function BulletPlaceholderToolbar({
         <Box sx={{
             display: "inline-flex", alignItems: "center", gap: "4px",
             px: "8px", py: "3.5px", height: 32, flexShrink: 0,
-            borderRadius: "8px", border, bgcolor: "#fff", cursor: "pointer",
-            "&:hover": { bgcolor: "rgba(0,83,229,0.06)" }
+            borderRadius: "8px",
+            borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
+            bgcolor: "background.paper", cursor: "pointer",
+            "&:hover": { bgcolor: "action.hover" }
         }}>
-            <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14, color: primary, lineHeight: 1.5 }}>
+            <Typography variant="h6" sx={{ color: "primary.main", lineHeight: 1.5 }}>
                 {label}
             </Typography>
-            <KeyboardArrowDownIcon sx={{ fontSize: 16, color: primary }} />
+            <KeyboardArrowDownIcon sx={{ fontSize: 16, color: "primary.main" }} />
         </Box>
     );
 
@@ -288,42 +282,42 @@ function BulletPlaceholderToolbar({
             onClick={e => e.stopPropagation()}
             sx={{
                 display: "inline-flex", alignItems: "center", gap: "4px",
-                bgcolor: "#fff", borderRadius: "8px",
+                bgcolor: "background.paper", borderRadius: "8px",
                 px: "6px", py: "5px",
-                border, boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
+                borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
+                boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
                 userSelect: "none", whiteSpace: "nowrap"
             }}
         >
             {/* Edit */}
-            <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: primary }} />} label="Edit" onClick={onEditClick} />
+            <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Edit" onClick={onEditClick} />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "#CFD6EA", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
 
             {/* Icon size label + S / M / L / XL toggle */}
             <Box sx={{ display: "inline-flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                <Typography sx={{
-                    fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 13,
-                    color: "#323338", letterSpacing: "0.46px"
+                <Typography variant="caption" sx={{
+                    color: "text.primary", letterSpacing: "0.46px", fontSize: 13
                 }}>
           Icon size
                 </Typography>
                 <Box sx={{
                     display: "inline-flex", alignItems: "center",
-                    border, borderRadius: "8px", overflow: "hidden"
+                    borderWidth: 1, borderStyle: "solid", borderColor: "grey.300", borderRadius: "8px", overflow: "hidden"
                 }}>
                     {([ ["S", "16 × 16px"], ["M", "20 × 20px"], ["L", "24 × 24px"], ["XL", "32 × 32px"] ] as const).map(([sz, dims], i, arr) => (
                         <Tooltip key={sz} title={dims} placement="top" arrow>
                             <Box
                                 onClick={() => onIconSizeChange(sz)}
-                                sx={{
+                                sx={(theme) => ({
                                     px: "10px", py: "4px", cursor: "pointer",
-                                    bgcolor: iconSize === sz ? "rgba(0,83,229,0.1)" : "transparent",
-                                    borderRight: i < arr.length - 1 ? "1px solid #CFD6EA" : "none",
-                                    fontFamily: "\"Inter\", sans-serif", fontWeight: iconSize === sz ? 600 : 400, fontSize: 14,
-                                    color: iconSize === sz ? primary : "#323338",
+                                    bgcolor: iconSize === sz ? "action.selected" : "transparent",
+                                    borderRight: i < arr.length - 1 ? `1px solid ${theme.palette.grey[300]}` : "none",
+                                    fontWeight: iconSize === sz ? 600 : 400, fontSize: 14,
+                                    color: iconSize === sz ? "primary.main" : "text.primary",
                                     lineHeight: 1.5,
-                                    "&:hover": { bgcolor: iconSize === sz ? "rgba(0,83,229,0.12)" : "rgba(0,0,0,0.04)" }
-                                }}
+                                    "&:hover": { bgcolor: iconSize === sz ? "divider" : "action.hover" }
+                                })}
                             >
                                 {sz}
                             </Box>
@@ -332,7 +326,7 @@ function BulletPlaceholderToolbar({
                 </Box>
             </Box>
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "#CFD6EA", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
 
             {/* Bullet formatting dropdown */}
             <DropdownBtn label="Bullet formatting" />
@@ -340,20 +334,20 @@ function BulletPlaceholderToolbar({
             {/* Text formatting dropdown */}
             <DropdownBtn label="Text formatting" />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "#CFD6EA", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
 
             {/* Timing (enabled, blue star) */}
-            <ActionBtn icon={<StarBorderIcon sx={{ fontSize: 13, color: primary }} />} label="Timing" />
+            <ActionBtn icon={<StarBorderIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Timing" />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "#CFD6EA", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
 
             {/* Delete */}
-            <IconButton size="small" onClick={onDelete} sx={{ color: "#F44336", p: "4px", flexShrink: 0 }}>
+            <IconButton size="small" onClick={onDelete} sx={{ color: "error.main", p: "4px", flexShrink: 0 }}>
                 <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
             </IconButton>
 
             {/* More */}
-            <IconButton size="small" onClick={(e) => onOptionsMenuClick?.(e.currentTarget)} sx={{ color: primary, p: "4px", flexShrink: 0 }}>
+            <IconButton size="small" onClick={(e) => onOptionsMenuClick?.(e.currentTarget)} sx={{ color: "primary.main", p: "4px", flexShrink: 0 }}>
                 <MoreHorizIcon sx={{ fontSize: 18 }} />
             </IconButton>
         </Box>
@@ -387,8 +381,7 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
             PaperProps={{
                 elevation: 8,
                 sx: {
-                    width: 480, borderRadius: "16px", overflow: "hidden",
-                    fontFamily: "\"Open Sans\", sans-serif"
+                    width: 480, borderRadius: "16px", overflow: "hidden"
                 }
             }}
         >
@@ -397,10 +390,10 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 px: 3, pt: 3, pb: 2
             }}>
-                <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 700, fontSize: 22, color: "#1A1A2E" }}>
+                <Typography variant="h2" sx={{ color: "text.primary" }}>
                     {title ?? "Heading"}
                 </Typography>
-                <IconButton size="small" onClick={handleClose} sx={{ color: "#888" }}>
+                <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
                     <CloseIcon sx={{ fontSize: 18 }} />
                 </IconButton>
             </Box>
@@ -413,17 +406,17 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
                         onChange={e => setByAudience(e.target.checked)}
                         size="small"
                     />
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 14, color: "#1A1A2E" }}>
+                    <Typography variant="body1" sx={{ color: "text.primary" }}>
             Message by audience
                     </Typography>
                     <Tooltip title="Personalize the heading text per viewer" placement="top" arrow>
-                        <HelpOutlineIcon sx={{ fontSize: 16, color: "#888", cursor: "default" }} />
+                        <HelpOutlineIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }} />
                     </Tooltip>
                 </Box>
 
                 {/* Text input with formatting bar */}
                 <Box sx={{
-                    border: "2px solid #0053E5", borderRadius: "8px", overflow: "hidden"
+                    borderWidth: 2, borderStyle: "solid", borderColor: "primary.main", borderRadius: "8px", overflow: "hidden"
                 }}>
                     {/* Text area */}
                     <TextField
@@ -438,10 +431,9 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
                             disableUnderline: true,
                             sx: {
                                 px: 1.5, pt: 1.5, pb: 1,
-                                fontFamily: "\"Open Sans\", sans-serif",
                                 fontWeight: 700,
                                 fontSize: 15,
-                                color: "#1A1A2E",
+                                color: "text.primary",
                                 alignItems: "flex-start"
                             }
                         }}
@@ -451,19 +443,19 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
                     <Divider />
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, px: 1, py: 0.75 }}>
                         <Box sx={{
-                            px: 1, py: 0.5, borderRadius: "6px", bgcolor: "rgba(0,83,229,0.10)",
+                            px: 1, py: 0.5, borderRadius: "6px", bgcolor: "action.selected",
                             cursor: "pointer", display: "flex", alignItems: "center"
                         }}>
-                            <Typography sx={{ fontFamily: "serif", fontWeight: 700, fontSize: 18, color: "#0053E5", lineHeight: 1 }}>
+                            <Typography sx={{ fontFamily: "serif", fontWeight: 700, fontSize: 18, color: "primary.main", lineHeight: 1 }}>
                 B
                             </Typography>
                         </Box>
                         <Box sx={{
                             px: 1, py: 0.5, borderRadius: "6px",
                             cursor: "pointer", display: "flex", alignItems: "center",
-                            "&:hover": { bgcolor: "rgba(0,83,229,0.06)" }
+                            "&:hover": { bgcolor: "action.hover" }
                         }}>
-                            <Typography sx={{ fontFamily: "serif", fontStyle: "italic", fontSize: 18, color: "#1A1A2E", lineHeight: 1 }}>
+                            <Typography sx={{ fontFamily: "serif", fontStyle: "italic", fontSize: 18, color: "text.primary", lineHeight: 1 }}>
                 I
                             </Typography>
                         </Box>
@@ -472,10 +464,11 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
 
                 {/* Personalize hint */}
                 <Typography
+                    variant="caption"
                     component="span"
                     sx={{
-                        fontFamily: "\"Open Sans\", sans-serif", fontSize: 13,
-                        color: "#0053E5", cursor: "pointer", mt: 1, display: "inline-block",
+                        fontSize: 13,
+                        color: "primary.main", cursor: "pointer", mt: 1, display: "inline-block",
                         "&:hover": { textDecoration: "underline" }
                     }}
                 >
@@ -514,8 +507,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
             PaperProps={{
                 elevation: 8,
                 sx: {
-                    width: 1200, borderRadius: "16px", overflow: "hidden",
-                    fontFamily: "\"Open Sans\", sans-serif"
+                    width: 1200, borderRadius: "16px", overflow: "hidden"
                 }
             }}
         >
@@ -525,14 +517,14 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                 px: 3, pt: 3, pb: 2
             }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 700, fontSize: 22, color: "#1A1A2E" }}>
+                    <Typography variant="h2" sx={{ color: "text.primary" }}>
             Bullet point
                     </Typography>
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14, color: "#888" }}>
+                    <Typography variant="body1" sx={{ color: "text.secondary" }}>
             Icon size W{iconSizeMap[bulletIconSize]}x H{iconSizeMap[bulletIconSize]}
                     </Typography>
                 </Box>
-                <IconButton size="small" onClick={handleClose} sx={{ color: "#888" }}>
+                <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
                     <CloseIcon sx={{ fontSize: 18 }} />
                 </IconButton>
             </Box>
@@ -547,11 +539,11 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                             onChange={e => setByAudience(e.target.checked)}
                             size="small"
                         />
-                        <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 14, color: "#1A1A2E" }}>
+                        <Typography variant="body1" sx={{ color: "text.primary" }}>
               Message by audience
                         </Typography>
                         <Tooltip title="Personalize the bullet text per viewer" placement="top" arrow>
-                            <HelpOutlineIcon sx={{ fontSize: 16, color: "#888", cursor: "default" }} />
+                            <HelpOutlineIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }} />
                         </Tooltip>
                     </Box>
 
@@ -563,17 +555,18 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                                 sx={{
                                     display: "flex", alignItems: "center", gap: 1.5, cursor: "pointer",
                                     p: 1, borderRadius: "8px",
-                                    bgcolor: dataSource === "library" ? "rgba(0,83,229,0.08)" : "transparent"
+                                    bgcolor: dataSource === "library" ? "action.hover" : "transparent"
                                 }}
                             >
                                 <Box sx={{
-                                    width: 20, height: 20, borderRadius: "50%", border: "2px solid #0053E5",
+                                    width: 20, height: 20, borderRadius: "50%",
+                                    borderWidth: 2, borderStyle: "solid", borderColor: "primary.main",
                                     display: "flex", alignItems: "center", justifyContent: "center",
-                                    bgcolor: dataSource === "library" ? "#0053E5" : "transparent"
+                                    bgcolor: dataSource === "library" ? "primary.main" : "transparent"
                                 }}>
-                                    {dataSource === "library" && <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#fff" }} />}
+                                    {dataSource === "library" && <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "background.paper" }} />}
                                 </Box>
-                                <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 500, fontSize: 14, color: "#1A1A2E" }}>
+                                <Typography variant="subtitle2" sx={{ color: "text.primary" }}>
                   Upload/From library
                                 </Typography>
                             </Box>
@@ -584,17 +577,17 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                                 sx={{
                                     display: "flex", alignItems: "center", gap: 1.5, cursor: "pointer",
                                     p: 1, borderRadius: "8px",
-                                    bgcolor: dataSource === "field" ? "rgba(0,83,229,0.08)" : "transparent"
+                                    bgcolor: dataSource === "field" ? "action.hover" : "transparent"
                                 }}
                             >
                                 <Box sx={{
-                                    width: 20, height: 20, borderRadius: "50%", border: "2px solid #ccc",
+                                    width: 20, height: 20, borderRadius: "50%", border: 2, borderStyle: "solid", borderColor: "grey.400",
                                     display: "flex", alignItems: "center", justifyContent: "center",
-                                    bgcolor: dataSource === "field" ? "#0053E5" : "transparent"
+                                    bgcolor: dataSource === "field" ? "primary.main" : "transparent"
                                 }}>
-                                    {dataSource === "field" && <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#fff" }} />}
+                                    {dataSource === "field" && <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "background.paper" }} />}
                                 </Box>
-                                <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 500, fontSize: 14, color: "#1A1A2E" }}>
+                                <Typography variant="subtitle2" sx={{ color: "text.primary" }}>
                   From data field
                                 </Typography>
                             </Box>
@@ -602,7 +595,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                     </Box>
 
                     {/* Helper text label */}
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 13, color: "#323338", mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: "text.primary", mb: 1.5, fontSize: 13 }}>
             Helper text
                     </Typography>
 
@@ -610,29 +603,29 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                     <Box sx={{
                         width: iconSizeMap[bulletIconSize] + 40,
                         height: iconSizeMap[bulletIconSize] + 40,
-                        bgcolor: "#f5f5f5", borderRadius: "12px",
+                        bgcolor: "grey.100", borderRadius: "12px",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        border: "1px solid #e0e0e0", mb: 2
+                        borderWidth: 1, borderStyle: "solid", borderColor: "grey.400", mb: 2
                     }}>
                         <Box sx={{
                             width: iconSizeMap[bulletIconSize] + 20,
                             height: iconSizeMap[bulletIconSize] + 20,
-                            bgcolor: "#0053E5", borderRadius: "8px",
+                            bgcolor: "primary.main", borderRadius: "8px",
                             display: "flex", alignItems: "center", justifyContent: "center"
                         }}>
-                            <FormatListBulletedIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: "#fff" }} />
+                            <FormatListBulletedIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: "background.paper" }} />
                         </Box>
                     </Box>
 
                     {/* Buttons */}
                     <Box sx={{ display: "flex", gap: 1 }}>
-                        <Button variant="outlined" startIcon={<UndoIcon />} sx={{ flex: 1, textTransform: "none", color: "#0053E5", borderColor: "#0053E5" }}>
+                        <Button variant="outlined" startIcon={<UndoIcon />} sx={{ flex: 1, color: "primary.main", borderColor: "primary.main" }}>
               Replace
                         </Button>
-                        <Button variant="outlined" startIcon={<EditOutlinedIcon />} sx={{ flex: 1, textTransform: "none", color: "#0053E5", borderColor: "#0053E5" }}>
+                        <Button variant="outlined" startIcon={<EditOutlinedIcon />} sx={{ flex: 1, color: "primary.main", borderColor: "primary.main" }}>
               Edit
                         </Button>
-                        <IconButton sx={{ color: "#0053E5" }}>
+                        <IconButton sx={{ color: "primary.main" }}>
                             <MoreHorizIcon />
                         </IconButton>
                     </Box>
@@ -641,13 +634,13 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                 {/* Right side */}
                 <Box>
                     {/* Value label */}
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 13, color: "#323338", mb: 1 }}>
+                    <Typography variant="caption" sx={{ color: "text.primary", mb: 1, fontSize: 13 }}>
             Value
                     </Typography>
 
                     {/* Text input with formatting bar */}
                     <Box sx={{
-                        border: "2px solid #0053E5", borderRadius: "8px", overflow: "hidden"
+                        borderWidth: 2, borderStyle: "solid", borderColor: "primary.main", borderRadius: "8px", overflow: "hidden"
                     }}>
                         {/* Text area */}
                         <TextField
@@ -663,10 +656,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                                 disableUnderline: true,
                                 sx: {
                                     px: 1.5, pt: 1.5, pb: 1,
-                                    fontFamily: "\"Open Sans\", sans-serif",
-                                    fontWeight: 400,
-                                    fontSize: 14,
-                                    color: "#1A1A2E",
+                                    color: "text.primary",
                                     alignItems: "flex-start"
                                 }
                             }}
@@ -676,19 +666,19 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                         <Divider />
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, px: 1, py: 0.75 }}>
                             <Box sx={{
-                                px: 1, py: 0.5, borderRadius: "6px", bgcolor: "rgba(0,83,229,0.10)",
+                                px: 1, py: 0.5, borderRadius: "6px", bgcolor: "action.selected",
                                 cursor: "pointer", display: "flex", alignItems: "center"
                             }}>
-                                <Typography sx={{ fontFamily: "serif", fontWeight: 700, fontSize: 18, color: "#0053E5", lineHeight: 1 }}>
+                                <Typography sx={{ fontFamily: "serif", fontWeight: 700, fontSize: 18, color: "primary.main", lineHeight: 1 }}>
                   B
                                 </Typography>
                             </Box>
                             <Box sx={{
                                 px: 1, py: 0.5, borderRadius: "6px",
                                 cursor: "pointer", display: "flex", alignItems: "center",
-                                "&:hover": { bgcolor: "rgba(0,83,229,0.06)" }
+                                "&:hover": { bgcolor: "action.hover" }
                             }}>
-                                <Typography sx={{ fontFamily: "serif", fontStyle: "italic", fontSize: 18, color: "#1A1A2E", lineHeight: 1 }}>
+                                <Typography sx={{ fontFamily: "serif", fontStyle: "italic", fontSize: 18, color: "text.primary", lineHeight: 1 }}>
                   I
                                 </Typography>
                             </Box>
@@ -697,10 +687,11 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
 
                     {/* Helper text */}
                     <Typography
+                        variant="caption"
                         component="span"
                         sx={{
-                            fontFamily: "\"Open Sans\", sans-serif", fontSize: 13,
-                            color: "#0053E5", cursor: "pointer", mt: 1, display: "inline-block",
+                            fontSize: 13,
+                            color: "primary.main", cursor: "pointer", mt: 1, display: "inline-block",
                             "&:hover": { textDecoration: "underline" }
                         }}
                     >
@@ -717,29 +708,14 @@ const IMG_THUMB = "/thumb.svg";
 const GRADIENT_BTN =
   "linear-gradient(146.457deg, rgb(235,137,241) 0%, rgb(0,83,229) 100%)";
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const s = {
-    navy:           "#03194F",
-    primary:        "#0053E5",
-    primaryLight:   "#8BA2FF",
-    divider:        "rgba(0,83,229,0.12)",
-    dividerGrey:    "#E0E0E0",
-    editorBg:       "#F4F7FF",
-    textPrimary:    "rgba(0,0,0,0.87)",
-    textSecondary:  "rgba(60,60,72,0.8)",
-    actionActive:   "rgba(0,0,0,0.56)",
-    actionDisabled: "rgba(0,0,0,0.38)",
-    white:          "#FFFFFF",
-    successMain:    "#118747"
-};
+// Design tokens removed — all colors now use MUI theme palette paths
 
 // ─── Section label ────────────────────────────────────────────────────────────
 function NavSection({ label }: { label: string }) {
     return (
-        <Typography sx={{
-            fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
+        <Typography variant="caption" sx={{
             letterSpacing: "1px", textTransform: "uppercase",
-            color: s.textSecondary, px: "12px", pb: "8px", lineHeight: 1.5,
+            color: "text.secondary", px: "12px", pb: "8px", lineHeight: 1.5,
             opacity: 0.8
         }}>
             {label}
@@ -760,18 +736,16 @@ function NavItem({
                 display: "flex", alignItems: "center", gap: "8px",
                 px: "12px", py: "8px", borderRadius: "8px 0 0 8px",
                 cursor: "pointer",
-                bgcolor: selected ? s.divider : "transparent",
-                "&:hover": { bgcolor: selected ? s.divider : "rgba(0,83,229,0.06)" }
+                bgcolor: selected ? "divider" : "transparent",
+                "&:hover": { bgcolor: selected ? "divider" : "action.hover" }
             }}
         >
-            <Box sx={{ color: selected ? s.primary : s.actionActive, display: "flex" }}>
+            <Box sx={{ color: selected ? "primary.main" : "action.active", display: "flex" }}>
                 {icon}
             </Box>
-            <Typography sx={{
-                fontFamily: "\"Open Sans\", sans-serif",
-                fontWeight: selected ? 500 : 400,
-                fontSize: 14, lineHeight: 1.5,
-                color: selected ? s.textPrimary : s.textSecondary
+            <Typography variant={selected ? "subtitle2" : "body1"} sx={{
+                lineHeight: 1.5,
+                color: selected ? "text.primary" : "text.secondary"
             }}>
                 {label}
             </Typography>
@@ -819,32 +793,29 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
             PaperProps={{ sx: { borderRadius: "12px", boxShadow: "0px 0px 10px rgba(3,25,79,0.25)" } }}
         >
             <DialogTitle sx={{
-                fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 20,
-                lineHeight: 1.5, letterSpacing: 0, color: "rgba(0,0,0,0.87)",
+                lineHeight: 1.5, letterSpacing: 0, color: "text.primary",
                 pb: 1, pr: 6
             }}>
         Unresolved comments require explanation
                 <IconButton onClick={onClose} size="small"
-                    sx={{ position: "absolute", top: 12, right: 12, color: "rgba(0,0,0,0.54)" }}>
+                    sx={{ position: "absolute", top: 12, right: 12, color: "action.active" }}>
                     <CloseIcon sx={{ fontSize: 20 }} />
                 </IconButton>
             </DialogTitle>
             <DialogContent sx={{ pt: "8px !important" }}>
                 <Typography sx={{
-                    fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14,
-                    lineHeight: 1.5, color: "rgba(0,0,0,0.87)", mb: 2
+                    lineHeight: 1.5, color: "text.primary", mb: 2
                 }}>
           There are {count} unresolved {count === 1 ? "comment" : "comments"}.{" "}
                     <Box component="span"
-                        sx={{ color: "#0053E5", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+                        sx={{ color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
                         onClick={onClose}
                     >
             View comments
                     </Box>
                 </Typography>
                 <Typography sx={{
-                    fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14,
-                    lineHeight: 1.5, color: "rgba(0,0,0,0.87)", mb: 1
+                    lineHeight: 1.5, color: "text.primary", mb: 1
                 }}>
           Explain why you're requesting sign-off again without changes
                 </Typography>
@@ -854,16 +825,14 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
                     value={explanation}
                     onChange={e => setExplanation(e.target.value)}
                     variant="outlined" size="medium"
-                    InputProps={{ sx: { fontFamily: "\"Open Sans\", sans-serif", fontSize: 14, letterSpacing: "0.15px" } }}
+                    InputProps={{ sx: { letterSpacing: "0.15px" } }}
                 />
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2, gap: "8px" }}>
-                <Button variant="text" color="primary" size="large" onClick={onClose}
-                    sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14, textTransform: "none" }}>
+                <Button variant="text" color="primary" size="large" onClick={onClose}>
           Cancel
                 </Button>
-                <Button variant="contained" color="primary" size="large" onClick={onConfirm}
-                    sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14, textTransform: "none" }}>
+                <Button variant="contained" color="primary" size="large" onClick={onConfirm}>
           Send for approvers
                 </Button>
             </DialogActions>
@@ -959,7 +928,7 @@ function CommentsPanel({
             <Box sx={{
                 position: "fixed", left: pos.x, top: pos.y,
                 width: 292, minWidth: 260,
-                bgcolor: s.white, borderRadius: "8px",
+                bgcolor: "background.paper", borderRadius: "8px",
                 boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)",
                 zIndex: 1300,
                 display: "flex", flexDirection: "column",
@@ -974,15 +943,14 @@ function CommentsPanel({
                     userSelect: "none", flexShrink: 0
                 }}>
                     <Typography sx={{
-                        fontFamily: "\"Open Sans\", sans-serif", fontWeight: 500, fontSize: 16,
-                        color: s.textPrimary, lineHeight: 1.5
+                        color: "text.primary", lineHeight: 1.5
                     }}>
             Comments
                     </Typography>
                     <IconButton
                         size="small"
                         onClick={onClose}
-                        sx={{ color: s.textPrimary, p: "8px", borderRadius: "8px" }}
+                        sx={{ color: "text.primary", p: "8px", borderRadius: "8px" }}
                     >
                         <CloseIcon sx={{ fontSize: 16 }} />
                     </IconButton>
@@ -992,7 +960,7 @@ function CommentsPanel({
                 <Box sx={{ px: 2, pb: "8px", flexShrink: 0 }}>
                     <Box sx={{
                         display: "inline-flex",
-                        border: "1px solid #CFD6EA",
+                        borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
                         borderRadius: "8px",
                         padding: "1px",
                         gap: 0
@@ -1008,14 +976,13 @@ function CommentsPanel({
                                     px: "6px", py: "4px",
                                     borderRadius: "7px",
                                     cursor: "pointer",
-                                    bgcolor: tab === key ? "rgba(0,83,229,0.1)" : "transparent",
+                                    bgcolor: tab === key ? "action.selected" : "transparent",
                                     transition: "background-color 0.15s"
                                 }}
                             >
                                 <Typography sx={{
-                                    fontFamily: "\"Open Sans\", sans-serif",
-                                    fontWeight: 500, fontSize: 14, lineHeight: 1.5,
-                                    color: tab === key ? s.textPrimary : s.textSecondary,
+                                                                        lineHeight: 1.5,
+                                    color: tab === key ? "text.primary" : "text.secondary",
                                     whiteSpace: "nowrap"
                                 }}>
                                     {label}
@@ -1026,7 +993,7 @@ function CommentsPanel({
                 </Box>
 
                 {/* ── Divider ───────────────────────────────────────────────────── */}
-                <Divider sx={{ borderColor: "#E0E0E0", flexShrink: 0 }} />
+                <Divider sx={{ borderColor: "grey.400", flexShrink: 0 }} />
 
                 {/* ── "View version" link — Unresolved tab only, hidden when no comments ── */}
                 {tab === "unresolved" && unresolvedCount > 0 && (
@@ -1035,14 +1002,13 @@ function CommentsPanel({
                         display: "flex", alignItems: "center", gap: "4px",
                         cursor: "pointer", "&:hover": { opacity: 0.8 }
                     }}>
-                        <VisibilityOutlinedIcon sx={{ fontSize: 14, color: s.primary }} />
+                        <VisibilityOutlinedIcon sx={{ fontSize: 14, color: "primary.main" }} />
                         <Typography sx={{
-                            fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14,
-                            color: s.primary, lineHeight: 1.5
+                            color: "primary.main", lineHeight: 1.5
                         }}>
               View version sent for approval
                         </Typography>
-                        <ArrowForwardIosIcon sx={{ fontSize: 11, color: s.primary }} />
+                        <ArrowForwardIosIcon sx={{ fontSize: 11, color: "primary.main" }} />
                     </Box>
                 )}
 
@@ -1050,8 +1016,7 @@ function CommentsPanel({
                 {awaitingApprovers && tab === "unresolved" && (
                     <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", px: 2, py: 3 }}>
                         <Typography sx={{
-                            fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14,
-                            lineHeight: 1.5, color: s.textPrimary, textAlign: "center"
+                            lineHeight: 1.5, color: "text.primary", textAlign: "center"
                         }}>
               1 of 2 approvers responded<br />
               Comments will appear here once all approvers have responded.
@@ -1073,8 +1038,7 @@ function CommentsPanel({
                                 {/* "By [Approver Name]" label — only when multiple approvers */}
                                 {threads.length > 1 && (
                                     <Typography sx={{
-                                        fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
-                                        color: s.textSecondary, lineHeight: 1.5, mb: "8px"
+                                        color: "text.secondary", lineHeight: 1.5, mb: "8px"
                                     }}>
                     By {thread.author}
                                     </Typography>
@@ -1087,7 +1051,7 @@ function CommentsPanel({
                                     return (
                                         <Box key={originalIdx}>
                                             {visibleIdx > 0 && (
-                                                <Divider sx={{ my: "8px", borderColor: "#E0E0E0" }} />
+                                                <Divider sx={{ my: "8px", borderColor: "grey.400" }} />
                                             )}
                                             <Box sx={{ display: "flex", gap: "6px", alignItems: "flex-start" }}>
                                                 <Checkbox
@@ -1097,13 +1061,12 @@ function CommentsPanel({
                                                     disabled={tab === "completed"}
                                                     sx={{
                                                         p: "2px", flexShrink: 0, mt: "1px",
-                                                        color: s.actionActive,
-                                                        "&.Mui-checked": { color: s.primary }
+                                                        color: "action.active",
+                                                        "&.Mui-checked": { color: "primary.main" }
                                                     }}
                                                 />
                                                 <Typography sx={{
-                                                    fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14,
-                                                    color: isChecked ? s.textSecondary : "rgba(0,0,0,0.87)",
+                                                    color: isChecked ? "text.secondary" : "text.primary",
                                                     lineHeight: 1.5,
                                                     textDecoration: isChecked ? "line-through" : "none",
                                                     flex: 1
@@ -1120,12 +1083,12 @@ function CommentsPanel({
 
                     {/* Empty states */}
                     {tab === "completed" && threads.every(t => t.comments.every(c => !c.resolved)) && (
-                        <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 13, color: s.textSecondary, textAlign: "center", mt: 2 }}>
+                        <Typography variant="caption" sx={{ color: "text.secondary", textAlign: "center", mt: 2 }}>
               No completed comments yet
                         </Typography>
                     )}
                     {tab === "unresolved" && unresolvedCount === 0 && (
-                        <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontSize: 14, color: s.textSecondary, textAlign: "center", mt: 3, pb: "50px" }}>
+                        <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", mt: 3, pb: "50px" }}>
               There are no unresolved comments
                         </Typography>
                     )}
@@ -1135,7 +1098,7 @@ function CommentsPanel({
                 {!awaitingApprovers && threads.length > 0 && (
                     <Box sx={{
                         px: 2, py: "12px",
-                        borderTop: `1px solid ${s.dividerGrey}`,
+                        borderTop: 1, borderTopStyle: "solid", borderTopColor: "grey.400",
                         flexShrink: 0,
                         display: "flex", justifyContent: "flex-end"
                     }}>
@@ -1144,9 +1107,7 @@ function CommentsPanel({
                             size="small"
                             onClick={handleRequestApproval}
                             sx={{
-                                fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14,
-                                textTransform: "none", borderRadius: "8px",
-                                bgcolor: s.primary, "&:hover": { bgcolor: "#0042BB" },
+                                bgcolor: "primary.main", "&:hover": { bgcolor: "primary.dark" },
                                 px: 2
                             }}
                         >
@@ -1174,15 +1135,14 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
     return (
         <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", alignItems: "center", cursor: "pointer" }}>
             <Typography sx={{
-                fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
-                color: s.textSecondary, letterSpacing: "0.4px"
+                color: "text.secondary", letterSpacing: "0.4px"
             }}>
         Scene {index + 1}
             </Typography>
             <Box sx={{
                 width: "100%", aspectRatio: "16/9",
-                bgcolor: "#FAFAFA",
-                border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
+                bgcolor: "grey.100",
+                borderWidth: selected ? 2 : 1, borderStyle: "solid", borderColor: selected ? "primary.main" : "grey.400",
                 borderRadius: "8px", overflow: "hidden",
                 position: "relative"
             }}>
@@ -1190,7 +1150,7 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
                     sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
 
                 {/* Cover left half of SVG — white bg + pink accent line */}
-                <Box sx={{ position: "absolute", inset: 0, width: "50%", bgcolor: "#fff", pointerEvents: "none" }}>
+                <Box sx={{ position: "absolute", inset: 0, width: "50%", bgcolor: "background.paper", pointerEvents: "none" }}>
                     <Box sx={{ height: 3, bgcolor: "#C084FC", width: "100%" }} />
                 </Box>
 
@@ -1201,25 +1161,25 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                     gap: "4px", pointerEvents: "none"
                 }}>
-                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 22, color: "#BDBDBD" }} />
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 7, color: "#BDBDBD" }}>
+                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 22, color: "action.disabled" }} />
+                    <Typography variant="caption" sx={{ fontSize: 7, color: "action.disabled" }}>
             Drag media here
                     </Typography>
                 </Box>
 
                 {/* Heading + sub-heading — flowing column */}
                 <Box sx={{ position: "absolute", left: "4%", top: "18%", width: "44%", containerType: "inline-size", pointerEvents: "none", display: "flex", flexDirection: "column" }}>
-                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw", color: s.navy, lineHeight: 1.2, wordBreak: "break-word" }}>
+                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw", color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word" }}>
                         {headingText ?? ""}
                     </Typography>
-                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw", color: s.textPrimary, lineHeight: 1.4, wordBreak: "break-word", mt: "5%" }}>
+                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw", color: "text.primary", lineHeight: 1.4, wordBreak: "break-word", mt: "5%" }}>
                         {subheadingText ?? "Sub-heading Placeholder"}
                     </Typography>
                 </Box>
 
                 {/* Footnote */}
                 <Box sx={{ position: "absolute", left: "4%", width: "44%", bottom: "5%", containerType: "inline-size", pointerEvents: "none" }}>
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: "2.5cqw", letterSpacing: "0.4px", color: s.textSecondary, lineHeight: 1.66 }}>
+                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: "2.5cqw", letterSpacing: "0.4px", color: "text.secondary", lineHeight: 1.66 }}>
                         {footnoteText ?? "Footnote placeholder"}
                     </Typography>
                 </Box>
@@ -1230,7 +1190,9 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
 
 // ─── Custom scene thumbnail ───────────────────────────────────────────────────
 // Custom icon: corner handles + plus — matches the shared design
-function PlaceholderIcon({ size = 28, color = s.primary }: { size?: number; color?: string }) {
+function PlaceholderIcon({ size = 28, color }: { size?: number; color?: string }) {
+    const theme = useTheme();
+    const fill = color ?? theme.palette.primary.main;
     const d = size;
     const corner = d * 0.15; // corner square size
     const gap = d * 0.28; // inset from edge
@@ -1239,22 +1201,22 @@ function PlaceholderIcon({ size = 28, color = s.primary }: { size?: number; colo
     return (
         <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`} fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", flexShrink: 0 }}>
             {/* Corner squares */}
-            <rect x={0} y={0} width={corner} height={corner} rx={corner * 0.25} fill={color} />
-            <rect x={d - corner} y={0} width={corner} height={corner} rx={corner * 0.25} fill={color} />
-            <rect x={0} y={d - corner} width={corner} height={corner} rx={corner * 0.25} fill={color} />
-            <rect x={d - corner} y={d - corner} width={corner} height={corner} rx={corner * 0.25} fill={color} />
+            <rect x={0} y={0} width={corner} height={corner} rx={corner * 0.25} fill={fill} />
+            <rect x={d - corner} y={0} width={corner} height={corner} rx={corner * 0.25} fill={fill} />
+            <rect x={0} y={d - corner} width={corner} height={corner} rx={corner * 0.25} fill={fill} />
+            <rect x={d - corner} y={d - corner} width={corner} height={corner} rx={corner * 0.25} fill={fill} />
             {/* Corner connector lines */}
-            <line x1={corner} y1={corner * 0.5} x2={gap} y2={corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
-            <line x1={d - corner} y1={corner * 0.5} x2={d - gap} y2={corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
-            <line x1={corner * 0.5} y1={corner} x2={corner * 0.5} y2={gap} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
-            <line x1={corner * 0.5} y1={d - corner} x2={corner * 0.5} y2={d - gap} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
-            <line x1={d - corner * 0.5} y1={corner} x2={d - corner * 0.5} y2={gap} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
-            <line x1={d - corner * 0.5} y1={d - corner} x2={d - corner * 0.5} y2={d - gap} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
-            <line x1={corner} y1={d - corner * 0.5} x2={gap} y2={d - corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
-            <line x1={d - corner} y1={d - corner * 0.5} x2={d - gap} y2={d - corner * 0.5} stroke={color} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={corner} y1={corner * 0.5} x2={gap} y2={corner * 0.5} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={d - corner} y1={corner * 0.5} x2={d - gap} y2={corner * 0.5} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={corner * 0.5} y1={corner} x2={corner * 0.5} y2={gap} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={corner * 0.5} y1={d - corner} x2={corner * 0.5} y2={d - gap} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={d - corner * 0.5} y1={corner} x2={d - corner * 0.5} y2={gap} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={d - corner * 0.5} y1={d - corner} x2={d - corner * 0.5} y2={d - gap} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={corner} y1={d - corner * 0.5} x2={gap} y2={d - corner * 0.5} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
+            <line x1={d - corner} y1={d - corner * 0.5} x2={d - gap} y2={d - corner * 0.5} stroke={fill} strokeWidth={corner * 0.4} strokeLinecap="round" />
             {/* Plus sign */}
-            <line x1={cx - arm} y1={cx} x2={cx + arm} y2={cx} stroke={color} strokeWidth={corner * 0.6} strokeLinecap="round" />
-            <line x1={cx} y1={cx - arm} x2={cx} y2={cx + arm} stroke={color} strokeWidth={corner * 0.6} strokeLinecap="round" />
+            <line x1={cx - arm} y1={cx} x2={cx + arm} y2={cx} stroke={fill} strokeWidth={corner * 0.6} strokeLinecap="round" />
+            <line x1={cx} y1={cx - arm} x2={cx} y2={cx + arm} stroke={fill} strokeWidth={corner * 0.6} strokeLinecap="round" />
         </svg>
     );
 }
@@ -1263,15 +1225,14 @@ function CustomSceneThumbnail({ index, selected, onClick }: { index: number; sel
     return (
         <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", alignItems: "center", cursor: "pointer" }}>
             <Typography sx={{
-                fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
-                color: s.textSecondary, letterSpacing: "0.4px"
+                color: "text.secondary", letterSpacing: "0.4px"
             }}>
         Scene {index + 1}
             </Typography>
             <Box sx={{
                 width: "100%", aspectRatio: "16/9",
-                bgcolor: "#FAFAFA",
-                border: `${selected ? 2 : 1}px solid ${selected ? s.primary : s.dividerGrey}`,
+                bgcolor: "grey.100",
+                borderWidth: selected ? 2 : 1, borderStyle: "solid", borderColor: selected ? "primary.main" : "grey.400",
                 borderRadius: "8px", overflow: "hidden",
                 position: "relative",
                 display: "flex", alignItems: "center", justifyContent: "center"
@@ -1600,7 +1561,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
           {/* ── Appbar ─────────────────────────────────────────────────────────── */}
           <Box sx={{
-              height: 56, flexShrink: 0, bgcolor: s.navy,
+              height: 56, flexShrink: 0, bgcolor: "secondary.main",
               display: "flex", alignItems: "center", justifyContent: "space-between",
               px: 0, borderBottom: "1px solid rgba(255,255,255,0.08)"
           }}>
@@ -1616,10 +1577,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           cursor: "pointer", "&:hover": { opacity: 0.75 }
                       }}
                   >
-                      {[{ chars: "SUN", color: "#fff" }, { chars: "DAY", color: "#fff" }, { chars: "SKY", color: "#0053E5" }]
+                      {[{ chars: "SUN", color: "background.paper" }, { chars: "DAY", color: "background.paper" }, { chars: "SKY", color: "primary.main" }]
                           .map(({ chars, color }) => (
-                              <Typography key={chars} sx={{
-                                  fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: 9,
+                              <Typography key={chars} variant="caption" sx={{
+                                  fontSize: 9,
                                   letterSpacing: "0.22em", lineHeight: 1.4, color, display: "block"
                               }}>
                                   {chars}
@@ -1628,8 +1589,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   </Box>
                   {/* Video name */}
                   <Typography sx={{
-                      fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 18,
-                      color: "#fff", lineHeight: 1.2, letterSpacing: "0.15px"
+                      color: "background.paper", lineHeight: 1.2, letterSpacing: "0.15px"
                   }}>
                       {videoTitle}
                   </Typography>
@@ -1641,7 +1601,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   }}>
                       <Typography sx={{ fontSize: 13 }}>🇺🇸</Typography>
                       <Typography sx={{
-                          fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14, color: "#fff"
+                          color: "background.paper"
                       }}>
               EN
                       </Typography>
@@ -1662,23 +1622,23 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       title="Manage permission"
                       placement="bottom"
                       arrow
-                      componentsProps={{ tooltip: { sx: { bgcolor: "#03194F", borderRadius: "8px", px: 1.5, py: 1, "& .MuiTooltip-arrow": { color: "#03194F" } } } }}
+                      componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main", borderRadius: "8px", px: 1.5, py: 1, "& .MuiTooltip-arrow": { color: "secondary.main" } } } }}
                   >
                       <IconButton
                           size="small"
                           onClick={() => setVideoPermOpen(true)}
                           sx={{
-                              bgcolor: "#03194F",
+                              bgcolor: "secondary.main",
                               borderRadius: "8px",
                               p: "5px",
                               border: "1px solid rgba(255,255,255,0.5)",
                               "&:hover": { bgcolor: "rgba(3,25,79,0.7)" }
                           }}
                       >
-                          <LockPersonIcon sx={{ fontSize: 20, color: "#fff" }} />
+                          <LockPersonIcon sx={{ fontSize: 20, color: "background.paper" }} />
                       </IconButton>
                   </Tooltip>
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: OWNER_USER.color, fontSize: 12, fontFamily: "\"Open Sans\"", fontWeight: 600 }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: OWNER_USER.color, fontSize: 12 }}>
                       {OWNER_USER.initials}
                   </Avatar>
                   <NotificationBell dark notifications={notifications} />
@@ -1689,9 +1649,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       endIcon={<ArrowForwardIosIcon sx={{ fontSize: "11px !important" }} />}
                       onClick={onNavigateToVideoPage}
                       sx={{
-                          background: GRADIENT_BTN, color: "#fff",
-                          fontFamily: "\"Inter\", sans-serif", fontWeight: 500, fontSize: 14,
-                          textTransform: "none", borderRadius: "8px", px: 2, whiteSpace: "nowrap",
+                          background: GRADIENT_BTN, color: "background.paper",
+                          px: 2, whiteSpace: "nowrap",
                           "&:hover": { opacity: 0.88, background: GRADIENT_BTN }
                       }}
                   >
@@ -1705,8 +1664,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
               {/* Left nav */}
               <Box sx={{
-                  width: 180, flexShrink: 0, bgcolor: s.white,
-                  borderRight: `1px solid ${s.divider}`,
+                  width: 180, flexShrink: 0, bgcolor: "background.paper",
+                  borderRight: 1, borderRightStyle: "solid", borderRightColor: "divider",
                   overflowY: "auto", pt: "16px",
                   display: "flex", flexDirection: "column", gap: "24px"
               }}>
@@ -1780,7 +1739,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               />
 
               {/* Stage */}
-              <Box sx={{ flex: 1, bgcolor: s.editorBg, display: "flex", flexDirection: "column", overflow: "visible" }}>
+              <Box sx={{ flex: 1, bgcolor: "other.editorBackground", display: "flex", flexDirection: "column", overflow: "visible" }}>
 
                   {/* Live preview area */}
                   <Box sx={{
@@ -1794,7 +1753,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           disabled={selectedScene === 0 || isToolbarActive}
                           onClick={() => goToScene(selectedScene - 1)}
                           size="small"
-                          sx={{ flexShrink: 0, color: (selectedScene === 0 || isToolbarActive) ? s.actionDisabled : s.primary, mx: "4px" }}
+                          sx={{ flexShrink: 0, color: (selectedScene === 0 || isToolbarActive) ? "action.disabled" : "primary.main", mx: "4px" }}
                       >
                           <ChevronLeftIcon />
                       </IconButton>
@@ -1822,10 +1781,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                               : { left: "calc(100% + 8px)", right: "auto" }
                                           ),
                                           zIndex: 40,
-                                          bgcolor: "#fff", borderRadius: "16px",
+                                          bgcolor: "background.paper", borderRadius: "16px",
                                           boxShadow: "0 4px 24px rgba(3,25,79,0.18)",
                                           width: 260,
-                                          border: "1px solid rgba(0,83,229,0.10)"
+                                          borderWidth: 1, borderStyle: "solid", borderColor: "divider"
                                       }}
                                   >
                                       {/* Header */}
@@ -1833,10 +1792,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           display: "flex", alignItems: "center", justifyContent: "space-between",
                                           px: "20px", pt: "18px", pb: "12px"
                                       }}>
-                                          <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 18, color: s.navy }}>
+                                          <Typography variant="h3" sx={{ fontSize: 18, color: "secondary.main" }}>
                       Placeholder
                                           </Typography>
-                                          <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: s.textSecondary, p: "4px" }}>
+                                          <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: "text.secondary", p: "4px" }}>
                                               <CloseIcon sx={{ fontSize: 20 }} />
                                           </IconButton>
                                       </Box>
@@ -1845,42 +1804,42 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       <Box sx={{ px: "12px", pb: "16px", display: "flex", flexDirection: "column", gap: "4px" }}>
                                           {([
                                               { label: "Heading", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "#fff", border: "1.5px solid rgba(0,83,229,0.18)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                       <img src="/heading.png" alt="Heading" style={{ width: 22, height: 22, objectFit: "contain" }} />
                                                   </Box>
                                               ) },
                                               { label: "Sub heading", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "#fff", border: "1.5px solid rgba(0,83,229,0.18)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                       <img src="/sub heading.png" alt="Sub heading" style={{ width: 22, height: 22, objectFit: "contain" }} />
                                                   </Box>
                                               ) },
                                               { label: "Media", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "#fff", border: "1.5px solid rgba(0,83,229,0.18)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                       <img src="/media.png" alt="Media" style={{ width: 22, height: 22, objectFit: "contain" }} />
                                                   </Box>
                                               ) },
                                               { label: "Vertical bullet point", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: s.primary, borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <FormatListBulletedIcon sx={{ fontSize: 22, color: "#fff" }} />
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "primary.main", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                      <FormatListBulletedIcon sx={{ fontSize: 22, color: "background.paper" }} />
                                                   </Box>
                                               ) },
                                               { label: "Horizontal bullet point", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: s.primary, borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <ViewWeekOutlinedIcon sx={{ fontSize: 22, color: "#fff" }} />
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "primary.main", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                      <ViewWeekOutlinedIcon sx={{ fontSize: 22, color: "background.paper" }} />
                                                   </Box>
                                               ) },
                                               { label: "Footnote", blue: false, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "#fff", border: "1.5px solid rgba(0,83,229,0.18)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 22, color: s.textSecondary, lineHeight: 1 }}>*</Typography>
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                      <Typography variant="body1" sx={{ fontSize: 22, color: "text.secondary", lineHeight: 1 }}>*</Typography>
                                                   </Box>
                                               ) },
                                               { label: "Logo", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "#fff", border: "1.5px solid rgba(0,83,229,0.18)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                       <img src="/logo.png" alt="Logo" style={{ width: 22, height: 22, objectFit: "contain" }} />
                                                   </Box>
                                               ) },
                                               { label: "Button", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "#fff", border: "1.5px solid rgba(0,83,229,0.18)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                       <img src="/button.png" alt="Button" style={{ width: 22, height: 22, objectFit: "contain" }} />
                                                   </Box>
                                               ) }
@@ -1895,12 +1854,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                       display: "flex", alignItems: "center", gap: "14px",
                                                       px: "8px", py: "8px", cursor: "pointer",
                                                       borderRadius: "12px",
-                                                      bgcolor: "#fff",
-                                                      "&:hover": { bgcolor: "rgba(0,83,229,0.05)" },
+                                                      bgcolor: "background.paper",
+                                                      "&:hover": { bgcolor: "action.hover" },
                                                       transition: "background 0.12s"
                                                   }}>
                                                   {iconEl}
-                                                  <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 15, color: blue ? s.primary : s.textSecondary }}>
+                                                  <Typography variant="body1" sx={{ fontSize: 15, color: blue ? "primary.main" : "text.secondary" }}>
                                                       {label}
                                                   </Typography>
                                               </Box>
@@ -1919,15 +1878,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               onMouseMove={onCanvasMouseMove}
                               onMouseUp={onCanvasMouseUp}
                               onMouseLeave={onCanvasMouseUp}
-                              sx={{
+                              sx={(theme) => ({
                                   flex: 1, position: "relative",
                                   borderRadius: "8px", overflow: "visible",
-                                  border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? "#0053E5" : s.divider}`,
+                                  border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? theme.palette.primary.main : theme.palette.divider}`,
                                   boxShadow: headingSelected || subheadingSelected || footnoteSelected
                                       ? "0px 0px 0px 2px rgba(0,83,229,0.20), 0px 2px 12px rgba(3,25,79,0.10)"
                                       : "0px 2px 12px rgba(3,25,79,0.10)",
                                   transition: "border-color 0.15s, box-shadow 0.15s"
-                              }}
+                              })}
                           >
                               {/* ── Custom scene canvas ──────────────────────────────── */}
                               {sceneTypes[selectedScene] === "custom" && (() => {
@@ -1951,17 +1910,17 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           <Box sx={{
                                               display: "flex", alignItems: "center", gap: "8px",
                                               px: "12px", py: "8px", borderRadius: "8px",
-                                              border: `2px dashed ${isSelected ? s.primary : "rgba(0,83,229,0.3)"}`,
-                                              bgcolor: isSelected ? "rgba(0,83,229,0.05)" : "rgba(255,255,255,0.85)",
+                                              borderWidth: 2, borderStyle: "dashed", borderColor: isSelected ? "primary.main" : "rgba(0,83,229,0.3)",
+                                              bgcolor: isSelected ? "action.hover" : "rgba(255,255,255,0.85)",
                                               cursor: "grab", userSelect: "none", whiteSpace: "nowrap",
                                               boxShadow: isSelected ? "0 0 0 3px rgba(0,83,229,0.12)" : "none",
                                               transition: "all 0.15s"
                                           }}>
                                               {src
                                                   ? <img src={src} style={{ width: 18, height: 18, objectFit: "contain" }} alt={el.type} />
-                                                  : <Typography sx={{ fontSize: 16, lineHeight: 1, color: s.textSecondary }}>*</Typography>
+                                                  : <Typography sx={{ fontSize: 16, lineHeight: 1, color: "text.secondary" }}>*</Typography>
                                               }
-                                              <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: 13, color: s.primary }}>
+                                              <Typography variant="h5" sx={{ fontSize: 13, color: "primary.main" }}>
                                                   {el.type}
                                               </Typography>
                                           </Box>
@@ -1971,7 +1930,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   return (
                                       <>
                                           {/* ── Clipped scene background (no elements here so nothing clips) ── */}
-                                          <Box ref={sceneBoxRef} sx={{ overflow: "hidden", borderRadius: "8px", position: "relative", aspectRatio: "16/9", bgcolor: "#FFFFFF" }}>
+                                          <Box ref={sceneBoxRef} sx={{ overflow: "hidden", borderRadius: "8px", position: "relative", aspectRatio: "16/9", bgcolor: "background.paper" }}>
                                               <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, bgcolor: "#E040FB", zIndex: 1 }} />
 
                                               {isEmpty && (
@@ -1981,7 +1940,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                           onClick={e => {
                                                               e.stopPropagation(); setPlaceholderMenuOpen(p => !p); setSelectedElId(null); setEditingElId(null); 
                                                           }}
-                                                          sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14, textTransform: "none", borderRadius: "8px", px: "16px", py: "8px", bgcolor: s.primary, boxShadow: "0 2px 8px rgba(0,83,229,0.25)" }}
+                                                          sx={{ px: "16px", py: "8px", bgcolor: "primary.main", boxShadow: "0 2px 8px rgba(0,83,229,0.25)" }}
                                                       >Add placeholder</Button>
                                                   </Box>
                                               )}
@@ -2025,17 +1984,17 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                           {isButton && (() => {
                                                               const { w, h, fs } = btnDims[el.buttonSize ?? "L"];
                                                               return (
-                                                                  <Box sx={{
-                                                                      bgcolor: s.primary, color: "#fff", borderRadius: "999px",
+                                                                  <Box sx={(theme) => ({
+                                                                      bgcolor: "primary.main", color: "background.paper", borderRadius: "999px",
                                                                       width: w, height: h,
                                                                       display: "flex", alignItems: "center", justifyContent: "center",
-                                                                      fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: fs,
+                                                                      fontWeight: 600, fontSize: fs,
                                                                       cursor: "grab", userSelect: "none",
                                                                       border: isSelected ? "2px dashed rgba(255,255,255,0.7)" : "2px solid transparent",
-                                                                      boxShadow: isSelected ? "0 0 0 3px rgba(0,83,229,0.35)" : "0 2px 8px rgba(0,83,229,0.30)",
-                                                                      outline: isSelected ? "2px solid #0053E5" : "2px solid transparent",
+                                                                      boxShadow: isSelected ? `0 0 0 3px rgba(0,83,229,0.35)` : `0 2px 8px rgba(0,83,229,0.30)`,
+                                                                      outline: isSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
                                                                       outlineOffset: "2px", transition: "outline 0.15s, box-shadow 0.15s", whiteSpace: "nowrap"
-                                                                  }}>Button</Box>
+                                                                  })}>Button</Box>
                                                               );
                                                           })()}
 
@@ -2057,11 +2016,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                               };
                                                               const autoTextFs = calcTextSize();
                                                               return (
-                                                                  <Box sx={{
+                                                                  <Box sx={(theme) => ({
                                                                       display: "flex", flexDirection: isV ? "column" : "row",
                                                                       alignItems: "center", gap: isV ? "10px" : "16px",
                                                                       cursor: isEditing ? "default" : "grab", p: "8px", borderRadius: "8px",
-                                                                      outline: isSelected ? "2px solid #0053E5" : "2px solid transparent",
+                                                                      outline: isSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
                                                                       outlineOffset: "4px",
                                                                       boxShadow: isSelected ? "0 0 0 4px rgba(0,83,229,0.12)" : "none",
                                                                       transition: "outline 0.15s, box-shadow 0.15s",
@@ -2069,15 +2028,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                                       width: isSelected ? `${physicalWidth}px` : "auto",
                                                                       maxWidth: `${physicalWidth}px`,
                                                                       minWidth: 80
-                                                                  }}>
+                                                                  })}>
+
                                                                       {/* image + text */}
                                                                       <Box sx={{ display: "flex", flexDirection: imgDir, alignItems: "center", gap: "10px" }}>
                                                                           <Box sx={{ position: "relative", flexShrink: 0 }}>
-                                                                              <Box sx={{ width: icoPx, height: icoPx, bgcolor: "#616161", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                                                  <AddPhotoAlternateOutlinedIcon sx={{ fontSize: icoInner, color: "#fff" }} />
+                                                                              <Box sx={{ width: icoPx, height: icoPx, bgcolor: "grey.700", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                                                  <AddPhotoAlternateOutlinedIcon sx={{ fontSize: icoInner, color: "background.paper" }} />
                                                                               </Box>
-                                                                              <Box sx={{ position: "absolute", top: -badgePx * 0.35, right: -badgePx * 0.35, width: badgePx, height: badgePx, borderRadius: "50%", bgcolor: "#9E9E9E", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                                                  <AddIcon sx={{ fontSize: badgePx * 0.65, color: "#fff" }} />
+                                                                              <Box sx={(theme) => ({ position: "absolute", top: -badgePx * 0.35, right: -badgePx * 0.35, width: badgePx, height: badgePx, borderRadius: "50%", bgcolor: "grey.500", border: `2px solid ${theme.palette.common.white}`, display: "flex", alignItems: "center", justifyContent: "center" })}>
+                                                                                  <AddIcon sx={{ fontSize: badgePx * 0.65, color: "background.paper" }} />
                                                                               </Box>
                                                                           </Box>
                                                                           {isEditing ? (
@@ -2090,14 +2050,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                                                       } 
                                                                                   }}
                                                                                   onClick={e => e.stopPropagation()}
-                                                                                  sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: autoTextFs, color: "#03194F", border: "none", outline: "2px solid #0053E5", borderRadius: "4px", px: "4px", py: "1px", bgcolor: "rgba(0,83,229,0.06)", minWidth: 80, width: `${Math.max(80, (el.text?.length ?? 0) * 8)}px` }}
+                                                                                  sx={(theme) => ({ fontWeight: 600, fontSize: autoTextFs, color: "secondary.main", border: "none", outline: `2px solid ${theme.palette.primary.main}`, borderRadius: "4px", px: "4px", py: "1px", bgcolor: "action.hover", minWidth: 80, width: `${Math.max(80, (el.text?.length ?? 0) * 8)}px` })}
                                                                               />
                                                                           ) : (
                                                                               <Typography
+                                                                                  variant="h5"
                                                                                   onDoubleClick={e => {
-                                                                                      e.stopPropagation(); setEditingElId(el.id); setSelectedElId(el.id); 
+                                                                                      e.stopPropagation(); setEditingElId(el.id); setSelectedElId(el.id);
                                                                                   }}
-                                                                                  sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 600, fontSize: autoTextFs, color: "#03194F", whiteSpace: "nowrap", userSelect: "none" }}
+                                                                                  sx={{ fontSize: autoTextFs, color: "secondary.main", whiteSpace: "nowrap", userSelect: "none" }}
                                                                               >{el.text ?? "Placeholder"}</Typography>
                                                                           )}
                                                                       </Box>
@@ -2105,13 +2066,13 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                                       {isSelected && (
                                                                           <Box
                                                                               onMouseDown={(e) => startResize(e, elWidth, elHeight, (w, h) => updateEl(el.id, { width: w, height: h }))}
-                                                                              sx={{
+                                                                              sx={(theme) => ({
                                                                                   position: "absolute", bottom: -6, right: -6,
                                                                                   width: 12, height: 12, borderRadius: "50%",
-                                                                                  bgcolor: "#0053E5", cursor: "se-resize",
-                                                                                  border: "2px solid #fff", boxShadow: "0 0 0 1px #0053E5",
-                                                                                  "&:hover": { boxShadow: "0 0 0 2px #0053E5" }
-                                                                              }}
+                                                                                  bgcolor: "primary.main", cursor: "se-resize",
+                                                                                  border: `2px solid ${theme.palette.common.white}`, boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
+                                                                                  "&:hover": { boxShadow: `0 0 0 2px ${theme.palette.primary.main}` }
+                                                                              })}
                                                                           />
                                                                       )}
                                                                   </Box>
@@ -2208,7 +2169,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       sx={{ width: "100%", display: "block" }} />
 
                                   {/* Cover left half of SVG — white bg + pink accent line */}
-                                  <Box sx={{ position: "absolute", inset: 0, width: "50%", bgcolor: "#fff", pointerEvents: "none" }}>
+                                  <Box sx={{ position: "absolute", inset: 0, width: "50%", bgcolor: "background.paper", pointerEvents: "none" }}>
                                       <Box sx={{ height: 5, bgcolor: "#C084FC", width: "100%" }} />
                                   </Box>
 
@@ -2220,9 +2181,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       gap: "8px", pointerEvents: "none"
                                   }}>
                                       <Box sx={{ position: "relative", display: "inline-flex" }}>
-                                          <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 52, color: "#BDBDBD" }} />
+                                          <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 52, color: "action.disabled" }} />
                                       </Box>
-                                      <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 13, color: "#BDBDBD", letterSpacing: "0.15px" }}>
+                                      <Typography variant="caption" sx={{ fontSize: 13, color: "action.disabled", letterSpacing: "0.15px" }}>
                     Drag media here
                                       </Typography>
                                   </Box>
@@ -2246,15 +2207,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                   onClick={e => {
                                                       e.stopPropagation(); setHeadingSelected(p => !p); setSubheadingSelected(false); setFootnoteSelected(false); 
                                                   }}
-                                                  sx={{
+                                                  sx={(theme) => ({
                                                       cursor: "pointer", borderRadius: "4px", px: "2px",
-                                                      border: headingSelected ? "2px solid #0053E5" : "2px solid transparent",
-                                                      bgcolor: headingSelected ? "rgba(0,83,229,0.06)" : "transparent",
-                                                      "&:hover": { border: "2px solid #0053E5", bgcolor: "rgba(0,83,229,0.04)" },
+                                                      border: headingSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
+                                                      bgcolor: headingSelected ? "action.hover" : "transparent",
+                                                      "&:hover": { border: `2px solid ${theme.palette.primary.main}`, bgcolor: "action.hover" },
                                                       pointerEvents: selectedScene === 0 ? "auto" : "none"
-                                                  }}
+                                                  })}
                                               >
-                                                  <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "10cqw", color: s.navy, lineHeight: 1.2, wordBreak: "break-word" }}>
+                                                  <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "10cqw", color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word" }}>
                                                       {scene.h}
                                                   </Typography>
                                               </Box>
@@ -2262,15 +2223,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                   onClick={e => {
                                                       e.stopPropagation(); setSubheadingSelected(p => !p); setHeadingSelected(false); setFootnoteSelected(false); 
                                                   }}
-                                                  sx={{
+                                                  sx={(theme) => ({
                                                       cursor: "pointer", borderRadius: "4px", px: "2px", mt: "4%",
-                                                      border: subheadingSelected ? "2px solid #0053E5" : "2px solid transparent",
-                                                      bgcolor: subheadingSelected ? "rgba(0,83,229,0.06)" : "transparent",
-                                                      "&:hover": { border: "2px solid #0053E5", bgcolor: "rgba(0,83,229,0.04)" },
+                                                      border: subheadingSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
+                                                      bgcolor: subheadingSelected ? "action.hover" : "transparent",
+                                                      "&:hover": { border: `2px solid ${theme.palette.primary.main}`, bgcolor: "action.hover" },
                                                       pointerEvents: selectedScene === 0 ? "auto" : "none"
-                                                  }}
+                                                  })}
                                               >
-                                                  <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4.5cqw", color: s.textPrimary, lineHeight: 1.4, wordBreak: "break-word" }}>
+                                                  <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4.5cqw", color: "text.primary", lineHeight: 1.4, wordBreak: "break-word" }}>
                                                       {scene.s}
                                                   </Typography>
                                               </Box>
@@ -2283,16 +2244,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       onClick={e => {
                                           e.stopPropagation(); setFootnoteSelected(p => !p); setHeadingSelected(false); setSubheadingSelected(false); 
                                       }}
-                                      sx={{
+                                      sx={(theme) => ({
                                           position: "absolute", left: "4%", width: "44%", bottom: "5%",
                                           cursor: "pointer", borderRadius: "4px", px: "4px", py: "2px",
-                                          border: footnoteSelected ? "2px solid #0053E5" : "2px solid transparent",
-                                          bgcolor: footnoteSelected ? "rgba(0,83,229,0.06)" : "transparent",
-                                          "&:hover": { border: "2px solid #0053E5", bgcolor: "rgba(0,83,229,0.04)" },
+                                          border: footnoteSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
+                                          bgcolor: footnoteSelected ? "action.hover" : "transparent",
+                                          "&:hover": { border: `2px solid ${theme.palette.primary.main}`, bgcolor: "action.hover" },
                                           containerType: "inline-size"
-                                      }}
+                                      })}
                                   >
-                                      <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: "2.5cqw", letterSpacing: "0.4px", color: s.textSecondary, lineHeight: 1.66 }}>
+                                      <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: "2.5cqw", letterSpacing: "0.4px", color: "text.secondary", lineHeight: 1.66 }}>
                                           {footnoteText}
                                       </Typography>
                                   </Box>
@@ -2328,8 +2289,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               {/* Scene action toolbar — white pill card, top-aligned */}
                               <Box sx={{
                                   width: 32,
-                                  bgcolor: "#ffffff",
-                                  border: `1px solid ${s.divider}`,
+                                  bgcolor: "background.paper",
+                                  borderWidth: 1, borderStyle: "solid", borderColor: "divider",
                                   borderRadius: "24px",
                                   display: "flex", flexDirection: "column",
                                   alignItems: "center", gap: "8px",
@@ -2338,7 +2299,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   {/* 1. Layout / grid */}
                                   <Tooltip title="Layout" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: s.primary, borderRadius: "6px", "&:hover": { bgcolor: "rgba(0,83,229,0.08)" } }}>
+                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
                                           <GridViewOutlinedIcon sx={{ fontSize: 18 }} />
                                       </IconButton>
                                   </Tooltip>
@@ -2346,7 +2307,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   {/* 2. Theme / palette */}
                                   <Tooltip title="Theme" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: s.primary, borderRadius: "6px", "&:hover": { bgcolor: "rgba(0,83,229,0.08)" } }}>
+                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
                                           <PaletteOutlinedIcon sx={{ fontSize: 18 }} />
                                       </IconButton>
                                   </Tooltip>
@@ -2362,13 +2323,13 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                               }}
                                               sx={{
                                                   p: "3px", borderRadius: "6px",
-                                                  bgcolor: placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? s.primary : "transparent",
-                                                  color:   placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "#fff" : undefined,
-                                                  "&:hover": { bgcolor: "rgba(0,83,229,0.08)" },
+                                                  bgcolor: placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "primary.main" : "transparent",
+                                                  color:   placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "common.white" : undefined,
+                                                  "&:hover": { bgcolor: "action.hover" },
                                                   "&.Mui-disabled": { opacity: 0.3 }
                                               }}
                                           >
-                                              <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "#ffffff" : s.primary} />
+                                              <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "#fff" : undefined} />
                                           </IconButton>
                                       </span>
                                   </Tooltip>
@@ -2376,7 +2337,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   {/* 4. Info */}
                                   <Tooltip title="Info" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: s.primary, borderRadius: "6px", "&:hover": { bgcolor: "rgba(0,83,229,0.08)" } }}>
+                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
                                           <InfoOutlinedIcon sx={{ fontSize: 18 }} />
                                       </IconButton>
                                   </Tooltip>
@@ -2384,7 +2345,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   {/* 5. More */}
                                   <Tooltip title="More" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: s.primary, borderRadius: "6px", "&:hover": { bgcolor: "rgba(0,83,229,0.08)" } }}>
+                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
                                           <MoreHorizIcon sx={{ fontSize: 18 }} />
                                       </IconButton>
                                   </Tooltip>
@@ -2395,7 +2356,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   disabled={selectedScene === SCENE_COUNT - 1 || isToolbarActive}
                                   onClick={() => goToScene(selectedScene + 1)}
                                   size="small"
-                                  sx={{ color: (selectedScene === SCENE_COUNT - 1 || isToolbarActive) ? s.actionDisabled : s.primary, p: "3px" }}
+                                  sx={{ color: (selectedScene === SCENE_COUNT - 1 || isToolbarActive) ? "action.disabled" : "primary.main", p: "3px" }}
                               >
                                   <ChevronRightIcon />
                               </IconButton>
@@ -2406,22 +2367,20 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                   {/* Narration bar */}
                   <Box sx={{
-                      mx: 3, mb: 1.5, height: 40, bgcolor: s.white,
-                      border: `1px solid ${s.divider}`, borderRadius: "20px",
+                      mx: 3, mb: 1.5, height: 40, bgcolor: "background.paper",
+                      borderWidth: 1, borderStyle: "solid", borderColor: "divider", borderRadius: "20px",
                       display: "flex", alignItems: "center", px: 2, gap: 1.5, flexShrink: 0
                   }}>
-                      <Avatar sx={{ width: 28, height: 28, bgcolor: s.editorBg }}>
-                          <MicOutlinedIcon sx={{ fontSize: 15, color: s.textSecondary }} />
+                      <Avatar sx={{ width: 28, height: 28, bgcolor: "other.editorBackground" }}>
+                          <MicOutlinedIcon sx={{ fontSize: 15, color: "text.secondary" }} />
                       </Avatar>
                       <Typography sx={{
-                          fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 14,
-                          color: s.textSecondary, flex: 1
+                          color: "text.secondary", flex: 1
                       }}>
               Add narration…
                       </Typography>
                       <Typography sx={{
-                          fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
-                          color: s.textSecondary, letterSpacing: "0.4px"
+                          color: "text.secondary", letterSpacing: "0.4px"
                       }}>
               ~0:12
                       </Typography>
@@ -2429,7 +2388,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                   {/* Scene lineup — dims when toolbar is active */}
                   <Box sx={{
-                      bgcolor: s.white, borderTop: `1px solid ${s.divider}`,
+                      bgcolor: "background.paper", borderTop: 1, borderTopStyle: "solid", borderTopColor: "divider",
                       px: 2, pt: 1.5, pb: 1.5, flexShrink: 0,
                       position: "relative"
                   }}>
@@ -2442,15 +2401,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       }}>
                           <Box sx={{
                               width: 40, height: 40, borderRadius: "50%",
-                              bgcolor: s.editorBg,
+                              bgcolor: "other.editorBackground",
                               display: "flex", alignItems: "center", justifyContent: "center",
                               cursor: "pointer"
                           }}>
-                              <PlayArrowIcon sx={{ fontSize: 22, color: s.primary }} />
+                              <PlayArrowIcon sx={{ fontSize: 22, color: "primary.main" }} />
                           </Box>
-                          <Typography sx={{
-                              fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: 12,
-                              color: s.primaryLight, letterSpacing: "0.4px", ml: 1.5
+                          <Typography variant="caption" sx={{
+                              color: "#8BA2FF", letterSpacing: "0.4px", ml: 1.5
                           }}>
                 Scene {selectedScene + 1} / {SCENE_COUNT}
                           </Typography>
@@ -2461,7 +2419,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <Box sx={{
                               display: "flex", gap: "8px", overflowX: "auto", pb: 0.5,
                               "&::-webkit-scrollbar": { height: 4 },
-                              "&::-webkit-scrollbar-thumb": { bgcolor: s.primaryLight, borderRadius: 2 },
+                              "&::-webkit-scrollbar-thumb": { bgcolor: "#8BA2FF", borderRadius: 2 },
                               opacity: isToolbarActive ? 0.38 : 1,
                               pointerEvents: isToolbarActive ? "none" : "auto",
                               transition: "opacity 0.2s",
@@ -2486,13 +2444,13 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       }}
                                       sx={{
                                           width: 32, height: 32, borderRadius: "50%",
-                                          bgcolor: s.editorBg,
+                                          bgcolor: "other.editorBackground",
                                           display: "flex", alignItems: "center", justifyContent: "center",
-                                          border: `1.5px dashed ${s.primary}`,
+                                          borderWidth: "1.5px", borderStyle: "dashed", borderColor: "primary.main",
                                           cursor: "pointer",
-                                          "&:hover": { bgcolor: "rgba(0,83,229,0.06)" }
+                                          "&:hover": { bgcolor: "action.hover" }
                                       }}>
-                                      <AddIcon sx={{ fontSize: 18, color: s.primary }} />
+                                      <AddIcon sx={{ fontSize: 18, color: "primary.main" }} />
                                   </Box>
                               </Box>
                           </Box>
@@ -2589,7 +2547,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               <Alert
                   severity="success"
                   onClose={() => setSnackbarMsg(null)}
-                  sx={{ width: "100%", fontFamily: "\"Open Sans\", sans-serif", fontSize: 14 }}
+                  sx={{ width: "100%" }}
               >
                   {snackbarMsg}
               </Alert>

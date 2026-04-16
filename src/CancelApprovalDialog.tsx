@@ -1,8 +1,8 @@
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, IconButton, Typography
+    Dialog, DialogContent, DialogActions,
+    Button, Typography
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 interface Props {
   open: boolean
@@ -30,20 +30,9 @@ export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props
             }}
         >
             {/* ── Title ────────────────────────────────────────────────────────── */}
-            <DialogTitle
-                component="div"
-                sx={{
-                    display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                    pl: "32px", pr: "16px", pt: "20px", pb: "8px", gap: 1
-                }}
-            >
-                <Typography variant="h3" sx={{ color: "text.primary", flex: 1 }}>
-          Editing will cancel approval
-                </Typography>
-                <IconButton size="medium" color="default" onClick={onClose}>
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
+                Editing will cancel approval
+            </TruffleDialogTitle>
 
             {/* ── Content ──────────────────────────────────────────────────────── */}
             <DialogContent sx={{ px: "32px", pt: "0 !important", pb: "8px" }}>
