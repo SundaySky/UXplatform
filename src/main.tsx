@@ -1,15 +1,14 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { CssBaseline } from "@mui/material";
-import { TruffleThemeProvider } from "@sundaysky/smartvideo-hub-truffle-component-library";
-import App from "./App";
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { ThemeProvider, CssBaseline } from '@mui/material'
+import { theme } from './theme'
+import App from './App'
 
-createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        {/* @ts-expect-error TruffleThemeProvider accepts children but FC typing omits it */}
-        <TruffleThemeProvider>
-            <CssBaseline />
-            <App />
-        </TruffleThemeProvider>
-    </StrictMode>
-);
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <App />
+    </ThemeProvider>
+  </StrictMode>,
+)
