@@ -2,9 +2,9 @@ import { useState, useRef, useCallback } from "react";
 import type { SxProps, Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import {
-    AppBar, Badge, Box, Button, Card, Chip, Divider, IconButton, List, ListItemButton,
-    ListItemIcon, ListItemText, Menu, SvgIcon, Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, Toolbar, ToggleButton, Typography
+    AppBar, Badge, Box, Breadcrumbs, Button, Card, CardContent, Divider, IconButton, List, ListItemButton,
+    ListItemIcon, ListItemText, Menu, Skeleton, SvgIcon, Table, TableBody, TableCell, TableContainer,
+    TableHead, TableRow, Toolbar, Tooltip, Typography
 } from "@mui/material";
 import {
     Label, Search, TruffleAvatar, ThumbnailActions, ThumbnailActionsButton,
@@ -12,7 +12,7 @@ import {
     TruffleMenuItem, TypographyWithTooltipOnOverflow
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlay, faPen, faEllipsisVertical, faBars, faFolderPlus, faFolder, faPlus, faImages, faLightbulb, faChartBar, faCopy, faShare, faCircleInfo, faLock, faLayerGroup, faBoxArchive, faTrash, faUsers, faComment, faArrowUpRightFromSquare, faFilm, faArrowDown } from "@fortawesome/pro-regular-svg-icons";
+import { faPlay, faPen, faEllipsisVertical, faBars, faFolderPlus, faFolder, faImages, faLightbulb, faChartBar, faCopy, faShare, faCircleInfo, faLock, faLayerGroup, faBoxArchive, faTrash, faUsers, faComment, faArrowUpRightFromSquare, faFilm, faArrowDown } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faGrip } from "@fortawesome/pro-solid-svg-icons";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import AccountSettingsDialog from "./AccountSettingsDialog";
@@ -24,6 +24,7 @@ import { OWNER_USER } from "./ManageAccessDialog";
 
 // ─── Figma asset image — split template (HEADING PLACEHOLDER left + media right)
 const IMG_THUMB = "/thumb.svg";
+const IMG_LOGO = "/sundaysky-logo.svg";
 
 // ─── Per-video live state (mirrored from App) ─────────────────────────────────
 export interface LiveVideoState {
@@ -79,6 +80,9 @@ function resolveStatuses(
 // ─── Status chip config ───────────────────────────────────────────────────────
 export type StatusKey =
   | "Draft"
+  | "Approving version..."
+  | "Archived"
+  | "In testing"
   | "Approved for sharing"
   | "Downloaded for Sharing"
   | "Downloaded"
@@ -86,19 +90,31 @@ export type StatusKey =
   | "Shared"
   | "Pending approval"
 
-const STATUS_LABEL_MAP: Record<StatusKey, { color: "default" | "info" | "success" | "error" }> = {
-    "Draft":                  { color: "default" },
-    "Approved for sharing":   { color: "info" },
-    "Downloaded for Sharing": { color: "success" },
-    "Downloaded":             { color: "info" },
-    "Live":                   { color: "error" },
-    "Shared":                 { color: "info" },
-    "Pending approval":       { color: "default" }
+type StatusColor = "default" | "info" | "success" | "error" | "warning";
+type StatusVariant = "standard" | "outlined";
+
+const STATUS_LABEL_MAP: Record<StatusKey, { color: StatusColor; variant?: StatusVariant; tooltip: string }> = {
+    "Draft":                  { color: "default", tooltip: "Video is a draft and has not been approved for sharing." },
+    "Approving version...":   { color: "default", variant: "outlined", tooltip: "Approval is in progress." },
+    "Archived":               { color: "default", variant: "outlined", tooltip: "Video has been archived." },
+    "In testing":             { color: "warning", tooltip: "Video is in testing." },
+    "Approved for sharing":   { color: "info", tooltip: "Video is finalized and can be shared with viewers." },
+    "Downloaded for Sharing": { color: "success", tooltip: "Video has been downloaded for sharing." },
+    "Downloaded":             { color: "info", tooltip: "Video has been downloaded." },
+    "Live":                   { color: "error", tooltip: "Video has been shared via Landing Page." },
+    "Shared":                 { color: "info", tooltip: "Video has been shared." },
+    "Pending approval":       { color: "default", tooltip: "Video is awaiting approval." }
 };
 
 function StatusLabel({ status }: { status: StatusKey }) {
     const cfg = STATUS_LABEL_MAP[status];
-    return <Label label={status} color={cfg.color} />;
+    return (
+        <Tooltip title={cfg.tooltip}>
+            <span>
+                <Label label={status} color={cfg.color} variant={cfg.variant} />
+            </span>
+        </Tooltip>
+    );
 }
 
 // ─── Approval status icon ─────────────────────────────────────────────────────
@@ -148,38 +164,17 @@ function ApprovalStatusIcon({ state, totalComments }: { state: LiveVideoState; t
 }
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
-function VideoThumbnail({ headingText, subheadingText }: { headingText?: string; subheadingText?: string }) {
+function VideoThumbnail() {
+    const [loaded, setLoaded] = useState(false);
     return (
         <Box sx={thumbnailWrapperSx}>
-            <Box component="img" src={IMG_THUMB} alt="" sx={thumbnailImgSx} />
-            {/* Left half — white bg */}
-            <Box sx={thumbnailLeftHalfSx}>
-                <Box sx={thumbnailAccentLineSx} />
-            </Box>
-            {/* Right half — drag media */}
-            <Box sx={thumbnailRightHalfSx}>
-                <SvgIcon sx={thumbnailDragIconSx}>
-                    <FontAwesomeIcon icon={faImages} />
-                </SvgIcon>
-                <Typography variant="caption" sx={thumbnailDragTextSx}>
-                    Drag media here
-                </Typography>
-            </Box>
-            {/* Text overlays — canvas-specific cqw units */}
-            <Box sx={thumbnailTextAreaSx}>
-                <Typography sx={thumbnailHeadingSx}>
-                    {headingText ?? "Heading Placeholder"}
-                </Typography>
-                <Typography sx={thumbnailSubheadingSx}>
-                    {subheadingText ?? "Sub-heading Placeholder"}
-                </Typography>
-            </Box>
-            {/* Footnote */}
-            <Box sx={thumbnailFootnoteSx}>
-                <Typography sx={thumbnailFootnoteTextSx}>
-                    Footnote placeholder
-                </Typography>
-            </Box>
+            {!loaded && <Skeleton variant="rectangular" sx={thumbnailSkeletonSx} />}
+            <Box
+                component="img"
+                src="/thumbnails/editor-thumbnail.png"
+                onLoad={() => setLoaded(true)}
+                sx={thumbnailImgSx(loaded)}
+            />
         </Box>
     );
 }
@@ -290,7 +285,6 @@ function VideoCard({
 
     return (
         <Card
-            elevation={1}
             onClick={() => {
                 if (approvalOpen || confirmationOpen || videoPermOpen) {
                     return;
@@ -317,10 +311,7 @@ function VideoCard({
                 }
                 ContentProps={{ sx: thumbnailContentPropsSx }}
             >
-                <VideoThumbnail
-                    headingText={liveState?.headingText ?? video.title}
-                    subheadingText={liveState?.subheadingText}
-                />
+                <VideoThumbnail />
             </ThumbnailActions>
 
             {/* Card body */}
@@ -330,15 +321,14 @@ function VideoCard({
                     <TypographyWithTooltipOnOverflow variant="h5" multiline sx={cardTitleSx}>
                         {video.title}
                     </TypographyWithTooltipOnOverflow>
-                    <ToggleButton
+                    <ToggleIconButton
                         size="small"
                         value="menu"
                         selected={Boolean(menuAnchor)}
                         onClick={openMenu}
                         sx={threeDotsBtnSx}
-                    >
-                        <FontAwesomeIcon icon={faEllipsisVertical} />
-                    </ToggleButton>
+                        icon={<FontAwesomeIcon icon={faEllipsisVertical} />}
+                    />
                 </Box>
 
                 {/* Edited by */}
@@ -497,22 +487,28 @@ function VideoCard({
 
 // ─── Folder card ──────────────────────────────────────────────────────────────
 function FolderCard({ name, count }: { name: string; count: number }) {
+    const src = count > 0 ? "/folders/non-empty-folder.svg" : "/folders/empty-folder.svg";
     return (
-        <Box sx={folderCardSx}>
-            <Box sx={folderIconBoxSx}>
-                <SvgIcon sx={folderIconSvgSx}>
-                    <FontAwesomeIcon icon={faFolder} />
-                </SvgIcon>
-            </Box>
-            <Box sx={folderCardTextWrapSx}>
-                <TypographyWithTooltipOnOverflow variant="subtitle2" sx={folderCardNameSx}>
-                    {name}
-                </TypographyWithTooltipOnOverflow>
-                <Typography variant="caption" sx={folderCardCountSx}>
-                    {count} {count === 1 ? "item" : "items"}
-                </Typography>
-            </Box>
-        </Box>
+        <Card sx={folderCardSx}>
+            <CardContent sx={folderCardContentSx}>
+                <Box sx={folderCardRowSx}>
+                    <Box
+                        component="img"
+                        src={src}
+                        alt={count === 0 ? "Empty folder" : "Folder with media"}
+                        sx={folderImgSx}
+                    />
+                    <Box sx={folderCardTextWrapSx}>
+                        <TypographyWithTooltipOnOverflow variant="h5" color="text.primary" sx={folderCardNameSx}>
+                            {name}
+                        </TypographyWithTooltipOnOverflow>
+                        <Typography variant="body1" color="text.primary">
+                            {count} {count === 1 ? "item" : "items"}
+                        </Typography>
+                    </Box>
+                </Box>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -530,20 +526,18 @@ function AppSidebar() {
         <Box sx={sidebarSx}>
             {/* Logo area */}
             <Box sx={sidebarLogoBoxSx}>
-                <Box component="img" src="" alt="sundaysky-logo" sx={sidebarLogoImgSx} />
+                <Box component="img" src={IMG_LOGO} alt="SundaySky" sx={sidebarLogoImgSx} />
             </Box>
 
             {/* Create button */}
-            <Box sx={sidebarCreateBtnWrapperSx}>
-                <Button
-                    variant="contained"
-                    color="gradient"
-                    startIcon={<FontAwesomeIcon icon={faPlus} />}
-                    sx={createButtonSx}
-                >
-                    Create
-                </Button>
-            </Box>
+            <Button
+                variant="contained"
+                color="gradient"
+                size="large"
+                sx={createButtonSx}
+            >
+                Create
+            </Button>
 
             {/* Nav items */}
             <List disablePadding sx={sidebarListSx}>
@@ -561,6 +555,7 @@ function AppSidebar() {
                             </ListItemIcon>
                             <ListItemText
                                 primary={label}
+                                sx={navItemTextRootSx}
                                 primaryTypographyProps={{
                                     variant: "body1",
                                     sx: navItemTextSx
@@ -766,11 +761,8 @@ export default function VideoLibraryPage({
 
             <Box sx={mainColumnSx}>
                 {/* AppBar */}
-                <AppBar position="sticky" color="primary" elevation={4} sx={appBarSx}>
+                <AppBar position="sticky" color="inherit" elevation={0} sx={appBarSx}>
                     <Toolbar variant="dense" sx={toolbarSx}>
-                        {/* Left: non-production badge */}
-                        <Chip label="staging" color="success" size="small" />
-                        <Box sx={flexSpacerSx} />
                         {/* Right: search, bell, user */}
                         <Box sx={appBarRightSx}>
                             <Search
@@ -782,6 +774,7 @@ export default function VideoLibraryPage({
                                 sx={searchSx}
                             />
                             <NotificationBell notifications={notifications} />
+                            <Divider orientation="vertical" flexItem sx={appBarDividerSx} />
                             <Box
                                 onClick={() => {
                                     setAccountSettingsOpen(true);
@@ -805,11 +798,16 @@ export default function VideoLibraryPage({
 
                 {/* Page content */}
                 <Box sx={pageContentSx}>
-                    {/* Page title + view toggle */}
+                    {/* Breadcrumb bar with page title */}
+                    <Box sx={breadcrumbBarSx}>
+                        <Breadcrumbs maxItems={4} itemsBeforeCollapse={1} itemsAfterCollapse={2}>
+                            <Typography variant="h1" sx={breadcrumbTitleSx}>
+                                Your Videos
+                            </Typography>
+                        </Breadcrumbs>
+                    </Box>
+                    {/* View toggle row */}
                     <Box sx={pageTitleRowSx}>
-                        <Typography variant="h1" sx={headingPrimaryColorSx}>
-                            Video Library
-                        </Typography>
                         <Box sx={viewToggleBoxSx}>
                             <Typography variant="caption" sx={captionSecondaryColorSx}>View as</Typography>
                             <TruffleToggleButtonGroup
@@ -832,10 +830,6 @@ export default function VideoLibraryPage({
                     <Box sx={sectionBoxSx}>
                         <Typography variant="h2" sx={headingPrimaryColorSx}>Recent</Typography>
                         <Box sx={recentScrollRowSx}>
-                            {/* Left chevron */}
-                            <IconButton color="primary" size="medium" sx={chevronBtnSx}>
-                                <SvgIcon><FontAwesomeIcon icon={faChevronLeft} /></SvgIcon>
-                            </IconButton>
                             {/* Scroll container */}
                             <Box sx={recentScrollContainerSx}>
                                 {RECENT_VIDEOS.map((v, i) => (
@@ -853,8 +847,12 @@ export default function VideoLibraryPage({
                                     </Box>
                                 ))}
                             </Box>
-                            {/* Right chevron */}
-                            <IconButton color="primary" size="medium" sx={chevronBtnSx}>
+                            {/* Left chevron — absolute overlay */}
+                            <IconButton color="primary" size="medium" sx={chevronBtnLeftSx}>
+                                <SvgIcon><FontAwesomeIcon icon={faChevronLeft} /></SvgIcon>
+                            </IconButton>
+                            {/* Right chevron — absolute overlay */}
+                            <IconButton color="primary" size="medium" sx={chevronBtnRightSx}>
                                 <SvgIcon><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
                             </IconButton>
                         </Box>
@@ -866,14 +864,14 @@ export default function VideoLibraryPage({
                             <Typography variant="h2" sx={headingPrimaryColorSx}>
                                 Folders ({FOLDERS.length})
                             </Typography>
-                            <Box
-                                component="button"
+                            <Button
+                                variant="outlined"
+                                size="medium"
+                                startIcon={<FontAwesomeIcon icon={faFolderPlus} />}
                                 onClick={() => {}}
-                                sx={newFolderBtnSx}
                             >
-                                <SvgIcon sx={newFolderIconSx}><FontAwesomeIcon icon={faFolderPlus} /></SvgIcon>
-                                <Typography variant="body1" sx={newFolderTextSx}>New folder</Typography>
-                            </Box>
+                                New Folder
+                            </Button>
                         </Box>
                         <Box sx={foldersGridSx}>
                             {FOLDERS.map(f => <FolderCard key={f.name} name={f.name} count={f.count} />)}
@@ -931,9 +929,9 @@ const mainColumnSx: SxProps<Theme> = {
 };
 
 const sidebarSx: SxProps<Theme> = (theme) => ({
-    width: 112,
+    width: "112px",
     flexShrink: 0,
-    background: `linear-gradient(to bottom, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
+    background: `linear-gradient(to top, ${(theme.palette as unknown as { brand: { gradientBlackBlue: string } }).brand.gradientBlackBlue})`,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -942,12 +940,11 @@ const sidebarSx: SxProps<Theme> = (theme) => ({
 });
 
 const sidebarLogoBoxSx: SxProps<Theme> = {
-    height: 104,
-    width: 112,
+    py: "24px",
+    px: "25px",
     display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     flexShrink: 0,
     cursor: "pointer",
     "&:hover": { opacity: 0.8 }
@@ -956,29 +953,20 @@ const sidebarLogoBoxSx: SxProps<Theme> = {
 const sidebarLogoImgSx: SxProps<Theme> = {
     width: 62,
     height: 62,
-    display: "none" // placeholder — real app uses SVG logo
-};
-
-const sidebarCreateBtnWrapperSx: SxProps<Theme> = {
-    width: "100%",
-    display: "flex",
-    justifyContent: "center",
-    mb: 1
+    display: "block"
 };
 
 const createButtonSx: SxProps<Theme> = {
-    height: 30,
-    width: 94,
-    minWidth: "unset",
-    borderRadius: "16px",
-    px: "10px"
+    mt: "10px",
+    mb: "24px",
+    width: "80px"
 };
 
 const sidebarListSx: SxProps<Theme> = {
     width: "100%"
 };
 
-const navItemButtonSx: SxProps<Theme> = {
+const navItemButtonSx: SxProps<Theme> = (theme) => ({
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -986,12 +974,16 @@ const navItemButtonSx: SxProps<Theme> = {
     py: "12px",
     width: "100%",
     "&.Mui-selected": {
-        bgcolor: (theme: Theme) => alpha(theme.palette.common.white, 0.12)
+        bgcolor: alpha(theme.palette.secondary.dark, 0.25)
     },
     "&:hover": {
-        bgcolor: (theme: Theme) => alpha(theme.palette.common.white, 0.06)
+        bgcolor: alpha(theme.palette.common.white, theme.palette.action.hoverOpacity),
+        "&.Mui-selected": {
+            bgcolor: alpha(theme.palette.common.white,
+                theme.palette.action.hoverOpacity + theme.palette.action.selectedOpacity)
+        }
     }
-};
+});
 
 const navItemContentSx: SxProps<Theme> = {
     display: "flex",
@@ -1003,24 +995,32 @@ const navItemContentSx: SxProps<Theme> = {
 
 const navItemIconSx: SxProps<Theme> = {
     minWidth: "unset",
-    justifyContent: "center"
+    justifyContent: "center",
+    color: "common.white"
+};
+
+const navItemTextRootSx: SxProps<Theme> = {
+    "& .MuiListItemText-primary": {
+        color: "common.white"
+    }
 };
 
 const navItemTextSx: SxProps<Theme> = {
-    lineHeight: 1.3,
-    letterSpacing: "0.46px",
-    color: "common.white",
     textAlign: "center",
-    textTransform: "capitalize"
+    lineHeight: 1.3
 };
 
 const appBarSx: SxProps<Theme> = {
-    flexShrink: 0
+    flexShrink: 0,
+    bgcolor: "background.paper",
+    color: "primary.main",
+    boxShadow: (theme) => `inset 0 -1px 0 ${theme.palette.divider}`
 };
 
 const toolbarSx: SxProps<Theme> = {
-    gap: 2,
-    px: 3
+    justifyContent: "flex-end",
+    px: 4,
+    gap: 2
 };
 
 const appBarRightSx: SxProps<Theme> = {
@@ -1029,16 +1029,22 @@ const appBarRightSx: SxProps<Theme> = {
     gap: 1.5
 };
 
-const searchSx: SxProps<Theme> = {
-    width: 220
-};
+const searchSx: SxProps<Theme> = (theme) => ({
+    minWidth: "183px",
+    [theme.breakpoints.up("xs")]: { width: "183px" },
+    [theme.breakpoints.up(820)]: { width: "268px" }
+});
 
 const userMenuTriggerSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    cursor: "pointer",
-    borderRadius: 1,
+    height: 40,
+    maxWidth: 152,
+    border: 1,
+    borderColor: "divider",
+    borderRadius: "20px",
     p: "4px",
+    cursor: "pointer",
     "&:hover": { bgcolor: "action.hover" }
 };
 
@@ -1049,10 +1055,23 @@ const pageContentSx: SxProps<Theme> = {
     py: 3
 };
 
+const breadcrumbBarSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    pt: 4,
+    pl: 0,
+    mb: 2
+};
+
+const breadcrumbTitleSx: SxProps<Theme> = {
+    color: "secondary.main"
+};
+
 const pageTitleRowSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     mb: 3
 };
 
@@ -1072,33 +1091,43 @@ const sectionBoxSx: SxProps<Theme> = {
 };
 
 const recentScrollRowSx: SxProps<Theme> = {
+    position: "relative",
     display: "flex",
-    alignItems: "center",
-    gap: 1
+    flexDirection: "column"
 };
 
 const recentScrollContainerSx: SxProps<Theme> = {
     display: "flex",
-    gap: 1,
-    overflowX: "auto",
-    py: 1,
-    px: 1,
-    bgcolor: "other.editorBackground",
-    borderRadius: "8px 0 0 8px",
-    flex: 1,
-    "&::-webkit-scrollbar": { height: 4 },
-    "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
-    "&::-webkit-scrollbar-thumb": { bgcolor: "grey.300", borderRadius: 2 }
+    flexDirection: "row",
+    gap: "8px",
+    overflow: "auto",
+    scrollBehavior: "smooth",
+    p: "16px 0 16px 16px",
+    bgcolor: "primary.light",
+    flexGrow: 1,
+    "&::-webkit-scrollbar-thumb": { visibility: "hidden" }
 };
 
 const recentCardSlotSx: SxProps<Theme> = {
-    width: 310,
-    minWidth: 310,
-    flexShrink: 0
+    width: "310px",
+    flexShrink: 0,
+    "&:last-of-type": { mr: "16px" }
 };
 
-const chevronBtnSx: SxProps<Theme> = {
-    flexShrink: 0
+const chevronBtnLeftSx: SxProps<Theme> = {
+    position: "absolute",
+    left: 0,
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 1
+};
+
+const chevronBtnRightSx: SxProps<Theme> = {
+    position: "absolute",
+    right: 0,
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 1
 };
 
 const foldersSectionSx: SxProps<Theme> = {
@@ -1112,30 +1141,18 @@ const sectionHeaderRowSx: SxProps<Theme> = {
     mb: 2
 };
 
-const newFolderBtnSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    height: 36,
-    border: "1px solid",
-    borderColor: "divider",
-    borderRadius: 1,
-    bgcolor: "transparent",
-    cursor: "pointer",
-    px: 2,
-    "&:hover": { borderColor: "primary.main", bgcolor: "action.selected" }
-};
 
 const foldersGridSx: SxProps<Theme> = {
     display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
+    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
     gap: 1.5
 };
 
 const videosGridSx: SxProps<Theme> = {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))",
-    gap: 2,
+    gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))",
+    rowGap: "24px",
+    columnGap: "8px",
     pb: 4
 };
 
@@ -1154,25 +1171,34 @@ const tableActionIconSx: SxProps<Theme> = { fontSize: 16 };
 
 const folderCardSx: SxProps<Theme> = {
     display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    px: 2,
-    py: "12px",
-    borderRadius: 1,
-    bgcolor: "background.paper",
+    flexDirection: "row",
+    gap: "8px",
+    p: "8px",
+    position: "relative",
+    boxShadow: 0,
+    textDecoration: "none",
     cursor: "pointer",
-    "&:hover": { bgcolor: "action.hover" },
-    minWidth: 0
+    "&:hover": { boxShadow: 24 }
 };
 
-const folderIconBoxSx: SxProps<Theme> = {
-    width: 36,
-    height: 36,
-    borderRadius: "6px",
-    bgcolor: "other.editorBackground",
+const folderCardContentSx: SxProps<Theme> = {
+    p: "8px",
     display: "flex",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
+    flexGrow: 1,
+    "&:last-child": { pb: "8px" }
+};
+
+const folderCardRowSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "row",
+    gap: "8px"
+};
+
+const folderImgSx: SxProps<Theme> = {
+    height: "35px",
+    width: "auto",
     flexShrink: 0
 };
 
@@ -1182,7 +1208,18 @@ const videocardSx: SxProps<Theme> = {
     width: "100%",
     cursor: "pointer",
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
+    boxShadow: 0,
+    transition: "box-shadow 0.15s",
+    "&:hover": {
+        boxShadow: 24
+    }
+};
+
+const appBarDividerSx: SxProps<Theme> = {
+    height: 20,
+    alignSelf: "center",
+    borderColor: "divider"
 };
 
 const thumbnailContentPropsSx: SxProps<Theme> = {
@@ -1253,96 +1290,26 @@ const menuFolderLabelSx: SxProps<Theme> = {
     gap: "4px"
 };
 
-// Thumbnail styles (canvas-specific — cqw units are intentional exceptions)
+// Thumbnail styles
 const thumbnailWrapperSx: SxProps<Theme> = {
     position: "relative",
     width: "100%",
-    height: "100%",
-    overflow: "hidden"
+    height: "100%"
 };
 
-const thumbnailImgSx: SxProps<Theme> = {
+const thumbnailSkeletonSx: SxProps<Theme> = {
     width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    display: "block"
+    height: "auto",
+    aspectRatio: "16/9"
 };
 
-const thumbnailLeftHalfSx: SxProps<Theme> = {
-    position: "absolute",
-    inset: 0,
-    width: "50%",
-    bgcolor: "common.white",
-    pointerEvents: "none"
-};
-
-const thumbnailAccentLineSx: SxProps<Theme> = {
-    height: 4,
-    bgcolor: "secondary.light",
-    width: "100%"
-};
-
-const thumbnailRightHalfSx: SxProps<Theme> = {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: "50%",
-    bgcolor: "grey.200",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "4px",
-    pointerEvents: "none"
-};
-
-const thumbnailTextAreaSx: SxProps<Theme> = {
-    position: "absolute",
-    left: "4%",
-    top: "18%",
-    width: "43%",
-    containerType: "inline-size",
-    pointerEvents: "none",
-    display: "flex",
-    flexDirection: "column"
-};
-
-// These use cqw units (container query widths) — intentional exception to typography rules
-const thumbnailHeadingSx: SxProps<Theme> = {
-    fontFamily: "\"Inter\", sans-serif",
-    fontWeight: 700,
-    fontSize: "9cqw",
-    color: "secondary.main",
-    lineHeight: 1.2,
-    wordBreak: "break-word"
-};
-
-const thumbnailSubheadingSx: SxProps<Theme> = {
-    fontFamily: "\"Inter\", sans-serif",
-    fontWeight: 400,
-    fontSize: "4cqw",
-    color: "text.secondary",
-    lineHeight: 1.4,
-    wordBreak: "break-word",
-    mt: "6%"
-};
-
-const thumbnailFootnoteSx: SxProps<Theme> = {
-    position: "absolute",
-    left: "4%",
-    width: "43%",
-    bottom: "5%",
-    containerType: "inline-size",
-    pointerEvents: "none"
-};
-
-const thumbnailFootnoteTextSx: SxProps<Theme> = {
-    fontSize: "3cqw",
-    letterSpacing: "0.4px",
-    color: "text.disabled",
-    lineHeight: 1.66
-};
+const thumbnailImgSx = (loaded: boolean): SxProps<Theme> => ({
+    display: loaded ? "block" : "none",
+    width: "100%",
+    objectFit: "contain",
+    aspectRatio: "16/9",
+    outline: (theme: Theme) => `1px solid ${theme.palette.grey[300]}`
+});
 
 // PermAvatarGroup styles
 const miniAvatarBaseSx: SxProps<Theme> = {
@@ -1377,14 +1344,6 @@ const everyoneAvatarIconSx: SxProps<Theme> = {
     color: "text.primary"
 };
 
-const thumbnailDragIconSx: SxProps<Theme> = {
-    fontSize: 28,
-    color: "grey.500"
-};
-
-const thumbnailDragTextSx: SxProps<Theme> = {
-    color: "grey.500"
-};
 
 const editedByTextSx: SxProps<Theme> = {
     color: "text.secondary"
@@ -1436,33 +1395,21 @@ const personalizedLabelIconSx: SxProps<Theme> = {
     fontSize: 12
 };
 
-const folderIconSvgSx: SxProps<Theme> = {
-    fontSize: 20,
-    color: "primary.main"
-};
-
 const folderCardTextWrapSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column",
     minWidth: 0
 };
 
 const folderCardNameSx: SxProps<Theme> = {
-    color: "text.primary",
-    lineHeight: 1.5
-};
-
-const folderCardCountSx: SxProps<Theme> = {
-    color: "text.secondary",
-    lineHeight: 1.5
+    maxWidth: "163px"
 };
 
 const navItemIconSvgSx: SxProps<Theme> = {
-    fontSize: 20,
-    color: "common.white"
+    fontSize: 24,
+    color: "inherit"
 };
 
-const flexSpacerSx: SxProps<Theme> = {
-    flex: 1
-};
 
 const headingPrimaryColorSx: SxProps<Theme> = {
     color: "text.primary"
@@ -1472,13 +1419,6 @@ const captionSecondaryColorSx: SxProps<Theme> = {
     color: "text.secondary"
 };
 
-const newFolderIconSx: SxProps<Theme> = {
-    fontSize: 16
-};
-
-const newFolderTextSx: SxProps<Theme> = {
-    color: "text.primary"
-};
 
 const videosSectionHeadingSx: SxProps<Theme> = {
     color: "text.primary",

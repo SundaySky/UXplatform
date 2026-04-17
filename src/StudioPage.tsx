@@ -9,6 +9,7 @@ import {
     useTheme
 } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
+import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
@@ -645,8 +646,8 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
                 Unresolved comments require explanation
             </TruffleDialogTitle>
             <DialogContent sx={{ pt: "8px !important" }}>
-                <Typography sx={{
-                    lineHeight: 1.5, color: "text.primary", mb: 2
+                <Typography variant="body1" sx={{
+                    color: "text.primary", mb: 2
                 }}>
           There are {count} unresolved {count === 1 ? "comment" : "comments"}.{" "}
                     <Box component="span"
@@ -767,21 +768,19 @@ function CommentsPanel({
 
     return (
         <>
-            <Box sx={{
+            <Box sx={(theme) => ({
                 position: "fixed", left: pos.x, top: pos.y,
                 width: 292, minWidth: 260,
                 bgcolor: "background.paper", borderRadius: "8px",
-                boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)",
+                boxShadow: `0px 0px 5px 0px ${alpha(theme.palette.secondary.main, 0.25)}`,
                 zIndex: 1300,
                 display: "flex", flexDirection: "column",
                 resize: "both", overflow: "hidden"
-            }}>
+            })}>
 
                 {/* ── Header (drag to move) ─────────────────────────────────────── */}
                 <Box onMouseDown={onHeaderMouseDown} sx={commentsPanelHeaderSx}>
-                    <Typography sx={{
-                        color: "text.primary", lineHeight: 1.5
-                    }}>
+                    <Typography variant="subtitle2" sx={{ color: "text.primary" }}>
             Comments
                     </Typography>
                     <IconButton
@@ -811,8 +810,7 @@ function CommentsPanel({
                                     transition: "background-color 0.15s"
                                 }}
                             >
-                                <Typography sx={{
-                                    lineHeight: 1.5,
+                                <Typography variant="body1" sx={{
                                     color: tab === key ? "text.primary" : "text.secondary",
                                     whiteSpace: "nowrap"
                                 }}>
@@ -830,9 +828,7 @@ function CommentsPanel({
                 {tab === "unresolved" && unresolvedCount > 0 && (
                     <Box sx={commentsViewVersionRowSx}>
                         <SvgIcon sx={{ fontSize: 14, color: "primary.main" }}><FontAwesomeIcon icon={faEye} /></SvgIcon>
-                        <Typography sx={{
-                            color: "primary.main", lineHeight: 1.5
-                        }}>
+                        <Typography variant="body1" sx={{ color: "primary.main" }}>
               View version sent for approval
                         </Typography>
                         <SvgIcon sx={{ fontSize: 11, color: "primary.main" }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
@@ -842,8 +838,8 @@ function CommentsPanel({
                 {/* ── Awaiting all approvers state ──────────────────────────────── */}
                 {awaitingApprovers && tab === "unresolved" && (
                     <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", px: 2, py: 3 }}>
-                        <Typography sx={{
-                            lineHeight: 1.5, color: "text.primary", textAlign: "center"
+                        <Typography variant="body1" sx={{
+                            color: "text.primary", textAlign: "center"
                         }}>
               1 of 2 approvers responded<br />
               Comments will appear here once all approvers have responded.
@@ -864,9 +860,7 @@ function CommentsPanel({
                             <Box key={thread.id}>
                                 {/* "By [Approver Name]" label — only when multiple approvers */}
                                 {threads.length > 1 && (
-                                    <Typography sx={{
-                                        color: "text.secondary", lineHeight: 1.5, mb: "8px"
-                                    }}>
+                                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "8px" }}>
                     By {thread.author}
                                     </Typography>
                                 )}
@@ -965,6 +959,7 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
 
             {/* Cover left half of SVG — white bg + pink accent line */}
             <Box sx={thumbLeftCoverSx}>
+                {/* Prototype-only scene accent — no real-app theme token */}
                 <Box sx={{ height: 3, bgcolor: "#C084FC", width: "100%" }} />
             </Box>
 
@@ -1007,7 +1002,7 @@ function PlaceholderIcon({ size = 28, color }: { size?: number; color?: string }
     const arm = d * 0.12; // half-length of plus arms
     const cx = d / 2;
     return (
-        <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`} fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", flexShrink: 0 }}>
+        <Box component="svg" width={d} height={d} viewBox={`0 0 ${d} ${d}`} fill="none" xmlns="http://www.w3.org/2000/svg" sx={{ display: "block", flexShrink: 0 }}>
             {/* Corner squares */}
             <rect x={0} y={0} width={corner} height={corner} rx={corner * 0.25} fill={fill} />
             <rect x={d - corner} y={0} width={corner} height={corner} rx={corner * 0.25} fill={fill} />
@@ -1025,7 +1020,7 @@ function PlaceholderIcon({ size = 28, color }: { size?: number; color?: string }
             {/* Plus sign */}
             <line x1={cx - arm} y1={cx} x2={cx + arm} y2={cx} stroke={fill} strokeWidth={corner * 0.6} strokeLinecap="round" />
             <line x1={cx} y1={cx - arm} x2={cx} y2={cx + arm} stroke={fill} strokeWidth={corner * 0.6} strokeLinecap="round" />
-        </svg>
+        </Box>
     );
 }
 
@@ -1112,6 +1107,7 @@ interface Props {
 }
 
 export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers, onEditAttempt }: Props) {
+    const theme = useTheme();
     const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false);
 
     // Open comments panel whenever triggerOpenComments counter increments (e.g. from notification link)
@@ -1366,7 +1362,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       <Box sx={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflow: "hidden" }}>
 
           {/* ── Appbar ─────────────────────────────────────────────────────────── */}
-          <AppBar position="static" color="secondary" elevation={0} sx={studioAppBarSx}>
+          <AppBar position="static" color="inherit" elevation={0} sx={studioAppBarSx}>
               <Toolbar variant="dense" disableGutters sx={studioToolbarSx}>
                   {/* Left — logo + video name + save indicator */}
                   <Box sx={studioAppBarLeftSx}>
@@ -1379,13 +1375,13 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <FontAwesomeIcon icon={faCloudCheck} />
                       </SvgIcon>
                       {/* Video name */}
-                      <Typography variant="h4" noWrap sx={{ color: "common.white" }}>
+                      <Typography variant="h4" noWrap sx={{ color: "text.primary" }}>
                           {videoTitle}
                       </Typography>
                       {/* Language badge */}
                       <Box sx={studioLangBadgeSx}>
                           <Typography variant="caption">🇺🇸</Typography>
-                          <Typography variant="body2" sx={{ color: "common.white" }}>EN</Typography>
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>EN</Typography>
                       </Box>
                   </Box>
 
@@ -1429,7 +1425,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               <Box sx={studioLeftNavSx}>
                   {NAV_SECTIONS.map(({ section, items }) => (
                       <List key={section} dense disablePadding>
-                          <ListSubheader disableSticky sx={navSubheaderSx}>{section}</ListSubheader>
+                          <ListSubheader disableSticky sx={navSubheaderSx}>
+                              <Typography variant="label">{section}</Typography>
+                          </ListSubheader>
                           {items.map(({ icon, label, onClickOverride }: { icon: React.ReactNode; label: string; onClickOverride?: () => void }) => (
                               <ListItemButton
                                   key={label}
@@ -1535,7 +1533,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               return (
                                   <Box
                                       onClick={e => e.stopPropagation()}
-                                      sx={{
+                                      sx={(theme) => ({
                                           position: "absolute", top: 0,
                                           ...(shouldPositionLeft
                                               ? { right: "calc(100% + 8px)", left: "auto" }
@@ -1543,10 +1541,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           ),
                                           zIndex: 40,
                                           bgcolor: "background.paper", borderRadius: "16px",
-                                          boxShadow: "0 4px 24px rgba(3,25,79,0.18)",
+                                          boxShadow: `0 4px 24px ${alpha(theme.palette.secondary.main, 0.18)}`,
                                           width: 260,
                                           borderWidth: 1, borderStyle: "solid", borderColor: "divider"
-                                      }}
+                                      })}
                                   >
                                       {/* Header */}
                                       <Box sx={placeholderMenuHeaderSx}>
@@ -1634,8 +1632,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   borderRadius: "8px", overflow: "visible",
                                   border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? theme.palette.primary.main : theme.palette.divider}`,
                                   boxShadow: headingSelected || subheadingSelected || footnoteSelected
-                                      ? "0px 0px 0px 2px rgba(0,83,229,0.20), 0px 2px 12px rgba(3,25,79,0.10)"
-                                      : "0px 2px 12px rgba(3,25,79,0.10)",
+                                      ? `0px 0px 0px 2px ${alpha(theme.palette.primary.main, 0.2)}, 0px 2px 12px ${alpha(theme.palette.secondary.main, 0.1)}`
+                                      : `0px 2px 12px ${alpha(theme.palette.secondary.main, 0.1)}`,
                                   transition: "border-color 0.15s, box-shadow 0.15s"
                               })}
                           >
@@ -1658,15 +1656,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       };
                                       const src = iconSrc[el.type];
                                       return (
-                                          <Box sx={{
+                                          <Box sx={(theme) => ({
                                               display: "flex", alignItems: "center", gap: "8px",
                                               px: "12px", py: "8px", borderRadius: "8px",
                                               borderWidth: 2, borderStyle: "dashed", borderColor: isSelected ? "primary.main" : "primary.light",
                                               bgcolor: isSelected ? "action.hover" : "background.paper",
                                               cursor: "grab", userSelect: "none", whiteSpace: "nowrap",
-                                              boxShadow: isSelected ? "0 0 0 3px rgba(0,83,229,0.12)" : "none",
+                                              boxShadow: isSelected ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.12)}` : "none",
                                               transition: "all 0.15s"
-                                          }}>
+                                          })}>
                                               {src
                                                   ? <Box component="img" src={src} sx={canvasElIconImgSx} alt={el.type} />
                                                   : <Typography sx={{ fontSize: 16, lineHeight: 1, color: "text.secondary" }}>*</Typography>
@@ -1682,6 +1680,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       <>
                                           {/* ── Clipped scene background (no elements here so nothing clips) ── */}
                                           <Box ref={sceneBoxRef} sx={customSceneBackgroundSx}>
+                                              {/* Prototype-only custom-scene accent — no real-app theme token */}
                                               <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, bgcolor: "#E040FB", zIndex: 1 }} />
 
                                               {isEmpty && (
@@ -1689,9 +1688,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                       <PlaceholderIcon size={52} />
                                                       <Button variant="contained"
                                                           onClick={e => {
-                                                              e.stopPropagation(); setPlaceholderMenuOpen(p => !p); setSelectedElId(null); setEditingElId(null); 
+                                                              e.stopPropagation(); setPlaceholderMenuOpen(p => !p); setSelectedElId(null); setEditingElId(null);
                                                           }}
-                                                          sx={{ px: "16px", py: "8px", bgcolor: "primary.main", boxShadow: "0 2px 8px rgba(0,83,229,0.25)" }}
+                                                          sx={(theme) => ({ px: "16px", py: "8px", bgcolor: "primary.main", boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.25)}` })}
                                                       >Add placeholder</Button>
                                                   </Box>
                                               )}
@@ -1741,8 +1740,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                                       display: "flex", alignItems: "center", justifyContent: "center",
                                                                       fontWeight: 600, fontSize: fs,
                                                                       cursor: "grab", userSelect: "none",
-                                                                      border: isSelected ? "2px dashed rgba(255,255,255,0.7)" : "2px solid transparent",
-                                                                      boxShadow: isSelected ? "0 0 0 3px rgba(0,83,229,0.35)" : "0 2px 8px rgba(0,83,229,0.30)",
+                                                                      border: isSelected ? `2px dashed ${alpha(theme.palette.common.white, 0.7)}` : "2px solid transparent",
+                                                                      boxShadow: isSelected ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.35)}` : `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
                                                                       outline: isSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
                                                                       outlineOffset: "2px", transition: "outline 0.15s, box-shadow 0.15s", whiteSpace: "nowrap"
                                                                   })}>Button</Box>
@@ -1773,7 +1772,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                                       cursor: isEditing ? "default" : "grab", p: "8px", borderRadius: "8px",
                                                                       outline: isSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
                                                                       outlineOffset: "4px",
-                                                                      boxShadow: isSelected ? "0 0 0 4px rgba(0,83,229,0.12)" : "none",
+                                                                      boxShadow: isSelected ? `0 0 0 4px ${alpha(theme.palette.primary.main, 0.12)}` : "none",
                                                                       transition: "outline 0.15s, box-shadow 0.15s",
                                                                       position: "relative",
                                                                       width: isSelected ? `${physicalWidth}px` : "auto",
@@ -1921,6 +1920,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                                   {/* Cover left half of SVG — white bg + pink accent line */}
                                   <Box sx={thumbLeftCoverSx}>
+                                      {/* Prototype-only scene accent — no real-app theme token */}
                                       <Box sx={{ height: 5, bgcolor: "#C084FC", width: "100%" }} />
                                   </Box>
 
@@ -2064,7 +2064,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                   "&.Mui-disabled": { opacity: 0.3 }
                                               }}
                                           >
-                                              <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "#fff" : undefined} />
+                                              <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? theme.palette.common.white : undefined} />
                                           </IconButton>
                                       </Box>
                                   </Tooltip>
@@ -2136,8 +2136,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       <Box sx={thumbnailsRowWrapperSx}>
                           <Box sx={{
                               display: "flex", gap: "8px", overflowX: "auto", pb: 0.5,
-                              "&::-webkit-scrollbar": { height: 4 },
-                              "&::-webkit-scrollbar-thumb": { bgcolor: "#8BA2FF", borderRadius: 2 },
                               opacity: isToolbarActive ? 0.38 : 1,
                               pointerEvents: isToolbarActive ? "none" : "auto",
                               transition: "opacity 0.2s",
@@ -2268,6 +2266,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
 const studioAppBarSx: SxProps<Theme> = {
     flexShrink: 0,
+    bgcolor: "background.paper",
     borderBottom: "1px solid",
     borderBottomColor: "divider"
 };
@@ -2350,7 +2349,7 @@ const studioVideoPageBtnSx: SxProps<Theme> = {
 };
 
 const studioLeftNavSx: SxProps<Theme> = {
-    width: 180,
+    width: 150,
     flexShrink: 0,
     bgcolor: "background.paper",
     borderRight: 1,
@@ -2365,9 +2364,7 @@ const studioLeftNavSx: SxProps<Theme> = {
 const navSubheaderSx: SxProps<Theme> = {
     letterSpacing: "1px",
     textTransform: "uppercase",
-    fontSize: "0.625rem",
     color: "text.secondary",
-    lineHeight: 1.5,
     py: 0.5
 };
 
@@ -2414,7 +2411,7 @@ const studioContentAreaSx: SxProps<Theme> = {
 
 // ─── PlaceholderToolbar ───────────────────────────────────────────────────────
 
-const placeholderToolbarWrapperSx: SxProps<Theme> = {
+const placeholderToolbarWrapperSx: SxProps<Theme> = (theme) => ({
     display: "inline-flex",
     alignItems: "center",
     bgcolor: "background.paper",
@@ -2422,9 +2419,9 @@ const placeholderToolbarWrapperSx: SxProps<Theme> = {
     px: "8px",
     py: "6px",
     gap: "6px",
-    boxShadow: "0px 4px 16px rgba(3,25,79,0.18)",
+    boxShadow: `0px 4px 16px ${alpha(theme.palette.secondary.main, 0.18)}`,
     userSelect: "none"
-};
+});
 
 const pillZoomBoxSx: SxProps<Theme> = {
     display: "inline-flex",
@@ -2443,7 +2440,7 @@ const pillZoomBoxSx: SxProps<Theme> = {
 
 // ─── ButtonPlaceholderToolbar / BulletPlaceholderToolbar shared ───────────────
 
-const buttonToolbarWrapperSx: SxProps<Theme> = {
+const buttonToolbarWrapperSx: SxProps<Theme> = (theme) => ({
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
@@ -2454,10 +2451,10 @@ const buttonToolbarWrapperSx: SxProps<Theme> = {
     borderWidth: 1,
     borderStyle: "solid",
     borderColor: "grey.300",
-    boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
+    boxShadow: `0 2px 8px ${alpha(theme.palette.secondary.main, 0.15)}`,
     userSelect: "none",
     whiteSpace: "nowrap"
-};
+});
 
 const toolbarDividerSx: SxProps<Theme> = {
     borderColor: "grey.300",
@@ -2670,7 +2667,7 @@ const commentCheckboxSx: SxProps<Theme> = {
 
 // ─── SceneThumbnail / CustomSceneThumbnail ────────────────────────────────────
 
-const sceneThumbnailOuterSx: SxProps<Theme> = { width: 140, flexShrink: 0 };
+const sceneThumbnailOuterSx: SxProps<Theme> = { width: 156, minWidth: 156, flexShrink: 0 };
 
 const sceneThumbnailContentSx: SxProps<Theme> = {
     width: "100%", aspectRatio: "16/9",
@@ -2698,20 +2695,20 @@ const thumbLeftCoverSx: SxProps<Theme> = {
     pointerEvents: "none"
 };
 
-const thumbRightDragAreaSmSx: SxProps<Theme> = {
+const thumbRightDragAreaSmSx: SxProps<Theme> = (theme) => ({
     position: "absolute",
     top: 0,
     right: 0,
     bottom: 0,
     width: "50%",
-    background: "repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 6px, #E2E2E7 6px, #E2E2E7 12px)",
+    background: `repeating-linear-gradient(-45deg, ${theme.palette.grey[200]} 0px, ${theme.palette.grey[200]} 6px, ${theme.palette.grey[300]} 6px, ${theme.palette.grey[300]} 12px)`,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: "4px",
     pointerEvents: "none"
-};
+});
 
 const thumbHeadingColumnSx: SxProps<Theme> = {
     position: "absolute",
@@ -2869,20 +2866,20 @@ const regularSceneImgSx: SxProps<Theme> = {
     display: "block"
 };
 
-const regularSceneDragAreaSx: SxProps<Theme> = {
+const regularSceneDragAreaSx: SxProps<Theme> = (theme) => ({
     position: "absolute",
     top: 0,
     right: 0,
     bottom: 0,
     width: "50%",
-    background: "repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 12px, #E2E2E7 12px, #E2E2E7 24px)",
+    background: `repeating-linear-gradient(-45deg, ${theme.palette.grey[200]} 0px, ${theme.palette.grey[200]} 12px, ${theme.palette.grey[300]} 12px, ${theme.palette.grey[300]} 24px)`,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: "8px",
     pointerEvents: "none"
-};
+});
 
 const regularSceneHeadingColumnSx: SxProps<Theme> = {
     position: "absolute",
@@ -2962,8 +2959,8 @@ const sceneLineupSx: SxProps<Theme> = {
     borderTopStyle: "solid",
     borderTopColor: "divider",
     px: 2,
-    pt: 1.5,
-    pb: 1.5,
+    pt: 0,
+    pb: "13px",
     flexShrink: 0,
     position: "relative"
 };

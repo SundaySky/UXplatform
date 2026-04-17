@@ -515,22 +515,24 @@ function VideoPreviewCard({
             );
         }
 
-        // ── Phase 4: "Approved" status — green button, disabled ──────────────────
+        // ── Phase 4: already approved, no changes — text variant, success ────────
         if (videoPhase === 4) {
             return (
                 <Button
-                    variant="contained"
-                    size="small"
+                    variant="text"
+                    size="large"
                     color="success"
                     startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
+                    data-tracking-id="tracking-id-video-page-edit-tab-approve-version-btn"
                     disabled
+                    sx={approveSuccessBgSx}
                 >
                     Approved
                 </Button>
             );
         }
 
-        // ── Phase 3: "Approve video" — outlined, checkmark, tooltip ─────────────
+        // ── Phase 3: video ready for approval — outlined primary ────────────────
         if (videoPhase === 3) {
             return (
                 <Tooltip
@@ -543,13 +545,14 @@ function VideoPreviewCard({
                     }}
                 >
                     <Button
-                        variant="contained"
-                        size="small"
+                        variant="outlined"
+                        size="large"
                         color="primary"
                         startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                         onClick={onApproveVideo}
+                        data-tracking-id="tracking-id-video-page-edit-tab-approve-version-btn"
                     >
-                        Approve for sharing
+                        Approve
                     </Button>
                 </Tooltip>
             );
@@ -557,13 +560,14 @@ function VideoPreviewCard({
 
         // ── Phase 0, draft: button depends on approvalsEnabled ───────────────────
         if (!approvalsEnabled) {
-            // When approvals are OFF: show "Approve for sharing"
+            // When approvals are OFF: show "Approve"
             return (
-                <Button variant="contained" size="small" color="primary"
+                <Button variant="outlined" size="large" color="primary"
                     startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                     onClick={onApproveVideo}
+                    data-tracking-id="tracking-id-video-page-edit-tab-approve-version-btn"
                 >
-                    Approve for sharing
+                    Approve
                 </Button>
             );
         }
@@ -1104,7 +1108,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 // Phase 0 = initial draft
 // Phase 1 = task 1 done: "1 of 2 approvers responded", Pending approval
 // Phase 2 = task 2 done: "View 10 approver comments and edit", Pending approval
-// Phase 3 = task 3 done: "Approve for sharing", Approved for sharing
+// Phase 3 = task 3 done: "Approve" button, status "Approved for sharing"
 // Phase 4 = task 4 done: Approved for sharing
 const PHASE_STATUS: Record<number, "draft" | "pending" | "approved"> = { 0: "draft", 1: "pending", 2: "pending", 3: "approved", 4: "approved" };
 
@@ -1562,6 +1566,13 @@ const tooltipTextBlockSx: SxProps<Theme> = { color: "common.white", display: "bl
 // ── Button start icon ─────────────────────────────────────────────────────────
 const buttonStartIconSx: SxProps<Theme> = { fontSize: "16px !important" };
 
+// Approved state bg — kept as-is from real-app PublishButton.tsx:232-235 (design team tint)
+const approveSuccessBgSx: SxProps<Theme> = {
+    "&.MuiButton-textSuccess": {
+        backgroundColor: "rgba(237, 247, 237, 1)"
+    }
+};
+
 // ── CircularIconAvatar ────────────────────────────────────────────────────────
 const circularIconAvatarSx: SxProps<Theme> = {
     width: 40, height: 40, borderRadius: "50%", bgcolor: "action.selected",
@@ -1611,7 +1622,7 @@ const logoSkySx: SxProps<Theme> = { color: "primary.main" };
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 const sidebarContainerSx: SxProps<Theme> = {
-    width: 300, flexShrink: 0, display: "flex", flexDirection: "column",
+    width: 270, flexShrink: 0, display: "flex", flexDirection: "column",
     height: "100%", bgcolor: "background.paper", borderRight: 1, borderColor: "divider"
 };
 const sidebarLogoClickSx: SxProps<Theme> = {
@@ -1783,7 +1794,7 @@ const tasksDotsSx: SxProps<Theme> = { display: "flex", gap: "5px" };
 const appRootSx: SxProps<Theme> = { display: "flex", height: "100vh", overflow: "hidden" };
 const appMainAreaSx: SxProps<Theme> = { flex: 1, display: "flex", overflow: "hidden" };
 const videoPageLayoutSx: SxProps<Theme> = {
-    display: "flex", width: "100%", height: "100%", bgcolor: "primary.light", overflow: "hidden"
+    display: "flex", width: "100%", height: "100%", bgcolor: "background.default", overflow: "hidden"
 };
 const videoPageContentColumnSx: SxProps<Theme> = { display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" };
 const videoPageScrollSx: SxProps<Theme> = { flex: 1, overflow: "auto" };

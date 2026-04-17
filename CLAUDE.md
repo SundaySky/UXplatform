@@ -69,15 +69,58 @@ public/
 
 ---
 
-## Component Library — MANDATORY Reference
+## Source of Truth — THE REAL APP (READ FIRST)
 
-**Before writing ANY UI code, read the component library's AI guide:**
+**UXplatform is a prototype. It must mirror the real app.** Compliance with design-system rules is necessary but NOT sufficient — the real app is the ground truth for structure, component choice, layout, colors, and behavior. Rules alone will let wrong-but-"legal" code slip through (e.g. a `Box` styled as a card when the real app uses `Card`; default body margins; wrong palette slot on the sidebar).
 
-```
-AI-COMPONENT-GUIDE.md
-```
+### Authoritative locations (read access granted)
 
-This file is the authoritative reference for all available components, theme tokens, typography variants, palette colors, and usage patterns. It is shipped with the npm package and always up to date with the installed version.
+| Resource | Path | What it is |
+|---|---|---|
+| **Real app source** | `/Users/zoel/IdeaProjects/studio/smartvideo-hub/smartvideo-hub/client/components/newNav/` | Canonical React/TS implementation. **The primary reference.** |
+| **Real app rendered HTML** | `real_app/*.html` (`main_page.html`, `video_page.html`, `studio.html`) | DOM + inline styles as rendered by the real app. Use for CSS classes, computed styles, layout. |
+| **Real app React tree** | `real_app/*_components.txt` | Component hierarchy dumps from React DevTools. Use to identify which component renders which section. |
+| **Real app screenshot** | `real_app/Real_App.png` | Visual target. |
+| **Current prototype screenshot** | `real_app/UXPlatform.png` | Current state — for diffing. |
+| **Truffle library guide** | `AI-COMPONENT-GUIDE.md` | Props/variants reference for Truffle components. Secondary to real app usage. |
+
+### The order of consultation (non-negotiable)
+
+For every section, component, or style decision:
+
+1. **Open the real app source first.** Find the file in `smartvideo-hub/client/components/newNav/` that renders the equivalent UI. Mirror its component choice, props, structure, and sx.
+2. **Cross-check the rendered HTML.** Open the matching `real_app/*.html` to confirm DOM structure, class names, and any global/root styles (body margin, html reset, font loading, background colors).
+3. **Cross-check the React tree dump** (`*_components.txt`) to confirm which wrappers / providers / containers are in play.
+4. **Consult `AI-COMPONENT-GUIDE.md`** for props/variants of any Truffle component the real app uses.
+5. **Fall back to plain MUI** only if the real app does so.
+6. **Build a new custom thing only if the real app does.** Never invent a primitive (`Box`-as-card) when the real app uses an existing component (`Card`, `TruffleVideoCard`).
+
+If the real app and `AI-COMPONENT-GUIDE.md` disagree, **the real app wins.**
+
+### Global / root scope must be checked too
+
+Component-level compliance misses page-wide issues. Always inspect and match the real app for:
+
+- `index.html` — root element, viewport, preloaded fonts, favicon
+- `index.css` / global CSS — body/html reset, margin, font-family on root, background color
+- `main.tsx` — providers, wrappers, order of `TruffleThemeProvider` / `NewNavThemeProvider` / `StyledEngineProvider`
+- App shell — `MainContainer`, sidebar, top nav, layout grid
+
+### Visual diff is a gate, not a "nice to have"
+
+A phase is **not** complete until the page has been opened in the browser and diffed side-by-side against `real_app/Real_App.png` (or the real app running locally if available). `tsc --noEmit` passing and `style=` grep-clean is not "done." Use the `platform-browser-debug` skill to drive this.
+
+If you cannot perform the visual diff (no browser access, skill unavailable), the phase status is **incomplete / blocked on visual verification** — never ✅.
+
+### Prototype → real-app file map (living document)
+
+See `REAL-APP-REFERENCE.md` for the prototype-to-real-app file map. **Update it whenever you discover a new mapping.**
+
+---
+
+## Component Library — Secondary Reference
+
+Read `AI-COMPONENT-GUIDE.md` for Truffle component props/variants. It is the authoritative reference for the library, but the **real app source determines *which* components to use and *how* to compose them.** Do not choose a component based solely on the guide's table — confirm the real app uses it in the equivalent place.
 
 ---
 
@@ -243,6 +286,11 @@ When implementing any UI element:
 - Do NOT use deprecated components (`InlineTextField`, `DeprecatedInlineTextField`, `ComplexInputDialog`, `TabbedDialog`)
 - Do NOT use `useIsEllipsisActive` — use `TypographyWithTooltipOnOverflow`
 - Do NOT define inline `SxProps` objects — define them as named constants at the bottom of the file
+- Do NOT choose a component or primitive without first opening the equivalent file in the real app source (`smartvideo-hub/client/components/newNav/`)
+- Do NOT skip global/root styles — always check `index.html`, `index.css`, `main.tsx`, body margin, font-family on root
+- Do NOT declare a phase ✅ without a side-by-side visual diff against `real_app/Real_App.png` or the real app running in a browser
+- Do NOT invent a primitive (e.g. `Box`-as-card) when the real app uses an existing component (e.g. `Card`, `TruffleVideoCard`) — mirror, don't re-derive
+- Do NOT trust `AI-COMPONENT-GUIDE.md` over the real app — the real app wins every conflict
 
 ---
 

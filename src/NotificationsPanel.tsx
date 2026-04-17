@@ -4,6 +4,7 @@ import {
     Box, Typography, Button, Popover, Divider, Badge, IconButton, SvgIcon,
     ToggleButton
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell, faThumbsUp } from "@fortawesome/pro-regular-svg-icons";
 import { TruffleToggleButtonGroup } from "@sundaysky/smartvideo-hub-truffle-component-library";
@@ -166,11 +167,11 @@ export function NotificationBell({ dark = false, notifications = [] }: BellProps
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const popoverPaperSx: SxProps<Theme> = {
+const popoverPaperSx: SxProps<Theme> = (theme) => ({
     width: 332, borderRadius: "8px",
-    boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)",
+    boxShadow: `0px 0px 5px 0px ${alpha(theme.palette.secondary.main, 0.25)}`,
     mt: "4px", overflow: "visible"
-};
+});
 const panelBodySx: SxProps<Theme> = { pt: 1, pb: 2, px: 2 };
 const titleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", minHeight: 40, pb: 1 };
 const tabRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between" };
