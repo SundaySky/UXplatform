@@ -1,14 +1,13 @@
 import { useState } from "react";
-import type {
-    SelectChangeEvent } from "@mui/material";
+import type { SelectChangeEvent, SxProps, Theme } from "@mui/material";
 import {
-    Dialog, DialogContent, DialogActions,
+    Dialog, DialogContent,
     TextField, FormControl, Select, MenuItem,
-    Button, IconButton, Box, Stack, Alert, Typography
+    Button, IconButton, Box, Stack, Alert, Typography, SvgIcon
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus, faTrash } from "@fortawesome/pro-regular-svg-icons";
+import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 const DEFAULT_USERS = [
     { value: "sjohnson", label: "Sarah Johnson (sjohnson@company.com)" },
@@ -68,13 +67,6 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
             onClick={e => e.stopPropagation()}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: 2,
-                    boxShadow: "0px 0px 10px 0px rgba(3, 25, 79, 0.25)",
-                    overflow: "hidden"
-                }
-            }}
         >
             {/* ── Title ──────────────────────────────────────────────────────────── */}
             <TruffleDialogTitle CloseIconButtonProps={{ onClick: handleClose }}>
@@ -82,7 +74,7 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
             </TruffleDialogTitle>
 
             {/* ── Content ──────────────────────────────────────────────────────────── */}
-            <DialogContent sx={{ px: "32px", pt: "0 !important", pb: "8px" }}>
+            <DialogContent sx={contentSx}>
                 <Stack direction="column" spacing={2}>
 
                     {/* Info banner — DS alert info tokens */}
@@ -95,7 +87,7 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
                TextField uses variant="outlined" size="medium" — no label prop.   */}
                     <Box>
                         {/* Label: typography/body1 — Open Sans Regular 14px */}
-                        <Typography variant="body1" sx={{ color: "text.primary", mb: "6px" }}>
+                        <Typography variant="body1" sx={commentLabelSx}>
               Add a comment for approvers (optional)
                         </Typography>
                         <TextField
@@ -106,9 +98,6 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
                             fullWidth
                             value={comment}
                             onChange={e => setComment(e.target.value)}
-                            sx={{
-                                "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" }
-                            }}
                         />
                     </Box>
 
@@ -123,10 +112,10 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
                         const showDelete = hasMultiple;
 
                         return (
-                            <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Box key={i} sx={approverRowSx}>
 
                                 {/* Approver Select — size="medium" outlined, displayEmpty placeholder */}
-                                <FormControl variant="outlined" size="medium" sx={{ flex: 1, minWidth: 0 }}>
+                                <FormControl variant="outlined" size="medium" sx={approverSelectFormSx}>
                                     <Select
                                         displayEmpty
                                         value={approver.value}
@@ -136,11 +125,10 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
                                                 ? <Typography variant="body1" color="text.primary">
                                                     {USERS.find(u => u.value === val)?.label}
                                                 </Typography>
-                                                : <Typography variant="body1" sx={{ color: "text.disabled", fontStyle: "italic" }}>
+                                                : <Typography variant="body1" sx={placeholderTextSx}>
                             Select approver {i + 1}
                                                 </Typography>
                                         }
-                                        sx={{ "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" } }}
                                     >
                                         {USERS.map(u => {
                                             const takenByOther = approvers.some((a, idx) => idx !== i && a.value === u.value);
@@ -156,14 +144,11 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
 
                                 {/* AND/OR — only between rows, size="medium" matches approver Select height */}
                                 {showLogic && (
-                                    <FormControl variant="outlined" size="medium" sx={{ minWidth: 80, flexShrink: 0 }}>
+                                    <FormControl variant="outlined" size="medium" sx={logicFormSx}>
                                         <Select
                                             value={approver.logic}
                                             onChange={(e: SelectChangeEvent) => update(i, { logic: e.target.value as Logic })}
-                                            sx={{
-                                                color: "text.primary",
-                                                "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" }
-                                            }}
+                                            sx={logicSelectSx}
                                         >
                                             <MenuItem value="AND">AND</MenuItem>
                                             <MenuItem value="OR">OR</MenuItem>
@@ -177,12 +162,12 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
                                         size="medium"
                                         onClick={() => removeApprover(i)}
                                         aria-label={`Remove approver ${i + 1}`}
-                                        sx={{ color: "error.main", flexShrink: 0 }}
+                                        sx={deleteIconSx}
                                     >
-                                        <DeleteOutlineIcon />
+                                        <SvgIcon><FontAwesomeIcon icon={faTrash} /></SvgIcon>
                                     </IconButton>
                                     : /* spacer keeps layout stable when no delete button */
-                                    <Box sx={{ width: 40, flexShrink: 0 }} />
+                                    <Box sx={deleteSpacerSx} />
                                 }
 
                             </Box>
@@ -193,33 +178,37 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
             </DialogContent>
 
             {/* ── Actions: "+ Add an approver" (text/left) · Cancel + Send (right) ─── */}
-            <DialogActions sx={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                px: "32px", pt: 1, pb: "20px"
-            }}>
-                {/* DS: Size=Large, Color=Primary, Variant=Text */}
-                <Button variant="text" color="primary" size="large" startIcon={<AddIcon />}
+            <TruffleDialogActions sx={actionsSx}>
+                <Button variant="text" color="primary" size="large"
+                    startIcon={<SvgIcon><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
                     onClick={addApprover}>
-          Add an approver
+                    Add an approver
                 </Button>
-
-                <Box sx={{ display: "flex", gap: 1 }}>
-                    {/* DS: Size=Large, Color=Primary, Variant=Outlined */}
+                <Box sx={actionsGroupSx}>
                     <Button variant="outlined" color="primary" size="large" onClick={handleClose}>
-            Cancel
+                        Cancel
                     </Button>
-                    {/* DS: Size=Large, Color=Primary, Variant=Contained — disabled until ≥1 approver selected */}
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        size="large"
-                        onClick={handleSend}
-                        disabled={!hasAtLeastOne}
-                    >
-            Send for approval
+                    <Button variant="contained" color="primary" size="large" onClick={handleSend} disabled={!hasAtLeastOne}>
+                        Send for approval
                     </Button>
                 </Box>
-            </DialogActions>
+            </TruffleDialogActions>
         </Dialog>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const contentSx: SxProps<Theme> = { px: "32px", pt: "0 !important", pb: "8px" };
+const commentLabelSx: SxProps<Theme> = { color: "text.primary", mb: "6px" };
+const approverRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1 };
+const approverSelectFormSx: SxProps<Theme> = { flex: 1, minWidth: 0 };
+const placeholderTextSx: SxProps<Theme> = { color: "text.disabled", fontStyle: "italic" };
+const logicFormSx: SxProps<Theme> = { minWidth: 80, flexShrink: 0 };
+const logicSelectSx: SxProps<Theme> = {
+    color: "text.primary",
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" }
+};
+const deleteIconSx: SxProps<Theme> = { color: "error.main", flexShrink: 0 };
+const deleteSpacerSx: SxProps<Theme> = { width: 40, flexShrink: 0 };
+const actionsSx: SxProps<Theme> = { justifyContent: "space-between" };
+const actionsGroupSx: SxProps<Theme> = { display: "flex", gap: 1 };

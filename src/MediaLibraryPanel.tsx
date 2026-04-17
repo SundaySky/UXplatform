@@ -1,33 +1,20 @@
 import { useState } from "react";
 import {
-    Box, Typography, IconButton, Button, Divider,
+    Box, Typography, IconButton, Button, Divider, SvgIcon,
     OutlinedInput, InputAdornment, Menu, MenuItem,
     Tooltip, InputBase,
-    Dialog, DialogTitle, DialogContent, DialogActions
+    Dialog, DialogContent
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import ExtensionOutlinedIcon from "@mui/icons-material/ExtensionOutlined";
-import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
-import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
-import GridViewIcon from "@mui/icons-material/GridView";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import SearchIcon from "@mui/icons-material/Search";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
-
-import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import GroupsIcon from "@mui/icons-material/Groups";
-import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import type { SxProps, Theme } from "@mui/material";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faArrowUpFromBracket, faWandMagicSparkles, faPuzzlePiece, faFolderPlus,
+    faSquare, faTableCells, faList, faMagnifyingGlass, faChevronDown,
+    faFilter, faArrowLeft, faArrowRight, faFolder, faImages,
+    faUpRightAndDownLeftFromCenter, faEllipsisVertical,
+    faUsers, faUserGear, faLock, faXmark, faCircleQuestion
+} from "@fortawesome/pro-regular-svg-icons";
+import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import ManageAccessDialog, {
     type PermissionSettings,
@@ -175,10 +162,10 @@ function hasPermissionConflict(
 function VisibleIcon({ vp }: { vp: ViewPermission }) {
     const sx = { fontSize: "14px !important" };
     switch (vp) {
-        case "everyone": return <GroupsIcon sx={{ ...sx, color: "primary.main" }} />;
-        case "editors": return <ManageAccountsIcon sx={{ ...sx, color: "primary.main" }} />;
-        case "specific": return <PeopleOutlinedIcon sx={{ ...sx, color: "warning.main" }} />;
-        case "private": return <LockOutlinedIcon sx={{ ...sx, color: "success.main" }} />;
+        case "everyone": return <SvgIcon sx={{ ...sx, color: "primary.main" }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>;
+        case "editors": return <SvgIcon sx={{ ...sx, color: "primary.main" }}><FontAwesomeIcon icon={faUserGear} /></SvgIcon>;
+        case "specific": return <SvgIcon sx={{ ...sx, color: "warning.main" }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>;
+        case "private": return <SvgIcon sx={{ ...sx, color: "success.main" }}><FontAwesomeIcon icon={faLock} /></SvgIcon>;
     }
 }
 
@@ -188,9 +175,9 @@ function PermBadge({ vp, strikethrough }: { vp: ViewPermission; strikethrough?: 
         <Box sx={{
             display: "inline-flex", alignItems: "center", gap: "4px",
             px: "8px", py: "3px", borderRadius: "12px",
-            bgcolor: strikethrough ? "rgba(0,0,0,0.04)" : "rgba(0,83,229,0.08)",
+            bgcolor: strikethrough ? "action.hover" : "primary.light",
             border: "1px solid",
-            borderColor: strikethrough ? "rgba(0,0,0,0.12)" : "rgba(0,83,229,0.2)"
+            borderColor: strikethrough ? "divider" : "primary.light"
         }}>
             {vp !== "everyone" && <VisibleIcon vp={vp} />}
             <Typography variant="caption" sx={{
@@ -214,13 +201,10 @@ function FolderThumb({ isAi }: { isAi?: boolean }) {
                 : "#3F51B5",
             overflow: "hidden"
         }}>
-            <Box sx={{
-                position: "absolute", inset: 0,
-                display: "flex", alignItems: "center", justifyContent: "center"
-            }}>
+            <Box sx={folderThumbInnerSx}>
                 {isAi
-                    ? <AutoAwesomeOutlinedIcon sx={{ color: "#fff", fontSize: 34, opacity: 0.9 }} />
-                    : <FolderRoundedIcon sx={{ color: "#fff", fontSize: 38, opacity: 0.9 }} />
+                    ? <SvgIcon sx={{ color: "common.white", fontSize: 34, opacity: 0.9 }}><FontAwesomeIcon icon={faWandMagicSparkles} /></SvgIcon>
+                    : <SvgIcon sx={{ color: "common.white", fontSize: 38, opacity: 0.9 }}><FontAwesomeIcon icon={faFolder} /></SvgIcon>
                 }
             </Box>
         </Box>
@@ -238,14 +222,7 @@ function HoverIconBtn({
         <IconButton
             size="small"
             onClick={onClick}
-            sx={{
-                bgcolor: "rgba(255,255,255,0.92)",
-                color: "secondary.main",
-                boxShadow: "0px 0px 5px rgba(3,25,79,0.25)",
-                p: "5px",
-                borderRadius: "6px",
-                "&:hover": { bgcolor: "#fff", boxShadow: "0px 0px 8px rgba(3,25,79,0.35)" }
-            }}
+            sx={hoverIconBtnSx}
         >
             {children}
         </IconButton>
@@ -272,8 +249,8 @@ function ConflictDialog({
   newViewUsers: User[]
 }) {
     const childIcon = childType === "folder"
-        ? <FolderRoundedIcon sx={{ fontSize: 16, color: "warning.main" }} />
-        : <PermMediaOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />;
+        ? <SvgIcon sx={{ fontSize: 16, color: "warning.main" }}><FontAwesomeIcon icon={faFolder} /></SvgIcon>
+        : <SvgIcon sx={{ fontSize: 16, color: "text.secondary" }}><FontAwesomeIcon icon={faImages} /></SvgIcon>;
 
     return (
         <Dialog
@@ -281,90 +258,67 @@ function ConflictDialog({
             onClose={onClose}
             maxWidth="sm"
             fullWidth
-            PaperProps={{ sx: { borderRadius: "8px", boxShadow: "0px 0px 10px rgba(3,25,79,0.25)", zIndex: 1400 } }}
         >
-            <DialogTitle sx={{ p: "20px 16px 12px 28px" }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <LockOutlinedIcon sx={{ color: "error.main", fontSize: 22 }} />
-                    <Typography variant="h4" sx={{
-                        color: "text.primary"
-                    }}>
-            Permission conflict with parent folder
-                    </Typography>
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
+                <Box sx={conflictTitleBoxSx}>
+                    <SvgIcon sx={{ color: "error.main", fontSize: 22 }}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                    Permission conflict with parent folder
                 </Box>
-            </DialogTitle>
-            <Divider sx={{ borderColor: "divider" }} />
-            <DialogContent sx={{ p: "20px 28px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            </TruffleDialogTitle>
+            <DialogContent sx={conflictDialogContentSx}>
                 {/* Multi-line description */}
-                <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <Typography variant="body1" sx={{ color: "text.primary", lineHeight: 1.7 }}>
+                <Box sx={conflictDescriptionBoxSx}>
+                    <Typography variant="body1" sx={conflictBodyTextSx}>
             "{childName}" can't be saved with the selected permission.
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.primary", lineHeight: 1.7 }}>
+                    <Typography variant="body1" sx={conflictBodyTextSx}>
             Its parent folder "{parentName}" has more restrictive settings.
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.primary", lineHeight: 1.7 }}>
+                    <Typography variant="body1" sx={conflictBodyTextSx}>
             Update the parent folder's permission to proceed.
                     </Typography>
                 </Box>
 
                 {/* Permission tree */}
-                <Box sx={{
-                    p: "14px 16px", bgcolor: "rgba(0,0,0,0.03)",
-                    borderRadius: "8px", border: "1px solid", borderColor: "divider",
-                    display: "flex", flexDirection: "column", gap: "10px"
-                }}>
+                <Box sx={conflictTreeBoxSx}>
                     {/* Parent row */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <FolderRoundedIcon sx={{ fontSize: 16, color: "#F4A118" }} />
-                        <Typography variant="caption" sx={{
-                            color: "text.primary", flex: "1 1 auto", minWidth: 0
-                        }}>
+                    <Box sx={conflictTreeRowSx}>
+                        <SvgIcon sx={{ fontSize: 16, color: "warning.main" }}><FontAwesomeIcon icon={faFolder} /></SvgIcon>
+                        <Typography variant="caption" sx={conflictTreeNameSx}>
                             {parentName}
                         </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Box sx={conflictTreeBadgeRowSx}>
                             <PermBadge vp={parentVp} strikethrough />
-                            <ArrowForwardIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                            <SvgIcon sx={{ fontSize: 14, color: "text.secondary" }}><FontAwesomeIcon icon={faArrowRight} /></SvgIcon>
                             <PermBadge vp={newVp} />
                         </Box>
                     </Box>
 
                     {/* Child row — only shown when child has a different own permission than the parent */}
                     {childOwnVp !== parentVp && (
-                        <Box sx={{ display: "flex", alignItems: "center", gap: "8px", pl: "24px", flexWrap: "wrap" }}>
+                        <Box sx={conflictChildRowSx}>
                             <Typography sx={{ color: "grey.300", fontSize: 14, lineHeight: 1, userSelect: "none" }}>└</Typography>
                             {childIcon}
-                            <Typography variant="caption" sx={{
-                                color: "text.secondary", flex: "1 1 auto", minWidth: 0
-                            }}>
+                            <Typography variant="caption" sx={conflictChildNameSx}>
                                 {childName}
                             </Typography>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <Box sx={conflictTreeBadgeRowSx}>
                                 <PermBadge vp={childOwnVp} strikethrough />
-                                <ArrowForwardIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                                <SvgIcon sx={{ fontSize: 14, color: "text.secondary" }}><FontAwesomeIcon icon={faArrowRight} /></SvgIcon>
                                 <PermBadge vp={newVp} />
                             </Box>
                         </Box>
                     )}
                 </Box>
             </DialogContent>
-            <Divider sx={{ borderColor: "divider" }} />
-            <DialogActions sx={{ px: "28px", py: "14px", gap: "8px" }}>
-                <Button
-                    variant="text" onClick={onClose}
-                    sx={{ color: "primary.main" }}
-                >
-          Cancel
+            <TruffleDialogActions>
+                <Button variant="outlined" color="primary" size="large" onClick={onClose}>
+                    Cancel
                 </Button>
-                <Button
-                    variant="contained" onClick={onFixParent}
-                    sx={{
-                        borderRadius: "8px"
-                    }}
-                >
-          Change "{parentName}" to {visibleLabel(newVp)}
+                <Button variant="contained" color="primary" size="large" onClick={onFixParent}>
+                    Change "{parentName}" to {visibleLabel(newVp)}
                 </Button>
-            </DialogActions>
+            </TruffleDialogActions>
         </Dialog>
     );
 }
@@ -487,75 +441,51 @@ export default function MediaLibraryPanel({
             height:     "100%"
         }}>
             {/* Fixed-width inner container */}
-            <Box sx={{
-                width:         PANEL_WIDTH,
-                flexShrink:    0,
-                height:        "100%",
-                display:       "flex",
-                flexDirection: "column",
-                overflow:      "hidden"
-            }}>
+            <Box sx={panelInnerSx}>
 
                 {/* ── Header ──────────────────────────────────────────────────────── */}
-                <Box sx={{ display: "flex", alignItems: "center", px: 2, pt: 1.5, pb: 1, flexShrink: 0 }}>
-                    <Typography variant="h3" sx={{
-                        color: "text.primary", flex: 1, lineHeight: 1.5
-                    }}>
+                <Box sx={headerRowSx}>
+                    <Typography variant="h3" sx={headerTitleSx}>
             Media
                     </Typography>
-                    <IconButton size="small" sx={{ color: "action.active" }}>
-                        <HelpOutlineIcon sx={{ fontSize: 18 }} />
+                    <IconButton size="small" sx={headerIconBtnSx}>
+                        <SvgIcon sx={iconSm18Sx}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
                     </IconButton>
-                    <IconButton size="small" onClick={onClose} sx={{ color: "action.active" }}>
-                        <CloseIcon sx={{ fontSize: 18 }} />
+                    <IconButton size="small" onClick={onClose} sx={headerIconBtnSx}>
+                        <SvgIcon sx={iconSm18Sx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                     </IconButton>
                 </Box>
 
                 {/* ── Upload / Generate / Record ──────────────────────────────────── */}
-                <Box sx={{ px: 2, pb: 1.5, display: "flex", gap: "8px", flexShrink: 0 }}>
+                <Box sx={actionButtonsRowSx}>
                     <Button
                         variant="contained" size="small"
-                        startIcon={<FileUploadOutlinedIcon sx={{ fontSize: "14px !important" }} />}
-                        sx={{
-                            flex: 1, borderRadius: "8px"
-                        }}
+                        startIcon={<SvgIcon sx={{ fontSize: "14px !important" }}><FontAwesomeIcon icon={faArrowUpFromBracket} /></SvgIcon>}
+                        sx={uploadBtnSx}
                     >Upload</Button>
 
                     <Button
                         variant="contained" size="small"
-                        startIcon={<AutoAwesomeOutlinedIcon sx={{ fontSize: "14px !important" }} />}
-                        sx={{
-                            flex: 1, background: GRADIENT_GENERATE, color: "common.white",
-                            borderRadius: "8px",
-                            "&:hover": { opacity: 0.88, background: GRADIENT_GENERATE }
-                        }}
+                        startIcon={<SvgIcon sx={{ fontSize: "14px !important" }}><FontAwesomeIcon icon={faWandMagicSparkles} /></SvgIcon>}
+                        sx={generateBtnSx}
                     >Generate</Button>
 
-                    <Box sx={{ flex: 1, position: "relative" }}>
+                    <Box sx={recordWrapperSx}>
                         <Button
                             variant="outlined" size="small" fullWidth
                             startIcon={
-                                <Box sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: "error.main", flexShrink: 0 }} />
+                                <Box sx={recordDotSx} />
                             }
-                            sx={{
-                                color: "text.primary", borderColor: "grey.300",
-                                borderRadius: "8px"
-                            }}
+                            sx={recordBtnSx}
                         >Record</Button>
-                        <Box sx={{
-                            position: "absolute", top: -5, right: -5,
-                            background: GRADIENT_GENERATE, borderRadius: "4px",
-                            px: "5px", pt: "1px", pb: "2px", pointerEvents: "none"
-                        }}>
-                            <Typography variant="caption" sx={{
-                                color: "common.white", lineHeight: 1.5
-                            }}>New</Typography>
+                        <Box sx={recordNewBadgeSx}>
+                            <Typography variant="caption" sx={recordNewBadgeTextSx}>New</Typography>
                         </Box>
                     </Box>
                 </Box>
 
                 {/* ── Tabs ────────────────────────────────────────────────────────── */}
-                <Box sx={{ display: "flex", borderBottom: "1px solid", borderColor: "divider", px: 2, flexShrink: 0 }}>
+                <Box sx={tabsRowSx}>
                     {["Your Media", "Stock"].map((label, i) => (
                         <Box
                             key={label}
@@ -572,50 +502,38 @@ export default function MediaLibraryPanel({
                             }}>{label}</Typography>
                         </Box>
                     ))}
-                    <Box sx={{ px: 2, display: "flex", alignItems: "center", cursor: "pointer" }}>
-                        <ExtensionOutlinedIcon sx={{ fontSize: 16, color: "action.active" }} />
+                    <Box sx={tabsIntegrationBtnSx}>
+                        <SvgIcon sx={{ fontSize: 16, color: "action.active" }}><FontAwesomeIcon icon={faPuzzlePiece} /></SvgIcon>
                     </Box>
                 </Box>
 
                 {/* ── Actions row ─────────────────────────────────────────────────── */}
-                <Box sx={{
-                    px: 2, pt: 1.5, pb: 1,
-                    display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0
-                }}>
-                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                        <IconButton size="small" sx={{
-                            border: "1px solid", borderColor: "grey.300", borderRadius: "8px",
-                            color: "primary.main", p: "5px"
-                        }}>
-                            <CreateNewFolderOutlinedIcon sx={{ fontSize: 18 }} />
+                <Box sx={actionsRowSx}>
+                    <Box sx={actionsLeftGroupSx}>
+                        <IconButton size="small" sx={folderPlusBtnSx}>
+                            <SvgIcon sx={iconSm18Sx}><FontAwesomeIcon icon={faFolderPlus} /></SvgIcon>
                         </IconButton>
                         <Button
                             variant="outlined" size="small"
-                            startIcon={<CheckBoxOutlineBlankIcon sx={{ fontSize: "14px !important" }} />}
-                            sx={{
-                                color: "text.primary", borderColor: "grey.300",
-                                borderRadius: "8px"
-                            }}
+                            startIcon={<SvgIcon sx={{ fontSize: "14px !important" }}><FontAwesomeIcon icon={faSquare} /></SvgIcon>}
+                            sx={selectBtnSx}
                         >Select</Button>
                     </Box>
 
-                    <Box sx={{
-                        display: "flex", alignItems: "center",
-                        border: "1px solid", borderColor: "grey.300", borderRadius: "8px", p: "2px", gap: "2px"
-                    }}>
+                    <Box sx={viewToggleGroupSx}>
                         {(["grid", "list"] as const).map((mode, i) => (
                             <Box
                                 key={mode}
                                 onClick={() => setViewMode(mode)}
                                 sx={{
                                     p: "4px", display: "flex", alignItems: "center", cursor: "pointer",
-                                    bgcolor: viewMode === mode ? "rgba(0,83,229,0.10)" : "transparent",
+                                    bgcolor: viewMode === mode ? "primary.light" : "transparent",
                                     borderRadius: "6px", transition: "background 0.15s"
                                 }}
                             >
                                 {i === 0
-                                    ? <GridViewIcon sx={{ fontSize: 16, color: "action.active" }} />
-                                    : <ViewListIcon sx={{ fontSize: 16, color: "action.active" }} />
+                                    ? <SvgIcon sx={{ fontSize: 16, color: "action.active" }}><FontAwesomeIcon icon={faTableCells} /></SvgIcon>
+                                    : <SvgIcon sx={{ fontSize: 16, color: "action.active" }}><FontAwesomeIcon icon={faList} /></SvgIcon>
                                 }
                             </Box>
                         ))}
@@ -623,7 +541,7 @@ export default function MediaLibraryPanel({
                 </Box>
 
                 {/* ── Search ──────────────────────────────────────────────────────── */}
-                <Box sx={{ px: 2, pb: 1, flexShrink: 0 }}>
+                <Box sx={searchBoxSx}>
                     <OutlinedInput
                         value={searchVal}
                         onChange={e => setSearchVal(e.target.value)}
@@ -631,71 +549,52 @@ export default function MediaLibraryPanel({
                         size="small" fullWidth
                         startAdornment={
                             <InputAdornment position="start">
-                                <SearchIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+                                <SvgIcon sx={{ fontSize: 16, color: "text.secondary" }}><FontAwesomeIcon icon={faMagnifyingGlass} /></SvgIcon>
                             </InputAdornment>
                         }
-                        sx={{
-                            bgcolor: "background.paper",
-                            borderRadius: "8px",
-                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" }
-                        }}
+                        sx={searchInputSx}
                     />
                 </Box>
 
                 {/* ── Filters ─────────────────────────────────────────────────────── */}
-                <Box sx={{
-                    px: 2, pb: 1,
-                    display: "flex", gap: "6px", alignItems: "center", flexShrink: 0,
-                    overflowX: "auto", "&::-webkit-scrollbar": { display: "none" }
-                }}>
-                    <FilterListIcon sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }} />
+                <Box sx={filtersRowSx}>
+                    <SvgIcon sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }}><FontAwesomeIcon icon={faFilter} /></SvgIcon>
                     {["Type", "Source", "Duration", "Orientation"].map(f => (
                         <Button
                             key={f} size="small"
-                            endIcon={<KeyboardArrowDownIcon sx={{ fontSize: "13px !important" }} />}
-                            sx={{
-                                color: "text.secondary", border: "1px solid", borderColor: "grey.300",
-                                borderRadius: "8px", py: "2px", px: "8px",
-                                minWidth: "auto", flexShrink: 0
-                            }}
+                            endIcon={<SvgIcon sx={{ fontSize: "13px !important" }}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
+                            sx={filterChipBtnSx}
                         >{f}</Button>
                     ))}
                 </Box>
 
                 {/* ── Scrollable content ───────────────────────────────────────────── */}
-                <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
+                <Box sx={scrollableContentSx}>
 
                     {/* Folder strip */}
                     {folder && (() => {
                         const fp = getPerms(folder);
                         return (
                             <Box sx={{ mb: 1.5, pt: 0.5 }}>
-                                <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-                                    <IconButton size="small" onClick={onCloseFolder} sx={{ color: "action.active", mr: "4px", p: "4px" }}>
-                                        <ArrowBackIcon sx={{ fontSize: 18 }} />
+                                <Box sx={folderHeaderRowSx}>
+                                    <IconButton size="small" onClick={onCloseFolder} sx={backBtnSx}>
+                                        <SvgIcon sx={iconSm18Sx}><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                                     </IconButton>
-                                    <Typography variant="h5" sx={{
-                                        color: "text.primary", lineHeight: 1.5
-                                    }}>
+                                    <Typography variant="h5" sx={folderTitleSx}>
                                         {folder}
                                     </Typography>
                                 </Box>
-                                <Divider sx={{ borderColor: "divider", mb: 1 }} />
-                                <Box sx={{ display: "flex", alignItems: "center" }}>
-                                    <Typography variant="body1" sx={{
-                                        color: "text.primary", mr: "4px", flexShrink: 0
-                                    }}>
+                                <Divider sx={folderDividerSx} />
+                                <Box sx={folderVisibilityRowSx}>
+                                    <Typography variant="body1" sx={folderVisibilityLabelSx}>
                     Visible to:
                                     </Typography>
                                     <Button
                                         variant="text" size="small"
                                         startIcon={<VisibleIcon vp={toVp(fp)} />}
-                                        endIcon={<KeyboardArrowDownIcon sx={{ fontSize: "13px !important" }} />}
+                                        endIcon={<SvgIcon sx={{ fontSize: "13px !important" }}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
                                         onClick={() => openManageAccess(folder, "folder")}
-                                        sx={{
-                                            color: "primary.main",
-                                            p: "2px 4px", minWidth: 0
-                                        }}
+                                        sx={folderVisibilityBtnSx}
                                     >
                                         {visibleLabel(toVp(fp))}
                                     </Button>
@@ -705,7 +604,7 @@ export default function MediaLibraryPanel({
                     })()}
 
                     {/* Grid */}
-                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", pb: 2 }}>
+                    <Box sx={mediaGridSx}>
 
                         {/* Folder items (root view) */}
                         {!folder && MEDIA_FOLDERS.map(f => {
@@ -714,38 +613,19 @@ export default function MediaLibraryPanel({
                                 <Box
                                     key={f.name}
                                     onClick={() => onOpenFolder(f.name)}
-                                    sx={{
-                                        display: "flex", flexDirection: "column",
-                                        cursor: "pointer", borderRadius: "8px", overflow: "visible",
-                                        border: "1px solid", borderColor: "grey.300",
-                                        transition: "box-shadow 0.18s", position: "relative",
-                                        "&:hover": { boxShadow: "0 2px 10px rgba(3,25,79,0.14)" },
-                                        "&:hover .hover-overlay": { opacity: 1 },
-                                        "&:hover .hover-actions": { opacity: 1 }
-                                    }}
+                                    sx={cardSx}
                                 >
-                                    <Box sx={{ borderRadius: "8px 8px 0 0", overflow: "hidden", position: "relative" }}>
+                                    <Box sx={cardThumbWrapperSx}>
                                         <FolderThumb isAi={f.isAi} />
-                                        <Box className="hover-overlay" sx={{
-                                            position: "absolute", inset: 0,
-                                            bgcolor: "rgba(3,25,79,0.38)", opacity: 0,
-                                            transition: "opacity 0.18s", pointerEvents: "none",
-                                            borderRadius: "8px 8px 0 0"
-                                        }} />
+                                        <Box className="hover-overlay" sx={cardHoverOverlaySx} />
                                     </Box>
-                                    <Box sx={{
-                                        position: "absolute", top: 6, right: 6,
-                                        display: "flex", gap: "4px", zIndex: 2
-                                    }}>
+                                    <Box sx={cardActionsOverlaySx}>
                                         <HoverIconBtn onClick={e => openMenu(e, "folder", f.name, "Dec 10, 2025 9:00 AM")}>
-                                            <MoreVertIcon sx={{ fontSize: 14 }} />
+                                            <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                                         </HoverIconBtn>
                                     </Box>
-                                    <Box sx={{ px: 1, py: "6px", display: "flex", alignItems: "center", gap: "4px", overflow: "hidden" }}>
-                                        <Typography variant="caption" sx={{
-                                            color: "text.primary", lineHeight: 1.4,
-                                            flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-                                        }}>
+                                    <Box sx={cardFooterSx}>
+                                        <Typography variant="caption" sx={cardNameTextSx}>
                                             {f.name}
                                         </Typography>
                                         {fvp !== "everyone" && (
@@ -754,7 +634,7 @@ export default function MediaLibraryPanel({
                                                 placement="top" arrow
                                                 componentsProps={{ tooltip: { sx: navyTooltipSx } }}
                                             >
-                                                <Box sx={{ display: "flex", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                                                <Box sx={cardPermIconWrapperSx} onClick={e => e.stopPropagation()}>
                                                     <VisibleIcon vp={fvp} />
                                                 </Box>
                                             </Tooltip>
@@ -774,38 +654,19 @@ export default function MediaLibraryPanel({
                                 <Box
                                     key={sf.name}
                                     onClick={() => onOpenFolder(sf.name)}
-                                    sx={{
-                                        display: "flex", flexDirection: "column",
-                                        cursor: "pointer", borderRadius: "8px", overflow: "visible",
-                                        border: "1px solid", borderColor: "grey.300",
-                                        transition: "box-shadow 0.18s", position: "relative",
-                                        "&:hover": { boxShadow: "0 2px 10px rgba(3,25,79,0.14)" },
-                                        "&:hover .hover-overlay": { opacity: 1 },
-                                        "&:hover .hover-actions": { opacity: 1 }
-                                    }}
+                                    sx={cardSx}
                                 >
-                                    <Box sx={{ borderRadius: "8px 8px 0 0", overflow: "hidden", position: "relative" }}>
+                                    <Box sx={cardThumbWrapperSx}>
                                         <FolderThumb isAi={sf.isAi} />
-                                        <Box className="hover-overlay" sx={{
-                                            position: "absolute", inset: 0,
-                                            bgcolor: "rgba(3,25,79,0.38)", opacity: 0,
-                                            transition: "opacity 0.18s", pointerEvents: "none",
-                                            borderRadius: "8px 8px 0 0"
-                                        }} />
+                                        <Box className="hover-overlay" sx={cardHoverOverlaySx} />
                                     </Box>
-                                    <Box sx={{
-                                        position: "absolute", top: 6, right: 6,
-                                        display: "flex", gap: "4px", zIndex: 2
-                                    }}>
+                                    <Box sx={cardActionsOverlaySx}>
                                         <HoverIconBtn onClick={e => openMenu(e, "folder", sf.name, "Jan 10, 2026 9:00 AM")}>
-                                            <MoreVertIcon sx={{ fontSize: 14 }} />
+                                            <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                                         </HoverIconBtn>
                                     </Box>
-                                    <Box sx={{ px: 1, py: "6px", display: "flex", alignItems: "center", gap: "4px", overflow: "hidden" }}>
-                                        <Typography variant="caption" sx={{
-                                            color: "text.primary", lineHeight: 1.4,
-                                            flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-                                        }}>
+                                    <Box sx={cardFooterSx}>
+                                        <Typography variant="caption" sx={cardNameTextSx}>
                                             {sf.name}
                                         </Typography>
                                         {sfShowIcon && (
@@ -814,7 +675,7 @@ export default function MediaLibraryPanel({
                                                 placement="top" arrow
                                                 componentsProps={{ tooltip: { sx: navyTooltipSx } }}
                                             >
-                                                <Box sx={{ display: "flex", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                                                <Box sx={cardPermIconWrapperSx} onClick={e => e.stopPropagation()}>
                                                     <VisibleIcon vp={sfIconVp} />
                                                 </Box>
                                             </Tooltip>
@@ -833,61 +694,33 @@ export default function MediaLibraryPanel({
                             return (
                                 <Box
                                     key={item.id}
-                                    sx={{
-                                        position: "relative", borderRadius: "8px", overflow: "visible",
-                                        cursor: "pointer", border: "1px solid", borderColor: "grey.300",
-                                        transition: "box-shadow 0.18s",
-                                        "&:hover": { boxShadow: "0 2px 10px rgba(3,25,79,0.14)" },
-                                        "&:hover .hover-overlay": { opacity: 1 },
-                                        "&:hover .hover-actions": { opacity: 1 }
-                                    }}
+                                    sx={mediaCardSx}
                                 >
-                                    <Box sx={{ borderRadius: "8px", overflow: "hidden", position: "relative" }}>
+                                    <Box sx={mediaCardInnerSx}>
                                         <Box sx={{ width: "100%", paddingTop: "68%", bgcolor: item.bg, position: "relative" }}>
-                                            <Box sx={{
-                                                position: "absolute", inset: 0,
-                                                display: "flex", alignItems: "center", justifyContent: "center"
-                                            }}>
-                                                <PermMediaOutlinedIcon sx={{ color: "rgba(255,255,255,0.22)", fontSize: 26 }} />
+                                            <Box sx={mediaCenteredIconSx}>
+                                                <SvgIcon sx={{ color: "rgba(255,255,255,0.22)", fontSize: 26 }}><FontAwesomeIcon icon={faImages} /></SvgIcon>
                                             </Box>
                                         </Box>
-                                        <Box className="hover-overlay" sx={{
-                                            position: "absolute", inset: 0,
-                                            bgcolor: "rgba(3,25,79,0.38)", opacity: 0,
-                                            transition: "opacity 0.18s", pointerEvents: "none",
-                                            borderRadius: "8px"
-                                        }} />
-                                        <Box sx={{
-                                            position: "absolute", bottom: 4, left: 4,
-                                            bgcolor: "rgba(0,0,0,0.62)", borderRadius: "4px", px: "4px", py: "1px",
-                                            pointerEvents: "none"
-                                        }}>
-                                            <Typography variant="caption" sx={{
-                                                color: "common.white", lineHeight: 1.4
-                                            }}>
+                                        <Box className="hover-overlay" sx={mediaHoverOverlaySx} />
+                                        <Box sx={mediaDurationBadgeSx}>
+                                            <Typography variant="caption" sx={mediaDurationTextSx}>
                                                 {item.duration}
                                             </Typography>
                                         </Box>
                                     </Box>
 
-                                    <Box className="hover-actions" sx={{
-                                        position: "absolute", top: 6, right: 6,
-                                        display: "flex", gap: "4px",
-                                        opacity: 0, transition: "opacity 0.18s", zIndex: 2
-                                    }}>
+                                    <Box className="hover-actions" sx={mediaHoverActionsSx}>
                                         <HoverIconBtn onClick={e => e.stopPropagation()}>
-                                            <OpenInFullIcon sx={{ fontSize: 14 }} />
+                                            <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} /></SvgIcon>
                                         </HoverIconBtn>
                                         <HoverIconBtn onClick={e => openMenu(e, "media", item.name, item.added)}>
-                                            <MoreVertIcon sx={{ fontSize: 14 }} />
+                                            <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                                         </HoverIconBtn>
                                     </Box>
 
-                                    <Box sx={{ px: 1, py: "6px", display: "flex", alignItems: "center", gap: "4px", overflow: "hidden" }}>
-                                        <Typography variant="caption" sx={{
-                                            color: "text.primary", lineHeight: 1.4,
-                                            flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-                                        }}>
+                                    <Box sx={cardFooterSx}>
+                                        <Typography variant="caption" sx={cardNameTextSx}>
                                             {item.name}
                                         </Typography>
                                         {itemShowIcon && (
@@ -896,7 +729,7 @@ export default function MediaLibraryPanel({
                                                 placement="top" arrow
                                                 componentsProps={{ tooltip: { sx: navyTooltipSx } }}
                                             >
-                                                <Box sx={{ display: "flex", flexShrink: 0 }}>
+                                                <Box sx={cardPermIconWrapperSx}>
                                                     <VisibleIcon vp={itemIconVp} />
                                                 </Box>
                                             </Tooltip>
@@ -919,47 +752,31 @@ export default function MediaLibraryPanel({
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
                 slotProps={{
                     paper: {
-                        sx: {
-                            boxShadow: "0px 0px 5px rgba(3,25,79,0.25)",
-                            borderRadius: "8px", p: "8px", minWidth: 260, mt: "4px"
-                        }
+                        sx: menuPaperSx
                     }
                 }}
             >
                 {/* Inline editable name */}
-                <Box sx={{ px: 1, pb: "4px" }} onKeyDown={e => e.stopPropagation()}>
+                <Box sx={menuEditNameBoxSx} onKeyDown={e => e.stopPropagation()}>
                     <InputBase
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
                         fullWidth
-                        sx={{
-                            color: "text.primary",
-                            "& .MuiInputBase-input": {
-                                p: "4px 6px", borderRadius: "6px",
-                                border: "1.5px solid transparent", transition: "border 0.15s",
-                                "&:hover": { border: "1.5px solid", borderColor: "grey.300" },
-                                "&:focus": { border: "1.5px solid", borderColor: "primary.main" }
-                            }
-                        }}
+                        sx={menuInputBaseSx}
                     />
                 </Box>
 
                 {/* Added date */}
-                <Box sx={{ px: 1, pb: "8px" }}>
-                    <Typography variant="caption" sx={{
-                        color: "text.secondary", lineHeight: 1.5
-                    }}>
+                <Box sx={menuAddedDateBoxSx}>
+                    <Typography variant="caption" sx={menuAddedDateTextSx}>
             Added: {menuTarget?.added ?? ""}
                     </Typography>
                 </Box>
 
-                <Divider sx={{ borderColor: "divider", mx: -1 }} />
+                <Divider sx={menuDividerSx} />
 
                 {/* Action items */}
-                <MenuItem dense onClick={closeMenu} sx={{
-                    borderRadius: "6px", mt: "4px",
-                    color: "text.primary"
-                }}>
+                <MenuItem dense onClick={closeMenu} sx={menuItemDefaultSx}>
           Details
                 </MenuItem>
                 {menuTarget?.type === "folder" && (
@@ -969,27 +786,16 @@ export default function MediaLibraryPanel({
                             closeMenu();
                             openManageAccess(menuTarget.name, "folder", folder);
                         }}
-                        sx={{
-                            borderRadius: "6px",
-                            color: "text.primary",
-                            display: "flex", alignItems: "center", gap: "8px"
-                        }}
+                        sx={menuItemPermissionsSx}
                     >
-                        <LockOutlinedIcon sx={{ fontSize: 16, color: "action.active" }} />
+                        <SvgIcon sx={{ fontSize: 16, color: "action.active" }}><FontAwesomeIcon icon={faLock} /></SvgIcon>
             Permissions
                     </MenuItem>
                 )}
-                <MenuItem dense onClick={closeMenu} sx={{
-                    borderRadius: "6px",
-                    color: "text.primary"
-                }}>
+                <MenuItem dense onClick={closeMenu} sx={menuItemDefaultSx}>
           Move to folder
                 </MenuItem>
-                <MenuItem dense onClick={closeMenu} sx={{
-                    borderRadius: "6px",
-                    color: "error.main",
-                    "&:hover": { bgcolor: "rgba(230,40,67,0.06)" }
-                }}>
+                <MenuItem dense onClick={closeMenu} sx={menuItemDeleteSx}>
           Delete
                 </MenuItem>
             </Menu>
@@ -1029,3 +835,342 @@ export default function MediaLibraryPanel({
         </Box>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const folderThumbInnerSx: SxProps<Theme> = {
+    position: "absolute", inset: 0,
+    display: "flex", alignItems: "center", justifyContent: "center"
+};
+
+const hoverIconBtnSx: SxProps<Theme> = {
+    bgcolor: "rgba(255,255,255,0.92)",
+    color: "secondary.main",
+    boxShadow: "0px 0px 5px rgba(3,25,79,0.25)",
+    p: "5px",
+    borderRadius: "6px",
+    "&:hover": { bgcolor: "background.paper", boxShadow: "0px 0px 8px rgba(3,25,79,0.35)" }
+};
+
+const conflictTitleBoxSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: 1
+};
+
+const conflictDialogContentSx: SxProps<Theme> = {
+    p: "20px 28px", display: "flex", flexDirection: "column", gap: "16px"
+};
+
+const conflictDescriptionBoxSx: SxProps<Theme> = {
+    display: "flex", flexDirection: "column", gap: "2px"
+};
+
+const conflictBodyTextSx: SxProps<Theme> = {
+    color: "text.primary", lineHeight: 1.7
+};
+
+const conflictTreeBoxSx: SxProps<Theme> = {
+    p: "14px 16px", bgcolor: "action.hover",
+    borderRadius: "8px", border: "1px solid", borderColor: "divider",
+    display: "flex", flexDirection: "column", gap: "10px"
+};
+
+const conflictTreeRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"
+};
+
+const conflictTreeNameSx: SxProps<Theme> = {
+    color: "text.primary", flex: "1 1 auto", minWidth: 0
+};
+
+const conflictTreeBadgeRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "6px"
+};
+
+const conflictChildRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "8px", pl: "24px", flexWrap: "wrap"
+};
+
+const conflictChildNameSx: SxProps<Theme> = {
+    color: "text.secondary", flex: "1 1 auto", minWidth: 0
+};
+
+const panelInnerSx: SxProps<Theme> = {
+    width:         PANEL_WIDTH,
+    flexShrink:    0,
+    height:        "100%",
+    display:       "flex",
+    flexDirection: "column",
+    overflow:      "hidden"
+};
+
+const headerRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", px: 2, pt: 1.5, pb: 1, flexShrink: 0
+};
+
+const headerTitleSx: SxProps<Theme> = {
+    color: "text.primary", flex: 1, lineHeight: 1.5
+};
+
+const headerIconBtnSx: SxProps<Theme> = {
+    color: "action.active"
+};
+
+const iconSm18Sx: SxProps<Theme> = {
+    fontSize: 18
+};
+
+const actionButtonsRowSx: SxProps<Theme> = {
+    px: 2, pb: 1.5, display: "flex", gap: "8px", flexShrink: 0
+};
+
+const uploadBtnSx: SxProps<Theme> = {
+    flex: 1, borderRadius: "8px"
+};
+
+const generateBtnSx: SxProps<Theme> = {
+    flex: 1, background: GRADIENT_GENERATE, color: "common.white",
+    borderRadius: "8px",
+    "&:hover": { opacity: 0.88, background: GRADIENT_GENERATE }
+};
+
+const recordWrapperSx: SxProps<Theme> = {
+    flex: 1, position: "relative"
+};
+
+const recordDotSx: SxProps<Theme> = {
+    width: 9, height: 9, borderRadius: "50%", bgcolor: "error.main", flexShrink: 0
+};
+
+const recordBtnSx: SxProps<Theme> = {
+    color: "text.primary", borderColor: "grey.300",
+    borderRadius: "8px"
+};
+
+const recordNewBadgeSx: SxProps<Theme> = {
+    position: "absolute", top: -5, right: -5,
+    background: GRADIENT_GENERATE, borderRadius: "4px",
+    px: "5px", pt: "1px", pb: "2px", pointerEvents: "none"
+};
+
+const recordNewBadgeTextSx: SxProps<Theme> = {
+    color: "common.white", lineHeight: 1.5
+};
+
+const tabsRowSx: SxProps<Theme> = {
+    display: "flex", borderBottom: "1px solid", borderColor: "divider", px: 2, flexShrink: 0
+};
+
+const tabsIntegrationBtnSx: SxProps<Theme> = {
+    px: 2, display: "flex", alignItems: "center", cursor: "pointer"
+};
+
+const actionsRowSx: SxProps<Theme> = {
+    px: 2, pt: 1.5, pb: 1,
+    display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0
+};
+
+const actionsLeftGroupSx: SxProps<Theme> = {
+    display: "flex", gap: 1, alignItems: "center"
+};
+
+const folderPlusBtnSx: SxProps<Theme> = {
+    border: "1px solid", borderColor: "grey.300", borderRadius: "8px",
+    color: "primary.main", p: "5px"
+};
+
+const selectBtnSx: SxProps<Theme> = {
+    color: "text.primary", borderColor: "grey.300",
+    borderRadius: "8px"
+};
+
+const viewToggleGroupSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center",
+    border: "1px solid", borderColor: "grey.300", borderRadius: "8px", p: "2px", gap: "2px"
+};
+
+const searchBoxSx: SxProps<Theme> = {
+    px: 2, pb: 1, flexShrink: 0
+};
+
+const searchInputSx: SxProps<Theme> = {
+    bgcolor: "background.paper",
+    borderRadius: "8px",
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" }
+};
+
+const filtersRowSx: SxProps<Theme> = {
+    px: 2, pb: 1,
+    display: "flex", gap: "6px", alignItems: "center", flexShrink: 0,
+    overflowX: "auto", "&::-webkit-scrollbar": { display: "none" }
+};
+
+const filterChipBtnSx: SxProps<Theme> = {
+    color: "text.secondary", border: "1px solid", borderColor: "grey.300",
+    borderRadius: "8px", py: "2px", px: "8px",
+    minWidth: "auto", flexShrink: 0
+};
+
+const scrollableContentSx: SxProps<Theme> = {
+    flex: 1, overflowY: "auto", px: 2
+};
+
+const folderHeaderRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", mb: 0.5
+};
+
+const backBtnSx: SxProps<Theme> = {
+    color: "action.active", mr: "4px", p: "4px"
+};
+
+const folderTitleSx: SxProps<Theme> = {
+    color: "text.primary", lineHeight: 1.5
+};
+
+const folderDividerSx: SxProps<Theme> = {
+    borderColor: "divider", mb: 1
+};
+
+const folderVisibilityRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center"
+};
+
+const folderVisibilityLabelSx: SxProps<Theme> = {
+    color: "text.primary", mr: "4px", flexShrink: 0
+};
+
+const folderVisibilityBtnSx: SxProps<Theme> = {
+    color: "primary.main",
+    p: "2px 4px", minWidth: 0
+};
+
+const mediaGridSx: SxProps<Theme> = {
+    display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", pb: 2
+};
+
+const cardSx: SxProps<Theme> = {
+    display: "flex", flexDirection: "column",
+    cursor: "pointer", borderRadius: "8px", overflow: "visible",
+    border: "1px solid", borderColor: "grey.300",
+    transition: "box-shadow 0.18s", position: "relative",
+    "&:hover": { boxShadow: "0 2px 10px rgba(3,25,79,0.14)" },
+    "&:hover .hover-overlay": { opacity: 1 },
+    "&:hover .hover-actions": { opacity: 1 }
+};
+
+const cardThumbWrapperSx: SxProps<Theme> = {
+    borderRadius: "8px 8px 0 0", overflow: "hidden", position: "relative"
+};
+
+const cardHoverOverlaySx: SxProps<Theme> = {
+    position: "absolute", inset: 0,
+    bgcolor: "rgba(3,25,79,0.38)", opacity: 0,
+    transition: "opacity 0.18s", pointerEvents: "none",
+    borderRadius: "8px 8px 0 0"
+};
+
+const cardActionsOverlaySx: SxProps<Theme> = {
+    position: "absolute", top: 6, right: 6,
+    display: "flex", gap: "4px", zIndex: 2
+};
+
+const cardFooterSx: SxProps<Theme> = {
+    px: 1, py: "6px", display: "flex", alignItems: "center", gap: "4px", overflow: "hidden"
+};
+
+const cardNameTextSx: SxProps<Theme> = {
+    color: "text.primary", lineHeight: 1.4,
+    flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+};
+
+const cardPermIconWrapperSx: SxProps<Theme> = {
+    display: "flex", flexShrink: 0
+};
+
+const mediaCardSx: SxProps<Theme> = {
+    position: "relative", borderRadius: "8px", overflow: "visible",
+    cursor: "pointer", border: "1px solid", borderColor: "grey.300",
+    transition: "box-shadow 0.18s",
+    "&:hover": { boxShadow: "0 2px 10px rgba(3,25,79,0.14)" },
+    "&:hover .hover-overlay": { opacity: 1 },
+    "&:hover .hover-actions": { opacity: 1 }
+};
+
+const mediaCardInnerSx: SxProps<Theme> = {
+    borderRadius: "8px", overflow: "hidden", position: "relative"
+};
+
+const mediaCenteredIconSx: SxProps<Theme> = {
+    position: "absolute", inset: 0,
+    display: "flex", alignItems: "center", justifyContent: "center"
+};
+
+const mediaHoverOverlaySx: SxProps<Theme> = {
+    position: "absolute", inset: 0,
+    bgcolor: "rgba(3,25,79,0.38)", opacity: 0,
+    transition: "opacity 0.18s", pointerEvents: "none",
+    borderRadius: "8px"
+};
+
+const mediaDurationBadgeSx: SxProps<Theme> = {
+    position: "absolute", bottom: 4, left: 4,
+    bgcolor: "rgba(0,0,0,0.62)", borderRadius: "4px", px: "4px", py: "1px",
+    pointerEvents: "none"
+};
+
+const mediaDurationTextSx: SxProps<Theme> = {
+    color: "common.white", lineHeight: 1.4
+};
+
+const mediaHoverActionsSx: SxProps<Theme> = {
+    position: "absolute", top: 6, right: 6,
+    display: "flex", gap: "4px",
+    opacity: 0, transition: "opacity 0.18s", zIndex: 2
+};
+
+const menuPaperSx: SxProps<Theme> = {
+    boxShadow: "0px 0px 5px rgba(3,25,79,0.25)",
+    borderRadius: "8px", p: "8px", minWidth: 260, mt: "4px"
+};
+
+const menuEditNameBoxSx: SxProps<Theme> = {
+    px: 1, pb: "4px"
+};
+
+const menuInputBaseSx: SxProps<Theme> = {
+    color: "text.primary",
+    "& .MuiInputBase-input": {
+        p: "4px 6px", borderRadius: "6px",
+        border: "1.5px solid transparent", transition: "border 0.15s",
+        "&:hover": { border: "1.5px solid", borderColor: "grey.300" },
+        "&:focus": { border: "1.5px solid", borderColor: "primary.main" }
+    }
+};
+
+const menuAddedDateBoxSx: SxProps<Theme> = {
+    px: 1, pb: "8px"
+};
+
+const menuAddedDateTextSx: SxProps<Theme> = {
+    color: "text.secondary", lineHeight: 1.5
+};
+
+const menuDividerSx: SxProps<Theme> = {
+    borderColor: "divider", mx: -1
+};
+
+const menuItemDefaultSx: SxProps<Theme> = {
+    borderRadius: "6px", mt: "4px",
+    color: "text.primary"
+};
+
+const menuItemPermissionsSx: SxProps<Theme> = {
+    borderRadius: "6px",
+    color: "text.primary",
+    display: "flex", alignItems: "center", gap: "8px"
+};
+
+const menuItemDeleteSx: SxProps<Theme> = {
+    borderRadius: "6px",
+    color: "error.main",
+    "&:hover": { bgcolor: "rgba(230,40,67,0.06)" }
+};

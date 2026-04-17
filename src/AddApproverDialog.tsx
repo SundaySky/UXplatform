@@ -1,13 +1,13 @@
 import { useState } from "react";
-import type {
-    SelectChangeEvent } from "@mui/material";
+import type { SelectChangeEvent, SxProps, Theme } from "@mui/material";
 import {
-    Dialog, DialogContent, DialogActions,
+    Dialog, DialogContent,
     TextField, FormControl, Select, MenuItem,
-    Button, Box, Chip, Typography, Avatar
+    Button, Box, Chip, Typography, SvgIcon
 } from "@mui/material";
-import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
-import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUserPlus } from "@fortawesome/pro-regular-svg-icons/faUserPlus";
+import { TruffleDialogTitle, TruffleDialogActions, TruffleAvatar } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 
 // ─── User list (matches ApprovalDialog) ───────────────────────────────────────
@@ -65,53 +65,34 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
             onClick={e => e.stopPropagation()}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: 2,
-                    boxShadow: "0px 0px 10px 0px rgba(3, 25, 79, 0.25)",
-                    overflow: "hidden"
-                }
-            }}
         >
             {/* ── Title ─────────────────────────────────────────────────────────── */}
             <TruffleDialogTitle CloseIconButtonProps={{ onClick: handleClose }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <PersonAddOutlinedIcon sx={{ fontSize: 22, color: "action.active" }} />
+                <Box sx={titleBoxSx}>
+                    <SvgIcon sx={titleIconSx}><FontAwesomeIcon icon={faUserPlus} /></SvgIcon>
                     Add an approver
                 </Box>
             </TruffleDialogTitle>
 
             {/* ── Content ───────────────────────────────────────────────────────── */}
-            <DialogContent sx={{ px: "32px", pt: "0 !important", pb: "8px" }}>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            <DialogContent sx={contentSx}>
+                <Box sx={contentBodySx}>
 
                     {/* ── Current approvers ─────────────────────────────────────────── */}
                     {existingUsers.length > 0 && (
                         <Box>
-                            <Typography variant="body1" color="text.primary" sx={{ mb: "8px" }}>
+                            <Typography variant="body1" color="text.primary" sx={sectionLabelSx}>
                 Current approvers
                             </Typography>
 
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                            <Box sx={chipsRowSx}>
                                 {existingUsers.map(user => (
                                     <Chip
                                         key={user.value}
-                                        avatar={
-                                            <Avatar sx={{ bgcolor: user.color, width: 24, height: 24 }}>
-                                                <Typography variant="caption" sx={{ color: "#fff", fontWeight: 700, lineHeight: 1, fontSize: 10 }}>
-                                                    {user.initials}
-                                                </Typography>
-                                            </Avatar>
-                                        }
+                                        avatar={<TruffleAvatar text={user.initials} size="small" />}
                                         label={user.label}
                                         size="small"
-                                        sx={{
-                                            bgcolor: "action.hover",
-                                            border: 1, borderColor: "divider",
-                                            color: "text.primary",
-                                            height: 32,
-                                            "& .MuiChip-avatar": { ml: "6px" }
-                                        }}
+                                        sx={approverChipSx}
                                     />
                                 ))}
                             </Box>
@@ -120,12 +101,12 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
 
                     {/* ── Divider between sections ───────────────────────────────────── */}
                     {existingUsers.length > 0 && (
-                        <Box sx={{ borderTop: 1, borderColor: "divider", mx: "-32px" }} />
+                        <Box sx={sectionDividerSx} />
                     )}
 
                     {/* ── New approver Select ────────────────────────────────────────── */}
                     <Box>
-                        <Typography variant="body1" color="text.primary" sx={{ mb: "6px" }}>
+                        <Typography variant="body1" color="text.primary" sx={sectionLabelSmSx}>
               Add new approver
                         </Typography>
 
@@ -140,30 +121,24 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
                                             ? <Typography variant="body1" color="text.primary">
                                                 {USERS.find(u => u.value === val)?.label}
                                             </Typography>
-                                            : <Typography variant="body1" sx={{
-                                                color: "action.disabled", fontStyle: "italic"
-                                            }}>
+                                            : <Typography variant="body1" sx={placeholderTextSx}>
                           Select approver
                                             </Typography>
                                     }
-                                    sx={{ "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" } }}
+                                    sx={selectSx}
                                 >
                                     {availableUsers.map(u => (
                                         <MenuItem
                                             key={u.value}
                                             value={u.value}
                                         >
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                                <Avatar sx={{ bgcolor: u.color, width: 28, height: 28 }}>
-                                                    <Typography variant="caption" sx={{ color: "#fff", fontWeight: 700, lineHeight: 1, fontSize: 10 }}>
-                                                        {u.initials}
-                                                    </Typography>
-                                                </Avatar>
+                                            <Box sx={optionRowSx}>
+                                                <TruffleAvatar text={u.initials} size="small" />
                                                 <Box>
-                                                    <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.4 }}>
+                                                    <Typography variant="body1" color="text.primary" sx={optionLineSx}>
                                                         {u.label}
                                                     </Typography>
-                                                    <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                                                    <Typography variant="caption" color="text.secondary" sx={optionLineSx}>
                                                         {u.email}
                                                     </Typography>
                                                 </Box>
@@ -174,9 +149,7 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
                             </FormControl>
                         ) : (
                         /* All users already added */
-                            <Typography variant="body1" sx={{
-                                color: "text.secondary", fontStyle: "italic"
-                            }}>
+                            <Typography variant="body1" sx={emptyTextSx}>
                 All available approvers have already been added.
                             </Typography>
                         )}
@@ -185,7 +158,7 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
                     {/* ── Optional message ──────────────────────────────────────────── */}
                     {availableUsers.length > 0 && (
                         <Box>
-                            <Typography variant="body1" color="text.primary" sx={{ mb: "6px" }}>
+                            <Typography variant="body1" color="text.primary" sx={sectionLabelSmSx}>
                 Add a message (optional)
                             </Typography>
                             <TextField
@@ -197,9 +170,7 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
                                 placeholder="Add context for the new approver…"
                                 value={message}
                                 onChange={e => setMessage(e.target.value)}
-                                sx={{
-                                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" }
-                                }}
+                                sx={selectSx}
                             />
                         </Box>
                     )}
@@ -208,31 +179,36 @@ export default function AddApproverDialog({ open, onClose, onAdd, existingApprov
             </DialogContent>
 
             {/* ── Actions ───────────────────────────────────────────────────────── */}
-            <DialogActions sx={{
-                display: "flex", justifyContent: "flex-end",
-                px: "32px", pt: 1, pb: "20px", gap: 1
-            }}>
-                {/* Size=Large · Color=Primary · Variant=Outlined */}
-                <Button
-                    variant="outlined"
-                    color="primary"
-                    size="large"
-                    onClick={handleClose}
-                >
-          Cancel
+            <TruffleDialogActions>
+                <Button variant="outlined" color="primary" size="large" onClick={handleClose}>
+                    Cancel
                 </Button>
-
-                {/* Size=Large · Color=Primary · Variant=Contained — disabled until approver selected */}
-                <Button
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    disabled={!canAdd}
-                    onClick={handleAdd}
-                >
-          Add approver
+                <Button variant="contained" color="primary" size="large" disabled={!canAdd} onClick={handleAdd}>
+                    Add approver
                 </Button>
-            </DialogActions>
+            </TruffleDialogActions>
         </Dialog>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const titleBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "10px" };
+const titleIconSx: SxProps<Theme> = { fontSize: 22, color: "action.active" };
+const contentSx: SxProps<Theme> = { px: "32px", pt: "0 !important", pb: "8px" };
+const contentBodySx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: 2.5 };
+const sectionLabelSx: SxProps<Theme> = { mb: "8px" };
+const sectionLabelSmSx: SxProps<Theme> = { mb: "6px" };
+const chipsRowSx: SxProps<Theme> = { display: "flex", flexWrap: "wrap", gap: "8px" };
+const approverChipSx: SxProps<Theme> = {
+    bgcolor: "action.hover",
+    border: 1, borderColor: "divider",
+    color: "text.primary",
+    height: 32,
+    "& .MuiChip-avatar": { ml: "6px" }
+};
+const sectionDividerSx: SxProps<Theme> = { borderTop: 1, borderColor: "divider", mx: "-32px" };
+const placeholderTextSx: SxProps<Theme> = { color: "action.disabled", fontStyle: "italic" };
+const selectSx: SxProps<Theme> = { "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" } };
+const optionRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "10px" };
+const optionLineSx: SxProps<Theme> = { lineHeight: 1.4 };
+const emptyTextSx: SxProps<Theme> = { color: "text.secondary", fontStyle: "italic" };

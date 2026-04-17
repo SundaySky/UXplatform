@@ -2,6 +2,7 @@ import {
     Dialog, DialogContent,
     Button, Typography
 } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 interface Props {
@@ -17,12 +18,6 @@ export default function ApproveVideoDialog({ open, onClose, onApprove }: Props) 
             onClose={onClose}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: "12px",
-                    boxShadow: "0px 0px 10px 0px rgba(3,25,79,0.25)"
-                }
-            }}
         >
             <TruffleDialogTitle
                 CloseIconButtonProps={{ onClick: onClose }}
@@ -31,7 +26,7 @@ export default function ApproveVideoDialog({ open, onClose, onApprove }: Props) 
                 Approve Video?
             </TruffleDialogTitle>
 
-            <DialogContent sx={{ pt: 1, pb: 2 }}>
+            <DialogContent sx={contentSx}>
                 <Typography variant="subtitle1" color="text.primary">
           You can share this video with viewers after approving.
                 </Typography>
@@ -60,3 +55,6 @@ export default function ApproveVideoDialog({ open, onClose, onApprove }: Props) 
         </Dialog>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const contentSx: SxProps<Theme> = { pt: 1, pb: 2 };

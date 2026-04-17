@@ -1,25 +1,13 @@
-import type { Theme } from "@mui/material";
-import { Box, Typography, Tooltip } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import HourglassTopIcon from "@mui/icons-material/HourglassTop";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
-import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import type { Theme, SxProps } from "@mui/material";
+import { Box, Typography, Tooltip, SvgIcon } from "@mui/material";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheck, faHourglass, faPen, faPaperPlane, faCircleCheck } from "@fortawesome/pro-regular-svg-icons";
 
 const APPROVER_LABELS: Record<string, string> = {
     sjohnson:   "Sarah Johnson",
     mchen:      "Michael Chen",
     erodriguez: "Emma Rodriguez",
     jwilson:    "James Wilson"
-};
-
-const navyTooltipSx = {
-    bgcolor: "secondary.main",
-    borderRadius: "6px",
-    fontSize: 11,
-    maxWidth: 220,
-    whiteSpace: "pre-line" as const,
-    "& .MuiTooltip-arrow": { color: "secondary.main" }
 };
 
 // ─── Step definition ──────────────────────────────────────────────────────────
@@ -42,13 +30,12 @@ function StepNode({ step, isLast }: { step: StepDef; isLast: boolean }) {
             : "action.disabled";
 
     const labelColor = isDone || isActive ? "text.primary" : "text.secondary";
-    const labelWeight = isActive ? 600 : 400;
 
     return (
         <Box sx={{ display: "flex", alignItems: "center", flex: isLast ? 0 : 1, minWidth: 0 }}>
 
             {/* Node column */}
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+            <Box sx={nodeColumnSx}>
 
                 {/* Circle */}
                 <Box sx={(theme: Theme) => ({
@@ -60,15 +47,13 @@ function StepNode({ step, isLast }: { step: StepDef; isLast: boolean }) {
                     boxShadow: isActive ? `0 0 0 4px ${theme.palette.action.hover}` : "none",
                     transition: "all 0.2s"
                 })}>
-                    <Box sx={{ color: "#fff", display: "flex", alignItems: "center" }}>
-                        {isDone ? <CheckIcon sx={{ fontSize: 16 }} /> : step.icon}
+                    <Box sx={circleInnerSx}>
+                        {isDone ? <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCheck} /></SvgIcon> : step.icon}
                     </Box>
                 </Box>
 
                 {/* Label */}
                 <Typography variant="caption" sx={{
-                    fontSize: 11,
-                    fontWeight: labelWeight,
                     color: labelColor,
                     textAlign: "center",
                     whiteSpace: "nowrap"
@@ -148,10 +133,10 @@ export default function WorkflowApprovalStepper({ phase, approvers }: Props) {
     }
 
     const steps: StepDef[] = [
-        { id: 0, label: "Draft", icon: <EditOutlinedIcon sx={{ fontSize: 15 }} />, status: statusOf(0) },
-        { id: 1, label: "Sent for review", icon: <SendOutlinedIcon sx={{ fontSize: 15 }} />, status: statusOf(1) },
-        { id: 2, label: "Feedback received", icon: <HourglassTopIcon sx={{ fontSize: 15 }} />, status: statusOf(2) },
-        { id: 3, label: "Approved", icon: <TaskAltIcon sx={{ fontSize: 15 }} />, status: statusOf(3) }
+        { id: 0, label: "Draft", icon: <SvgIcon sx={{ fontSize: 15 }}><FontAwesomeIcon icon={faPen} /></SvgIcon>, status: statusOf(0) },
+        { id: 1, label: "Sent for review", icon: <SvgIcon sx={{ fontSize: 15 }}><FontAwesomeIcon icon={faPaperPlane} /></SvgIcon>, status: statusOf(1) },
+        { id: 2, label: "Feedback received", icon: <SvgIcon sx={{ fontSize: 15 }}><FontAwesomeIcon icon={faHourglass} /></SvgIcon>, status: statusOf(2) },
+        { id: 3, label: "Approved", icon: <SvgIcon sx={{ fontSize: 15 }}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon>, status: statusOf(3) }
     ];
 
     const subtitleParts: string[] = [];
@@ -173,13 +158,8 @@ export default function WorkflowApprovalStepper({ phase, approvers }: Props) {
         })}>
 
             {/* Header */}
-            <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: "16px" }}>
-                <Typography variant="caption" sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "secondary.main",
-                    letterSpacing: "0.3px"
-                }}>
+            <Box sx={headerRowSx}>
+                <Typography variant="h5" sx={headerTitleSx}>
           Approval progress
                 </Typography>
 
@@ -188,22 +168,23 @@ export default function WorkflowApprovalStepper({ phase, approvers }: Props) {
                         title={`Approvers: ${approverNames}`}
                         placement="top"
                         arrow
-                        componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                        slotProps={{ tooltip: { sx: navyTooltipSx } }}
                     >
-                        <Typography variant="caption" sx={{
-                            fontSize: 11,
-                            color: phase === 1 ? "warning.main" : "text.secondary",
-                            fontWeight: phase === 1 ? 600 : 400,
-                            cursor: "default"
-                        }}>
-                            {subtitleParts.join(" · ")}
-                        </Typography>
+                        {phase === 1 ? (
+                            <Typography variant="h5" sx={subtitleWarnSx}>
+                                {subtitleParts.join(" · ")}
+                            </Typography>
+                        ) : (
+                            <Typography variant="caption" sx={subtitleDoneSx}>
+                                {subtitleParts.join(" · ")}
+                            </Typography>
+                        )}
                     </Tooltip>
                 )}
             </Box>
 
             {/* Steps row */}
-            <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+            <Box sx={stepsRowSx}>
                 {steps.map((step, i) => (
                     <StepNode key={step.id} step={step} isLast={i === steps.length - 1} />
                 ))}
@@ -212,3 +193,19 @@ export default function WorkflowApprovalStepper({ phase, approvers }: Props) {
         </Box>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const navyTooltipSx: SxProps<Theme> = {
+    bgcolor: "secondary.main",
+    borderRadius: "6px",
+    maxWidth: 220,
+    whiteSpace: "pre-line",
+    "& .MuiTooltip-arrow": { color: "secondary.main" }
+};
+const nodeColumnSx: SxProps<Theme> = { display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" };
+const circleInnerSx: SxProps<Theme> = { color: "common.white", display: "flex", alignItems: "center" };
+const headerRowSx: SxProps<Theme> = { display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: "16px" };
+const headerTitleSx: SxProps<Theme> = { color: "secondary.main", letterSpacing: "0.3px" };
+const subtitleWarnSx: SxProps<Theme> = { color: "warning.main", cursor: "default" };
+const subtitleDoneSx: SxProps<Theme> = { color: "text.secondary", cursor: "default" };
+const stepsRowSx: SxProps<Theme> = { display: "flex", alignItems: "flex-start" };

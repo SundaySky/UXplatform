@@ -1,26 +1,19 @@
 import { useState, useEffect } from "react";
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Box, Typography, Button, IconButton,
-    Alert, Divider, Menu, MenuItem,
+    Dialog, DialogContent,
+    Box, Typography, Button, IconButton, SvgIcon,
+    Alert, Divider, Menu,
     ToggleButton, ToggleButtonGroup, Checkbox, Tooltip,
     Autocomplete, TextField, Chip,
     InputAdornment
 } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
-import CloseIcon from "@mui/icons-material/Close";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import GroupsIcon from "@mui/icons-material/Groups";
-import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CheckIcon from "@mui/icons-material/Check";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import NoAccountsIcon from "@mui/icons-material/NoAccounts";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUsers, faUserPlus, faChevronDown, faCircleInfo, faLock, faGear, faUserSlash, faArrowLeft } from "@fortawesome/pro-regular-svg-icons";
+import { TruffleDialogTitle, TruffleDialogActions, TruffleMenuItem } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import type { SxProps, Theme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import {
     type PermissionTab,
@@ -63,16 +56,16 @@ export function VideoAccessBar({
     const { tab, everyoneRole, users, ownerUsers } = s;
 
     const permLabel = tab === "private" ? "Only me" : "Teams and people";
-    const PermIconComp = tab === "private" ? LockOutlinedIcon : GroupsIcon;
+    const PermIcon = tab === "private" ? faLock : faUsers;
     const permColor = tab === "private" ? "success.main" : "primary.main";
 
     const showEveryone = tab === "teams" && everyoneRole !== "restricted";
     const rightUsers = tab === "teams" && everyoneRole === "restricted" ? users : [];
 
     const UserChip = ({ bg, initials, tip }: { bg: string; initials: string; tip: React.ReactNode }) => (
-        <Tooltip title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-            <Box sx={{ width: 32, height: 32, borderRadius: "6px", bgcolor: bg, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default" }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: "common.white", lineHeight: 1 }}>
+        <Tooltip title={tip} placement="top" arrow slotProps={{ tooltip: { sx: navyTipSx } }}>
+            <Box sx={{ ...userChipBoxSx, bgcolor: bg }}>
+                <Typography variant="caption" sx={userChipInitialsSx}>
                     {initials}
                 </Typography>
             </Box>
@@ -81,16 +74,16 @@ export function VideoAccessBar({
 
     const TipContent = ({ name, desc }: { name: string; desc: string }) => (
         <Box>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "common.white", lineHeight: 1.4 }}>{name}</Typography>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.4 }}>{desc}</Typography>
+            <Typography variant="caption" sx={tipContentNameSx}>{name}</Typography>
+            <Typography variant="caption" sx={{ color: (theme: Theme) => alpha(theme.palette.common.white, 0.85), lineHeight: 1.4 }}>{desc}</Typography>
         </Box>
     );
 
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <Box sx={accessBarRootSx}>
             {/* Visible [icon] [label] ▾ */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <Typography variant="caption" sx={{ fontWeight: 500, fontSize: 13, color: "text.primary" }}>
+            <Box sx={accessBarVisibleRowSx}>
+                <Typography variant="caption" sx={accessBarVisibleLabelSx}>
           Visible
                 </Typography>
                 <Box
@@ -101,16 +94,16 @@ export function VideoAccessBar({
                         "&:hover": onChangePermission ? { opacity: 0.75 } : {}
                     }}
                 >
-                    <PermIconComp sx={{ fontSize: 15, color: permColor }} />
-                    <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 13, color: "text.primary" }}>
+                    <SvgIcon sx={{ fontSize: 15, color: permColor }}><FontAwesomeIcon icon={PermIcon} /></SvgIcon>
+                    <Typography variant="caption" sx={accessBarPermLabelSx}>
                         {permLabel}
                     </Typography>
-                    {onChangePermission && <KeyboardArrowDownIcon sx={{ fontSize: 14, color: "text.primary" }} />}
+                    {onChangePermission && <SvgIcon sx={chevronSmallSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
                 </Box>
             </Box>
 
             {/* Avatar row */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <Box sx={avatarRowSx}>
                 {ownerUsers.map(owner => (
                     <UserChip
                         key={owner.id}
@@ -121,16 +114,16 @@ export function VideoAccessBar({
                 ))}
 
                 {(showEveryone || rightUsers.length > 0) && (
-                    <Box sx={{ width: "1px", height: 24, bgcolor: "grey.300", mx: "2px", flexShrink: 0 }} />
+                    <Box sx={avatarDividerLineSx} />
                 )}
 
                 {showEveryone && (
                     <Tooltip
-                        title={<Typography variant="caption" sx={{ color: "common.white", lineHeight: 1.4 }}>Everyone in your account can {everyoneRole === "editor" ? "edit" : "view"}</Typography>}
-                        placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}
+                        title={<Typography variant="caption" sx={everyoneTooltipTextSx}>Everyone in your account can {everyoneRole === "editor" ? "edit" : "view"}</Typography>}
+                        placement="top" arrow slotProps={{ tooltip: { sx: navyTipSx } }}
                     >
-                        <Box sx={{ width: 32, height: 32, borderRadius: "6px", bgcolor: "rgba(0,83,229,0.10)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default" }}>
-                            <GroupsIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                        <Box sx={everyoneChipBoxSx}>
+                            <SvgIcon sx={everyoneChipIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
                         </Box>
                     </Tooltip>
                 )}
@@ -150,14 +143,9 @@ export function VideoAccessBar({
                 variant="outlined"
                 size="small"
                 fullWidth
-                startIcon={<SettingsOutlinedIcon sx={{ fontSize: 15 }} />}
+                startIcon={<SvgIcon sx={gearIconSx}><FontAwesomeIcon icon={faGear} /></SvgIcon>}
                 onClick={onManageAccess}
-                sx={{
-                    borderColor: "grey.300",
-                    color: "text.primary",
-                    py: "6px",
-                    "&:hover": { borderColor: "primary.main", bgcolor: "rgba(0,83,229,0.04)" }
-                }}
+                sx={manageAccessButtonSx}
             >
         Manage access
             </Button>
@@ -170,19 +158,12 @@ function RoleButton({ label, onClick }: { label: string; onClick: (e: React.Mous
     return (
         <Button
             size="small"
-            endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: "-6px" }} />}
+            variant="outlined"
+            endIcon={<SvgIcon sx={roleButtonChevronSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
             onClick={e => {
-                e.stopPropagation(); onClick(e);
+                e.stopPropagation(); onClick(e); 
             }}
-            sx={{
-                color: "text.primary",
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "grey.300",
-                px: "10px", py: "4px",
-                minWidth: 0, whiteSpace: "nowrap", flexShrink: 0,
-                "&:hover": { bgcolor: "rgba(0,83,229,0.04)", borderColor: "primary.main" }
-            }}
+            sx={roleButtonSx}
         >
             {label}
         </Button>
@@ -199,13 +180,13 @@ function PersonRow({
   onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
 }) {
     return (
-        <Box sx={{ display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px" }}>
+        <Box sx={personRowSx}>
             {avatar}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="subtitle2" sx={{ color: "text.primary", lineHeight: 1.3 }}>
+            <Box sx={personRowInfoSx}>
+                <Typography variant="subtitle2" sx={personRowNameSx}>
                     {name}
                 </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.3 }}>
+                <Typography variant="caption" sx={personRowEmailSx}>
                     {email}
                 </Typography>
             </Box>
@@ -232,7 +213,7 @@ function InlineAddUsers({
 }) {
     const options = ALL_USERS.filter(u => !excludeIds.includes(u.id));
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <Box sx={addUsersRootSx}>
             <Autocomplete<User, true>
                 multiple
                 autoFocus
@@ -252,33 +233,21 @@ function InlineAddUsers({
                         InputProps={{
                             ...params.InputProps,
                             endAdornment: (
-                                <InputAdornment position="end" sx={{ mr: "-2px", flexShrink: 0 }}>
+                                <InputAdornment position="end" sx={inputAdornmentSx}>
                                     <Button
                                         size="small"
-                                        endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: "-6px" }} />}
+                                        endIcon={<SvgIcon sx={roleButtonChevronSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
                                         onClick={e => {
                                             e.stopPropagation(); onRoleClick(e);
                                         }}
-                                        sx={{
-                                            color: "text.primary",
-                                            bgcolor: "background.paper",
-                                            border: 1,
-                                            borderColor: "grey.300",
-                                            px: "10px", py: "4px",
-                                            minWidth: 0, whiteSpace: "nowrap",
-                                            "&:hover": { bgcolor: "rgba(0,83,229,0.04)", borderColor: "primary.main" }
-                                        }}
+                                        sx={addRoleButtonSx}
                                     >
                                         {addRole === "editor" ? "Can edit" : "Can view"}
                                     </Button>
                                 </InputAdornment>
                             )
                         }}
-                        sx={{
-                            "& .MuiOutlinedInput-root": { pr: "8px !important" },
-                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" },
-                            "& .MuiInputBase-root": { flexWrap: "wrap", gap: "4px", p: "8px 12px" }
-                        }}
+                        sx={autocompleteTextFieldSx}
                     />
                 )}
                 renderTags={(tagValue, getTagProps) =>
@@ -288,50 +257,45 @@ function InlineAddUsers({
                             key={user.id}
                             label={user.name}
                             size="small"
-                            avatar={<Avatar sx={{ bgcolor: "divider", fontSize: "9px !important", fontWeight: 600, color: "text.primary" }}>{user.initials}</Avatar>}
-                            sx={{
-                                bgcolor: "divider", color: "text.primary", borderRadius: "20px",
-                                "& .MuiChip-label": { px: "6px" },
-                                "& .MuiChip-deleteIcon": { color: "rgba(0,0,0,0.3)", "&:hover": { color: "text.primary" } },
-                                height: 24
-                            }}
+                            avatar={<Avatar sx={chipAvatarSx}>{user.initials}</Avatar>}
+                            sx={chipSx}
                         />
                     ))
                 }
                 renderOption={(props, option) => {
                     const { key, ...listProps } = props as typeof props & { key: string };
                     return (
-                        <Box key={key} component="li" {...listProps} sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1 }}>
-                            <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: "divider", flexShrink: 0, color: "text.primary" }}>
+                        <Box key={key} component="li" {...listProps} sx={optionRowSx}>
+                            <Avatar variant="rounded" sx={optionAvatarSx}>
                                 {option.initials}
                             </Avatar>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography variant="subtitle2" sx={{ color: "text.primary", lineHeight: 1.4 }}>
+                            <Box sx={optionInfoSx}>
+                                <Typography variant="subtitle2" sx={optionNameSx}>
                                     {option.name}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.3 }}>
+                                <Typography variant="caption" sx={optionEmailSx}>
                                     {option.email}
                                 </Typography>
                             </Box>
                         </Box>
                     );
                 }}
-                ListboxProps={{ sx: { p: "4px", maxHeight: 240, "& .MuiAutocomplete-option": { borderRadius: "6px", "&.Mui-focused": { bgcolor: "action.hover" } } } }}
-                slotProps={{ paper: { sx: { borderRadius: "8px", boxShadow: "0px 0px 10px rgba(3,25,79,0.18)", mt: "4px" } } }}
+                ListboxProps={{ sx: listboxSx }}
+                slotProps={{ paper: { sx: paperSx } }}
             />
 
             {/* Allow to duplicate checkbox - only for viewers */}
             {addRole === "viewer" && (
-                <Box sx={{ mt: "16px" }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box sx={checkboxWrapperSx}>
+                    <Box sx={checkboxRowSx}>
                         <Checkbox
                             checked={!noDuplicate}
                             onChange={e => onNoDuplicateChange?.(e.target.checked ? false : true)}
                             size="small"
                             disableRipple
-                            sx={{ p: 0, "&.Mui-checked": { color: "primary.main" } }}
+                            sx={checkboxSx}
                         />
-                        <Typography variant="body1" sx={{ color: "text.primary" }}>
+                        <Typography variant="body1" sx={checkboxLabelSx}>
               Allow to duplicate videos
                         </Typography>
                     </Box>
@@ -339,32 +303,27 @@ function InlineAddUsers({
             )}
 
             {/* Notify via email checkbox */}
-            <Box sx={{ mt: "16px" }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={checkboxWrapperSx}>
+                <Box sx={checkboxRowSx}>
                     <Checkbox
                         checked={notifyEmail ?? false}
                         onChange={e => onNotifyEmailChange?.(e.target.checked)}
                         size="small"
                         disableRipple
-                        sx={{ p: 0, "&.Mui-checked": { color: "primary.main" } }}
+                        sx={checkboxSx}
                     />
-                    <Typography variant="body1" sx={{ color: "text.primary" }}>
+                    <Typography variant="body1" sx={checkboxLabelSx}>
             Notify via email
                     </Typography>
                 </Box>
             </Box>
 
-            <Box sx={{ display: "flex", gap: "8px", justifyContent: "flex-end", mt: "20px" }}>
+            <Box sx={addUsersActionsRowSx}>
                 <Button size="small" onClick={onCancel}
-                    sx={{ color: "text.secondary" }}>
+                    sx={cancelButtonSx}>
           Cancel
                 </Button>
-                <Button size="small" variant="contained" disabled={value.length === 0} onClick={onAdd}
-                    sx={{
-                        boxShadow: "none",
-                        "&:hover": { boxShadow: "none" },
-                        "&.Mui-disabled": { bgcolor: "action.disabledBackground", color: "action.disabled" }
-                    }}>
+                <Button size="small" variant="contained" disabled={value.length === 0} onClick={onAdd}>
           Add
                 </Button>
             </Box>
@@ -499,7 +458,7 @@ export default function VideoPermissionDialog({
         : null;
 
     // Everyone row icon: PersonOffIcon when restricted, GroupsIcon otherwise
-    const EveryoneIcon = everyoneRole === "restricted" ? NoAccountsIcon : GroupsIcon;
+    const EveryoneIcon = everyoneRole === "restricted" ? faUserSlash : faUsers;
 
     return (
         <>
@@ -508,54 +467,38 @@ export default function VideoPermissionDialog({
                 onClose={handleClose}
                 maxWidth={false}
                 onClick={e => e.stopPropagation()}
-                PaperProps={{ sx: { width: 560, maxWidth: "98vw", borderRadius: "12px", boxShadow: "0px 0px 10px rgba(3,25,79,0.25)", overflow: "hidden" } }}
+                PaperProps={{ sx: dialogPaperSx }}
             >
                 {/* ── Title ─────────────────────────────────────────────────────────── */}
                 {!showAddDialog ? (
-                    <DialogTitle sx={{ p: "20px 16px 16px 28px", flexShrink: 0 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <Typography variant="h3" sx={{ color: "text.primary", lineHeight: 1.5, flex: 1 }}>
-                Manage video access
-                            </Typography>
-                            <IconButton size="medium" sx={{ color: "action.active" }}>
-                                <HelpOutlineIcon />
-                            </IconButton>
-                            <IconButton size="medium" onClick={handleClose} sx={{ color: "action.active" }}>
-                                <CloseIcon />
-                            </IconButton>
-                        </Box>
-                    </DialogTitle>
+                    <TruffleDialogTitle
+                        HelpCenterIconButtonProps={{ onClick: () => {} }}
+                        CloseIconButtonProps={{ onClick: handleClose }}
+                    >
+                        Manage video access
+                    </TruffleDialogTitle>
                 ) : (
-                    <DialogTitle sx={{ p: "20px 16px 16px 28px", flexShrink: 0 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <Button
+                    <TruffleDialogTitle CloseIconButtonProps={{ onClick: handleClose }}>
+                        <Box sx={addDialogTitleRowSx}>
+                            <IconButton
                                 size="small"
-                                startIcon={<ArrowBackIcon />}
                                 onClick={() => {
-                                    setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null);
+                                    setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null); 
                                 }}
-                                sx={{
-                                    color: "text.primary",
-                                    p: 0,
-                                    minWidth: 0,
-                                    "&:hover": { bgcolor: "transparent" }
-                                }}
-                            />
-                            <Typography variant="h3" sx={{ color: "text.primary", lineHeight: 1.5, flex: 1 }}>
-                Add users
-                            </Typography>
-                            <IconButton size="medium" onClick={handleClose} sx={{ color: "action.active" }}>
-                                <CloseIcon />
+                                sx={backIconButtonSx}
+                            >
+                                <SvgIcon><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                             </IconButton>
+                            Add users
                         </Box>
-                    </DialogTitle>
+                    </TruffleDialogTitle>
                 )}
 
-                <Divider sx={{ borderColor: "divider" }} />
+                <Divider sx={dividerSx} />
 
                 {/* ── Content ────────────────────────────────────────────────────────── */}
                 {!showAddDialog ? (
-                    <DialogContent sx={{ p: "24px 28px", display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <DialogContent sx={mainDialogContentSx}>
                         {/* Tab selector — full-width bordered segmented control */}
                         <ToggleButtonGroup
                             value={tab}
@@ -566,54 +509,30 @@ export default function VideoPermissionDialog({
                                 }
                             }}
                             fullWidth
-                            sx={{
-                                border: 1,
-                                borderColor: "rgba(0,83,229,0.24)",
-                                borderRadius: "8px",
-                                overflow: "hidden",
-                                "& .MuiToggleButtonGroup-grouped": {
-                                    border: "none !important",
-                                    borderRadius: "0 !important",
-                                    m: 0
-                                },
-                                "& .MuiToggleButtonGroup-grouped:not(:last-of-type)": {
-                                    borderRight: "1px solid rgba(0,83,229,0.24) !important"
-                                }
-                            }}
+                            sx={toggleButtonGroupSx}
                         >
                             {(["teams", "private"] as const).map(v => (
-                                <ToggleButton key={v} value={v} sx={{
-                                    py: 1, gap: "6px",
-                                    color: "text.primary",
-                                    bgcolor: "background.paper",
-                                    "&.Mui-selected": {
-                                        bgcolor: "action.hover",
-                                        color: "text.primary",
-                                        fontWeight: 600,
-                                        "&:hover": { bgcolor: "divider" }
-                                    },
-                                    "&:hover": { bgcolor: "rgba(0,83,229,0.04)" }
-                                }}>
+                                <ToggleButton key={v} value={v} sx={toggleButtonSx}>
                                     {v === "teams"
-                                        ? <GroupsIcon sx={{ fontSize: 18 }} />
-                                        : <LockOutlinedIcon sx={{ fontSize: 18 }} />}
+                                        ? <SvgIcon sx={toggleButtonIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                        : <SvgIcon sx={toggleButtonIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>}
                                     {v === "teams" ? "Teams and people" : "Only me"}
                                 </ToggleButton>
                             ))}
                         </ToggleButtonGroup>
 
                         {/* Access list */}
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                        <Box sx={accessListSx}>
                             {/* Who can access label */}
-                            <Typography variant="h5" sx={{ color: "text.secondary", fontSize: 13, letterSpacing: "0.02em" }}>
+                            <Typography variant="h5" sx={whoCanAccessLabelSx}>
                 Who can access
                             </Typography>
 
-                            <Box sx={{ border: 1, borderColor: "grey.300", borderRadius: "10px", overflow: "hidden" }}>
+                            <Box sx={accessListBorderSx}>
                                 {/* Owner row */}
                                 <PersonRow
                                     avatar={
-                                        <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: "divider", flexShrink: 0, color: "text.primary" }}>
+                                        <Avatar variant="rounded" sx={personAvatarSx}>
                                             {OWNER_USER.initials}
                                         </Avatar>
                                     }
@@ -626,10 +545,10 @@ export default function VideoPermissionDialog({
                                 {/* Specific users — only when teams tab */}
                                 {tab === "teams" && users.map(pu => (
                                     <Box key={pu.user.id}>
-                                        <Divider sx={{ borderColor: "grey.300" }} />
+                                        <Divider sx={greyDividerSx} />
                                         <PersonRow
                                             avatar={
-                                                <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: "divider", flexShrink: 0, color: "text.primary" }}>
+                                                <Avatar variant="rounded" sx={personAvatarSx}>
                                                     {pu.user.initials}
                                                 </Avatar>
                                             }
@@ -644,13 +563,13 @@ export default function VideoPermissionDialog({
                                 {/* Everyone row — only when teams tab */}
                                 {tab === "teams" && (
                                     <>
-                                        <Divider sx={{ borderColor: "grey.300" }} />
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px" }}>
+                                        <Divider sx={greyDividerSx} />
+                                        <Box sx={everyoneRowSx}>
                                             <Box sx={{ width: 36, height: 36, borderRadius: "8px", bgcolor: everyoneRole === "restricted" ? "action.hover" : "divider", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                <EveryoneIcon sx={{ fontSize: 20, color: everyoneRole === "restricted" ? "text.secondary" : "text.primary" }} />
+                                                <SvgIcon sx={{ fontSize: 20, color: everyoneRole === "restricted" ? "text.secondary" : "text.primary" }}><FontAwesomeIcon icon={EveryoneIcon} /></SvgIcon>
                                             </Box>
-                                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                <Typography variant="subtitle2" sx={{ color: "text.primary" }}>
+                                            <Box sx={everyoneRowInfoSx}>
+                                                <Typography variant="subtitle2" sx={everyoneRowNameSx}>
                           Everyone in your account
                                                 </Typography>
                                             </Box>
@@ -665,17 +584,12 @@ export default function VideoPermissionDialog({
                                 {/* Only-me state: owner row is already shown above; show info row */}
                                 {tab === "private" && (
                                     <>
-                                        <Divider sx={{ borderColor: "grey.300" }} />
-                                        <Box sx={{ px: "16px", py: "10px" }}>
+                                        <Divider sx={greyDividerSx} />
+                                        <Box sx={privateAlertWrapperSx}>
                                             <Alert
                                                 severity="info"
-                                                icon={<InfoOutlinedIcon fontSize="small" />}
-                                                sx={{
-                                                    bgcolor: "rgba(1,118,215,0.06)",
-                                                    color: "text.primary",
-                                                    "& .MuiAlert-icon": { color: "info.main" },
-                                                    p: "6px 12px"
-                                                }}
+                                                icon={<SvgIcon><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
+                                                sx={privateAlertSx}
                                             >
                         Only you can see this video.
                                             </Alert>
@@ -686,7 +600,7 @@ export default function VideoPermissionDialog({
                         </Box>
                     </DialogContent>
                 ) : (
-                    <DialogContent sx={{ p: "24px 28px", display: "flex", flexDirection: "column" }}>
+                    <DialogContent sx={addDialogContentSx}>
                         <InlineAddUsers
                             value={addUsers}
                             onChange={setAddUsers}
@@ -705,41 +619,32 @@ export default function VideoPermissionDialog({
                     </DialogContent>
                 )}
 
-                <Divider sx={{ borderColor: "divider" }} />
+                <Divider sx={dividerSx} />
 
                 {/* ── Actions ────────────────────────────────────────────────────────── */}
                 {!showAddDialog && (
-                    <DialogActions sx={{ px: "28px", py: "16px", gap: "8px", justifyContent: "space-between" }}>
+                    <TruffleDialogActions sx={dialogActionsSx}>
                         {/* Left side: + Add user button */}
-                        {tab === "teams" && (
+                        {tab === "teams" ? (
                             <Button
-                                startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                                variant="text"
+                                startIcon={<SvgIcon sx={addUserIconSx}><FontAwesomeIcon icon={faUserPlus} /></SvgIcon>}
                                 onClick={() => setShowAddDialog(true)}
-                                sx={{
-                                    color: "primary.main",
-                                    bgcolor: "action.hover",
-                                    borderRadius: "100px",
-                                    px: "14px", py: "6px",
-                                    "&:hover": { bgcolor: "rgba(0,83,229,0.14)" }
-                                }}
                             >
-                Add user
+                                Add user
                             </Button>
-                        )}
-                        {tab !== "teams" && <Box />}
+                        ) : <Box />}
 
                         {/* Right side: Cancel and Save buttons */}
-                        <Box sx={{ display: "flex", gap: "8px" }}>
-                            <Button variant="text" size="large" onClick={handleClose}
-                                sx={{ color: "primary.main" }}>
-                Cancel
+                        <Box sx={dialogActionsRightSx}>
+                            <Button variant="outlined" color="primary" size="large" onClick={handleClose}>
+                                Cancel
                             </Button>
-                            <Button variant="contained" size="large" onClick={handleSave}
-                                sx={{ boxShadow: "none", "&:hover": { boxShadow: "none" } }}>
-                Save
+                            <Button variant="contained" color="primary" size="large" onClick={handleSave}>
+                                Save
                             </Button>
                         </Box>
-                    </DialogActions>
+                    </TruffleDialogActions>
                 )}
 
                 {/* Role dropdown for add-user */}
@@ -747,22 +652,20 @@ export default function VideoPermissionDialog({
                     anchorEl={addRoleAnchor}
                     open={Boolean(addRoleAnchor)}
                     onClose={() => setAddRoleAnchor(null)}
-                    PaperProps={{ sx: { borderRadius: "10px", boxShadow: "0px 4px 20px rgba(3,25,79,0.18)", minWidth: 160, p: "4px" } }}
+                    PaperProps={{ sx: menuPaperSx }}
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
                     anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 >
-                    <MenuItem onClick={() => {
+                    <TruffleMenuItem selected={addRole === "editor"} onClick={() => {
                         setAddRole("editor"); setAddRoleAnchor(null);
-                    }} sx={menuItemSx}>
-                        {addRole === "editor" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                        <Typography variant="body1" sx={menuTextSx}>Can edit</Typography>
-                    </MenuItem>
-                    <MenuItem onClick={() => {
+                    }}>
+                        Can edit
+                    </TruffleMenuItem>
+                    <TruffleMenuItem selected={addRole === "viewer"} onClick={() => {
                         setAddRole("viewer"); setAddRoleAnchor(null);
-                    }} sx={menuItemSx}>
-                        {addRole === "viewer" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                        <Typography variant="body1" sx={menuTextSx}>Can view</Typography>
-                    </MenuItem>
+                    }}>
+                        Can view
+                    </TruffleMenuItem>
                 </Menu>
 
                 {/* Role dropdown menu (for existing user rows) */}
@@ -770,116 +673,102 @@ export default function VideoPermissionDialog({
                     anchorEl={menuAnchor}
                     open={Boolean(menuAnchor)}
                     onClose={closeMenuFn}
-                    PaperProps={{ sx: { borderRadius: "10px", boxShadow: "0px 4px 20px rgba(3,25,79,0.18)", minWidth: 230, p: "4px" } }}
+                    PaperProps={{ sx: menuPaperWideSx }}
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
                     anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 >
                     {/* Owner menu */}
                     {menuTarget === "owner" && [
-                        <MenuItem key="ol" disableRipple sx={{ ...menuItemSx, cursor: "default", "&:hover": { bgcolor: "transparent" } }}>
-                            <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} />
-                            <Typography variant="body1" sx={menuTextSx}>Video owner</Typography>
-                        </MenuItem>,
-                        <MenuItem key="ms" onClick={closeMenuFn} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography variant="body1" sx={menuTextSx}>Make sole owner</Typography>
-                        </MenuItem>,
-                        <Divider key="d1" sx={{ my: "4px !important" }} />,
-                        <MenuItem key="ro" disabled={ownerUsers.length <= 1} onClick={closeMenuFn} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography variant="body1" sx={menuErrSx}>{ownerUsers.length <= 1 ? "Transfer ownership" : "Remove ownership"}</Typography>
-                        </MenuItem>
+                        <TruffleMenuItem key="ol" selected disableRipple disabled>
+                            Video owner
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="ms" onClick={closeMenuFn}>
+                            Make sole owner
+                        </TruffleMenuItem>,
+                        <Divider key="d1" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="ro" disabled={ownerUsers.length <= 1} onClick={closeMenuFn} error>
+                            {ownerUsers.length <= 1 ? "Transfer ownership" : "Remove ownership"}
+                        </TruffleMenuItem>
                     ]}
 
                     {/* Added user menu */}
                     {menuUser && [
-                        <MenuItem key="ed" onClick={() => {
+                        <TruffleMenuItem key="ed" selected={menuUser.role === "editor"} onClick={() => {
                             changeUserRole(menuTarget as string, "editor"); closeMenuFn();
-                        }} sx={menuItemSx}>
-                            {menuUser.role === "editor" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography variant="body1" sx={menuTextSx}>Can edit</Typography>
-                        </MenuItem>,
-                        <MenuItem key="vi" onClick={() => {
+                        }}>
+                            Can edit
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="vi" selected={menuUser.role === "viewer"} onClick={() => {
                             changeUserRole(menuTarget as string, "viewer"); closeMenuFn();
-                        }} sx={menuItemSx}>
-                            {menuUser.role === "viewer" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography variant="body1" sx={menuTextSx}>Can view</Typography>
-                        </MenuItem>,
+                        }}>
+                            Can view
+                        </TruffleMenuItem>,
                         ...(menuUser?.role === "viewer" ? [
-                            <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
-                                <Checkbox checked={!noDuplicate} size="small" disableRipple sx={{ p: 0, "&.Mui-checked": { color: "primary.main" } }} />
-                                <Typography variant="body1" sx={menuTextSx}>Allow to duplicate</Typography>
-                            </MenuItem>,
-                            <Divider key="d-dup" sx={{ my: "4px !important" }} />
+                            <TruffleMenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={menuItemWithCheckboxSx}>
+                                <Checkbox checked={!noDuplicate} size="small" disableRipple sx={checkboxSx} />
+                                Allow to duplicate
+                            </TruffleMenuItem>,
+                            <Divider key="d-dup" sx={menuDividerSx} />
                         ] : []),
-                        <MenuItem key="to" onClick={closeMenuFn} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography variant="body1" sx={menuTextSx}>Transfer ownership</Typography>
-                        </MenuItem>,
-                        <Divider key="d2" sx={{ my: "4px !important" }} />,
-                        <MenuItem key="rm" onClick={() => {
+                        <TruffleMenuItem key="to" onClick={closeMenuFn}>
+                            Transfer ownership
+                        </TruffleMenuItem>,
+                        <Divider key="d2" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="rm" error onClick={() => {
                             removeUser(menuTarget as string); closeMenuFn();
-                        }} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography variant="body1" sx={menuErrSx}>Remove permission</Typography>
-                        </MenuItem>
+                        }}>
+                            Remove permission
+                        </TruffleMenuItem>
                     ]}
 
                     {/* Everyone menu */}
                     {menuTarget === "everyone" && [
-                        <MenuItem key="ed" onClick={() => {
+                        <TruffleMenuItem key="ed" selected={everyoneRole === "editor"} onClick={() => {
                             setEveryoneRole("editor"); closeMenuFn();
-                        }} sx={menuItemSx}>
-                            {everyoneRole === "editor" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography variant="body1" sx={menuTextSx}>Can edit</Typography>
-                        </MenuItem>,
-                        <MenuItem key="vi" onClick={() => {
+                        }}>
+                            Can edit
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="vi" selected={everyoneRole === "viewer"} onClick={() => {
                             setEveryoneRole("viewer"); closeMenuFn();
-                        }} sx={menuItemSx}>
-                            {everyoneRole === "viewer" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography variant="body1" sx={menuTextSx}>Can view</Typography>
-                        </MenuItem>,
+                        }}>
+                            Can view
+                        </TruffleMenuItem>,
                         ...(everyoneRole === "viewer" ? [
-                            <MenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={{ ...menuItemSx, gap: 1 }}>
-                                <Checkbox checked={!noDuplicate} size="small" disableRipple sx={{ p: 0, "&.Mui-checked": { color: "primary.main" } }} />
-                                <Typography variant="body1" sx={menuTextSx}>Allow to duplicate</Typography>
-                            </MenuItem>,
-                            <Divider key="d-dup" sx={{ my: "4px !important" }} />
+                            <TruffleMenuItem key="dup" onClick={() => setNoDuplicate(prev => !prev)} sx={menuItemWithCheckboxSx}>
+                                <Checkbox checked={!noDuplicate} size="small" disableRipple sx={checkboxSx} />
+                                Allow to duplicate
+                            </TruffleMenuItem>,
+                            <Divider key="d-dup" sx={menuDividerSx} />
                         ] : []),
-                        <MenuItem key="re" onClick={() => {
+                        <TruffleMenuItem key="re" selected={everyoneRole === "restricted"} onClick={() => {
                             setEveryoneRole("restricted"); closeMenuFn();
-                        }} sx={menuItemSx}>
-                            {everyoneRole === "restricted" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography variant="body1" sx={menuTextSx}>Restricted</Typography>
-                        </MenuItem>
+                        }}>
+                            Restricted
+                        </TruffleMenuItem>
                     ]}
                 </Menu>
             </Dialog>
 
             {/* Discard confirmation */}
-            <Dialog open={showDiscard} onClose={() => setShowDiscard(false)} maxWidth="xs" fullWidth
-                PaperProps={{ sx: { borderRadius: "8px", boxShadow: "0px 0px 10px rgba(3,25,79,0.25)" } }}
-            >
-                <DialogTitle sx={{ p: "20px 20px 12px" }}>
-                    <Typography variant="h3" sx={{ color: "text.primary", fontSize: 18 }}>
-            Discard changes?
-                    </Typography>
-                </DialogTitle>
-                <Divider sx={{ borderColor: "divider" }} />
-                <DialogContent sx={{ p: "16px 20px" }}>
-                    <Typography variant="body1" sx={{ color: "text.secondary", lineHeight: 1.6 }}>
+            <Dialog open={showDiscard} onClose={() => setShowDiscard(false)} maxWidth="xs" fullWidth>
+                <TruffleDialogTitle>
+                    Discard changes?
+                </TruffleDialogTitle>
+                <DialogContent sx={discardDialogContentSx}>
+                    <Typography variant="body1" sx={discardDialogTextSx}>
             All your changes will be lost and the permissions will remain unchanged.
                     </Typography>
                 </DialogContent>
-                <Divider sx={{ borderColor: "divider" }} />
-                <DialogActions sx={{ px: "20px", py: "12px", gap: "8px" }}>
-                    <Button onClick={() => setShowDiscard(false)}
-                        sx={{ color: "primary.main" }}>
-            Keep editing
+                <TruffleDialogActions>
+                    <Button variant="outlined" color="primary" size="large" onClick={() => setShowDiscard(false)}>
+                        Keep editing
                     </Button>
-                    <Button variant="contained" color="error" onClick={() => {
+                    <Button variant="contained" color="error" size="large" onClick={() => {
                         setShowDiscard(false); onClose();
-                    }}
-                    sx={{ boxShadow: "none", "&:hover": { boxShadow: "none" } }}>
-            Discard
+                    }}>
+                        Discard
                     </Button>
-                </DialogActions>
+                </TruffleDialogActions>
             </Dialog>
         </>
     );
@@ -895,8 +784,314 @@ const navyTipSx: SxProps<Theme> = {
     "& .MuiTooltip-arrow": { color: "secondary.main" }
 };
 
-const menuItemSx: SxProps<Theme> = { gap: 1.5, py: 0.75, borderRadius: "6px" };
+const userChipBoxSx: SxProps<Theme> = {
+    width: 32, height: 32, borderRadius: "6px", flexShrink: 0,
+    display: "flex", alignItems: "center", justifyContent: "center", cursor: "default"
+};
 
-const menuTextSx: SxProps<Theme> = { color: "text.primary" };
+const userChipInitialsSx: SxProps<Theme> = {
+    fontWeight: 600, color: "common.white", lineHeight: 1
+};
 
-const menuErrSx: SxProps<Theme> = { color: "error.main" };
+const tipContentNameSx: SxProps<Theme> = {
+    fontWeight: 600, color: "common.white", lineHeight: 1.4
+};
+
+const accessBarRootSx: SxProps<Theme> = {
+    display: "flex", flexDirection: "column", gap: "10px"
+};
+
+const accessBarVisibleRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "6px"
+};
+
+const accessBarVisibleLabelSx: SxProps<Theme> = {
+    fontWeight: 500, color: "text.primary"
+};
+
+const accessBarPermLabelSx: SxProps<Theme> = {
+    fontWeight: 600, color: "text.primary"
+};
+
+const chevronSmallSx: SxProps<Theme> = {
+    fontSize: 14, color: "text.primary"
+};
+
+const avatarRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"
+};
+
+const avatarDividerLineSx: SxProps<Theme> = {
+    width: "1px", height: 24, bgcolor: "grey.300", mx: "2px", flexShrink: 0
+};
+
+const everyoneTooltipTextSx: SxProps<Theme> = {
+    color: "common.white", lineHeight: 1.4
+};
+
+const everyoneChipBoxSx: SxProps<Theme> = {
+    width: 32, height: 32, borderRadius: "6px", bgcolor: "primary.light",
+    flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default"
+};
+
+const everyoneChipIconSx: SxProps<Theme> = {
+    fontSize: 18, color: "primary.main"
+};
+
+const gearIconSx: SxProps<Theme> = {
+    fontSize: 15
+};
+
+const manageAccessButtonSx: SxProps<Theme> = {
+    borderColor: "grey.300",
+    color: "text.primary",
+    py: "6px",
+    "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" }
+};
+
+const roleButtonChevronSx: SxProps<Theme> = {
+    fontSize: 14, ml: "-6px"
+};
+
+const roleButtonSx: SxProps<Theme> = {
+    minWidth: 0, whiteSpace: "nowrap", flexShrink: 0
+};
+
+const personRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px"
+};
+
+const personRowInfoSx: SxProps<Theme> = {
+    flex: 1, minWidth: 0
+};
+
+const personRowNameSx: SxProps<Theme> = {
+    color: "text.primary", lineHeight: 1.3
+};
+
+const personRowEmailSx: SxProps<Theme> = {
+    color: "text.secondary", lineHeight: 1.3
+};
+
+const addUsersRootSx: SxProps<Theme> = {
+    display: "flex", flexDirection: "column", gap: "8px"
+};
+
+const inputAdornmentSx: SxProps<Theme> = {
+    mr: "-2px", flexShrink: 0
+};
+
+const addRoleButtonSx: SxProps<Theme> = {
+    color: "text.primary",
+    bgcolor: "background.paper",
+    border: 1,
+    borderColor: "grey.300",
+    px: "10px", py: "4px",
+    minWidth: 0, whiteSpace: "nowrap",
+    "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" }
+};
+
+const autocompleteTextFieldSx: SxProps<Theme> = {
+    "& .MuiOutlinedInput-root": { pr: "8px !important" },
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" },
+    "& .MuiInputBase-root": { flexWrap: "wrap", gap: "4px", p: "8px 12px" }
+};
+
+const chipAvatarSx: SxProps<Theme> = {
+    bgcolor: "divider", fontSize: "9px !important", fontWeight: 600, color: "text.primary"
+};
+
+const chipSx: SxProps<Theme> = {
+    bgcolor: "divider", color: "text.primary", borderRadius: "20px",
+    "& .MuiChip-label": { px: "6px" },
+    "& .MuiChip-deleteIcon": { color: "action.disabled", "&:hover": { color: "text.primary" } },
+    height: 24
+};
+
+const optionRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1
+};
+
+const optionAvatarSx: SxProps<Theme> = {
+    width: 36, height: 36, bgcolor: "divider", flexShrink: 0, color: "text.primary"
+};
+
+const optionInfoSx: SxProps<Theme> = {
+    flex: 1, minWidth: 0
+};
+
+const optionNameSx: SxProps<Theme> = {
+    color: "text.primary", lineHeight: 1.4
+};
+
+const optionEmailSx: SxProps<Theme> = {
+    color: "text.secondary", lineHeight: 1.3
+};
+
+const listboxSx: SxProps<Theme> = {
+    p: "4px", maxHeight: 240,
+    "& .MuiAutocomplete-option": { borderRadius: "6px", "&.Mui-focused": { bgcolor: "action.hover" } }
+};
+
+const paperSx: SxProps<Theme> = {
+    borderRadius: "8px", boxShadow: "0px 0px 10px rgba(3,25,79,0.18)", mt: "4px"
+};
+
+const checkboxWrapperSx: SxProps<Theme> = {
+    mt: "16px"
+};
+
+const checkboxRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: 1
+};
+
+const checkboxSx: SxProps<Theme> = {
+    p: 0, "&.Mui-checked": { color: "primary.main" }
+};
+
+const checkboxLabelSx: SxProps<Theme> = {
+    color: "text.primary"
+};
+
+const addUsersActionsRowSx: SxProps<Theme> = {
+    display: "flex", gap: "8px", justifyContent: "flex-end", mt: "20px"
+};
+
+const cancelButtonSx: SxProps<Theme> = {
+    color: "text.secondary"
+};
+
+const dialogPaperSx: SxProps<Theme> = {
+    width: 560, maxWidth: "98vw", borderRadius: "12px", overflow: "hidden"
+};
+
+const addDialogTitleRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: 1
+};
+
+const backIconButtonSx: SxProps<Theme> = {
+    color: "action.active"
+};
+
+const dividerSx: SxProps<Theme> = {
+    borderColor: "divider"
+};
+
+const mainDialogContentSx: SxProps<Theme> = {
+    p: "24px 28px", display: "flex", flexDirection: "column", gap: "20px"
+};
+
+const toggleButtonGroupSx: SxProps<Theme> = {
+    border: 1,
+    borderColor: "primary.light",
+    borderRadius: "8px",
+    overflow: "hidden",
+    "& .MuiToggleButtonGroup-grouped": {
+        border: "none !important",
+        borderRadius: "0 !important",
+        m: 0
+    },
+    "& .MuiToggleButtonGroup-grouped:not(:last-of-type)": {
+        borderRight: "1px solid !important",
+        borderRightColor: "primary.light !important"
+    }
+};
+
+const toggleButtonSx: SxProps<Theme> = {
+    py: 1, gap: "6px",
+    color: "text.primary",
+    bgcolor: "background.paper",
+    "&.Mui-selected": {
+        bgcolor: "action.hover",
+        color: "text.primary",
+        fontWeight: 600,
+        "&:hover": { bgcolor: "divider" }
+    },
+    "&:hover": { bgcolor: "action.hover" }
+};
+
+const toggleButtonIconSx: SxProps<Theme> = {
+    fontSize: 18
+};
+
+const accessListSx: SxProps<Theme> = {
+    display: "flex", flexDirection: "column", gap: "16px"
+};
+
+const whoCanAccessLabelSx: SxProps<Theme> = {
+    color: "text.secondary", letterSpacing: "0.02em"
+};
+
+const accessListBorderSx: SxProps<Theme> = {
+    border: 1, borderColor: "grey.300", borderRadius: "10px", overflow: "hidden"
+};
+
+const personAvatarSx: SxProps<Theme> = {
+    width: 36, height: 36, bgcolor: "divider", flexShrink: 0, color: "text.primary"
+};
+
+const greyDividerSx: SxProps<Theme> = {
+    borderColor: "grey.300"
+};
+
+const everyoneRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px"
+};
+
+const everyoneRowInfoSx: SxProps<Theme> = {
+    flex: 1, minWidth: 0
+};
+
+const everyoneRowNameSx: SxProps<Theme> = {
+    color: "text.primary"
+};
+
+const privateAlertWrapperSx: SxProps<Theme> = {
+    px: "16px", py: "10px"
+};
+
+const privateAlertSx: SxProps<Theme> = {
+    bgcolor: "primary.light",
+    color: "text.primary",
+    p: "6px 12px"
+};
+
+const addDialogContentSx: SxProps<Theme> = {
+    p: "24px 28px", display: "flex", flexDirection: "column"
+};
+
+const dialogActionsSx: SxProps<Theme> = {
+    justifyContent: "space-between"
+};
+
+const addUserIconSx: SxProps<Theme> = {
+    fontSize: 16
+};
+
+const dialogActionsRightSx: SxProps<Theme> = {
+    display: "flex", gap: 1
+};
+
+const menuPaperSx: SxProps<Theme> = {
+    borderRadius: "10px", boxShadow: "0px 4px 20px rgba(3,25,79,0.18)", minWidth: 160, p: "4px"
+};
+
+const menuPaperWideSx: SxProps<Theme> = {
+    borderRadius: "10px", boxShadow: "0px 4px 20px rgba(3,25,79,0.18)", minWidth: 230, p: "4px"
+};
+
+const menuDividerSx: SxProps<Theme> = {
+    my: "4px !important"
+};
+
+const menuItemWithCheckboxSx: SxProps<Theme> = {
+    gap: 1
+};
+
+const discardDialogContentSx: SxProps<Theme> = {
+    p: "16px 20px"
+};
+
+const discardDialogTextSx: SxProps<Theme> = {
+    color: "text.secondary", lineHeight: 1.6
+};

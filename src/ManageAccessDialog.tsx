@@ -1,20 +1,17 @@
 import { useState, useEffect } from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Box, Typography, Button, IconButton,
-    Chip, Avatar, Tooltip,
+    Dialog, DialogContent,
+    Box, Typography, Button, IconButton, SvgIcon,
+    Chip, Tooltip,
     Autocomplete, TextField, Alert,
-    Divider, Menu, MenuItem, ToggleButton, ToggleButtonGroup,
+    Divider, Menu, ToggleButton,
     Checkbox, FormControlLabel, InputAdornment
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import GroupsIcon from "@mui/icons-material/Groups";
-import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CheckIcon from "@mui/icons-material/Check";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUsers, faUserPlus, faChevronDown, faCheck, faCircleInfo, faArrowLeft } from "@fortawesome/pro-regular-svg-icons";
+import { TruffleDialogTitle, TruffleDialogActions, TruffleToggleButtonGroup, TruffleMenuItem, TruffleAvatar } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type PermissionTab = "teams" | "private"
@@ -51,7 +48,7 @@ const navyTooltipSx = {
 
 // ─── Users ─────────────────────────────────────────────────────────────────────
 export const OWNER_USER: User = {
-    id: "ja", initials: "JA", name: "John Appleseed", email: "appleseedj@Sundaysky.com", color: "#0053E5"
+    id: "ja", initials: "JA", name: "John Appleseed", email: "appleseedj@Sundaysky.com", color: "primary.main"
 };
 
 export const ALL_USERS: User[] = [
@@ -71,16 +68,11 @@ export const ALL_USERS: User[] = [
 // ─── User avatar ──────────────────────────────────────────────────────────────
 function UserAvatar({ user, size = 32 }: { user: User; size?: number }) {
     return (
-        <Avatar
-            variant="rounded"
-            sx={{
-                width: size, height: size,
-                bgcolor: user.color,
-                flexShrink: 0
-            }}
-        >
-            {user.initials}
-        </Avatar>
+        <TruffleAvatar
+            text={user.initials}
+            size={size <= 32 ? "medium" : "large"}
+            sx={{ bgcolor: user.color, borderRadius: "8px", flexShrink: 0 }}
+        />
     );
 }
 
@@ -97,19 +89,19 @@ export function UserAvatarWithTooltip({
     const isOwner = user.id === "ja";
     const titleNode = (
         <Box>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "#fff", lineHeight: 1.5 }}>
+            <Typography variant="caption" sx={tooltipTitlePrimarySx}>
                 {user.name}{isOwner ? " (You)" : ""}
             </Typography>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
+            <Typography variant="caption" sx={{ color: (theme: Theme) => alpha(theme.palette.common.white, 0.8), lineHeight: 1.5 }}>
                 {role}
             </Typography>
         </Box>
     );
     return (
-        <Tooltip title={titleNode} placement="bottom" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
-            <span>
+        <Tooltip title={titleNode} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTooltipSx } }}>
+            <Box component="span">
                 <UserAvatar user={user} size={size} />
-            </span>
+            </Box>
         </Tooltip>
     );
 }
@@ -146,7 +138,7 @@ export function UsersAutocomplete({
             isOptionEqualToValue={(opt, val) => opt.id === val.id}
             getOptionDisabled={option => !!disabledUsers.find(d => d.id === option.id)}
             disableCloseOnSelect
-            popupIcon={<KeyboardArrowDownIcon sx={{ fontSize: 18 }} />}
+            popupIcon={<SvgIcon sx={popupIconSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
             renderInput={params => (
                 <TextField
                     {...params}
@@ -168,18 +160,11 @@ export function UsersAutocomplete({
                         key={user.id}
                         label={`${user.name}${user.id === OWNER_USER.id ? " (You)" : ""}`}
                         size="small"
-                        avatar={
-                            <Avatar sx={{ bgcolor: user.color, color: "#fff !important" }}>
-                                {user.initials}
-                            </Avatar>
-                        }
+                        avatar={<TruffleAvatar text={user.initials} size="small" sx={{ bgcolor: user.color }} />}
                         sx={{
                             bgcolor: user.color,
-                            color: "#fff",
-                            borderRadius: "20px",
-                            "& .MuiChip-label": { px: "6px" },
-                            "& .MuiChip-deleteIcon": { color: "rgba(255,255,255,0.7)", "&:hover": { color: "#fff" } },
-                            height: 24
+                            color: "common.white",
+                            "& .MuiChip-deleteIcon": { color: "common.white", opacity: 0.7, "&:hover": { opacity: 1 } }
                         }}
                     />
                 ))
@@ -199,31 +184,31 @@ export function UsersAutocomplete({
                         }}
                     >
                         <UserAvatar user={option} size={36} />
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="subtitle2" sx={{ color: "text.primary", lineHeight: 1.4 }}>
+                        <Box sx={flexMinWidthSx}>
+                            <Typography variant="subtitle2" sx={optionNameSx}>
                                 {option.name}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.3 }}>
+                            <Typography variant="caption" sx={optionEmailSx}>
                                 {disabledEntry ? disabledEntry.reason : option.email}
                             </Typography>
                         </Box>
-                        {selected && <CheckIcon sx={{ color: "primary.main", fontSize: 18, flexShrink: 0 }} />}
+                        {selected && <SvgIcon sx={checkIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                     </Box>
                 );
                 if (disabledEntry) {
                     return (
                         <Tooltip key={key} title={disabledEntry.reason} placement="right"
-                            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                            slotProps={{ tooltip: { sx: navyTooltipSx } }}
                             arrow
                         >
-                            <span style={{ display: "block" }}>{row}</span>
+                            <Box component="span" sx={displayBlockSx}>{row}</Box>
                         </Tooltip>
                     );
                 }
                 return row;
             }}
-            ListboxProps={{ sx: { p: "4px", maxHeight: 240, "& .MuiAutocomplete-option": { borderRadius: "6px" } } }}
-            slotProps={{ paper: { sx: { borderRadius: "8px", mt: "4px" } } }}
+            ListboxProps={{ sx: autocompleteListboxSx }}
+            slotProps={{ paper: { sx: autocompletePaperSx } }}
         />
     );
 }
@@ -231,23 +216,16 @@ export function UsersAutocomplete({
 // ─── Internal UI helpers ───────────────────────────────────────────────────────
 function RoleButton({ label, onClick }: { label: string; onClick: (e: React.MouseEvent<HTMLElement>) => void }) {
     return (
-        <Button
+        <Chip
             size="small"
-            endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: "-6px" }} />}
+            label={label}
+            deleteIcon={<SvgIcon sx={roleButtonChevronIconSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
+            onDelete={onClick}
             onClick={e => {
                 e.stopPropagation(); onClick(e); 
             }}
-            sx={{
-                color: "text.primary",
-                bgcolor: "rgba(0,0,0,0.06)",
-                borderRadius: "20px",
-                px: "10px", py: "4px",
-                minWidth: 0, whiteSpace: "nowrap", flexShrink: 0,
-                "&:hover": { bgcolor: "rgba(0,0,0,0.10)" }
-            }}
-        >
-            {label}
-        </Button>
+            sx={roleButtonChipSx}
+        />
     );
 }
 
@@ -261,13 +239,13 @@ function PersonRow({
   onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
 }) {
     return (
-        <Box sx={{ display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px" }}>
+        <Box sx={personRowContainerSx}>
             {avatar}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="subtitle2" sx={{ color: "text.primary", lineHeight: 1.3 }}>
+            <Box sx={flexMinWidthSx}>
+                <Typography variant="subtitle2" sx={personNameSx}>
                     {name}
                 </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.3 }}>
+                <Typography variant="caption" sx={personEmailSx}>
                     {email}
                 </Typography>
             </Box>
@@ -305,32 +283,21 @@ function AddUsersAutocomplete({
                     InputProps={{
                         ...params.InputProps,
                         endAdornment: (
-                            <InputAdornment position="end" sx={{ mr: "-2px", flexShrink: 0 }}>
+                            <InputAdornment position="end" sx={addRoleAdornmentSx}>
                                 <Button
                                     size="small"
-                                    endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 14, ml: "-6px" }} />}
+                                    endIcon={<SvgIcon sx={addRoleChevronIconSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
                                     onClick={e => {
-                                        e.stopPropagation(); onRoleClick(e); 
+                                        e.stopPropagation(); onRoleClick(e);
                                     }}
-                                    sx={{
-                                        color: "text.primary",
-                                        bgcolor: "rgba(0,0,0,0.06)",
-                                        borderRadius: "20px",
-                                        px: "10px", py: "4px",
-                                        minWidth: 0, whiteSpace: "nowrap",
-                                        "&:hover": { bgcolor: "rgba(0,0,0,0.10)" }
-                                    }}
+                                    sx={addRoleButtonSx}
                                 >
                                     {addRole === "editor" ? "Can edit" : "Can view"}
                                 </Button>
                             </InputAdornment>
                         )
                     }}
-                    sx={{
-                        "& .MuiOutlinedInput-root": { borderRadius: "8px", pr: "8px !important" },
-                        "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" },
-                        "& .MuiInputBase-root": { flexWrap: "wrap", gap: "4px", p: "8px 12px" }
-                    }}
+                    sx={addUsersTextFieldSx}
                 />
             )}
             renderTags={(tagValue, getTagProps) =>
@@ -340,12 +307,10 @@ function AddUsersAutocomplete({
                         key={user.id}
                         label={user.name}
                         size="small"
-                        avatar={<Avatar sx={{ bgcolor: user.color, color: "#fff !important" }}>{user.initials}</Avatar>}
+                        avatar={<TruffleAvatar text={user.initials} size="small" sx={{ bgcolor: user.color }} />}
                         sx={{
-                            bgcolor: user.color, color: "#fff", borderRadius: "20px",
-                            "& .MuiChip-label": { px: "6px" },
-                            "& .MuiChip-deleteIcon": { color: "rgba(255,255,255,0.7)", "&:hover": { color: "#fff" } },
-                            height: 24
+                            bgcolor: user.color, color: "common.white",
+                            "& .MuiChip-deleteIcon": { color: "common.white", opacity: 0.7, "&:hover": { opacity: 1 } }
                         }}
                     />
                 ))
@@ -353,21 +318,21 @@ function AddUsersAutocomplete({
             renderOption={(props, option) => {
                 const { key, ...listProps } = props as typeof props & { key: string };
                 return (
-                    <Box key={key} component="li" {...listProps} sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1 }}>
+                    <Box key={key} component="li" {...listProps} sx={optionRowSx}>
                         <UserAvatar user={option} size={36} />
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="subtitle2" sx={{ color: "text.primary", lineHeight: 1.4 }}>
+                        <Box sx={flexMinWidthSx}>
+                            <Typography variant="subtitle2" sx={optionNameSx}>
                                 {option.name}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.3 }}>
+                            <Typography variant="caption" sx={optionEmailSx}>
                                 {option.email}
                             </Typography>
                         </Box>
                     </Box>
                 );
             }}
-            ListboxProps={{ sx: { p: "4px", maxHeight: 240, "& .MuiAutocomplete-option": { borderRadius: "6px" } } }}
-            slotProps={{ paper: { sx: { borderRadius: "8px", mt: "4px" } } }}
+            ListboxProps={{ sx: autocompleteListboxSx }}
+            slotProps={{ paper: { sx: autocompletePaperSx } }}
         />
     );
 }
@@ -496,10 +461,6 @@ export default function ManageAccessDialog({
         ? (users.find(pu => pu.user.id === menuTarget) ?? null)
         : null;
 
-    const menuItemSx = { gap: 1.5, py: 0.75, borderRadius: "6px" };
-    const menuTextSx = { color: "text.primary" };
-    const menuErrSx = { color: "error.main" };
-
     const excludeIdsForAdd = [OWNER_USER.id, ...users.map(pu => pu.user.id)];
 
     return (
@@ -508,32 +469,27 @@ export default function ManageAccessDialog({
                 open={open}
                 onClose={handleClose}
                 maxWidth={false}
-                PaperProps={{ sx: { width: 560, maxWidth: "98vw", borderRadius: "12px", boxShadow: "0px 0px 10px rgba(3,25,79,0.25)", overflow: "hidden" } }}
+                slotProps={{ paper: { sx: dialogPaperSx } }}
             >
                 {/* ── Title ────────────────────────────────────────────────────────── */}
-                <DialogTitle sx={{ p: "20px 16px 16px 28px", flexShrink: 0 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <TruffleDialogTitle
+                    CloseIconButtonProps={{ onClick: handleClose }}
+                    HelpCenterIconButtonProps={{ onClick: () => {} }}
+                >
+                    <Box sx={dialogTitleBoxSx}>
                         {addOpen && (
-                            <IconButton size="medium" onClick={() => setAddOpen(false)} sx={{ color: "action.active", ml: "-8px", mr: "4px" }}>
-                                <ArrowBackIcon />
+                            <IconButton size="medium" onClick={() => setAddOpen(false)} sx={backButtonSx}>
+                                <SvgIcon><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                             </IconButton>
                         )}
-                        <Typography variant="h3" sx={{ color: "text.primary", lineHeight: 1.5, flex: 1 }}>
-                            {addOpen ? "Add users" : "Manage access"}
-                        </Typography>
-                        <IconButton size="medium" sx={{ color: "action.active" }}>
-                            <HelpOutlineIcon />
-                        </IconButton>
-                        <IconButton size="medium" onClick={handleClose} sx={{ color: "action.active" }}>
-                            <CloseIcon />
-                        </IconButton>
+                        {addOpen ? "Add users" : "Manage access"}
                     </Box>
-                </DialogTitle>
+                </TruffleDialogTitle>
 
-                <Divider sx={{ borderColor: "divider" }} />
+                <Divider sx={dividerSx} />
 
                 {/* ── Sliding content ───────────────────────────────────────────────── */}
-                <DialogContent sx={{ p: 0, overflow: "hidden" }}>
+                <DialogContent sx={dialogContentSx}>
                     <Box sx={{
                         display: "flex",
                         transform: addOpen ? "translateX(-50%)" : "translateX(0)",
@@ -541,48 +497,33 @@ export default function ManageAccessDialog({
                         width: "200%"
                     }}>
                         {/* ── Panel 1: Manage access ──────────────────────────────────── */}
-                        <Box sx={{ width: "50%", flexShrink: 0, p: "24px 28px", display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <Box sx={panelSx}>
                             {/* Tab selector */}
-                            <ToggleButtonGroup
+                            <TruffleToggleButtonGroup
                                 value={tab}
                                 exclusive
                                 onChange={(_, v) => {
                                     if (v !== null) {
                                         setTab(v as PermissionTab);
-                                    } 
+                                    }
                                 }}
-                                sx={{
-                                    bgcolor: "rgba(0,0,0,0.06)", borderRadius: "10px", p: "3px", alignSelf: "flex-start",
-                                    "& .MuiToggleButtonGroup-grouped": { border: "none !important", borderRadius: "8px !important", m: 0 }
-                                }}
+                                variant="outlined"
+                                sx={tabGroupSx}
                             >
-                                {(["teams", "private"] as const).map(v => (
-                                    <ToggleButton key={v} value={v} sx={{
-                                        px: 2, py: 0.75, color: "text.secondary",
-                                        "&.Mui-selected": {
-                                            bgcolor: "#fff", color: "text.primary",
-                                            boxShadow: "0px 1px 4px rgba(0,0,0,0.12)", "&:hover": { bgcolor: "#fff" }
-                                        }
-                                    }}>
-                                        {v === "teams" ? "Teams and people" : "Only me"}
-                                    </ToggleButton>
-                                ))}
-                            </ToggleButtonGroup>
+                                <ToggleButton value="teams">Teams and people</ToggleButton>
+                                <ToggleButton value="private">Only me</ToggleButton>
+                            </TruffleToggleButtonGroup>
 
                             {/* Who can access */}
                             <Box>
-                                <Typography variant="h5" sx={{ color: "text.primary", mb: "12px", display: "block" }}>
+                                <Typography variant="h5" sx={sectionTitleSx}>
                   Who can access
                                 </Typography>
 
-                                <Box sx={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: "10px", overflow: "hidden" }}>
+                                <Box sx={accessListBoxSx}>
                                     {/* Owner row */}
                                     <PersonRow
-                                        avatar={
-                                            <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: OWNER_USER.color, flexShrink: 0 }}>
-                                                {OWNER_USER.initials}
-                                            </Avatar>
-                                        }
+                                        avatar={<TruffleAvatar text={OWNER_USER.initials} size="large" sx={ownerAvatarSx} />}
                                         name={`${OWNER_USER.name} (You)`}
                                         email={OWNER_USER.email}
                                         roleLabel={ownerRoleLabel}
@@ -594,11 +535,7 @@ export default function ManageAccessDialog({
                                         <Box key={pu.user.id}>
                                             <Divider />
                                             <PersonRow
-                                                avatar={
-                                                    <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: pu.user.color, flexShrink: 0 }}>
-                                                        {pu.user.initials}
-                                                    </Avatar>
-                                                }
+                                                avatar={<TruffleAvatar text={pu.user.initials} size="large" sx={{ bgcolor: pu.user.color, borderRadius: "8px", flexShrink: 0 }} />}
                                                 name={pu.user.name}
                                                 email={pu.user.email}
                                                 roleLabel={pu.role === "editor" ? "Can edit" : "Can view"}
@@ -611,12 +548,12 @@ export default function ManageAccessDialog({
                                     {tab === "teams" && (
                                         <>
                                             <Divider />
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px" }}>
-                                                <Box sx={{ width: 36, height: 36, borderRadius: "8px", bgcolor: "rgba(0,83,229,0.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                    <GroupsIcon sx={{ fontSize: 20, color: "primary.main" }} />
+                                            <Box sx={personRowContainerSx}>
+                                                <Box sx={everyoneIconBoxSx}>
+                                                    <SvgIcon sx={everyoneIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
                                                 </Box>
-                                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                    <Typography variant="subtitle2" sx={{ color: "text.primary" }}>
+                                                <Box sx={flexMinWidthSx}>
+                                                    <Typography variant="subtitle2" sx={everyoneNameSx}>
                             Everyone in your account
                                                     </Typography>
                                                 </Box>
@@ -631,8 +568,8 @@ export default function ManageAccessDialog({
 
                                 {/* Only me alert */}
                                 {tab === "private" && (
-                                    <Alert severity="info" icon={<InfoOutlinedIcon fontSize="small" />}
-                                        sx={{ mt: 1.5, borderRadius: "8px", bgcolor: "primary.light", color: "text.primary", "& .MuiAlert-icon": { color: "primary.main" } }}
+                                    <Alert severity="info" icon={<SvgIcon fontSize="small"><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
+                                        sx={privateAlertSx}
                                     >
                                         {itemType === "folder"
                                             ? "Only you can view this folder\u2019s media and all the folders inside it"
@@ -643,7 +580,7 @@ export default function ManageAccessDialog({
                         </Box>
 
                         {/* ── Panel 2: Add users ──────────────────────────────────────── */}
-                        <Box sx={{ width: "50%", flexShrink: 0, p: "24px 28px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                        <Box sx={addUsersPanelSx}>
                             <AddUsersAutocomplete
                                 value={addUsers}
                                 onChange={setAddUsers}
@@ -658,140 +595,116 @@ export default function ManageAccessDialog({
                                             checked={addAllowDup}
                                             onChange={e => setAddAllowDup(e.target.checked)}
                                             size="small"
-                                            sx={{ "&.Mui-checked": { color: "primary.main" } }}
+                                            sx={checkboxSx}
                                         />
                                     }
                                     label="Allow to duplicate"
-                                    sx={{ ml: 0, "& .MuiFormControlLabel-label": { color: "text.primary" } }}
+                                    sx={allowDuplicateLabelSx}
                                 />
                             )}
                         </Box>
                     </Box>
                 </DialogContent>
 
-                <Divider sx={{ borderColor: "divider" }} />
+                <Divider sx={dividerSx} />
 
                 {/* ── Actions ───────────────────────────────────────────────────────── */}
-                <DialogActions sx={{ px: "28px", py: "16px", gap: "8px" }}>
+                <TruffleDialogActions sx={dialogActionsSx}>
                     {!addOpen ? (
                         <>
-                            {/* + Add user on the left (teams tab only) */}
                             {tab === "teams" && (
                                 <Button
-                                    startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
+                                    startIcon={<SvgIcon sx={addUserIconSx}><FontAwesomeIcon icon={faUserPlus} /></SvgIcon>}
                                     onClick={() => setAddOpen(true)}
-                                    sx={{ color: "primary.main", p: "4px 8px", mr: "auto" }}
+                                    sx={addUserButtonSx}
                                 >
-                  Add user
+                                    Add user
                                 </Button>
                             )}
-                            <Box sx={{ flex: 1 }} />
-                            <Button variant="text" size="large" onClick={handleClose}>
-                Cancel
-                            </Button>
-                            <Button variant="contained" size="large" onClick={handleSave}>
-                Save
-                            </Button>
+                            <Box sx={flexSpacerSx} />
+                            <Button variant="text" size="large" onClick={handleClose}>Cancel</Button>
+                            <Button variant="contained" size="large" onClick={handleSave}>Save</Button>
                         </>
                     ) : (
                         <>
                             <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={addNotify}
-                                        onChange={e => setAddNotify(e.target.checked)}
-                                        size="medium"
-                                        sx={{ "&.Mui-checked": { color: "primary.main" } }}
-                                    />
-                                }
+                                control={<Checkbox checked={addNotify} onChange={e => setAddNotify(e.target.checked)} size="medium" />}
                                 label="Notify via email"
-                                sx={{ mr: "auto", "& .MuiFormControlLabel-label": { color: "text.primary" } }}
+                                sx={notifyLabelSx}
                             />
-                            <Button variant="text" size="large" onClick={() => setAddOpen(false)}>
-                Cancel
-                            </Button>
-                            <Button
-                                variant="contained" size="large"
-                                disabled={addUsers.length === 0}
-                                onClick={handleAddUsers}
-                            >
-                Add users
+                            <Button variant="text" size="large" onClick={() => setAddOpen(false)}>Cancel</Button>
+                            <Button variant="contained" size="large" disabled={addUsers.length === 0} onClick={handleAddUsers}>
+                                Add users
                             </Button>
                         </>
                     )}
-                </DialogActions>
+                </TruffleDialogActions>
 
                 {/* Role dropdown for main view */}
                 <Menu
                     anchorEl={menuAnchor}
                     open={Boolean(menuAnchor)}
                     onClose={closeMenuFn}
-                    PaperProps={{ sx: { borderRadius: "10px", boxShadow: "0px 4px 20px rgba(3,25,79,0.18)", minWidth: 210, p: "4px" } }}
+                    PaperProps={{ sx: mainMenuPaperSx }}
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
                     anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 >
                     {/* Owner menu */}
                     {menuTarget === "owner" && [
-                        <MenuItem key="ol" disableRipple sx={{ ...menuItemSx, cursor: "default", "&:hover": { bgcolor: "transparent" } }}>
-                            <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} />
-                            <Typography sx={menuTextSx}>{ownerRoleLabel}</Typography>
-                        </MenuItem>,
-                        <MenuItem key="ms" onClick={closeMenuFn} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Make sole owner</Typography>
-                        </MenuItem>,
-                        <Divider key="d1" sx={{ my: "4px !important" }} />,
-                        <MenuItem key="ro" disabled={ownerUsers.length <= 1} onClick={closeMenuFn} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove ownership</Typography>
-                        </MenuItem>
+                        <TruffleMenuItem key="ol" selected disableRipple disabled>
+                            {ownerRoleLabel}
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="ms" onClick={closeMenuFn}>
+                            Make sole owner
+                        </TruffleMenuItem>,
+                        <Divider key="d1" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="ro" disabled={ownerUsers.length <= 1} onClick={closeMenuFn} error>
+                            Remove ownership
+                        </TruffleMenuItem>
                     ]}
 
                     {/* Added user menu */}
                     {menuUser && [
-                        <MenuItem key="ed" onClick={() => {
-                            changeUserRole(menuTarget as string, "editor"); closeMenuFn(); 
-                        }} sx={menuItemSx}>
-                            {menuUser.role === "editor" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography sx={menuTextSx}>Can edit</Typography>
-                        </MenuItem>,
-                        <MenuItem key="vi" onClick={() => {
-                            changeUserRole(menuTarget as string, "viewer"); closeMenuFn(); 
-                        }} sx={menuItemSx}>
-                            {menuUser.role === "viewer" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography sx={menuTextSx}>Can view</Typography>
-                        </MenuItem>,
-                        <Divider key="d1" sx={{ my: "4px !important" }} />,
-                        <MenuItem key="to" onClick={closeMenuFn} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography sx={menuTextSx}>Transfer ownership</Typography>
-                        </MenuItem>,
-                        <Divider key="d2" sx={{ my: "4px !important" }} />,
-                        <MenuItem key="rm" onClick={() => {
-                            removeUser(menuTarget as string); closeMenuFn(); 
-                        }} sx={menuItemSx}>
-                            <Box sx={{ width: 16 }} /><Typography sx={menuErrSx}>Remove permission</Typography>
-                        </MenuItem>
+                        <TruffleMenuItem key="ed" selected={menuUser.role === "editor"} onClick={() => {
+                            changeUserRole(menuTarget as string, "editor"); closeMenuFn();
+                        }}>
+                            Can edit
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="vi" selected={menuUser.role === "viewer"} onClick={() => {
+                            changeUserRole(menuTarget as string, "viewer"); closeMenuFn();
+                        }}>
+                            Can view
+                        </TruffleMenuItem>,
+                        <Divider key="d1" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="to" onClick={closeMenuFn}>
+                            Transfer ownership
+                        </TruffleMenuItem>,
+                        <Divider key="d2" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="rm" error onClick={() => {
+                            removeUser(menuTarget as string); closeMenuFn();
+                        }}>
+                            Remove permission
+                        </TruffleMenuItem>
                     ]}
 
                     {/* Everyone menu */}
                     {menuTarget === "everyone" && [
-                        <MenuItem key="ed" onClick={() => {
-                            setEveryoneRole("editor"); closeMenuFn(); 
-                        }} sx={menuItemSx}>
-                            {everyoneRole === "editor" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography sx={menuTextSx}>Can edit</Typography>
-                        </MenuItem>,
-                        <MenuItem key="vi" onClick={() => {
-                            setEveryoneRole("viewer"); closeMenuFn(); 
-                        }} sx={menuItemSx}>
-                            {everyoneRole === "viewer" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography sx={menuTextSx}>Can view</Typography>
-                        </MenuItem>,
-                        <Divider key="d1" sx={{ my: "4px !important" }} />,
-                        <MenuItem key="re" onClick={() => {
-                            setEveryoneRole("restricted"); closeMenuFn(); 
-                        }} sx={menuItemSx}>
-                            {everyoneRole === "restricted" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                            <Typography sx={menuTextSx}>Restricted</Typography>
-                        </MenuItem>
+                        <TruffleMenuItem key="ed" selected={everyoneRole === "editor"} onClick={() => {
+                            setEveryoneRole("editor"); closeMenuFn();
+                        }}>
+                            Can edit
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="vi" selected={everyoneRole === "viewer"} onClick={() => {
+                            setEveryoneRole("viewer"); closeMenuFn();
+                        }}>
+                            Can view
+                        </TruffleMenuItem>,
+                        <Divider key="d1" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="re" selected={everyoneRole === "restricted"} onClick={() => {
+                            setEveryoneRole("restricted"); closeMenuFn();
+                        }}>
+                            Restricted
+                        </TruffleMenuItem>
                     ]}
                 </Menu>
 
@@ -800,52 +713,220 @@ export default function ManageAccessDialog({
                     anchorEl={addRoleAnchor}
                     open={Boolean(addRoleAnchor)}
                     onClose={() => setAddRoleAnchor(null)}
-                    PaperProps={{ sx: { borderRadius: "10px", boxShadow: "0px 4px 20px rgba(3,25,79,0.18)", minWidth: 160, p: "4px" } }}
+                    PaperProps={{ sx: addRoleMenuPaperSx }}
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
                     anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 >
-                    <MenuItem onClick={() => {
-                        setAddRole("editor"); setAddRoleAnchor(null); 
-                    }} sx={menuItemSx}>
-                        {addRole === "editor" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                        <Typography sx={menuTextSx}>Can edit</Typography>
-                    </MenuItem>
-                    <MenuItem onClick={() => {
-                        setAddRole("viewer"); setAddRoleAnchor(null); 
-                    }} sx={menuItemSx}>
-                        {addRole === "viewer" ? <CheckIcon sx={{ fontSize: 16, color: "primary.main" }} /> : <Box sx={{ width: 16 }} />}
-                        <Typography sx={menuTextSx}>Can view</Typography>
-                    </MenuItem>
+                    <TruffleMenuItem selected={addRole === "editor"} onClick={() => {
+                        setAddRole("editor"); setAddRoleAnchor(null);
+                    }}>
+                        Can edit
+                    </TruffleMenuItem>
+                    <TruffleMenuItem selected={addRole === "viewer"} onClick={() => {
+                        setAddRole("viewer"); setAddRoleAnchor(null);
+                    }}>
+                        Can view
+                    </TruffleMenuItem>
                 </Menu>
             </Dialog>
 
             {/* Discard confirmation */}
-            <Dialog open={showDiscard} onClose={() => setShowDiscard(false)} maxWidth="xs" fullWidth
-                PaperProps={{ sx: { borderRadius: "8px", boxShadow: "0px 0px 10px rgba(3,25,79,0.25)" } }}
-            >
-                <DialogTitle sx={{ p: "20px 20px 12px" }}>
-                    <Typography variant="h3" sx={{ color: "text.primary" }}>
-            Discard changes?
-                    </Typography>
-                </DialogTitle>
-                <Divider sx={{ borderColor: "divider" }} />
-                <DialogContent sx={{ p: "16px 20px" }}>
-                    <Typography variant="body1" sx={{ color: "text.secondary", lineHeight: 1.6 }}>
-            All your changes will be lost and the permissions will remain unchanged.
+            <Dialog open={showDiscard} onClose={() => setShowDiscard(false)} maxWidth="xs" fullWidth>
+                <TruffleDialogTitle CloseIconButtonProps={{ onClick: () => setShowDiscard(false) }}>
+                    Discard changes?
+                </TruffleDialogTitle>
+                <DialogContent sx={discardDialogContentSx}>
+                    <Typography variant="body1" sx={discardBodyTextSx}>
+                        All your changes will be lost and the permissions will remain unchanged.
                     </Typography>
                 </DialogContent>
-                <Divider sx={{ borderColor: "divider" }} />
-                <DialogActions sx={{ px: "20px", py: "12px", gap: "8px" }}>
-                    <Button variant="text" onClick={() => setShowDiscard(false)}>
-            Keep editing
-                    </Button>
+                <TruffleDialogActions>
+                    <Button variant="text" onClick={() => setShowDiscard(false)}>Keep editing</Button>
                     <Button variant="contained" color="error" onClick={() => {
-                        setShowDiscard(false); onClose();
+                        setShowDiscard(false); onClose(); 
                     }}>
-            Discard
+                        Discard
                     </Button>
-                </DialogActions>
+                </TruffleDialogActions>
             </Dialog>
         </>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const tooltipTitlePrimarySx: SxProps<Theme> = {
+    fontWeight: 600,
+    color: "common.white",
+    lineHeight: 1.5
+};
+
+const popupIconSx: SxProps<Theme> = { fontSize: 18 };
+
+const flexMinWidthSx: SxProps<Theme> = { flex: 1, minWidth: 0 };
+
+const optionNameSx: SxProps<Theme> = { color: "text.primary", lineHeight: 1.4 };
+
+const optionEmailSx: SxProps<Theme> = { color: "text.secondary", lineHeight: 1.3 };
+
+const checkIconSx: SxProps<Theme> = { color: "primary.main", fontSize: 18, flexShrink: 0 };
+
+const displayBlockSx: SxProps<Theme> = { display: "block" };
+
+const autocompleteListboxSx: SxProps<Theme> = {
+    p: "4px",
+    maxHeight: 240,
+    "& .MuiAutocomplete-option": { borderRadius: "6px" }
+};
+
+const autocompletePaperSx: SxProps<Theme> = { borderRadius: "8px", mt: "4px" };
+
+const roleButtonChevronIconSx: SxProps<Theme> = { fontSize: 12 };
+
+const roleButtonChipSx: SxProps<Theme> = { flexShrink: 0, whiteSpace: "nowrap" };
+
+const personRowContainerSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    px: "16px",
+    py: "10px"
+};
+
+const personNameSx: SxProps<Theme> = { color: "text.primary", lineHeight: 1.3 };
+
+const personEmailSx: SxProps<Theme> = { color: "text.secondary", lineHeight: 1.3 };
+
+const addRoleAdornmentSx: SxProps<Theme> = { mr: "-2px", flexShrink: 0 };
+
+const addRoleChevronIconSx: SxProps<Theme> = { fontSize: 14, ml: "-6px" };
+
+const addRoleButtonSx: SxProps<Theme> = {
+    color: "text.primary",
+    bgcolor: "action.hover",
+    borderRadius: "20px",
+    px: "10px",
+    py: "4px",
+    minWidth: 0,
+    whiteSpace: "nowrap",
+    "&:hover": { bgcolor: "action.selected" }
+};
+
+const addUsersTextFieldSx: SxProps<Theme> = {
+    "& .MuiOutlinedInput-root": { borderRadius: "8px", pr: "8px !important" },
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" },
+    "& .MuiInputBase-root": { flexWrap: "wrap", gap: "4px", p: "8px 12px" }
+};
+
+const optionRowSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1.5,
+    px: 1.5,
+    py: 1
+};
+
+const dialogPaperSx: SxProps<Theme> = { width: 560, maxWidth: "98vw" };
+
+const dialogTitleBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px" };
+
+const backButtonSx: SxProps<Theme> = { color: "action.active", ml: "-8px", mr: "4px" };
+
+const dividerSx: SxProps<Theme> = { borderColor: "divider" };
+
+const dialogContentSx: SxProps<Theme> = { p: 0, overflow: "hidden" };
+
+const panelSx: SxProps<Theme> = {
+    width: "50%",
+    flexShrink: 0,
+    p: "24px 28px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px"
+};
+
+const tabGroupSx: SxProps<Theme> = { alignSelf: "flex-start" };
+
+const sectionTitleSx: SxProps<Theme> = { color: "text.primary", mb: "12px", display: "block" };
+
+const accessListBoxSx: SxProps<Theme> = {
+    border: 1,
+    borderColor: "divider",
+    borderRadius: "10px",
+    overflow: "hidden"
+};
+
+const ownerAvatarSx: SxProps<Theme> = {
+    bgcolor: OWNER_USER.color,
+    borderRadius: "8px",
+    flexShrink: 0
+};
+
+const everyoneIconBoxSx: SxProps<Theme> = {
+    width: 36,
+    height: 36,
+    borderRadius: "8px",
+    bgcolor: "primary.light",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0
+};
+
+const everyoneIconSx: SxProps<Theme> = { fontSize: 20, color: "primary.main" };
+
+const everyoneNameSx: SxProps<Theme> = { color: "text.primary" };
+
+const privateAlertSx: SxProps<Theme> = {
+    mt: 1.5,
+    borderRadius: "8px",
+    bgcolor: "primary.light",
+    color: "text.primary",
+    "& .MuiAlert-icon": { color: "primary.main" }
+};
+
+const addUsersPanelSx: SxProps<Theme> = {
+    width: "50%",
+    flexShrink: 0,
+    p: "24px 28px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px"
+};
+
+const checkboxSx: SxProps<Theme> = { "&.Mui-checked": { color: "primary.main" } };
+
+const allowDuplicateLabelSx: SxProps<Theme> = {
+    ml: 0,
+    "& .MuiFormControlLabel-label": { color: "text.primary" }
+};
+
+const dialogActionsSx: SxProps<Theme> = { justifyContent: "space-between" };
+
+const addUserIconSx: SxProps<Theme> = { fontSize: 16 };
+
+const addUserButtonSx: SxProps<Theme> = { color: "primary.main", p: "4px 8px" };
+
+const flexSpacerSx: SxProps<Theme> = { flex: 1 };
+
+const notifyLabelSx: SxProps<Theme> = { mr: "auto" };
+
+const mainMenuPaperSx: SxProps<Theme> = {
+    borderRadius: "10px",
+    boxShadow: "0px 4px 20px rgba(3,25,79,0.18)",
+    minWidth: 210,
+    p: "4px"
+};
+
+const menuDividerSx: SxProps<Theme> = { my: "4px !important" };
+
+const addRoleMenuPaperSx: SxProps<Theme> = {
+    borderRadius: "10px",
+    boxShadow: "0px 4px 20px rgba(3,25,79,0.18)",
+    minWidth: 160,
+    p: "4px"
+};
+
+const discardDialogContentSx: SxProps<Theme> = { p: "16px 20px" };
+
+const discardBodyTextSx: SxProps<Theme> = { color: "text.secondary", lineHeight: 1.6 };

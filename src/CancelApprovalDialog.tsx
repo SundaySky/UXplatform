@@ -1,8 +1,9 @@
 import {
-    Dialog, DialogContent, DialogActions,
+    Dialog, DialogContent,
     Button, Typography
 } from "@mui/material";
-import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import type { SxProps, Theme } from "@mui/material";
+import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 interface Props {
   open: boolean
@@ -22,12 +23,6 @@ export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props
             }}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: "12px",
-                    boxShadow: "0px 0px 10px 0px rgba(3,25,79,0.25)"
-                }
-            }}
         >
             {/* ── Title ────────────────────────────────────────────────────────── */}
             <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
@@ -35,8 +30,8 @@ export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props
             </TruffleDialogTitle>
 
             {/* ── Content ──────────────────────────────────────────────────────── */}
-            <DialogContent sx={{ px: "32px", pt: "0 !important", pb: "8px" }}>
-                <Typography variant="body1" sx={{ color: "text.primary", mb: 1.5 }}>
+            <DialogContent sx={contentSx}>
+                <Typography variant="body1" sx={firstParaSx}>
           To edit this video, you'll need to cancel the current approval.
                 </Typography>
                 <Typography variant="body1" color="text.primary">
@@ -45,26 +40,20 @@ export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props
             </DialogContent>
 
             {/* ── Actions ──────────────────────────────────────────────────────── */}
-            <DialogActions sx={{ px: "32px", pt: 1, pb: "20px", gap: 1, justifyContent: "flex-end" }}>
-                <Button
-                    variant="text"
-                    color="primary"
-                    size="large"
-                    onClick={onClose}
-                >
-          Cancel
+            <TruffleDialogActions>
+                <Button variant="text" color="primary" size="large" onClick={onClose}>
+                    Cancel
                 </Button>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    onClick={() => {
-                        onConfirm(); onClose();
-                    }}
-                >
-          Cancel approval &amp; edit video
+                <Button variant="contained" color="primary" size="large" onClick={() => {
+                    onConfirm(); onClose(); 
+                }}>
+                    Cancel approval &amp; edit video
                 </Button>
-            </DialogActions>
+            </TruffleDialogActions>
         </Dialog>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const contentSx: SxProps<Theme> = { px: "32px", pt: "0 !important", pb: "8px" };
+const firstParaSx: SxProps<Theme> = { color: "text.primary", mb: 1.5 };

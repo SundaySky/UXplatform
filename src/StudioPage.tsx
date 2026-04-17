@@ -1,51 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import type { SxProps, Theme } from "@mui/material";
 import {
-    Box, Typography, IconButton, Button, Avatar,
-    Badge, Dialog, DialogTitle, DialogContent, DialogActions,
+    AppBar, Box, Typography, IconButton, Button,
+    Badge, Dialog, DialogContent,
     TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem,
+    SvgIcon, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, ListSubheader,
     useTheme
 } from "@mui/material";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import UndoIcon from "@mui/icons-material/Undo";
-import RedoIcon from "@mui/icons-material/Redo";
-import BrandingWatermarkOutlinedIcon from "@mui/icons-material/BrandingWatermarkOutlined";
-import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
-import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
-import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
-import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
-import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
-import MicOutlinedIcon from "@mui/icons-material/MicOutlined";
-import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
-import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
-import AspectRatioOutlinedIcon from "@mui/icons-material/AspectRatioOutlined";
-// ImageOutlinedIcon removed — placeholder panel now uses PNGs
-import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-// SmartButtonOutlinedIcon removed — placeholder panel now uses PNGs
-import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
-import CommentOutlinedIcon from "@mui/icons-material/CommentOutlined";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import AlignHorizontalLeftIcon from "@mui/icons-material/AlignHorizontalLeft";
-import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import RemoveIcon from "@mui/icons-material/Remove";
-import TitleIcon from "@mui/icons-material/Title";
-import PaletteIcon from "@mui/icons-material/Palette";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
-import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import LockPersonIcon from "@mui/icons-material/LockPerson";
 import Tooltip from "@mui/material/Tooltip";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import ViewWeekOutlinedIcon from "@mui/icons-material/ViewWeekOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown } from "@fortawesome/pro-regular-svg-icons";
+import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
+import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
 import AvatarLibraryPanel from "./AvatarLibraryPanel";
@@ -71,7 +38,7 @@ function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void
         >
             {icon}
             {label && (
-                <Typography variant="caption" sx={{ color: "primary.main", whiteSpace: "nowrap", lineHeight: 1, fontSize: 13 }}>
+                <Typography variant="caption" sx={{ color: "primary.main", whiteSpace: "nowrap", lineHeight: 1 }}>
                     {label}
                 </Typography>
             )}
@@ -81,43 +48,32 @@ function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void
     return (
         <Box
             onMouseDown={e => e.stopPropagation()}
-            sx={{
-                display: "inline-flex", alignItems: "center",
-                bgcolor: "background.paper", borderRadius: "8px",
-                px: "8px", py: "6px", gap: "6px",
-                boxShadow: "0px 4px 16px rgba(3,25,79,0.18)",
-                userSelect: "none"
-            }}
+            sx={placeholderToolbarWrapperSx}
         >
-            <Pill icon={<EditOutlinedIcon sx={{ fontSize: 14 }} />} label="Edit" onClick={onEditClick} />
+            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" onClick={onEditClick} />
 
             {/* Zoom — single bordered box */}
-            <Box sx={{
-                display: "inline-flex", alignItems: "center", gap: "2px",
-                px: "8px", py: "5px", borderRadius: "8px",
-                borderWidth: 1, borderStyle: "solid", borderColor: "grey.400",
-                bgcolor: "background.paper", color: "primary.main", flexShrink: 0
-            }}>
-                <Box sx={{ display: "flex", cursor: "pointer", "&:hover": { opacity: 0.6 } }}>
-                    <RemoveIcon sx={{ fontSize: 12 }} />
+            <Box sx={pillZoomBoxSx}>
+                <Box sx={pillZoomClickableSx}>
+                    <SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faEraser} /></SvgIcon>
                 </Box>
                 <Typography variant="caption" sx={{ color: "primary.main", mx: "3px", minWidth: 28, textAlign: "center" }}>
           100%
                 </Typography>
-                <Box sx={{ display: "flex", cursor: "pointer", "&:hover": { opacity: 0.6 } }}>
-                    <AddIcon sx={{ fontSize: 12 }} />
+                <Box sx={pillZoomClickableSx}>
+                    <SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
                 </Box>
             </Box>
 
-            <Pill icon={<TitleIcon sx={{ fontSize: 14 }} />} label="Style" />
-            <Pill icon={<AlignHorizontalLeftIcon sx={{ fontSize: 14 }} />} label="Align" />
-            <Pill icon={<PaletteIcon sx={{ fontSize: 14 }} />} label="Color" />
-            <Pill icon={<StarBorderIcon sx={{ fontSize: 14 }} />} label="Timing" />
-            <Pill icon={<ContentCopyOutlinedIcon sx={{ fontSize: 14 }} />} label="Copy" />
-            <Pill icon={<VisibilityOutlinedIcon sx={{ fontSize: 14 }} />} />
-            <Pill icon={<MoreHorizIcon sx={{ fontSize: 16 }} />} />
+            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faT} /></SvgIcon>} label="Style" />
+            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faAlignLeft} /></SvgIcon>} label="Align" />
+            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faPaintbrush} /></SvgIcon>} label="Color" />
+            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>} label="Timing" />
+            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faCopy} /></SvgIcon>} label="Copy" />
+            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEye} /></SvgIcon>} />
+            <Pill icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>} />
             {onDelete && (
-                <Pill icon={<DeleteOutlinedIcon sx={{ fontSize: 14 }} />} onClick={onDelete} />
+                <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>} onClick={onDelete} />
             )}
         </Box>
     );
@@ -155,31 +111,19 @@ function ButtonPlaceholderToolbar({
         <Box
             onMouseDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
-            sx={{
-                display: "inline-flex", alignItems: "center", gap: "4px",
-                bgcolor: "background.paper", borderRadius: "8px",
-                px: "6px", py: "5px",
-                borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
-                boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
-                userSelect: "none", whiteSpace: "nowrap"
-            }}
+            sx={buttonToolbarWrapperSx}
         >
             {/* Edit */}
-            <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Edit" />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Size label + S / M / L / XL toggle */}
-            <Box sx={{ display: "inline-flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                <Typography variant="caption" sx={{
-                    color: "text.primary", letterSpacing: "0.46px", fontSize: 13
-                }}>
+            <Box sx={sizeLabelGroupSx}>
+                <Typography variant="caption" sx={sizeLabelTypographySx}>
           Size
                 </Typography>
-                <Box sx={{
-                    display: "inline-flex", alignItems: "center",
-                    borderWidth: 1, borderStyle: "solid", borderColor: "grey.300", borderRadius: "8px", overflow: "hidden"
-                }}>
+                <Box sx={sizeToggleGroupSx}>
                     {([ ["S", "80 × 28px"], ["M", "120 × 36px"], ["L", "160 × 44px"], ["XL", "200 × 52px"] ] as const).map(([sz, dims], i, arr) => (
                         <Tooltip key={sz} title={dims} placement="top" arrow>
                             <Box
@@ -201,28 +145,28 @@ function ButtonPlaceholderToolbar({
                 </Box>
             </Box>
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Timing (disabled) */}
             <ActionBtn
-                icon={<StarBorderIcon sx={{ fontSize: 13, color: "text.disabled" }} />}
+                icon={<SvgIcon sx={{ fontSize: 13, color: "text.disabled" }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>}
                 label="Timing"
                 disabled
             />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Copy */}
-            <ActionBtn icon={<ContentCopyOutlinedIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Copy" />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faCopy} /></SvgIcon>} label="Copy" />
 
             {/* Delete */}
-            <IconButton size="small" onClick={onDelete} sx={{ color: "error.main", p: "4px", flexShrink: 0 }}>
-                <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+            <IconButton size="small" onClick={onDelete} sx={toolbarDeleteBtnSx}>
+                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
             </IconButton>
 
             {/* More */}
-            <IconButton size="small" sx={{ color: "primary.main", p: "4px", flexShrink: 0 }}>
-                <MoreHorizIcon sx={{ fontSize: 18 }} />
+            <IconButton size="small" sx={toolbarMoreBtnSx}>
+                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>
             </IconButton>
         </Box>
     );
@@ -261,18 +205,11 @@ function BulletPlaceholderToolbar({
     );
 
     const DropdownBtn = ({ label }: { label: string }) => (
-        <Box sx={{
-            display: "inline-flex", alignItems: "center", gap: "4px",
-            px: "8px", py: "3.5px", height: 32, flexShrink: 0,
-            borderRadius: "8px",
-            borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
-            bgcolor: "background.paper", cursor: "pointer",
-            "&:hover": { bgcolor: "action.hover" }
-        }}>
+        <Box sx={dropdownBtnSx}>
             <Typography variant="h6" sx={{ color: "primary.main", lineHeight: 1.5 }}>
                 {label}
             </Typography>
-            <KeyboardArrowDownIcon sx={{ fontSize: 16, color: "primary.main" }} />
+            <SvgIcon sx={{ fontSize: 16, color: "primary.main" }}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>
         </Box>
     );
 
@@ -280,31 +217,19 @@ function BulletPlaceholderToolbar({
         <Box
             onMouseDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
-            sx={{
-                display: "inline-flex", alignItems: "center", gap: "4px",
-                bgcolor: "background.paper", borderRadius: "8px",
-                px: "6px", py: "5px",
-                borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
-                boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
-                userSelect: "none", whiteSpace: "nowrap"
-            }}
+            sx={buttonToolbarWrapperSx}
         >
             {/* Edit */}
-            <ActionBtn icon={<EditOutlinedIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Edit" onClick={onEditClick} />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" onClick={onEditClick} />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Icon size label + S / M / L / XL toggle */}
-            <Box sx={{ display: "inline-flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                <Typography variant="caption" sx={{
-                    color: "text.primary", letterSpacing: "0.46px", fontSize: 13
-                }}>
+            <Box sx={sizeLabelGroupSx}>
+                <Typography variant="caption" sx={sizeLabelTypographySx}>
           Icon size
                 </Typography>
-                <Box sx={{
-                    display: "inline-flex", alignItems: "center",
-                    borderWidth: 1, borderStyle: "solid", borderColor: "grey.300", borderRadius: "8px", overflow: "hidden"
-                }}>
+                <Box sx={sizeToggleGroupSx}>
                     {([ ["S", "16 × 16px"], ["M", "20 × 20px"], ["L", "24 × 24px"], ["XL", "32 × 32px"] ] as const).map(([sz, dims], i, arr) => (
                         <Tooltip key={sz} title={dims} placement="top" arrow>
                             <Box
@@ -326,7 +251,7 @@ function BulletPlaceholderToolbar({
                 </Box>
             </Box>
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Bullet formatting dropdown */}
             <DropdownBtn label="Bullet formatting" />
@@ -334,21 +259,21 @@ function BulletPlaceholderToolbar({
             {/* Text formatting dropdown */}
             <DropdownBtn label="Text formatting" />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Timing (enabled, blue star) */}
-            <ActionBtn icon={<StarBorderIcon sx={{ fontSize: 13, color: "primary.main" }} />} label="Timing" />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>} label="Timing" />
 
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300", mx: "2px" }} />
+            <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Delete */}
-            <IconButton size="small" onClick={onDelete} sx={{ color: "error.main", p: "4px", flexShrink: 0 }}>
-                <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+            <IconButton size="small" onClick={onDelete} sx={toolbarDeleteBtnSx}>
+                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
             </IconButton>
 
             {/* More */}
-            <IconButton size="small" onClick={(e) => onOptionsMenuClick?.(e.currentTarget)} sx={{ color: "primary.main", p: "4px", flexShrink: 0 }}>
-                <MoreHorizIcon sx={{ fontSize: 18 }} />
+            <IconButton size="small" onClick={(e) => onOptionsMenuClick?.(e.currentTarget)} sx={toolbarMoreBtnSx}>
+                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>
             </IconButton>
         </Box>
     );
@@ -380,27 +305,22 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
             maxWidth={false}
             PaperProps={{
                 elevation: 8,
-                sx: {
-                    width: 480, borderRadius: "16px", overflow: "hidden"
-                }
+                sx: editHeadingDialogPaperSx
             }}
         >
             {/* Header */}
-            <Box sx={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                px: 3, pt: 3, pb: 2
-            }}>
+            <Box sx={dialogHeaderRowSx}>
                 <Typography variant="h2" sx={{ color: "text.primary" }}>
                     {title ?? "Heading"}
                 </Typography>
                 <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
-                    <CloseIcon sx={{ fontSize: 18 }} />
+                    <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                 </IconButton>
             </Box>
 
-            <DialogContent sx={{ px: 3, pt: 0, pb: 3 }}>
+            <DialogContent sx={editHeadingDialogContentSx}>
                 {/* Message by audience toggle */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
+                <Box sx={audienceToggleRowSx}>
                     <Switch
                         checked={byAudience}
                         onChange={e => setByAudience(e.target.checked)}
@@ -410,14 +330,12 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
             Message by audience
                     </Typography>
                     <Tooltip title="Personalize the heading text per viewer" placement="top" arrow>
-                        <HelpOutlineIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }} />
+                        <SvgIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
                     </Tooltip>
                 </Box>
 
                 {/* Text input with formatting bar */}
-                <Box sx={{
-                    borderWidth: 2, borderStyle: "solid", borderColor: "primary.main", borderRadius: "8px", overflow: "hidden"
-                }}>
+                <Box sx={textInputBorderBoxSx}>
                     {/* Text area */}
                     <TextField
                         fullWidth
@@ -441,20 +359,13 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
 
                     {/* Divider + format buttons */}
                     <Divider />
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, px: 1, py: 0.75 }}>
-                        <Box sx={{
-                            px: 1, py: 0.5, borderRadius: "6px", bgcolor: "action.selected",
-                            cursor: "pointer", display: "flex", alignItems: "center"
-                        }}>
+                    <Box sx={formatButtonRowSx}>
+                        <Box sx={formatBoldBtnSx}>
                             <Typography sx={{ fontFamily: "serif", fontWeight: 700, fontSize: 18, color: "primary.main", lineHeight: 1 }}>
                 B
                             </Typography>
                         </Box>
-                        <Box sx={{
-                            px: 1, py: 0.5, borderRadius: "6px",
-                            cursor: "pointer", display: "flex", alignItems: "center",
-                            "&:hover": { bgcolor: "action.hover" }
-                        }}>
+                        <Box sx={formatItalicBtnSx}>
                             <Typography sx={{ fontFamily: "serif", fontStyle: "italic", fontSize: 18, color: "text.primary", lineHeight: 1 }}>
                 I
                             </Typography>
@@ -466,11 +377,7 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
                 <Typography
                     variant="caption"
                     component="span"
-                    sx={{
-                        fontSize: 13,
-                        color: "primary.main", cursor: "pointer", mt: 1, display: "inline-block",
-                        "&:hover": { textDecoration: "underline" }
-                    }}
+                    sx={personalizeHintSx}
                 >
           Enter text and personalize using {"{"}
                 </Typography>
@@ -506,17 +413,12 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
             maxWidth={false}
             PaperProps={{
                 elevation: 8,
-                sx: {
-                    width: 1200, borderRadius: "16px", overflow: "hidden"
-                }
+                sx: editBulletDialogPaperSx
             }}
         >
             {/* Header */}
-            <Box sx={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                px: 3, pt: 3, pb: 2
-            }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Box sx={dialogHeaderRowSx}>
+                <Box sx={dialogHeaderTitleGroupSx}>
                     <Typography variant="h2" sx={{ color: "text.primary" }}>
             Bullet point
                     </Typography>
@@ -525,15 +427,15 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                     </Typography>
                 </Box>
                 <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
-                    <CloseIcon sx={{ fontSize: 18 }} />
+                    <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                 </IconButton>
             </Box>
 
-            <DialogContent sx={{ px: 3, pt: 2, pb: 3, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            <DialogContent sx={editBulletDialogContentSx}>
                 {/* Left side */}
                 <Box>
                     {/* Message by audience toggle */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+                    <Box sx={bulletAudienceToggleRowSx}>
                         <Switch
                             checked={byAudience}
                             onChange={e => setByAudience(e.target.checked)}
@@ -543,7 +445,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
               Message by audience
                         </Typography>
                         <Tooltip title="Personalize the bullet text per viewer" placement="top" arrow>
-                            <HelpOutlineIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }} />
+                            <SvgIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
                         </Tooltip>
                     </Box>
 
@@ -595,7 +497,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                     </Box>
 
                     {/* Helper text label */}
-                    <Typography variant="caption" sx={{ color: "text.primary", mb: 1.5, fontSize: 13 }}>
+                    <Typography variant="caption" sx={{ color: "text.primary", mb: 1.5 }}>
             Helper text
                     </Typography>
 
@@ -613,20 +515,20 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                             bgcolor: "primary.main", borderRadius: "8px",
                             display: "flex", alignItems: "center", justifyContent: "center"
                         }}>
-                            <FormatListBulletedIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: "background.paper" }} />
+                            <SvgIcon sx={{ fontSize: iconSizeMap[bulletIconSize], color: "background.paper" }}><FontAwesomeIcon icon={faListUl} /></SvgIcon>
                         </Box>
                     </Box>
 
                     {/* Buttons */}
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                        <Button variant="outlined" startIcon={<UndoIcon />} sx={{ flex: 1, color: "primary.main", borderColor: "primary.main" }}>
+                    <Box sx={bulletActionButtonsRowSx}>
+                        <Button variant="outlined" startIcon={<SvgIcon><FontAwesomeIcon icon={faArrowTurnLeft} /></SvgIcon>} sx={bulletDialogFlexBtnSx}>
               Replace
                         </Button>
-                        <Button variant="outlined" startIcon={<EditOutlinedIcon />} sx={{ flex: 1, color: "primary.main", borderColor: "primary.main" }}>
+                        <Button variant="outlined" startIcon={<SvgIcon><FontAwesomeIcon icon={faPen} /></SvgIcon>} sx={bulletDialogFlexBtnSx}>
               Edit
                         </Button>
                         <IconButton sx={{ color: "primary.main" }}>
-                            <MoreHorizIcon />
+                            <SvgIcon><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>
                         </IconButton>
                     </Box>
                 </Box>
@@ -634,14 +536,12 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                 {/* Right side */}
                 <Box>
                     {/* Value label */}
-                    <Typography variant="caption" sx={{ color: "text.primary", mb: 1, fontSize: 13 }}>
+                    <Typography variant="caption" sx={{ color: "text.primary", mb: 1 }}>
             Value
                     </Typography>
 
                     {/* Text input with formatting bar */}
-                    <Box sx={{
-                        borderWidth: 2, borderStyle: "solid", borderColor: "primary.main", borderRadius: "8px", overflow: "hidden"
-                    }}>
+                    <Box sx={textInputBorderBoxSx}>
                         {/* Text area */}
                         <TextField
                             fullWidth
@@ -690,7 +590,6 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                         variant="caption"
                         component="span"
                         sx={{
-                            fontSize: 13,
                             color: "primary.main", cursor: "pointer", mt: 1, display: "inline-block",
                             "&:hover": { textDecoration: "underline" }
                         }}
@@ -705,53 +604,6 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
 
 const IMG_THUMB = "/thumb.svg";
 
-const GRADIENT_BTN =
-  "linear-gradient(146.457deg, rgb(235,137,241) 0%, rgb(0,83,229) 100%)";
-
-// Design tokens removed — all colors now use MUI theme palette paths
-
-// ─── Section label ────────────────────────────────────────────────────────────
-function NavSection({ label }: { label: string }) {
-    return (
-        <Typography variant="caption" sx={{
-            letterSpacing: "1px", textTransform: "uppercase",
-            color: "text.secondary", px: "12px", pb: "8px", lineHeight: 1.5,
-            opacity: 0.8
-        }}>
-            {label}
-        </Typography>
-    );
-}
-
-// ─── Left nav item ────────────────────────────────────────────────────────────
-function NavItem({
-    icon, label, selected, onClick
-}: {
-  icon: React.ReactNode; label: string; selected?: boolean; onClick?: () => void
-}) {
-    return (
-        <Box
-            onClick={onClick}
-            sx={{
-                display: "flex", alignItems: "center", gap: "8px",
-                px: "12px", py: "8px", borderRadius: "8px 0 0 8px",
-                cursor: "pointer",
-                bgcolor: selected ? "divider" : "transparent",
-                "&:hover": { bgcolor: selected ? "divider" : "action.hover" }
-            }}
-        >
-            <Box sx={{ color: selected ? "primary.main" : "action.active", display: "flex" }}>
-                {icon}
-            </Box>
-            <Typography variant={selected ? "subtitle2" : "body1"} sx={{
-                lineHeight: 1.5,
-                color: selected ? "text.primary" : "text.secondary"
-            }}>
-                {label}
-            </Typography>
-        </Box>
-    );
-}
 
 // ─── Comments panel — draggable + resizable ───────────────────────────────────
 // checkedNow = checked this panel session (stays in Unresolved with strikethrough)
@@ -788,20 +640,10 @@ export const INITIAL_THREADS: CommentThread[] = [
 function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: boolean; count: number; onClose: () => void; onConfirm: () => void }) {
     const [explanation, setExplanation] = useState("");
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-            sx={{ zIndex: 1500 }}
-            PaperProps={{ sx: { borderRadius: "12px", boxShadow: "0px 0px 10px rgba(3,25,79,0.25)" } }}
-        >
-            <DialogTitle sx={{
-                lineHeight: 1.5, letterSpacing: 0, color: "text.primary",
-                pb: 1, pr: 6
-            }}>
-        Unresolved comments require explanation
-                <IconButton onClick={onClose} size="small"
-                    sx={{ position: "absolute", top: 12, right: 12, color: "action.active" }}>
-                    <CloseIcon sx={{ fontSize: 20 }} />
-                </IconButton>
-            </DialogTitle>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth sx={{ zIndex: 1500 }}>
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
+                Unresolved comments require explanation
+            </TruffleDialogTitle>
             <DialogContent sx={{ pt: "8px !important" }}>
                 <Typography sx={{
                     lineHeight: 1.5, color: "text.primary", mb: 2
@@ -828,14 +670,14 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
                     InputProps={{ sx: { letterSpacing: "0.15px" } }}
                 />
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2, gap: "8px" }}>
-                <Button variant="text" color="primary" size="large" onClick={onClose}>
-          Cancel
+            <TruffleDialogActions>
+                <Button variant="outlined" color="primary" size="large" onClick={onClose}>
+                    Cancel
                 </Button>
                 <Button variant="contained" color="primary" size="large" onClick={onConfirm}>
-          Send for approvers
+                    Send for approvers
                 </Button>
-            </DialogActions>
+            </TruffleDialogActions>
         </Dialog>
     );
 }
@@ -936,12 +778,7 @@ function CommentsPanel({
             }}>
 
                 {/* ── Header (drag to move) ─────────────────────────────────────── */}
-                <Box onMouseDown={onHeaderMouseDown} sx={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    px: 2, pt: 1, pb: 1,
-                    cursor: "grab", "&:active": { cursor: "grabbing" },
-                    userSelect: "none", flexShrink: 0
-                }}>
+                <Box onMouseDown={onHeaderMouseDown} sx={commentsPanelHeaderSx}>
                     <Typography sx={{
                         color: "text.primary", lineHeight: 1.5
                     }}>
@@ -952,19 +789,13 @@ function CommentsPanel({
                         onClick={onClose}
                         sx={{ color: "text.primary", p: "8px", borderRadius: "8px" }}
                     >
-                        <CloseIcon sx={{ fontSize: 16 }} />
+                        <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                     </IconButton>
                 </Box>
 
                 {/* ── Toggle tab selector (ToggleButtonGroup pill style) ────────── */}
-                <Box sx={{ px: 2, pb: "8px", flexShrink: 0 }}>
-                    <Box sx={{
-                        display: "inline-flex",
-                        borderWidth: 1, borderStyle: "solid", borderColor: "grey.300",
-                        borderRadius: "8px",
-                        padding: "1px",
-                        gap: 0
-                    }}>
+                <Box sx={commentsTabAreaSx}>
+                    <Box sx={commentsTabGroupSx}>
                         {[
                             { key: "unresolved", label: awaitingApprovers ? "Unresolved" : `Unresolved (${unresolvedCount})` },
                             { key: "completed", label: "Completed" }
@@ -981,7 +812,7 @@ function CommentsPanel({
                                 }}
                             >
                                 <Typography sx={{
-                                                                        lineHeight: 1.5,
+                                    lineHeight: 1.5,
                                     color: tab === key ? "text.primary" : "text.secondary",
                                     whiteSpace: "nowrap"
                                 }}>
@@ -997,18 +828,14 @@ function CommentsPanel({
 
                 {/* ── "View version" link — Unresolved tab only, hidden when no comments ── */}
                 {tab === "unresolved" && unresolvedCount > 0 && (
-                    <Box sx={{
-                        px: 2, py: "8px", flexShrink: 0,
-                        display: "flex", alignItems: "center", gap: "4px",
-                        cursor: "pointer", "&:hover": { opacity: 0.8 }
-                    }}>
-                        <VisibilityOutlinedIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                    <Box sx={commentsViewVersionRowSx}>
+                        <SvgIcon sx={{ fontSize: 14, color: "primary.main" }}><FontAwesomeIcon icon={faEye} /></SvgIcon>
                         <Typography sx={{
                             color: "primary.main", lineHeight: 1.5
                         }}>
               View version sent for approval
                         </Typography>
-                        <ArrowForwardIosIcon sx={{ fontSize: 11, color: "primary.main" }} />
+                        <SvgIcon sx={{ fontSize: 11, color: "primary.main" }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
                     </Box>
                 )}
 
@@ -1059,11 +886,7 @@ function CommentsPanel({
                                                     checked={isChecked}
                                                     onChange={() => tab === "unresolved" && toggleCheck(thread.id, originalIdx)}
                                                     disabled={tab === "completed"}
-                                                    sx={{
-                                                        p: "2px", flexShrink: 0, mt: "1px",
-                                                        color: "action.active",
-                                                        "&.Mui-checked": { color: "primary.main" }
-                                                    }}
+                                                    sx={commentCheckboxSx}
                                                 />
                                                 <Typography sx={{
                                                     color: isChecked ? "text.secondary" : "text.primary",
@@ -1096,20 +919,12 @@ function CommentsPanel({
 
                 {/* ── Footer: "Resend for approval" — hidden when awaiting approvers or no comments yet ── */}
                 {!awaitingApprovers && threads.length > 0 && (
-                    <Box sx={{
-                        px: 2, py: "12px",
-                        borderTop: 1, borderTopStyle: "solid", borderTopColor: "grey.400",
-                        flexShrink: 0,
-                        display: "flex", justifyContent: "flex-end"
-                    }}>
+                    <Box sx={commentsPanelFooterSx}>
                         <Button
                             variant="contained"
                             size="small"
                             onClick={handleRequestApproval}
-                            sx={{
-                                bgcolor: "primary.main", "&:hover": { bgcolor: "primary.dark" },
-                                px: 2
-                            }}
+                            sx={commentsResendBtnSx}
                         >
               Resend for approval
                         </Button>
@@ -1133,58 +948,51 @@ function CommentsPanel({
 // ─── Scene thumbnail ──────────────────────────────────────────────────────────
 function SceneThumbnail({ index, selected, headingText, subheadingText, footnoteText, onClick }: { index: number; selected: boolean; headingText?: string; subheadingText?: string; footnoteText?: string; onClick?: () => void }) {
     return (
-        <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", alignItems: "center", cursor: "pointer" }}>
-            <Typography sx={{
-                color: "text.secondary", letterSpacing: "0.4px"
-            }}>
-        Scene {index + 1}
-            </Typography>
-            <Box sx={{
-                width: "100%", aspectRatio: "16/9",
-                bgcolor: "grey.100",
-                borderWidth: selected ? 2 : 1, borderStyle: "solid", borderColor: selected ? "primary.main" : "grey.400",
-                borderRadius: "8px", overflow: "hidden",
-                position: "relative"
-            }}>
-                <Box component="img" src={IMG_THUMB} alt=""
-                    sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        <ThumbnailActions
+            selected={selected}
+            showActions="onHover"
+            onClick={onClick}
+            label={<Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>}
+            rightActions={
+                <ThumbnailActionsIconButton size="small">
+                    <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                </ThumbnailActionsIconButton>
+            }
+            sx={sceneThumbnailOuterSx}
+            ContentProps={{ sx: sceneThumbnailContentSx }}
+        >
+            <Box component="img" src={IMG_THUMB} alt="" sx={sceneThumbnailImgSx} />
 
-                {/* Cover left half of SVG — white bg + pink accent line */}
-                <Box sx={{ position: "absolute", inset: 0, width: "50%", bgcolor: "background.paper", pointerEvents: "none" }}>
-                    <Box sx={{ height: 3, bgcolor: "#C084FC", width: "100%" }} />
-                </Box>
-
-                {/* Right side — drag media */}
-                <Box sx={{
-                    position: "absolute", top: 0, right: 0, bottom: 0, width: "50%",
-                    background: "repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 6px, #E2E2E7 6px, #E2E2E7 12px)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    gap: "4px", pointerEvents: "none"
-                }}>
-                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 22, color: "action.disabled" }} />
-                    <Typography variant="caption" sx={{ fontSize: 7, color: "action.disabled" }}>
-            Drag media here
-                    </Typography>
-                </Box>
-
-                {/* Heading + sub-heading — flowing column */}
-                <Box sx={{ position: "absolute", left: "4%", top: "18%", width: "44%", containerType: "inline-size", pointerEvents: "none", display: "flex", flexDirection: "column" }}>
-                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw", color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word" }}>
-                        {headingText ?? ""}
-                    </Typography>
-                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw", color: "text.primary", lineHeight: 1.4, wordBreak: "break-word", mt: "5%" }}>
-                        {subheadingText ?? "Sub-heading Placeholder"}
-                    </Typography>
-                </Box>
-
-                {/* Footnote */}
-                <Box sx={{ position: "absolute", left: "4%", width: "44%", bottom: "5%", containerType: "inline-size", pointerEvents: "none" }}>
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: "2.5cqw", letterSpacing: "0.4px", color: "text.secondary", lineHeight: 1.66 }}>
-                        {footnoteText ?? "Footnote placeholder"}
-                    </Typography>
-                </Box>
+            {/* Cover left half of SVG — white bg + pink accent line */}
+            <Box sx={thumbLeftCoverSx}>
+                <Box sx={{ height: 3, bgcolor: "#C084FC", width: "100%" }} />
             </Box>
-        </Box>
+
+            {/* Right side — drag media */}
+            <Box sx={thumbRightDragAreaSmSx}>
+                <SvgIcon sx={{ fontSize: 22, color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
+                <Typography variant="caption" sx={{ fontSize: 7, color: "action.disabled" }}>
+            Drag media here
+                </Typography>
+            </Box>
+
+            {/* Heading + sub-heading — flowing column */}
+            <Box sx={thumbHeadingColumnSx}>
+                <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw", color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word" }}>
+                    {headingText ?? ""}
+                </Typography>
+                <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw", color: "text.primary", lineHeight: 1.4, wordBreak: "break-word", mt: "5%" }}>
+                    {subheadingText ?? "Sub-heading Placeholder"}
+                </Typography>
+            </Box>
+
+            {/* Footnote */}
+            <Box sx={thumbFootnoteBoxSx}>
+                <Typography sx={thumbFootnoteTypographySx}>
+                    {footnoteText ?? "Footnote placeholder"}
+                </Typography>
+            </Box>
+        </ThumbnailActions>
     );
 }
 
@@ -1223,23 +1031,21 @@ function PlaceholderIcon({ size = 28, color }: { size?: number; color?: string }
 
 function CustomSceneThumbnail({ index, selected, onClick }: { index: number; selected: boolean; onClick?: () => void }) {
     return (
-        <Box onClick={onClick} sx={{ width: 140, flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", alignItems: "center", cursor: "pointer" }}>
-            <Typography sx={{
-                color: "text.secondary", letterSpacing: "0.4px"
-            }}>
-        Scene {index + 1}
-            </Typography>
-            <Box sx={{
-                width: "100%", aspectRatio: "16/9",
-                bgcolor: "grey.100",
-                borderWidth: selected ? 2 : 1, borderStyle: "solid", borderColor: selected ? "primary.main" : "grey.400",
-                borderRadius: "8px", overflow: "hidden",
-                position: "relative",
-                display: "flex", alignItems: "center", justifyContent: "center"
-            }}>
-                <PlaceholderIcon size={28} />
-            </Box>
-        </Box>
+        <ThumbnailActions
+            selected={selected}
+            showActions="onHover"
+            onClick={onClick}
+            label={<Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>}
+            rightActions={
+                <ThumbnailActionsIconButton size="small">
+                    <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                </ThumbnailActionsIconButton>
+            }
+            sx={sceneThumbnailOuterSx}
+            ContentProps={{ sx: { ...sceneThumbnailContentSx, display: "flex", alignItems: "center", justifyContent: "center" } }}
+        >
+            <PlaceholderIcon size={28} />
+        </ThumbnailActions>
     );
 }
 
@@ -1501,16 +1307,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       {
           section: "STYLE",
           items: [
-              { icon: <BrandingWatermarkOutlinedIcon sx={{ fontSize: 20 }} />, label: "Brand" },
-              { icon: <PaletteOutlinedIcon sx={{ fontSize: 20 }} />, label: "Theme" },
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faPalette} /></SvgIcon>, label: "Brand" },
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faPaintbrush} /></SvgIcon>, label: "Theme" },
               {
                   icon: (
                       <Badge
                           badgeContent={avatarReqCount > 0 ? avatarReqCount : undefined}
                           color="error"
-                          sx={{ "& .MuiBadge-badge": { fontSize: 9, minWidth: 14, height: 14, padding: 0 } }}
+                          sx={navBadgeSx}
                       >
-                          <PersonOutlinedIcon sx={{ fontSize: 20 }} />
+                          <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faCircleUser} /></SvgIcon>
                       </Badge>
                   ),
                   label: "Avatar"
@@ -1520,18 +1326,18 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       {
           section: "LIBRARIES",
           items: [
-              { icon: <PermMediaOutlinedIcon sx={{ fontSize: 20 }} />, label: "Media" },
-              { icon: <MusicNoteOutlinedIcon sx={{ fontSize: 20 }} />, label: "Music" },
-              { icon: <MicOutlinedIcon sx={{ fontSize: 20 }} />, label: "Voice" },
-              { icon: <StorageOutlinedIcon sx={{ fontSize: 20 }} />, label: "Data" },
-              { icon: <InputOutlinedIcon sx={{ fontSize: 20 }} />, label: "Input fields" }
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faPhotoFilm} /></SvgIcon>, label: "Media" },
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faMusic} /></SvgIcon>, label: "Music" },
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faMicrophone} /></SvgIcon>, label: "Voice" },
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faDatabase} /></SvgIcon>, label: "Data" },
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faInputText} /></SvgIcon>, label: "Input fields" }
           ]
       },
       {
           section: "SETTINGS",
           items: [
-              { icon: <AspectRatioOutlinedIcon sx={{ fontSize: 20 }} />, label: "Aspect ratio" },
-              { icon: <LanguageOutlinedIcon sx={{ fontSize: 20 }} />, label: "Languages" }
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faCropSimple} /></SvgIcon>, label: "Aspect ratio" },
+              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faLanguage} /></SvgIcon>, label: "Languages" }
           ]
       },
       {
@@ -1542,14 +1348,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       <Badge
                           badgeContent={unreadCount > 0 ? unreadCount : undefined}
                           color="error"
-                          sx={{ "& .MuiBadge-badge": { fontSize: 9, minWidth: 14, height: 14, padding: 0 } }}
+                          sx={navBadgeSx}
                       >
-                          <CommentOutlinedIcon sx={{ fontSize: 20 }} />
+                          <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faComment} /></SvgIcon>
                       </Badge>
                   ),
                   label: "Comments",
                   onClickOverride: () => {
-                      setCommentsOpen(true); 
+                      setCommentsOpen(true);
                   }
               }
           ]
@@ -1560,123 +1366,74 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       <Box sx={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflow: "hidden" }}>
 
           {/* ── Appbar ─────────────────────────────────────────────────────────── */}
-          <Box sx={{
-              height: 56, flexShrink: 0, bgcolor: "secondary.main",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              px: 0, borderBottom: "1px solid rgba(255,255,255,0.08)"
-          }}>
-              {/* Left */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  {/* Logo — click to go to library */}
-                  <Box
-                      onClick={onNavigateToLibrary}
-                      sx={{
-                          width: 56, height: 56, flexShrink: 0,
-                          display: "flex", flexDirection: "column",
-                          alignItems: "center", justifyContent: "center",
-                          cursor: "pointer", "&:hover": { opacity: 0.75 }
-                      }}
-                  >
-                      {[{ chars: "SUN", color: "background.paper" }, { chars: "DAY", color: "background.paper" }, { chars: "SKY", color: "primary.main" }]
-                          .map(({ chars, color }) => (
-                              <Typography key={chars} variant="caption" sx={{
-                                  fontSize: 9,
-                                  letterSpacing: "0.22em", lineHeight: 1.4, color, display: "block"
-                              }}>
-                                  {chars}
-                              </Typography>
-                          ))}
-                  </Box>
-                  {/* Video name */}
-                  <Typography sx={{
-                      color: "background.paper", lineHeight: 1.2, letterSpacing: "0.15px"
-                  }}>
-                      {videoTitle}
-                  </Typography>
-                  {/* Language badge */}
-                  <Box sx={{
-                      display: "flex", alignItems: "center", gap: "4px",
-                      px: "10px", py: "4px", borderRadius: "8px",
-                      border: "1px solid rgba(255,255,255,0.25)", cursor: "pointer"
-                  }}>
-                      <Typography sx={{ fontSize: 13 }}>🇺🇸</Typography>
-                      <Typography sx={{
-                          color: "background.paper"
-                      }}>
-              EN
+          <AppBar position="static" color="secondary" elevation={0} sx={studioAppBarSx}>
+              <Toolbar variant="dense" disableGutters sx={studioToolbarSx}>
+                  {/* Left — logo + video name + save indicator */}
+                  <Box sx={studioAppBarLeftSx}>
+                      {/* Logo — click to go to library */}
+                      <Box onClick={onNavigateToLibrary} sx={studioLogoSx}>
+                          <Box component="img" src="" alt="sundaysky-logo" sx={studioLogoImgSx} />
+                      </Box>
+                      {/* Save indicator */}
+                      <SvgIcon sx={{ fontSize: 16, color: "action.disabledBackground" }}>
+                          <FontAwesomeIcon icon={faCloudCheck} />
+                      </SvgIcon>
+                      {/* Video name */}
+                      <Typography variant="h4" noWrap sx={{ color: "common.white" }}>
+                          {videoTitle}
                       </Typography>
+                      {/* Language badge */}
+                      <Box sx={studioLangBadgeSx}>
+                          <Typography variant="caption">🇺🇸</Typography>
+                          <Typography variant="body2" sx={{ color: "common.white" }}>EN</Typography>
+                      </Box>
                   </Box>
-              </Box>
 
-              {/* Right */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: 2 }}>
-                  <IconButton size="small" sx={{ color: "rgba(255,255,255,0.7)" }}>
-                      <UndoIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                  <IconButton size="small" sx={{ color: "rgba(255,255,255,0.7)" }}>
-                      <RedoIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                  <Box sx={{ width: "1px", height: 20, bgcolor: "rgba(255,255,255,0.2)", mx: 0.5 }} />
-                  {/* Manage permissions button */}
-                  <Tooltip
-                      title="Manage permission"
-                      placement="bottom"
-                      arrow
-                      componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main", borderRadius: "8px", px: 1.5, py: 1, "& .MuiTooltip-arrow": { color: "secondary.main" } } } }}
-                  >
-                      <IconButton
-                          size="small"
-                          onClick={() => setVideoPermOpen(true)}
-                          sx={{
-                              bgcolor: "secondary.main",
-                              borderRadius: "8px",
-                              p: "5px",
-                              border: "1px solid rgba(255,255,255,0.5)",
-                              "&:hover": { bgcolor: "rgba(3,25,79,0.7)" }
-                          }}
-                      >
-                          <LockPersonIcon sx={{ fontSize: 20, color: "background.paper" }} />
+                  {/* Right */}
+                  <Box sx={studioAppBarRightSx}>
+                      <IconButton size="medium" color="inherit">
+                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faArrowTurnLeft} /></SvgIcon>
                       </IconButton>
-                  </Tooltip>
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: OWNER_USER.color, fontSize: 12 }}>
-                      {OWNER_USER.initials}
-                  </Avatar>
-                  <NotificationBell dark notifications={notifications} />
-                  <Box sx={{ width: "1px", height: 20, bgcolor: "rgba(255,255,255,0.2)", mx: 0.5 }} />
-                  {/* Video Page button */}
-                  <Button
-                      size="small"
-                      endIcon={<ArrowForwardIosIcon sx={{ fontSize: "11px !important" }} />}
-                      onClick={onNavigateToVideoPage}
-                      sx={{
-                          background: GRADIENT_BTN, color: "background.paper",
-                          px: 2, whiteSpace: "nowrap",
-                          "&:hover": { opacity: 0.88, background: GRADIENT_BTN }
-                      }}
-                  >
-            Video Page
-                  </Button>
-              </Box>
-          </Box>
+                      <IconButton size="medium" color="inherit">
+                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faArrowTurnRight} /></SvgIcon>
+                      </IconButton>
+                      <Divider orientation="vertical" flexItem sx={studioDividerSx} />
+                      {/* Manage permissions button */}
+                      <Tooltip title="Manage permission" placement="bottom" arrow slotProps={{ tooltip: { sx: studioTooltipSx } }}>
+                          <IconButton size="medium" onClick={() => setVideoPermOpen(true)} sx={studioPermBtnSx}>
+                              <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                          </IconButton>
+                      </Tooltip>
+                      <TruffleAvatar text={OWNER_USER.initials} size="small" />
+                      <NotificationBell dark notifications={notifications} />
+                      <Divider orientation="vertical" flexItem sx={studioDividerSx} />
+                      {/* Video Page button */}
+                      <Button
+                          variant="contained"
+                          color="gradient"
+                          size="medium"
+                          endIcon={<SvgIcon sx={{ fontSize: 11 }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>}
+                          onClick={onNavigateToVideoPage}
+                          sx={studioVideoPageBtnSx}
+                      >
+                          Video Page
+                      </Button>
+                  </Box>
+              </Toolbar>
+          </AppBar>
 
           {/* ── Content ────────────────────────────────────────────────────────── */}
-          <Box sx={{ flex: 1, display: "flex", overflow: "hidden" }}>
+          <Box sx={studioContentAreaSx}>
 
               {/* Left nav */}
-              <Box sx={{
-                  width: 180, flexShrink: 0, bgcolor: "background.paper",
-                  borderRight: 1, borderRightStyle: "solid", borderRightColor: "divider",
-                  overflowY: "auto", pt: "16px",
-                  display: "flex", flexDirection: "column", gap: "24px"
-              }}>
+              <Box sx={studioLeftNavSx}>
                   {NAV_SECTIONS.map(({ section, items }) => (
-                      <Box key={section}>
-                          <NavSection label={section} />
+                      <List key={section} dense disablePadding>
+                          <ListSubheader disableSticky sx={navSubheaderSx}>{section}</ListSubheader>
                           {items.map(({ icon, label, onClickOverride }: { icon: React.ReactNode; label: string; onClickOverride?: () => void }) => (
-                              <NavItem
+                              <ListItemButton
                                   key={label}
-                                  icon={icon}
-                                  label={label}
+                                  dense
                                   selected={activeNav === label}
                                   onClick={() => {
                                       if (label === "Avatar") {
@@ -1692,7 +1449,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       }
                                       else if (label === "Media") {
                                           if (activeNav === "Media" && mediaLibOpen) {
-                                              // Toggle off
                                               setMediaLibOpen(false);
                                               setActiveNav(null);
                                           }
@@ -1712,9 +1468,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           }
                                       }
                                   }}
-                              />
+                                  sx={navItemButtonSx}
+                              >
+                                  <ListItemIcon sx={navItemIconSx}>{icon}</ListItemIcon>
+                                  <ListItemText
+                                      primary={label}
+                                      primaryTypographyProps={{ variant: "body2", color: activeNav === label ? "text.primary" : "text.secondary" }}
+                                  />
+                              </ListItemButton>
                           ))}
-                      </Box>
+                      </List>
                   ))}
               </Box>
 
@@ -1739,27 +1502,25 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               />
 
               {/* Stage */}
-              <Box sx={{ flex: 1, bgcolor: "other.editorBackground", display: "flex", flexDirection: "column", overflow: "visible" }}>
+              <Box sx={stageContainerSx}>
 
                   {/* Live preview area */}
-                  <Box sx={{
-                      flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                      px: 2, py: 3, overflow: "visible", position: "relative"
-                  }}>
+                  <Box sx={livePreviewAreaSx}>
 
 
                       {/* Prev arrow */}
                       <IconButton
                           disabled={selectedScene === 0 || isToolbarActive}
                           onClick={() => goToScene(selectedScene - 1)}
-                          size="small"
-                          sx={{ flexShrink: 0, color: (selectedScene === 0 || isToolbarActive) ? "action.disabled" : "primary.main", mx: "4px" }}
+                          size="medium"
+                          color="primary"
+                          sx={{ flexShrink: 0, mx: "4px" }}
                       >
-                          <ChevronLeftIcon />
+                          <SvgIcon><FontAwesomeIcon icon={faChevronLeft} /></SvgIcon>
                       </IconButton>
 
                       {/* Canvas + right toolbar — inner group aligned at top so toolbar top === canvas top */}
-                      <Box sx={{ flex: 1, maxWidth: 720, display: "flex", alignItems: "stretch", gap: "8px", position: "relative", overflow: "visible" }}>
+                      <Box sx={canvasAndToolbarGroupSx}>
 
                           {/* Placeholder picker panel — floats to the right of canvas, above everything */}
                           {placeholderMenuOpen && (() => {
@@ -1788,59 +1549,56 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       }}
                                   >
                                       {/* Header */}
-                                      <Box sx={{
-                                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                                          px: "20px", pt: "18px", pb: "12px"
-                                      }}>
+                                      <Box sx={placeholderMenuHeaderSx}>
                                           <Typography variant="h3" sx={{ fontSize: 18, color: "secondary.main" }}>
                       Placeholder
                                           </Typography>
                                           <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: "text.secondary", p: "4px" }}>
-                                              <CloseIcon sx={{ fontSize: 20 }} />
+                                              <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                                           </IconButton>
                                       </Box>
 
                                       {/* Items */}
-                                      <Box sx={{ px: "12px", pb: "16px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                                      <Box sx={placeholderMenuItemsContainerSx}>
                                           {([
                                               { label: "Heading", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <img src="/heading.png" alt="Heading" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                                                  <Box sx={placeholderMenuIconBoxSx}>
+                                                      <Box component="img" src="/heading.png" alt="Heading" sx={menuIconImgSx} />
                                                   </Box>
                                               ) },
                                               { label: "Sub heading", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <img src="/sub heading.png" alt="Sub heading" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                                                  <Box sx={placeholderMenuIconBoxSx}>
+                                                      <Box component="img" src="/sub heading.png" alt="Sub heading" sx={menuIconImgSx} />
                                                   </Box>
                                               ) },
                                               { label: "Media", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <img src="/media.png" alt="Media" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                                                  <Box sx={placeholderMenuIconBoxSx}>
+                                                      <Box component="img" src="/media.png" alt="Media" sx={menuIconImgSx} />
                                                   </Box>
                                               ) },
                                               { label: "Vertical bullet point", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "primary.main", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <FormatListBulletedIcon sx={{ fontSize: 22, color: "background.paper" }} />
+                                                  <Box sx={placeholderMenuBulletIconBoxSx}>
+                                                      <SvgIcon sx={{ fontSize: 22, color: "background.paper" }}><FontAwesomeIcon icon={faListUl} /></SvgIcon>
                                                   </Box>
                                               ) },
                                               { label: "Horizontal bullet point", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "primary.main", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <ViewWeekOutlinedIcon sx={{ fontSize: 22, color: "background.paper" }} />
+                                                  <Box sx={placeholderMenuBulletIconBoxSx}>
+                                                      <SvgIcon sx={{ fontSize: 22, color: "background.paper" }}><FontAwesomeIcon icon={faTableColumns} /></SvgIcon>
                                                   </Box>
                                               ) },
                                               { label: "Footnote", blue: false, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                  <Box sx={placeholderMenuIconBoxSx}>
                                                       <Typography variant="body1" sx={{ fontSize: 22, color: "text.secondary", lineHeight: 1 }}>*</Typography>
                                                   </Box>
                                               ) },
                                               { label: "Logo", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <img src="/logo.png" alt="Logo" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                                                  <Box sx={placeholderMenuIconBoxSx}>
+                                                      <Box component="img" src="/logo.png" alt="Logo" sx={menuIconImgSx} />
                                                   </Box>
                                               ) },
                                               { label: "Button", blue: true, iconEl: (
-                                                  <Box sx={{ width: 40, height: 40, bgcolor: "background.paper", borderWidth: "1.5px", borderStyle: "solid", borderColor: "divider", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                      <img src="/button.png" alt="Button" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                                                  <Box sx={placeholderMenuIconBoxSx}>
+                                                      <Box component="img" src="/button.png" alt="Button" sx={menuIconImgSx} />
                                                   </Box>
                                               ) }
                                           ] as { label: string; blue: boolean; iconEl: React.ReactNode }[]).map(({ label, blue, iconEl }) => (
@@ -1850,14 +1608,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                       addElement(label as PlaceholderType);
                                                       setPlaceholderMenuOpen(false);
                                                   }}
-                                                  sx={{
-                                                      display: "flex", alignItems: "center", gap: "14px",
-                                                      px: "8px", py: "8px", cursor: "pointer",
-                                                      borderRadius: "12px",
-                                                      bgcolor: "background.paper",
-                                                      "&:hover": { bgcolor: "action.hover" },
-                                                      transition: "background 0.12s"
-                                                  }}>
+                                                  sx={placeholderMenuItemRowSx}>
                                                   {iconEl}
                                                   <Typography variant="body1" sx={{ fontSize: 15, color: blue ? "primary.main" : "text.secondary" }}>
                                                       {label}
@@ -1910,17 +1661,17 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           <Box sx={{
                                               display: "flex", alignItems: "center", gap: "8px",
                                               px: "12px", py: "8px", borderRadius: "8px",
-                                              borderWidth: 2, borderStyle: "dashed", borderColor: isSelected ? "primary.main" : "rgba(0,83,229,0.3)",
-                                              bgcolor: isSelected ? "action.hover" : "rgba(255,255,255,0.85)",
+                                              borderWidth: 2, borderStyle: "dashed", borderColor: isSelected ? "primary.main" : "primary.light",
+                                              bgcolor: isSelected ? "action.hover" : "background.paper",
                                               cursor: "grab", userSelect: "none", whiteSpace: "nowrap",
                                               boxShadow: isSelected ? "0 0 0 3px rgba(0,83,229,0.12)" : "none",
                                               transition: "all 0.15s"
                                           }}>
                                               {src
-                                                  ? <img src={src} style={{ width: 18, height: 18, objectFit: "contain" }} alt={el.type} />
+                                                  ? <Box component="img" src={src} sx={canvasElIconImgSx} alt={el.type} />
                                                   : <Typography sx={{ fontSize: 16, lineHeight: 1, color: "text.secondary" }}>*</Typography>
                                               }
-                                              <Typography variant="h5" sx={{ fontSize: 13, color: "primary.main" }}>
+                                              <Typography variant="h5" sx={{ color: "primary.main" }}>
                                                   {el.type}
                                               </Typography>
                                           </Box>
@@ -1930,11 +1681,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   return (
                                       <>
                                           {/* ── Clipped scene background (no elements here so nothing clips) ── */}
-                                          <Box ref={sceneBoxRef} sx={{ overflow: "hidden", borderRadius: "8px", position: "relative", aspectRatio: "16/9", bgcolor: "background.paper" }}>
+                                          <Box ref={sceneBoxRef} sx={customSceneBackgroundSx}>
                                               <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, bgcolor: "#E040FB", zIndex: 1 }} />
 
                                               {isEmpty && (
-                                                  <Box sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+                                                  <Box sx={customSceneEmptyStateSx}>
                                                       <PlaceholderIcon size={52} />
                                                       <Button variant="contained"
                                                           onClick={e => {
@@ -1947,7 +1698,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           </Box>
 
                                           {/* ── Elements overlay — same bounds as scene box, no overflow:hidden ── */}
-                                          <Box sx={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "visible", pointerEvents: "none" }}>
+                                          <Box sx={elementsOverlaySx}>
                                               {els.map(el => {
                                                   const isSelected = el.id === selectedElId;
                                                   const isEditing = el.id === editingElId;
@@ -1991,7 +1742,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                                       fontWeight: 600, fontSize: fs,
                                                                       cursor: "grab", userSelect: "none",
                                                                       border: isSelected ? "2px dashed rgba(255,255,255,0.7)" : "2px solid transparent",
-                                                                      boxShadow: isSelected ? `0 0 0 3px rgba(0,83,229,0.35)` : `0 2px 8px rgba(0,83,229,0.30)`,
+                                                                      boxShadow: isSelected ? "0 0 0 3px rgba(0,83,229,0.35)" : "0 2px 8px rgba(0,83,229,0.30)",
                                                                       outline: isSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
                                                                       outlineOffset: "2px", transition: "outline 0.15s, box-shadow 0.15s", whiteSpace: "nowrap"
                                                                   })}>Button</Box>
@@ -2034,10 +1785,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                                                       <Box sx={{ display: "flex", flexDirection: imgDir, alignItems: "center", gap: "10px" }}>
                                                                           <Box sx={{ position: "relative", flexShrink: 0 }}>
                                                                               <Box sx={{ width: icoPx, height: icoPx, bgcolor: "grey.700", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                                                  <AddPhotoAlternateOutlinedIcon sx={{ fontSize: icoInner, color: "background.paper" }} />
+                                                                                  <SvgIcon sx={{ fontSize: icoInner, color: "background.paper" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
                                                                               </Box>
                                                                               <Box sx={(theme) => ({ position: "absolute", top: -badgePx * 0.35, right: -badgePx * 0.35, width: badgePx, height: badgePx, borderRadius: "50%", bgcolor: "grey.500", border: `2px solid ${theme.palette.common.white}`, display: "flex", alignItems: "center", justifyContent: "center" })}>
-                                                                                  <AddIcon sx={{ fontSize: badgePx * 0.65, color: "background.paper" }} />
+                                                                                  <SvgIcon sx={{ fontSize: badgePx * 0.65, color: "background.paper" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
                                                                               </Box>
                                                                           </Box>
                                                                           {isEditing ? (
@@ -2164,26 +1915,21 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   );
                               })()}
                               {/* Image + overlays clipped to canvas shape — regular scenes only */}
-                              {sceneTypes[selectedScene] !== "custom" && <Box sx={{ overflow: "hidden", borderRadius: "8px", position: "relative" }}>
+                              {sceneTypes[selectedScene] !== "custom" && <Box sx={regularSceneClipBoxSx}>
                                   <Box component="img" src={IMG_THUMB} alt={videoTitle}
-                                      sx={{ width: "100%", display: "block" }} />
+                                      sx={regularSceneImgSx} />
 
                                   {/* Cover left half of SVG — white bg + pink accent line */}
-                                  <Box sx={{ position: "absolute", inset: 0, width: "50%", bgcolor: "background.paper", pointerEvents: "none" }}>
+                                  <Box sx={thumbLeftCoverSx}>
                                       <Box sx={{ height: 5, bgcolor: "#C084FC", width: "100%" }} />
                                   </Box>
 
                                   {/* Right side — drag media area */}
-                                  <Box sx={{
-                                      position: "absolute", top: 0, right: 0, bottom: 0, width: "50%",
-                                      background: "repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 12px, #E2E2E7 12px, #E2E2E7 24px)",
-                                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                                      gap: "8px", pointerEvents: "none"
-                                  }}>
+                                  <Box sx={regularSceneDragAreaSx}>
                                       <Box sx={{ position: "relative", display: "inline-flex" }}>
-                                          <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 52, color: "action.disabled" }} />
+                                          <SvgIcon sx={{ fontSize: 52, color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
                                       </Box>
-                                      <Typography variant="caption" sx={{ fontSize: 13, color: "action.disabled", letterSpacing: "0.15px" }}>
+                                      <Typography variant="caption" sx={{ color: "action.disabled", letterSpacing: "0.15px" }}>
                     Drag media here
                                       </Typography>
                                   </Box>
@@ -2199,10 +1945,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       ];
                                       const scene = sceneHeadings[selectedScene] ?? sceneHeadings[0];
                                       return (
-                                          <Box sx={{
-                                              position: "absolute", left: "4%", top: "20%", width: "44%",
-                                              containerType: "inline-size", display: "flex", flexDirection: "column"
-                                          }}>
+                                          <Box sx={regularSceneHeadingColumnSx}>
                                               <Box
                                                   onClick={e => {
                                                       e.stopPropagation(); setHeadingSelected(p => !p); setSubheadingSelected(false); setFootnoteSelected(false); 
@@ -2261,21 +2004,21 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                               {/* Toolbars — outside overflow:hidden so they render above the canvas edge */}
                               {sceneTypes[selectedScene] !== "custom" && headingSelected && (
-                                  <Box sx={{ position: "absolute", left: "25%", top: "30%", transform: "translate(-50%, -100%)", mb: "4px", zIndex: 20, pointerEvents: "auto" }}>
+                                  <Box sx={headingToolbarPositionSx}>
                                       <PlaceholderToolbar onEditClick={() => {
-                                          onEditAttempt ? onEditAttempt() : setEditHeadingOpen(true); 
+                                          onEditAttempt ? onEditAttempt() : setEditHeadingOpen(true);
                                       }} />
                                   </Box>
                               )}
                               {sceneTypes[selectedScene] !== "custom" && subheadingSelected && (
-                                  <Box sx={{ position: "absolute", left: "25%", top: "55%", transform: "translate(-50%, -100%)", mb: "4px", zIndex: 20, pointerEvents: "auto" }}>
+                                  <Box sx={subheadingToolbarPositionSx}>
                                       <PlaceholderToolbar onEditClick={() => {
-                                          onEditAttempt ? onEditAttempt() : setEditSubheadingOpen(true); 
+                                          onEditAttempt ? onEditAttempt() : setEditSubheadingOpen(true);
                                       }} />
                                   </Box>
                               )}
                               {sceneTypes[selectedScene] !== "custom" && footnoteSelected && (
-                                  <Box sx={{ position: "absolute", left: "50%", bottom: "3%", transform: "translate(-50%, -100%)", mb: "4px", zIndex: 20, pointerEvents: "auto" }}>
+                                  <Box sx={footnoteToolbarPositionSx}>
                                       <PlaceholderToolbar onEditClick={() => {
                                           onEditAttempt ? onEditAttempt() : setEditFootnoteOpen(true); 
                                       }} />
@@ -2284,37 +2027,29 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           </Box>
 
                           {/* Right column: scene action toolbar + next arrow — sibling of canvas in stretch group */}
-                          <Box sx={{ width: 32, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between" }}>
+                          <Box sx={rightColumnSx}>
 
                               {/* Scene action toolbar — white pill card, top-aligned */}
-                              <Box sx={{
-                                  width: 32,
-                                  bgcolor: "background.paper",
-                                  borderWidth: 1, borderStyle: "solid", borderColor: "divider",
-                                  borderRadius: "24px",
-                                  display: "flex", flexDirection: "column",
-                                  alignItems: "center", gap: "8px",
-                                  p: "4px"
-                              }}>
+                              <Box sx={sceneActionToolbarPillSx}>
                                   {/* 1. Layout / grid */}
                                   <Tooltip title="Layout" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
-                                          <GridViewOutlinedIcon sx={{ fontSize: 18 }} />
+                                          sx={sceneActionIconBtnSx}>
+                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTableLayout} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
 
                                   {/* 2. Theme / palette */}
                                   <Tooltip title="Theme" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
-                                          <PaletteOutlinedIcon sx={{ fontSize: 18 }} />
+                                          sx={sceneActionIconBtnSx}>
+                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faPalette} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
 
                                   {/* 3. Add placeholder — active only on custom scenes */}
                                   <Tooltip title={sceneTypes[selectedScene] === "custom" ? "Add placeholder" : ""} placement="left" arrow>
-                                      <span>
+                                      <Box component="span">
                                           <IconButton
                                               size="small"
                                               disabled={sceneTypes[selectedScene] !== "custom"}
@@ -2331,22 +2066,22 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           >
                                               <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "#fff" : undefined} />
                                           </IconButton>
-                                      </span>
+                                      </Box>
                                   </Tooltip>
 
                                   {/* 4. Info */}
                                   <Tooltip title="Info" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
-                                          <InfoOutlinedIcon sx={{ fontSize: 18 }} />
+                                          sx={sceneActionIconBtnSx}>
+                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
 
                                   {/* 5. More */}
                                   <Tooltip title="More" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={{ p: "3px", color: "primary.main", borderRadius: "6px", "&:hover": { bgcolor: "action.hover" } }}>
-                                          <MoreHorizIcon sx={{ fontSize: 18 }} />
+                                          sx={sceneActionIconBtnSx}>
+                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
                               </Box>
@@ -2355,10 +2090,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               <IconButton
                                   disabled={selectedScene === SCENE_COUNT - 1 || isToolbarActive}
                                   onClick={() => goToScene(selectedScene + 1)}
-                                  size="small"
-                                  sx={{ color: (selectedScene === SCENE_COUNT - 1 || isToolbarActive) ? "action.disabled" : "primary.main", p: "3px" }}
+                                  size="medium"
+                                  color="primary"
                               >
-                                  <ChevronRightIcon />
+                                  <SvgIcon><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
                               </IconButton>
                           </Box>
 
@@ -2366,32 +2101,20 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   </Box>
 
                   {/* Narration bar */}
-                  <Box sx={{
-                      mx: 3, mb: 1.5, height: 40, bgcolor: "background.paper",
-                      borderWidth: 1, borderStyle: "solid", borderColor: "divider", borderRadius: "20px",
-                      display: "flex", alignItems: "center", px: 2, gap: 1.5, flexShrink: 0
-                  }}>
-                      <Avatar sx={{ width: 28, height: 28, bgcolor: "other.editorBackground" }}>
-                          <MicOutlinedIcon sx={{ fontSize: 15, color: "text.secondary" }} />
-                      </Avatar>
-                      <Typography sx={{
-                          color: "text.secondary", flex: 1
-                      }}>
-              Add narration…
+                  <Box sx={narrationBarSx}>
+                      <Box sx={narrationAvatarSx}>
+                          <SvgIcon sx={{ fontSize: 15, color: "text.secondary" }}><FontAwesomeIcon icon={faMicrophone} /></SvgIcon>
+                      </Box>
+                      <Typography variant="body1" sx={{ color: "text.secondary", flex: 1 }}>
+                          Add narration…
                       </Typography>
-                      <Typography sx={{
-                          color: "text.secondary", letterSpacing: "0.4px"
-                      }}>
-              ~0:12
+                      <Typography variant="body1" sx={{ color: "text.secondary", letterSpacing: "0.4px" }}>
+                          ~0:12
                       </Typography>
                   </Box>
 
                   {/* Scene lineup — dims when toolbar is active */}
-                  <Box sx={{
-                      bgcolor: "background.paper", borderTop: 1, borderTopStyle: "solid", borderTopColor: "divider",
-                      px: 2, pt: 1.5, pb: 1.5, flexShrink: 0,
-                      position: "relative"
-                  }}>
+                  <Box sx={sceneLineupSx}>
                       {/* Play bar */}
                       <Box sx={{
                           display: "flex", alignItems: "center", justifyContent: "center", mb: 1.5,
@@ -2399,23 +2122,18 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           pointerEvents: isToolbarActive ? "none" : "auto",
                           transition: "opacity 0.2s"
                       }}>
-                          <Box sx={{
-                              width: 40, height: 40, borderRadius: "50%",
-                              bgcolor: "other.editorBackground",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              cursor: "pointer"
-                          }}>
-                              <PlayArrowIcon sx={{ fontSize: 22, color: "primary.main" }} />
+                          <Box sx={playBtnCircleSx}>
+                              <SvgIcon sx={{ fontSize: 22, color: "primary.main" }}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                           </Box>
                           <Typography variant="caption" sx={{
-                              color: "#8BA2FF", letterSpacing: "0.4px", ml: 1.5
+                              color: "primary.light", letterSpacing: "0.4px", ml: 1.5
                           }}>
                 Scene {selectedScene + 1} / {SCENE_COUNT}
                           </Typography>
                       </Box>
 
                       {/* Thumbnails row — disabled + dimmed when a toolbar/panel is active */}
-                      <Box sx={{ position: "relative" }}>
+                      <Box sx={thumbnailsRowWrapperSx}>
                           <Box sx={{
                               display: "flex", gap: "8px", overflowX: "auto", pb: 0.5,
                               "&::-webkit-scrollbar": { height: 4 },
@@ -2434,23 +2152,13 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           footnoteText={footnoteText} onClick={() => goToScene(i)} />
                               )}
                               {/* Add scene */}
-                              <Box sx={{
-                                  width: 56, flexShrink: 0,
-                                  display: "flex", alignItems: "center", justifyContent: "center"
-                              }}>
+                              <Box sx={addSceneOuterSx}>
                                   <Box
                                       onClick={() => {
-                                          setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedElId(null); 
+                                          setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedElId(null);
                                       }}
-                                      sx={{
-                                          width: 32, height: 32, borderRadius: "50%",
-                                          bgcolor: "other.editorBackground",
-                                          display: "flex", alignItems: "center", justifyContent: "center",
-                                          borderWidth: "1.5px", borderStyle: "dashed", borderColor: "primary.main",
-                                          cursor: "pointer",
-                                          "&:hover": { bgcolor: "action.hover" }
-                                      }}>
-                                      <AddIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                                      sx={addSceneBtnSx}>
+                                      <SvgIcon sx={{ fontSize: 18, color: "primary.main" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
                                   </Box>
                               </Box>
                           </Box>
@@ -2555,3 +2263,792 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       </Box>
   );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const studioAppBarSx: SxProps<Theme> = {
+    flexShrink: 0,
+    borderBottom: "1px solid",
+    borderBottomColor: "divider"
+};
+
+const studioToolbarSx: SxProps<Theme> = {
+    height: 56,
+    px: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between"
+};
+
+const studioAppBarLeftSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 2
+};
+
+const studioLogoSx: SxProps<Theme> = {
+    width: 56,
+    height: 56,
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    "&:hover": { opacity: 0.75 }
+};
+
+const studioLogoImgSx: SxProps<Theme> = { width: 40, height: 40, objectFit: "contain" };
+const menuIconImgSx: SxProps<Theme> = { width: 22, height: 22, objectFit: "contain" };
+const canvasElIconImgSx: SxProps<Theme> = { width: 18, height: 18, objectFit: "contain" };
+
+const studioLangBadgeSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    px: "10px",
+    py: "4px",
+    borderRadius: 1,
+    border: "1px solid",
+    borderColor: "divider",
+    cursor: "pointer"
+};
+
+const studioAppBarRightSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    pr: 2
+};
+
+const studioDividerSx: SxProps<Theme> = {
+    borderColor: "divider",
+    mx: 0.5,
+    alignSelf: "center",
+    height: 20
+};
+
+const studioTooltipSx: SxProps<Theme> = {
+    bgcolor: "secondary.main",
+    borderRadius: 1,
+    px: 1.5,
+    py: 1,
+    "& .MuiTooltip-arrow": { color: "secondary.main" }
+};
+
+const studioPermBtnSx: SxProps<Theme> = {
+    bgcolor: "secondary.dark",
+    borderRadius: 1,
+    p: "5px",
+    border: "1px solid",
+    borderColor: "divider",
+    "&:hover": { bgcolor: "secondary.dark" }
+};
+
+const studioVideoPageBtnSx: SxProps<Theme> = {
+    whiteSpace: "nowrap"
+};
+
+const studioLeftNavSx: SxProps<Theme> = {
+    width: 180,
+    flexShrink: 0,
+    bgcolor: "background.paper",
+    borderRight: 1,
+    borderRightStyle: "solid",
+    borderRightColor: "divider",
+    overflowY: "auto",
+    pt: 2,
+    display: "flex",
+    flexDirection: "column"
+};
+
+const navSubheaderSx: SxProps<Theme> = {
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    fontSize: "0.625rem",
+    color: "text.secondary",
+    lineHeight: 1.5,
+    py: 0.5
+};
+
+const navItemButtonSx: SxProps<Theme> = {
+    borderRadius: "8px 0 0 8px",
+    py: 1
+};
+
+const navItemIconSx: SxProps<Theme> = {
+    minWidth: 32
+};
+
+const narrationBarSx: SxProps<Theme> = {
+    mx: 3,
+    mb: 1.5,
+    height: 40,
+    bgcolor: "background.paper",
+    border: "1px solid",
+    borderColor: "divider",
+    borderRadius: "20px",
+    display: "flex",
+    alignItems: "center",
+    px: 2,
+    gap: 1.5,
+    flexShrink: 0
+};
+
+const narrationAvatarSx: SxProps<Theme> = {
+    width: 28,
+    height: 28,
+    borderRadius: "50%",
+    bgcolor: "other.editorBackground",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0
+};
+
+const studioContentAreaSx: SxProps<Theme> = {
+    flex: 1,
+    display: "flex",
+    overflow: "hidden"
+};
+
+// ─── PlaceholderToolbar ───────────────────────────────────────────────────────
+
+const placeholderToolbarWrapperSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    bgcolor: "background.paper",
+    borderRadius: "8px",
+    px: "8px",
+    py: "6px",
+    gap: "6px",
+    boxShadow: "0px 4px 16px rgba(3,25,79,0.18)",
+    userSelect: "none"
+};
+
+const pillZoomBoxSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "2px",
+    px: "8px",
+    py: "5px",
+    borderRadius: "8px",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "grey.400",
+    bgcolor: "background.paper",
+    color: "primary.main",
+    flexShrink: 0
+};
+
+// ─── ButtonPlaceholderToolbar / BulletPlaceholderToolbar shared ───────────────
+
+const buttonToolbarWrapperSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    bgcolor: "background.paper",
+    borderRadius: "8px",
+    px: "6px",
+    py: "5px",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "grey.300",
+    boxShadow: "0 2px 8px rgba(3,25,79,0.15)",
+    userSelect: "none",
+    whiteSpace: "nowrap"
+};
+
+const toolbarDividerSx: SxProps<Theme> = {
+    borderColor: "grey.300",
+    mx: "2px"
+};
+
+const sizeLabelGroupSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    flexShrink: 0
+};
+
+const sizeLabelTypographySx: SxProps<Theme> = {
+    color: "text.primary",
+    letterSpacing: "0.46px"
+};
+
+const sizeToggleGroupSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "grey.300",
+    borderRadius: "8px",
+    overflow: "hidden"
+};
+
+// ─── EditHeadingDialog ────────────────────────────────────────────────────────
+
+const editHeadingDialogPaperSx: SxProps<Theme> = {
+    width: 480,
+    borderRadius: "16px",
+    overflow: "hidden"
+};
+
+const editHeadingDialogContentSx: SxProps<Theme> = {
+    px: 3,
+    pt: 0,
+    pb: 3
+};
+
+const dialogHeaderRowSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    px: 3,
+    pt: 3,
+    pb: 2
+};
+
+const audienceToggleRowSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    mb: 2.5
+};
+
+const textInputBorderBoxSx: SxProps<Theme> = {
+    borderWidth: 2,
+    borderStyle: "solid",
+    borderColor: "primary.main",
+    borderRadius: "8px",
+    overflow: "hidden"
+};
+
+const formatButtonRowSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 0.5,
+    px: 1,
+    py: 0.75
+};
+
+const formatBoldBtnSx: SxProps<Theme> = {
+    px: 1,
+    py: 0.5,
+    borderRadius: "6px",
+    bgcolor: "action.selected",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center"
+};
+
+const formatItalicBtnSx: SxProps<Theme> = {
+    px: 1,
+    py: 0.5,
+    borderRadius: "6px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    "&:hover": { bgcolor: "action.hover" }
+};
+
+const personalizeHintSx: SxProps<Theme> = {
+    color: "primary.main",
+    cursor: "pointer",
+    mt: 1,
+    display: "inline-block",
+    "&:hover": { textDecoration: "underline" }
+};
+
+// ─── EditBulletDialog ─────────────────────────────────────────────────────────
+
+const editBulletDialogPaperSx: SxProps<Theme> = {
+    width: 1200,
+    borderRadius: "16px",
+    overflow: "hidden"
+};
+
+const dialogHeaderTitleGroupSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 2
+};
+
+const editBulletDialogContentSx: SxProps<Theme> = {
+    px: 3,
+    pt: 2,
+    pb: 3,
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 4
+};
+
+const bulletAudienceToggleRowSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    mb: 3
+};
+
+const bulletActionButtonsRowSx: SxProps<Theme> = {
+    display: "flex",
+    gap: 1
+};
+
+const bulletDialogFlexBtnSx: SxProps<Theme> = {
+    flex: 1,
+    color: "primary.main",
+    borderColor: "primary.main"
+};
+
+// ─── CommentsPanel ────────────────────────────────────────────────────────────
+
+const commentsPanelHeaderSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    px: 2,
+    pt: 1,
+    pb: 1,
+    cursor: "grab",
+    "&:active": { cursor: "grabbing" },
+    userSelect: "none",
+    flexShrink: 0
+};
+
+const commentsTabAreaSx: SxProps<Theme> = {
+    px: 2,
+    pb: "8px",
+    flexShrink: 0
+};
+
+const commentsTabGroupSx: SxProps<Theme> = {
+    display: "inline-flex",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "grey.300",
+    borderRadius: "8px",
+    padding: "1px",
+    gap: 0
+};
+
+const commentsViewVersionRowSx: SxProps<Theme> = {
+    px: 2,
+    py: "8px",
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    cursor: "pointer",
+    "&:hover": { opacity: 0.8 }
+};
+
+const commentsPanelFooterSx: SxProps<Theme> = {
+    px: 2,
+    py: "12px",
+    borderTop: 1,
+    borderTopStyle: "solid",
+    borderTopColor: "grey.400",
+    flexShrink: 0,
+    display: "flex",
+    justifyContent: "flex-end"
+};
+
+const commentsResendBtnSx: SxProps<Theme> = {
+    bgcolor: "primary.main",
+    "&:hover": { bgcolor: "primary.dark" },
+    px: 2
+};
+
+const commentCheckboxSx: SxProps<Theme> = {
+    p: "2px",
+    flexShrink: 0,
+    mt: "1px",
+    color: "action.active",
+    "&.Mui-checked": { color: "primary.main" }
+};
+
+// ─── SceneThumbnail / CustomSceneThumbnail ────────────────────────────────────
+
+const sceneThumbnailOuterSx: SxProps<Theme> = { width: 140, flexShrink: 0 };
+
+const sceneThumbnailContentSx: SxProps<Theme> = {
+    width: "100%", aspectRatio: "16/9",
+    bgcolor: "grey.100",
+    position: "relative"
+};
+
+const sceneThumbnailLabelSx: SxProps<Theme> = {
+    color: "text.secondary",
+    letterSpacing: "0.4px"
+};
+
+const sceneThumbnailImgSx: SxProps<Theme> = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block"
+};
+
+const thumbLeftCoverSx: SxProps<Theme> = {
+    position: "absolute",
+    inset: 0,
+    width: "50%",
+    bgcolor: "background.paper",
+    pointerEvents: "none"
+};
+
+const thumbRightDragAreaSmSx: SxProps<Theme> = {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: "50%",
+    background: "repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 6px, #E2E2E7 6px, #E2E2E7 12px)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    pointerEvents: "none"
+};
+
+const thumbHeadingColumnSx: SxProps<Theme> = {
+    position: "absolute",
+    left: "4%",
+    top: "18%",
+    width: "44%",
+    containerType: "inline-size",
+    pointerEvents: "none",
+    display: "flex",
+    flexDirection: "column"
+};
+
+const thumbFootnoteBoxSx: SxProps<Theme> = {
+    position: "absolute",
+    left: "4%",
+    width: "44%",
+    bottom: "5%",
+    containerType: "inline-size",
+    pointerEvents: "none"
+};
+
+const thumbFootnoteTypographySx: SxProps<Theme> = {
+    fontFamily: "\"Open Sans\", sans-serif",
+    fontWeight: 400,
+    fontSize: "2.5cqw",
+    letterSpacing: "0.4px",
+    color: "text.secondary",
+    lineHeight: 1.66
+};
+
+// ─── StudioPage — Stage area ──────────────────────────────────────────────────
+
+const stageContainerSx: SxProps<Theme> = {
+    flex: 1,
+    bgcolor: "other.editorBackground",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "visible"
+};
+
+const livePreviewAreaSx: SxProps<Theme> = {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    px: 2,
+    py: 3,
+    overflow: "visible",
+    position: "relative"
+};
+
+const canvasAndToolbarGroupSx: SxProps<Theme> = {
+    flex: 1,
+    maxWidth: 720,
+    display: "flex",
+    alignItems: "stretch",
+    gap: "8px",
+    position: "relative",
+    overflow: "visible"
+};
+
+// ─── Placeholder picker panel ─────────────────────────────────────────────────
+
+const placeholderMenuHeaderSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    px: "20px",
+    pt: "18px",
+    pb: "12px"
+};
+
+const placeholderMenuItemsContainerSx: SxProps<Theme> = {
+    px: "12px",
+    pb: "16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px"
+};
+
+const placeholderMenuIconBoxSx: SxProps<Theme> = {
+    width: 40,
+    height: 40,
+    bgcolor: "background.paper",
+    borderWidth: "1.5px",
+    borderStyle: "solid",
+    borderColor: "divider",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+};
+
+const placeholderMenuBulletIconBoxSx: SxProps<Theme> = {
+    width: 40,
+    height: 40,
+    bgcolor: "primary.main",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+};
+
+const placeholderMenuItemRowSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    px: "8px",
+    py: "8px",
+    cursor: "pointer",
+    borderRadius: "12px",
+    bgcolor: "background.paper",
+    "&:hover": { bgcolor: "action.hover" },
+    transition: "background 0.12s"
+};
+
+// ─── Custom scene canvas ──────────────────────────────────────────────────────
+
+const customSceneBackgroundSx: SxProps<Theme> = {
+    overflow: "hidden",
+    borderRadius: "8px",
+    position: "relative",
+    aspectRatio: "16/9",
+    bgcolor: "background.paper"
+};
+
+const customSceneEmptyStateSx: SxProps<Theme> = {
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "16px"
+};
+
+const elementsOverlaySx: SxProps<Theme> = {
+    position: "absolute",
+    inset: 0,
+    borderRadius: "8px",
+    overflow: "visible",
+    pointerEvents: "none"
+};
+
+// ─── Regular scene canvas ─────────────────────────────────────────────────────
+
+const regularSceneClipBoxSx: SxProps<Theme> = {
+    overflow: "hidden",
+    borderRadius: "8px",
+    position: "relative"
+};
+
+const regularSceneImgSx: SxProps<Theme> = {
+    width: "100%",
+    display: "block"
+};
+
+const regularSceneDragAreaSx: SxProps<Theme> = {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: "50%",
+    background: "repeating-linear-gradient(-45deg, #EBEBEF 0px, #EBEBEF 12px, #E2E2E7 12px, #E2E2E7 24px)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    pointerEvents: "none"
+};
+
+const regularSceneHeadingColumnSx: SxProps<Theme> = {
+    position: "absolute",
+    left: "4%",
+    top: "20%",
+    width: "44%",
+    containerType: "inline-size",
+    display: "flex",
+    flexDirection: "column"
+};
+
+// ─── Scene action toolbar + lineup ────────────────────────────────────────────
+
+const rightColumnSx: SxProps<Theme> = {
+    width: 32,
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "space-between"
+};
+
+const sceneActionToolbarPillSx: SxProps<Theme> = {
+    width: 32,
+    bgcolor: "background.paper",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "divider",
+    borderRadius: "24px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    p: "4px"
+};
+
+const sceneActionIconBtnSx: SxProps<Theme> = {
+    p: "3px",
+    color: "primary.main",
+    borderRadius: "6px",
+    "&:hover": { bgcolor: "action.hover" }
+};
+
+const headingToolbarPositionSx: SxProps<Theme> = {
+    position: "absolute",
+    left: "25%",
+    top: "30%",
+    transform: "translate(-50%, -100%)",
+    mb: "4px",
+    zIndex: 20,
+    pointerEvents: "auto"
+};
+
+const subheadingToolbarPositionSx: SxProps<Theme> = {
+    position: "absolute",
+    left: "25%",
+    top: "55%",
+    transform: "translate(-50%, -100%)",
+    mb: "4px",
+    zIndex: 20,
+    pointerEvents: "auto"
+};
+
+const footnoteToolbarPositionSx: SxProps<Theme> = {
+    position: "absolute",
+    left: "50%",
+    bottom: "3%",
+    transform: "translate(-50%, -100%)",
+    mb: "4px",
+    zIndex: 20,
+    pointerEvents: "auto"
+};
+
+const sceneLineupSx: SxProps<Theme> = {
+    bgcolor: "background.paper",
+    borderTop: 1,
+    borderTopStyle: "solid",
+    borderTopColor: "divider",
+    px: 2,
+    pt: 1.5,
+    pb: 1.5,
+    flexShrink: 0,
+    position: "relative"
+};
+
+const playBtnCircleSx: SxProps<Theme> = {
+    width: 40,
+    height: 40,
+    borderRadius: "50%",
+    bgcolor: "other.editorBackground",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer"
+};
+
+const thumbnailsRowWrapperSx: SxProps<Theme> = {
+    position: "relative"
+};
+
+const addSceneOuterSx: SxProps<Theme> = {
+    width: 56,
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+};
+
+const addSceneBtnSx: SxProps<Theme> = {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    bgcolor: "other.editorBackground",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: "1.5px",
+    borderStyle: "dashed",
+    borderColor: "primary.main",
+    cursor: "pointer",
+    "&:hover": { bgcolor: "action.hover" }
+};
+
+// ─── PlaceholderToolbar (Pill zoom controls) ──────────────────────────────────
+
+const pillZoomClickableSx: SxProps<Theme> = {
+    display: "flex",
+    cursor: "pointer",
+    "&:hover": { opacity: 0.6 }
+};
+
+// ─── BulletPlaceholderToolbar (DropdownBtn) ───────────────────────────────────
+
+const dropdownBtnSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    px: "8px",
+    py: "3.5px",
+    height: 32,
+    flexShrink: 0,
+    borderRadius: "8px",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "grey.300",
+    bgcolor: "background.paper",
+    cursor: "pointer",
+    "&:hover": { bgcolor: "action.hover" }
+};
+
+// ─── Shared toolbar icon buttons ──────────────────────────────────────────────
+
+const toolbarDeleteBtnSx: SxProps<Theme> = {
+    color: "error.main",
+    p: "4px",
+    flexShrink: 0
+};
+
+const toolbarMoreBtnSx: SxProps<Theme> = {
+    color: "primary.main",
+    p: "4px",
+    flexShrink: 0
+};
+
+// ─── Navigation badge ─────────────────────────────────────────────────────────
+
+const navBadgeSx: SxProps<Theme> = {
+    "& .MuiBadge-badge": { fontSize: 9, minWidth: 14, height: 14, padding: 0 }
+};

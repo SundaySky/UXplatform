@@ -4,15 +4,14 @@ import {
     Typography,
     IconButton,
     Button,
+    Badge,
     List,
     ListItemButton,
     ListItemIcon,
     ListItemText,
     Divider,
     Paper,
-    Avatar,
-    InputAdornment,
-    OutlinedInput,
+    SvgIcon,
     Tooltip,
     Dialog,
     DialogTitle,
@@ -20,8 +19,12 @@ import {
     DialogActions,
     TextField,
     Menu,
-    MenuItem
+    AppBar,
+    Toolbar,
+    Link,
+    useTheme
 } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import ApprovalDialog from "./ApprovalDialog";
 import ConfirmationDialog from "./ConfirmationDialog";
 import ApproveVideoDialog from "./ApproveVideoDialog";
@@ -33,46 +36,16 @@ import { type NotificationItem } from "./NotificationsPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import { OWNER_USER, type PermissionUser } from "./ManageAccessDialog";
 
-import { Label, AttentionBox, AttentionBoxTitle, AttentionBoxContent, AttentionBoxActions, TruffleLink } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { Label, AttentionBox, AttentionBoxTitle, AttentionBoxContent, AttentionBoxActions, TruffleLink, TruffleAvatar, Search, TruffleMenuItem, TypographyWithTooltipOnOverflow } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faEllipsisVertical, faArrowLeft, faArrowRight, faPen, faShareNodes, faChartBar,
+    faArrowsRotate, faFolder, faCircleInfo, faLock, faCopy, faLayerGroup, faBoxArchive,
+    faTrash, faLink, faFileExport, faArrowDown, faPalette, faUsers, faMicrophone,
+    faCircleQuestion, faXmark, faCircleCheck, faCheck, faImages, faKey, faEye, faEdit,
+    faGlobe, faTriangleExclamation
+} from "@fortawesome/pro-regular-svg-icons";
 
-// MUI icons
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import CreateOutlinedIcon from "@mui/icons-material/CreateOutlined";
-import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
-import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
-import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import SearchIcon from "@mui/icons-material/Search";
-import GroupIcon from "@mui/icons-material/Group";
-
-import LinkIcon from "@mui/icons-material/Link";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
-import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
-import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
-import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import MicOutlinedIcon from "@mui/icons-material/MicOutlined";
-import SyncIcon from "@mui/icons-material/Sync";
-import FileExportIcon from "@mui/icons-material/DriveFileMoveOutlined";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownwardOutlined";
-import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import CloseIcon from "@mui/icons-material/Close";
-import CheckIcon from "@mui/icons-material/Check";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
-import LockPersonIcon from "@mui/icons-material/LockPerson";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
-import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
-import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import VpnKeyOutlinedIcon from "@mui/icons-material/VpnKeyOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 // ─── Figma asset: split-template preview (template left + media right)
 const imgVideoPreview = "/thumb.svg";
@@ -107,10 +80,7 @@ function UpdatedLabel() {
 // ─── Circular icon avatar ─────────────────────────────────────────────────────
 function CircularIconAvatar({ icon }: { icon: React.ReactNode }) {
     return (
-        <Box sx={{
-            width: 40, height: 40, borderRadius: "50%", bgcolor: "action.selected",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-        }}>
+        <Box sx={circularIconAvatarSx}>
             {icon}
         </Box>
     );
@@ -137,28 +107,21 @@ function VideoPermissionStrip({
         "& .MuiTooltip-arrow": { color: "secondary.main" }
     };
 
-    // Mini avatar chip — uses role icon instead of initials; primary/light bg with blue icon
+    // Mini avatar chip — uses role icon instead of initials
     function AvatarChip({ roleType, label, tip }: { roleType: "owner" | "editor" | "viewer"; label?: string; tip: string }) {
-        const RoleIcon = roleType === "owner"
-            ? VpnKeyOutlinedIcon
-            : roleType === "editor"
-                ? EditOutlinedIcon
-                : VisibilityOutlinedIcon;
+        const roleIcon = roleType === "owner" ? faKey
+            : roleType === "editor" ? faEdit
+                : faEye;
         return (
             <Tooltip title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                <Box sx={{
-                    display: "inline-flex", alignItems: "baseline", gap: "5px", flexShrink: 0,
-                    bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
-                }}>
-                    <Box sx={{
-                        width: 16, height: 16, borderRadius: "3px", bgcolor: "divider",
-                        display: "inline-flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0, alignSelf: "center"
-                    }}>
-                        <RoleIcon sx={{ fontSize: 10, color: "text.primary" }} />
+                <Box sx={avatarChipOuterSx}>
+                    <Box sx={avatarChipIconBoxSx}>
+                        <SvgIcon sx={avatarChipRoleIconSx}>
+                            <FontAwesomeIcon icon={roleIcon} />
+                        </SvgIcon>
                     </Box>
                     {label && (
-                        <Typography sx={{ color: "text.secondary" }}>
+                        <Typography variant="body2" sx={textSecondaryColorSx}>
                             {label}
                         </Typography>
                     )}
@@ -168,30 +131,24 @@ function VideoPermissionStrip({
     }
 
     const rowIcon = isPrivate
-        ? <LockOutlinedIcon sx={{ fontSize: 19, color: "success.main" }} />
-        : <LockOpenOutlinedIcon sx={{ fontSize: 19, color: "primary.main" }} />;
+        ? <SvgIcon sx={lockIconSuccessSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+        : <SvgIcon sx={lockIconPrimarySx}><FontAwesomeIcon icon={faLock} /></SvgIcon>;
 
     return (
         <Box
             onClick={onManageClick}
-            sx={{
-                display: "flex", alignItems: "flex-start", gap: "6px", px: 2, py: 1.5,
-                cursor: "pointer",
-                "&:hover": { bgcolor: "action.hover" }
-            }}
+            sx={permStripRowSx}
         >
             <CircularIconAvatar icon={rowIcon} />
 
-            <Box sx={{ minWidth: 0 }}>
+            <Box sx={minWidthZeroSx}>
                 {/* Label row */}
-                <Typography variant="caption" sx={{
-                    color: "text.secondary", display: "block", mb: "4px"
-                }}>
+                <Typography variant="caption" sx={permStripLabelSx}>
                     {isPrivate ? "Video permission — Only you can see this video" : "Video permission"}
                 </Typography>
 
                 {/* Indicators — all users shown with name, then Everyone at the end */}
-                <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                <Box sx={permStripIndicatorsRowSx}>
                     {/* Owner(s) — each with key icon + name + "(Owner)" */}
                     {ownerUsers.slice(0, 3).map((u) => (
                         <AvatarChip
@@ -214,7 +171,7 @@ function VideoPermissionStrip({
 
                     {/* Separator before "Everyone" */}
                     {showEveryone && (
-                        <Box sx={{ width: "1px", height: 16, bgcolor: "divider", flexShrink: 0 }} />
+                        <Box sx={everyoneSeparatorSx} />
                     )}
 
                     {/* Everyone indicator — users icon */}
@@ -224,18 +181,13 @@ function VideoPermissionStrip({
                             placement="top" arrow
                             componentsProps={{ tooltip: { sx: navyTipSx } }}
                         >
-                            <Box sx={{
-                                display: "inline-flex", alignItems: "baseline", gap: "5px", flexShrink: 0,
-                                bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
-                            }}>
-                                <Box sx={{
-                                    width: 16, height: 16, borderRadius: "3px", bgcolor: "action.selected",
-                                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                    flexShrink: 0, alignSelf: "center"
-                                }}>
-                                    <PeopleAltOutlinedIcon sx={{ fontSize: 11, color: "text.primary" }} />
+                            <Box sx={avatarChipOuterSx}>
+                                <Box sx={everyoneIconBoxSx}>
+                                    <SvgIcon sx={everyoneIconSx}>
+                                        <FontAwesomeIcon icon={faUsers} />
+                                    </SvgIcon>
                                 </Box>
-                                <Typography sx={{ color: "text.secondary" }}>
+                                <Typography sx={textSecondaryColorSx}>
                   Everyone in your account
                                 </Typography>
                             </Box>
@@ -250,11 +202,9 @@ function VideoPermissionStrip({
 // ─── Wordmark ─────────────────────────────────────────────────────────────────
 function SundaySkyLogo() {
     return (
-        <Box sx={{ px: 1, pb: 0.5 }}>
-            <Typography variant="caption" sx={{
-                letterSpacing: "0.25em", color: "text.primary", textTransform: "uppercase", lineHeight: 1
-            }}>
-        SUNDAY<Box component="span" sx={{ color: "primary.main" }}>SKY</Box>
+        <Box sx={logoBoxSx}>
+            <Typography variant="caption" sx={logoTypographySx}>
+        SUNDAY<Box component="span" sx={logoSkySx}>SKY</Box>
             </Typography>
         </Box>
     );
@@ -266,23 +216,24 @@ function Sidebar({
     videoTitle,
     onNavigateToLibrary,
     videoPermSettings,
-    onManageAccess
+    onManageAccess,
+    selectedNav = "edit",
+    onNavChange
 }: {
   effectiveStatus: "draft" | "pending" | "approved"
   videoTitle: string
   onNavigateToLibrary: () => void
   videoPermSettings?: VideoPermissionSettings
   onManageAccess?: () => void
+  selectedNav?: "edit" | "share" | "analyze"
+  onNavChange?: (nav: "edit" | "share" | "analyze") => void
 }) {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
     return (
-        <Box sx={{
-            width: 300, flexShrink: 0, display: "flex", flexDirection: "column",
-            height: "100%", bgcolor: "background.paper", borderRight: 1, borderColor: "divider"
-        }}>
+        <Box sx={sidebarContainerSx}>
             <Box
                 onClick={onNavigateToLibrary}
-                sx={{ px: 2.5, pt: 2, pb: 0, cursor: "pointer", "&:hover": { opacity: 0.75 } }}
+                sx={sidebarLogoClickSx}
             >
                 <SundaySkyLogo />
             </Box>
@@ -290,105 +241,99 @@ function Sidebar({
             {/* Back to Video Library */}
             <Box
                 onClick={onNavigateToLibrary}
-                sx={{
-                    display: "flex", alignItems: "center", gap: 0.5,
-                    px: 2.5, pt: 2, pb: 1, cursor: "pointer", width: "fit-content",
-                    "&:hover": { opacity: 0.75 }
-                }}
+                sx={sidebarBackNavSx}
             >
-                <ArrowBackIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                <Typography variant="body1" sx={{
-                    color: "text.secondary"
-                }}>
-          Video Library
+                <SvgIcon sx={sidebarBackIconSx}>
+                    <FontAwesomeIcon icon={faArrowLeft} />
+                </SvgIcon>
+                <Typography variant="body1" noWrap sx={textSecondaryColorSx}>
+                    Video Library
                 </Typography>
             </Box>
 
             {/* Video name + options */}
-            <Box sx={{
-                display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                px: 2.5, pr: 1.5
-            }}>
-                <Typography variant="h3" sx={{
-                    color: "text.primary", flex: 1
-                }}>
+            <Box sx={sidebarTitleRowSx}>
+                <TypographyWithTooltipOnOverflow variant="h3" sx={{ color: "text.primary", flex: 1 }}>
                     {videoTitle}
-                </Typography>
-                <IconButton size="small" onClick={e => setMenuAnchor(e.currentTarget)} sx={{ mt: 0.3, color: "action.active", flexShrink: 0 }}>
-                    <MoreVertIcon fontSize="small" />
+                </TypographyWithTooltipOnOverflow>
+                <IconButton size="medium" onClick={e => setMenuAnchor(e.currentTarget)} sx={sidebarMenuIconButtonSx}>
+                    <SvgIcon fontSize="small"><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                 </IconButton>
-                {/* Three-dot menu — mirrors library VideoCard menu (minus "Video Page") */}
+                {/* Three-dot menu */}
                 <Menu
                     anchorEl={menuAnchor}
                     open={Boolean(menuAnchor)}
                     onClose={() => setMenuAnchor(null)}
                     anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
-                    PaperProps={{ sx: { borderRadius: "10px", minWidth: 256, boxShadow: "0px 4px 20px rgba(3,25,79,0.15)", mt: "4px", py: "4px" } }}
+                    slotProps={{ paper: { sx: menuPaperSx } }}
                 >
-                    {/* Header: video name + location */}
-                    <Box sx={{ px: "16px", pt: "10px", pb: "8px" }}>
-                        <Typography variant="h5" sx={{ color: "text.primary", mb: "4px" }}>
+                    {/* Header */}
+                    <Box sx={menuHeaderBoxSx}>
+                        <Typography variant="h5" sx={menuHeaderTitleSx}>
                             {videoTitle}
                         </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <FolderOutlinedIcon sx={{ fontSize: 13, color: "text.secondary" }} />
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Shared assets
+                        <Box sx={menuHeaderFolderRowSx}>
+                            <SvgIcon sx={menuHeaderFolderIconSx}>
+                                <FontAwesomeIcon icon={faFolder} />
+                            </SvgIcon>
+                            <Typography variant="caption" sx={textSecondaryColorSx}>
+                                Shared assets
                             </Typography>
                         </Box>
                     </Box>
 
-                    <Divider sx={{ my: "4px", borderColor: "divider" }} />
+                    <Divider sx={menuDividerSx} />
 
-                    <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: "4px", py: "8px", px: "16px" }}>
-                        <ListItemIcon sx={{ minWidth: "unset", color: "action.active" }}><InfoOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ color: "text.primary" }}>Details</ListItemText>
-                    </MenuItem>
+                    <TruffleMenuItem onClick={() => setMenuAnchor(null)}>
+                        <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                        Details
+                    </TruffleMenuItem>
 
-                    <MenuItem onClick={() => {
+                    <TruffleMenuItem onClick={() => {
                         setMenuAnchor(null); onManageAccess?.(); 
-                    }} sx={{ gap: "4px", py: "8px", px: "16px" }}>
-                        <ListItemIcon sx={{ minWidth: "unset", color: "action.active" }}><LockPersonIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ color: "text.primary" }}>Permissions</ListItemText>
-                        <PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />
-                    </MenuItem>
+                    }}
+                    secondaryAction={<PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />}
+                    >
+                        <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                        Permissions
+                    </TruffleMenuItem>
 
-                    <Divider sx={{ my: "4px", borderColor: "divider" }} />
+                    <Divider sx={menuDividerSx} />
 
-                    <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: "4px", py: "8px", px: "16px" }}>
-                        <ListItemIcon sx={{ minWidth: "unset", color: "action.active" }}><ContentCopyIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ color: "text.primary" }}>Duplicate video</ListItemText>
-                    </MenuItem>
+                    <TruffleMenuItem onClick={() => setMenuAnchor(null)}>
+                        <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faCopy} /></SvgIcon>
+                        Duplicate video
+                    </TruffleMenuItem>
 
-                    <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: "4px", py: "8px", px: "16px" }}>
-                        <ListItemIcon sx={{ minWidth: "unset", color: "action.active" }}><DashboardCustomizeOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ color: "text.primary" }}>Video to template</ListItemText>
-                    </MenuItem>
+                    <TruffleMenuItem onClick={() => setMenuAnchor(null)}>
+                        <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
+                        Video to template
+                    </TruffleMenuItem>
 
-                    <Divider sx={{ my: "4px", borderColor: "divider" }} />
+                    <Divider sx={menuDividerSx} />
 
-                    <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: "4px", py: "8px", px: "16px" }}>
-                        <ListItemIcon sx={{ minWidth: "unset", color: "action.active" }}><FolderOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ color: "text.primary" }}>Move to folder</ListItemText>
-                    </MenuItem>
+                    <TruffleMenuItem onClick={() => setMenuAnchor(null)}>
+                        <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faFolder} /></SvgIcon>
+                        Move to folder
+                    </TruffleMenuItem>
 
-                    <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: "4px", py: "8px", px: "16px" }}>
-                        <ListItemIcon sx={{ minWidth: "unset", color: "action.active" }}><ArchiveOutlinedIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ color: "text.primary" }}>Archive</ListItemText>
-                    </MenuItem>
+                    <TruffleMenuItem onClick={() => setMenuAnchor(null)}>
+                        <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faBoxArchive} /></SvgIcon>
+                        Archive
+                    </TruffleMenuItem>
 
-                    <MenuItem onClick={() => setMenuAnchor(null)} sx={{ gap: "4px", py: "8px", px: "16px" }}>
-                        <ListItemIcon sx={{ minWidth: "unset", color: "error.main" }}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ color: "error.main" }}>Delete</ListItemText>
-                    </MenuItem>
+                    <TruffleMenuItem error onClick={() => setMenuAnchor(null)}>
+                        <SvgIcon sx={menuItemDeleteIconSx}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                        Delete
+                    </TruffleMenuItem>
                 </Menu>
             </Box>
 
             {/* Status chip — "Video/template status bank"
           Figma spec: display:flex, flex-direction:column, justify-content:center,
           align-items:flex-start, padding:1px 0px, width:246px, height:25px         */}
-            <Box sx={{ pl: "20px", py: "1px" }}>
+            <Box sx={sidebarStatusChipBoxSx}>
                 <Label
                     label={effectiveStatus === "pending" ? "Pending approval" : effectiveStatus === "approved" ? "Approved for sharing" : "Draft"}
                     color={effectiveStatus === "approved" ? "info" : "default"}
@@ -396,63 +341,67 @@ function Sidebar({
                 />
             </Box>
 
-            <Divider sx={{ borderColor: "divider", mx: 2.5, my: 1 }} />
+            <Divider sx={sidebarDividerSx} />
 
             {/* Nav items */}
-            <Box sx={{ px: 2, py: 1 }}>
-                <List disablePadding sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <ListItemButton selected sx={{ justifyContent: "space-between" }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: "6px", flex: 1 }}>
-                            <ListItemIcon sx={{ minWidth: 24 }}>
-                                <CreateOutlinedIcon sx={{ fontSize: 18, color: "action.active" }} />
+            <Box sx={sidebarNavBoxSx}>
+                <List disablePadding sx={sidebarNavListSx}>
+                    <ListItemButton selected={selectedNav === "edit"} onClick={() => onNavChange?.("edit")} sx={{ justifyContent: "space-between" }}>
+                        <Box sx={navItemRowSx}>
+                            <ListItemIcon sx={navItemIconContainerSx}>
+                                <SvgIcon sx={navItemIconSx}>
+                                    <FontAwesomeIcon icon={faPen} />
+                                </SvgIcon>
                             </ListItemIcon>
-                            <ListItemText primary="Edit" primaryTypographyProps={{
-                                sx: { color: "text.primary" }
-                            }} />
+                            <ListItemText primary="Edit" primaryTypographyProps={{ variant: "body2", sx: textPrimaryColorSx }} />
                         </Box>
-                        <SyncIcon sx={{ fontSize: 14, color: "info.main" }} />
+                        <SvgIcon sx={navItemUpdatedIconSx}>
+                            <FontAwesomeIcon icon={faArrowsRotate} />
+                        </SvgIcon>
                     </ListItemButton>
 
-                    <ListItemButton>
-                        <ListItemIcon sx={{ minWidth: 24 }}>
-                            <ShareOutlinedIcon sx={{ fontSize: 18, color: "action.active" }} />
+                    <ListItemButton selected={selectedNav === "share"} onClick={() => onNavChange?.("share")}>
+                        <ListItemIcon sx={navItemIconContainerSx}>
+                            <SvgIcon sx={navItemIconSx}>
+                                <FontAwesomeIcon icon={faShareNodes} />
+                            </SvgIcon>
                         </ListItemIcon>
-                        <ListItemText primary="Share" primaryTypographyProps={{
-                            sx: { color: "text.primary" }
-                        }} />
+                        <ListItemText primary="Share" primaryTypographyProps={{ variant: "body2", sx: textPrimaryColorSx }} />
                     </ListItemButton>
 
-                    <ListItemButton>
-                        <ListItemIcon sx={{ minWidth: 24 }}>
-                            <BarChartOutlinedIcon sx={{ fontSize: 18, color: "action.active" }} />
+                    <ListItemButton selected={selectedNav === "analyze"} onClick={() => onNavChange?.("analyze")}>
+                        <ListItemIcon sx={navItemIconContainerSx}>
+                            <SvgIcon sx={navItemIconSx}>
+                                <FontAwesomeIcon icon={faChartBar} />
+                            </SvgIcon>
                         </ListItemIcon>
-                        <ListItemText primary="Analyze" primaryTypographyProps={{
-                            sx: { color: "text.primary" }
-                        }} />
+                        <ListItemText primary="Analyze" primaryTypographyProps={{ variant: "body2", sx: textPrimaryColorSx }} />
                     </ListItemButton>
                 </List>
             </Box>
 
-            <Box sx={{ flex: 1 }} />
+            <Box sx={flexOneSx} />
 
             {/* User footer */}
-            <Divider sx={{ borderColor: "divider" }} />
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, py: 1.5 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: "secondary.main", fontSize: 11 }}>
-            MC
-                    </Avatar>
-                    <Box>
-                        <Typography variant="subtitle2" sx={{ color: "text.primary", display: "block" }}>
-              Maya Carmel
+            <Divider />
+            <Box sx={sidebarFooterRowSx}>
+                <Box sx={sidebarFooterUserSx}>
+                    <Badge variant="dot" color="error" overlap="circular"
+                        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                    >
+                        <TruffleAvatar text="MC" size="medium" />
+                    </Badge>
+                    <Box sx={minWidthZeroSx}>
+                        <Typography variant="body1" noWrap sx={textPrimaryColorSx}>
+                            Maya Carmel
                         </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              maya-carmel-playgr...
+                        <Typography variant="body2" noWrap sx={textSecondaryColorSx}>
+                            maya-carmel-playgr...
                         </Typography>
                     </Box>
                 </Box>
-                <IconButton size="small" sx={{ color: "action.active" }}>
-                    <MoreVertIcon fontSize="small" />
+                <IconButton size="medium" sx={iconButtonActiveColorSx}>
+                    <SvgIcon fontSize="small"><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                 </IconButton>
             </Box>
         </Box>
@@ -493,20 +442,16 @@ function VideoPreviewCard({
     // ── Phase 0 + pending: after approval dialog sent ─────────────────────
         if (videoPhase === 0 && effectiveStatus === "pending") {
             return (
-                <Tooltip
-                    title={pendingTooltip}
-                    placement="top"
-                    arrow
+                <Tooltip title={pendingTooltip} placement="top" arrow
                     componentsProps={{
-                        tooltip: { sx: { bgcolor: "secondary.main", borderRadius: 2, px: "12px", pt: "10px", pb: "12px", color: "common.white", maxWidth: 320 } },
-                        arrow:   { sx: { color: "secondary.main" } }
+                        tooltip: { sx: darkTooltipSx },
+                        arrow:   { sx: darkTooltipArrowSx }
                     }}
                 >
-                    <Button variant="outlined" size="small"
-                        startIcon={<GroupIcon sx={{ fontSize: "16px !important", color: "success.main" }} />}
-                        sx={{ bgcolor: "success.light", borderColor: "rgba(76, 175, 80, 0.5)", color: "success.main", "&:hover": { bgcolor: "success.light", borderColor: "success.main" } }}
+                    <Button variant="outlined" size="small" color="success"
+                        startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
                     >
-            Pending approval
+                        Pending approval
                     </Button>
                 </Tooltip>
             );
@@ -522,8 +467,8 @@ function VideoPreviewCard({
                     placement="top"
                     arrow
                     title={
-                        <Box sx={{ p: "2px" }}>
-                            <Typography sx={{ color: "common.white", display: "block", mb: "2px" }}>
+                        <Box sx={tooltipContentBoxSx}>
+                            <Typography sx={tooltipTextWithMbSx}>
                 • {respondedName} left feedback on Mar 15
                             </Typography>
                             {pendingNames.map((name, i) => (
@@ -531,29 +476,24 @@ function VideoPreviewCard({
                   • {name} hasn't responded yet
                                 </Typography>
                             ))}
-                            <Typography sx={{ color: "common.white", display: "block" }}>
+                            <Typography sx={tooltipTextBlockSx}>
                 Comments will be available once all approvers have responded.
                             </Typography>
                         </Box>
                     }
                     componentsProps={{
-                        tooltip: { sx: { bgcolor: "secondary.main", borderRadius: 2, px: "12px", pt: "10px", pb: "12px", maxWidth: 280 } },
-                        arrow:   { sx: { color: "secondary.main" } }
+                        tooltip: { sx: darkTooltipPhase1Sx },
+                        arrow:   { sx: darkTooltipArrowSx }
                     }}
                 >
                     <Button
                         variant="outlined"
                         size="small"
+                        color="warning"
                         onClick={() => onEdit(true)}
-                        startIcon={<GroupIcon sx={{ fontSize: "16px !important", color: "warning.main" }} />}
-                        sx={{
-                            bgcolor: "rgba(244,105,0,0.06)",
-                            borderColor: "rgba(244,105,0,0.5)",
-                            color: "warning.main",
-                            "&:hover": { bgcolor: "rgba(244,105,0,0.12)", borderColor: "warning.main" }
-                        }}
+                        startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
                     >
-            1 of {total} approver{total !== 1 ? "s" : ""} responded
+                        1 of {total} approver{total !== 1 ? "s" : ""} responded
                     </Button>
                 </Tooltip>
             );
@@ -581,16 +521,11 @@ function VideoPreviewCard({
                 <Button
                     variant="contained"
                     size="small"
-                    startIcon={<CheckIcon sx={{ fontSize: "16px !important" }} />}
-                    sx={{
-                        bgcolor: "success.light",
-                        color: "success.main",
-                        "&:hover": { bgcolor: "success.light" },
-                        boxShadow: "none"
-                    }}
+                    color="success"
+                    startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                     disabled
                 >
-          Approved
+                    Approved
                 </Button>
             );
         }
@@ -603,18 +538,18 @@ function VideoPreviewCard({
                     placement="top"
                     arrow
                     componentsProps={{
-                        tooltip: { sx: { bgcolor: "secondary.main", borderRadius: 2, px: "12px", pt: "10px", pb: "12px", color: "common.white", maxWidth: 320 } },
-                        arrow:   { sx: { color: "secondary.main" } }
+                        tooltip: { sx: darkTooltipSx },
+                        arrow:   { sx: darkTooltipArrowSx }
                     }}
                 >
                     <Button
                         variant="contained"
                         size="small"
                         color="primary"
-                        startIcon={<CheckIcon sx={{ fontSize: "16px !important" }} />}
+                        startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                         onClick={onApproveVideo}
                     >
-            Approve for sharing
+                        Approve for sharing
                     </Button>
                 </Tooltip>
             );
@@ -625,10 +560,10 @@ function VideoPreviewCard({
             // When approvals are OFF: show "Approve for sharing"
             return (
                 <Button variant="contained" size="small" color="primary"
-                    startIcon={<CheckIcon sx={{ fontSize: "16px !important" }} />}
+                    startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                     onClick={onApproveVideo}
                 >
-          Approve for sharing
+                    Approve for sharing
                 </Button>
             );
         }
@@ -636,26 +571,10 @@ function VideoPreviewCard({
         // When approvals are ON: show "Submit for approval"
         return (
             <Button variant="contained" size="small" color="primary"
-                startIcon={
-                    <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                        {/* Photo frame */}
-                        <rect x="1" y="2" width="15" height="12" rx="2"
-                            fill="none" stroke="currentColor" strokeWidth="1.5"/>
-                        {/* Sun */}
-                        <circle cx="4.5" cy="5.5" r="1.5" fill="currentColor"/>
-                        {/* Mountains — two peaks, clipped inside frame */}
-                        <path d="M1.5 13.5 L5.5 7.5 L9 11 L11.5 8.5 L15.5 13.5 Z" fill="currentColor"/>
-                        {/* Badge — white circle */}
-                        <circle cx="18.5" cy="18.5" r="5.5" fill="white"/>
-                        {/* Check — primary blue */}
-                        <path d="M15.5 18.5 L17.5 21 L22 15.5"
-                            stroke="#0053E5" strokeWidth="2.2" fill="none"
-                            strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                }
+                startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon>}
                 onClick={onSentForApproval}
             >
-        Submit for approval
+                Submit for approval
             </Button>
         );
     }
@@ -663,88 +582,79 @@ function VideoPreviewCard({
     return (
         <Paper
             variant="outlined"
-            sx={{ borderRadius: 2, overflow: "hidden", borderColor: "divider", bgcolor: "background.paper" }}
+            sx={videoPreviewCardPaperSx}
         >
             {/* Action bar */}
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.5 }}>
+            <Box sx={cardActionBarSx}>
                 <Button
                     variant="outlined"
-                    size="small"
+                    size="large"
                     color="primary"
-                    startIcon={<EditOutlinedIcon sx={{ fontSize: "16px !important" }} />}
+                    startIcon={<SvgIcon sx={buttonStartIconSx}><FontAwesomeIcon icon={faPen} /></SvgIcon>}
                     onClick={() => onEdit(false)}
                 >
-          Edit
+                    Edit
                 </Button>
 
                 <ActionButton />
             </Box>
 
-            <Divider sx={{ borderColor: "divider" }} />
+            <Divider sx={dividerSx} />
 
             {/* Preview — first scene with heading/sub-heading overlaid */}
-            <Box sx={{ position: "relative", width: "100%", overflow: "hidden" }}>
+            <Box sx={previewContainerSx}>
                 <Box component="img" src={imgVideoPreview} alt={videoTitle ?? "Video preview"}
-                    sx={{ width: "100%", display: "block", objectFit: "cover" }} />
+                    sx={previewImgSx} />
 
-                {/* Left half — white bg + pink accent line */}
-                <Box sx={{ position: "absolute", inset: 0, width: "50%", bgcolor: "common.white", pointerEvents: "none" }}>
-                    <Box sx={{ height: 5, bgcolor: "#C084FC", width: "100%" }} />
+                {/* Left half — white bg + accent line */}
+                <Box sx={previewLeftHalfSx}>
+                    <Box sx={previewAccentLineSx} />
                 </Box>
 
                 {/* Right half — drag media */}
-                <Box sx={{
-                    position: "absolute", top: 0, right: 0, bottom: 0, width: "50%",
-                    background: "repeating-linear-gradient(-45deg,#EBEBEF 0px,#EBEBEF 10px,#E2E2E7 10px,#E2E2E7 20px)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    gap: "6px", pointerEvents: "none"
-                }}>
-                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 36, color: "grey.500" }} />
-                    <Typography variant="caption" sx={{ color: "grey.500" }}>
-            Drag media here
+                <Box sx={previewRightHalfSx}>
+                    <SvgIcon sx={previewDragIconSx}>
+                        <FontAwesomeIcon icon={faImages} />
+                    </SvgIcon>
+                    <Typography variant="caption" sx={previewDragTextSx}>
+                        Drag media here
                     </Typography>
                 </Box>
 
-                {/* Text overlays — flowing column */}
-                <Box sx={{
-                    position: "absolute", left: "4%", top: "20%", width: "43%",
-                    containerType: "inline-size", pointerEvents: "none",
-                    display: "flex", flexDirection: "column"
-                }}>
-                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw", color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word" }}>
+                {/* Text overlays — canvas-specific cqw units */}
+                <Box sx={previewTextOverlaySx}>
+                    <Typography sx={previewHeadingTypographySx}>
                         {headingText ?? videoTitle ?? ""}
                     </Typography>
-                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw", color: "rgba(0,0,0,0.7)", lineHeight: 1.4, wordBreak: "break-word", mt: "6%" }}>
+                    <Typography sx={previewSubheadingTypographySx}>
                         {subheadingText ?? "Sub-heading Placeholder"}
                     </Typography>
                 </Box>
 
                 {/* Footnote */}
-                <Box sx={{ position: "absolute", left: "4%", width: "43%", bottom: "5%", containerType: "inline-size", pointerEvents: "none" }}>
-                    <Typography sx={{ fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: "2.5cqw", letterSpacing: "0.4px", color: "rgba(0,0,0,0.45)", lineHeight: 1.66 }}>
-            Footnote placeholder
+                <Box sx={previewFootnoteBoxSx}>
+                    <Typography sx={previewFootnoteTypographySx}>
+                        Footnote placeholder
                     </Typography>
                 </Box>
             </Box>
 
-            <Divider sx={{ borderColor: "divider" }} />
+            <Divider sx={dividerSx} />
 
             {/* Last edited */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.5 }}>
-                <Avatar sx={{ width: 28, height: 28, bgcolor: "secondary.main", fontSize: 10 }}>
-          MC
-                </Avatar>
+            <Box sx={cardMetaRowSx}>
+                <TruffleAvatar text="MC" size="small" />
                 <Box>
-                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                    <Typography variant="caption" sx={captionBlockSx}>
             Last Edited
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.primary" }}>
+                    <Typography variant="body1" sx={textPrimaryColorSx}>
             Mar 12, 1:21 PM
                     </Typography>
                 </Box>
             </Box>
 
-            <Divider sx={{ borderColor: "divider" }} />
+            <Divider sx={dividerSx} />
 
             {/* Video permission strip */}
             <VideoPermissionStrip
@@ -752,38 +662,33 @@ function VideoPreviewCard({
                 onManageClick={onManageAccess}
             />
 
-            <Divider sx={{ borderColor: "divider" }} />
+            <Divider sx={dividerSx} />
 
             {/* Data & Personalization (personalized video — has a data library) */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: "6px", px: 2, py: 1.5 }}>
-                <CircularIconAvatar icon={<LayersOutlinedIcon sx={{ fontSize: 19, color: "error.main" }} />} />
+            <Box sx={cardMetaRowSx}>
+                <CircularIconAvatar icon={<SvgIcon sx={dataPersonalizationIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>} />
                 <Box>
-                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: "1px" }}>
+                    <Typography variant="caption" sx={captionBlockWithMbSx}>
             Data &amp; Personalization
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.primary" }}>
+                    <Typography variant="body1" sx={textPrimaryColorSx}>
             Test library
                     </Typography>
                 </Box>
             </Box>
 
-            <Divider sx={{ borderColor: "divider" }} />
+            <Divider sx={dividerSx} />
 
             {/* Languages */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: "6px", px: 2, py: 1.5 }}>
-                <CircularIconAvatar icon={<PublicOutlinedIcon sx={{ fontSize: 19, color: "action.active" }} />} />
+            <Box sx={cardMetaRowSx}>
+                <CircularIconAvatar icon={<SvgIcon sx={globeIconSx}><FontAwesomeIcon icon={faGlobe} /></SvgIcon>} />
                 <Box>
-                    <Typography variant="caption" sx={{
-                        color: "text.secondary", display: "block", mb: "2px"
-                    }}>
+                    <Typography variant="caption" sx={captionBlockWithMb2Sx}>
             Languages
                     </Typography>
-                    <Box sx={{
-                        display: "inline-flex", alignItems: "baseline", gap: "4px",
-                        bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
-                    }}>
-                        <Box component="span" sx={{ fontSize: 12, lineHeight: 1 }}>🇺🇸</Box>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    <Box sx={languageChipSx}>
+                        <Box component="span" sx={languageFlagSx}>🇺🇸</Box>
+                        <Typography variant="caption" sx={textSecondaryColorSx}>
               English
                         </Typography>
                     </Box>
@@ -802,59 +707,71 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
     const [attentionDismissed, setAttentionDismissed] = useState(false);
 
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: 340, flexShrink: 0 }}>
+        <Box sx={reviewPanelContainerSx}>
 
             {/* ── 1. Review options ──────────────────────────────────────────────── */}
-            <Paper variant="outlined" sx={{ borderRadius: 2, borderColor: "divider", bgcolor: "background.paper", p: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: "4px", height: 30, minHeight: 30 }}>
-                    <Typography variant="subtitle2" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
-            Send video for review (single version)
+            <Paper variant="outlined" sx={reviewPaperSx}>
+                <Box sx={reviewPanelHeaderRowSx}>
+                    <Typography variant="subtitle2" sx={reviewPanelTitleSx}>
+                        Send video for review (single version)
                     </Typography>
                     <Tooltip title="Options for reviewing this video">
-                        <InfoOutlinedIcon sx={{ fontSize: 16, color: "action.active", cursor: "pointer" }} />
+                        <SvgIcon sx={panelInfoIconSx}>
+                            <FontAwesomeIcon icon={faCircleInfo} />
+                        </SvgIcon>
                     </Tooltip>
                 </Box>
-                <List disablePadding>
+                <List disablePadding dense>
                     {[
-                        { icon: <LinkIcon sx={{ fontSize: 16, color: "action.active" }} />, label: "Get a Preview Link" },
-                        { icon: <FileExportIcon sx={{ fontSize: 16, color: "action.active" }} />, label: "Export a script" },
-                        { icon: <ArrowDownwardIcon sx={{ fontSize: 16, color: "action.active" }} />, label: "Download a draft" }
+                        { icon: faLink, label: "Get a Preview Link" },
+                        { icon: faFileExport, label: "Export a script" },
+                        { icon: faArrowDown, label: "Download a draft" }
                     ].map(({ icon, label }) => (
-                        <Box key={label} sx={{ display: "flex", alignItems: "center", px: 1, py: "4px", gap: 1, borderRadius: 1, cursor: "pointer", "&:hover": { bgcolor: "action.selected" } }}>
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 16, pr: 1 }}>{icon}</Box>
-                            <Typography sx={{ color: "text.primary", letterSpacing: "0.15px" }}>
-                                {label}
-                            </Typography>
-                        </Box>
+                        <ListItemButton key={label} dense sx={reviewListItemButtonSx}>
+                            <ListItemIcon sx={reviewListItemIconContainerSx}>
+                                <SvgIcon sx={panelListIconSx}>
+                                    <FontAwesomeIcon icon={icon} />
+                                </SvgIcon>
+                            </ListItemIcon>
+                            <ListItemText primary={label} primaryTypographyProps={{ variant: "body1" }} />
+                        </ListItemButton>
                     ))}
                 </List>
             </Paper>
 
             {/* ── 2. Account libraries updated ──────────────────────────────────── */}
-            <Paper variant="outlined" sx={{ borderRadius: 2, borderColor: "divider", bgcolor: "background.paper", p: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 30, minHeight: 30 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <SyncIcon sx={{ fontSize: 16, color: "info.main" }} />
-                        <Typography variant="subtitle2" sx={{ color: "text.primary" }}>
-              Account libraries updated
+            <Paper variant="outlined" sx={reviewPaperSx}>
+                <Box sx={reviewPanelHeader2RowSx}>
+                    <Box sx={reviewPanelHeader2InnerSx}>
+                        <SvgIcon sx={updatedIconSx}>
+                            <FontAwesomeIcon icon={faArrowsRotate} />
+                        </SvgIcon>
+                        <Typography variant="subtitle2" sx={textPrimaryColorSx}>
+                            Account libraries updated
                         </Typography>
                     </Box>
                     <Tooltip title="About account library updates">
-                        <HelpOutlineIcon sx={{ fontSize: 16, color: "action.active", cursor: "pointer" }} />
+                        <SvgIcon sx={panelInfoIconSx}>
+                            <FontAwesomeIcon icon={faCircleQuestion} />
+                        </SvgIcon>
                     </Tooltip>
                 </Box>
-                <Typography sx={{ color: "text.secondary" }}>
+                <Typography sx={textSecondaryColorSx}>
           Review this version before approving and sharing to ensure any changes affecting this video are acceptable.
                 </Typography>
-                <List disablePadding>
+                <List disablePadding dense>
                     {[
-                        { icon: <PaletteOutlinedIcon sx={{ fontSize: 16, color: "action.active" }} />, label: "\"<brand name>\"" },
-                        { icon: <PeopleAltOutlinedIcon sx={{ fontSize: 16, color: "action.active" }} />, label: "\"<data library name>\"" },
-                        { icon: <MicOutlinedIcon sx={{ fontSize: 16, color: "action.active" }} />, label: "Word pronunciation" }
+                        { icon: faPalette, label: "\"<brand name>\"" },
+                        { icon: faUsers, label: "\"<data library name>\"" },
+                        { icon: faMicrophone, label: "Word pronunciation" }
                     ].map(({ icon, label }) => (
-                        <Box key={label} sx={{ display: "flex", alignItems: "center", px: 1, py: "4px", gap: 1 }}>
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 16, pr: 1, height: 24 }}>{icon}</Box>
-                            <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: "0.4px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <Box key={label} sx={reviewLibraryItemRowSx}>
+                            <ListItemIcon sx={reviewListItemIconContainerSx}>
+                                <SvgIcon sx={panelListIconSx}>
+                                    <FontAwesomeIcon icon={icon} />
+                                </SvgIcon>
+                            </ListItemIcon>
+                            <Typography variant="caption" sx={reviewLibraryItemLabelSx}>
                                 {label}
                             </Typography>
                             <UpdatedLabel />
@@ -867,7 +784,7 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
             {isPending && !attentionDismissed && (
                 <AttentionBox
                     color="warning"
-                    icon={<WarningAmberOutlinedIcon />}
+                    icon={<SvgIcon><FontAwesomeIcon icon={faTriangleExclamation} /></SvgIcon>}
                     CloseIconButtonProps={{ onClick: () => setAttentionDismissed(true) }}
                     HelpCenterIconButtonProps={{ onClick: () => {} }}
                 >
@@ -878,7 +795,7 @@ function ReviewOptionsPanel({ isPending }: { isPending: boolean }) {
                         </Typography>
                     </AttentionBoxContent>
                     <AttentionBoxActions>
-                        <TruffleLink startIcon={<LinkIcon sx={{ fontSize: 14 }} />}>Share video using link</TruffleLink>
+                        <TruffleLink startIcon={<SvgIcon sx={truffleLinkIconSx}><FontAwesomeIcon icon={faLink} /></SvgIcon>}>Share video using link</TruffleLink>
                     </AttentionBoxActions>
                 </AttentionBox>
             )}
@@ -967,57 +884,37 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
     const currentTask = tasks[currentIdx];
 
     return (
-        <Box sx={{
-            width: 250, flexShrink: 0, bgcolor: "grey.100",
-            borderLeft: 1, borderLeftColor: "grey.400",
-            display: "flex", flexDirection: "column", height: "100%"
-        }}>
+        <Box sx={tasksPanelContainerSx}>
             {/* ── Header ───────────────────────────────────────────────────────── */}
-            <Box sx={{
-                px: 2, pt: 2, pb: 1.5, borderBottom: 1, borderBottomColor: "grey.400",
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                flexShrink: 0
-            }}>
+            <Box sx={tasksPanelHeaderSx}>
                 <Box>
-                    <Typography variant="h5" sx={{
-                        color: "text.primary"
-                    }}>
+                    <Typography variant="h5" sx={textPrimaryColorSx}>
             Tasks
                     </Typography>
-                    <Typography variant="caption" sx={{
-                        color: "text.secondary", mt: "2px"
-                    }}>
+                    <Typography variant="caption" sx={tasksCounterTypographySx}>
                         {doneCount} / {tasks.length} done
                     </Typography>
                 </Box>
                 <Tooltip title="Restart — resets all tasks">
-                    <IconButton size="small" onClick={clearSession} sx={{ color: "text.secondary" }}>
-                        <RefreshIcon sx={{ fontSize: 18 }} />
+                    <IconButton size="small" onClick={clearSession} sx={tasksRestartButtonSx}>
+                        <SvgIcon sx={tasksRestartIconSx}><FontAwesomeIcon icon={faArrowsRotate} /></SvgIcon>
                     </IconButton>
                 </Tooltip>
             </Box>
 
             {/* ── All done state ────────────────────────────────────────────────── */}
             {session === "complete" && (
-                <Box sx={{
-                    flex: 1, display: "flex", flexDirection: "column",
-                    alignItems: "center", justifyContent: "center", gap: 2, px: 2.5
-                }}>
-                    <CheckCircleOutlineIcon sx={{ fontSize: 48, color: "success.main" }} />
-                    <Typography variant="h5" sx={{
-                        color: "text.primary", textAlign: "center"
-                    }}>
+                <Box sx={tasksDoneStateSx}>
+                    <SvgIcon sx={tasksDoneIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon>
+                    <Typography variant="h5" sx={tasksDoneTitleSx}>
             All tasks complete!
                     </Typography>
-                    <Typography variant="caption" sx={{
-                        color: "text.secondary", textAlign: "center"
-                    }}>
+                    <Typography variant="caption" sx={tasksDoneSubtitleSx}>
             Great work. Click restart to run through again.
                     </Typography>
                     <Button
                         size="small" variant="outlined" onClick={clearSession}
-                        startIcon={<RefreshIcon sx={{ fontSize: 14 }} />}
-                        sx={{ borderRadius: "20px" }}
+                        startIcon={<SvgIcon sx={tasksRestartSmallIconSx}><FontAwesomeIcon icon={faArrowsRotate} /></SvgIcon>}
                     >
             Restart
                     </Button>
@@ -1039,24 +936,24 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                         open={session === "survey"}
                         maxWidth="xs"
                         fullWidth
-                        PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
+                        slotProps={{ paper: { sx: surveyDialogPaperSx } }}
                     >
-                        <DialogTitle sx={{ pb: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        <DialogTitle sx={surveyDialogTitleSx}>
+                            <Typography variant="caption" sx={textSecondaryColorSx}>
                 Question {surveyStep} of 2
                             </Typography>
-                            <IconButton size="small" onClick={submitSurvey} sx={{ color: "action.active", mr: -1 }}>
-                                <CloseIcon sx={{ fontSize: 18 }} />
+                            <IconButton size="small" onClick={submitSurvey} sx={surveyCloseButtonSx}>
+                                <SvgIcon sx={tasksRestartIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                             </IconButton>
                         </DialogTitle>
 
-                        <DialogContent sx={{ pt: 1.5, display: "flex", flexDirection: "column", gap: 2 }}>
-                            <Typography variant="h5" sx={{ color: "text.primary" }}>
+                        <DialogContent sx={surveyDialogContentSx}>
+                            <Typography variant="h5" sx={textPrimaryColorSx}>
                                 {qLabel}
                             </Typography>
 
                             {/* 7-point scale */}
-                            <Box sx={{ display: "flex", gap: "4px" }}>
+                            <Box sx={surveyScaleRowSx}>
                                 {[1, 2, 3, 4, 5, 6, 7].map(n => (
                                     <Box
                                         key={n}
@@ -1076,9 +973,9 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                                     </Box>
                                 ))}
                             </Box>
-                            <Box sx={{ display: "flex", justifyContent: "space-between", mt: "-8px" }}>
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>Very Difficult</Typography>
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>Very Easy</Typography>
+                            <Box sx={surveyScaleLabelRowSx}>
+                                <Typography variant="caption" sx={textSecondaryColorSx}>Very Difficult</Typography>
+                                <Typography variant="caption" sx={textSecondaryColorSx}>Very Easy</Typography>
                             </Box>
 
                             {/* Why */}
@@ -1093,7 +990,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                             />
                         </DialogContent>
 
-                        <DialogActions sx={{ px: 3, pb: 2.5, pt: 0.5 }}>
+                        <DialogActions sx={surveyDialogActionsSx}>
                             <Button
                                 fullWidth
                                 variant="contained"
@@ -1109,21 +1006,19 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
 
             {/* ── Active task ───────────────────────────────────────────────────── */}
             {session === "active" && currentTask && (
-                <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Box sx={tasksActiveSessionSx}>
 
                     {/* Progress bar */}
-                    <Box sx={{ px: 2, pt: 1.5, pb: 1, flexShrink: 0 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: "6px" }}>
-                            <Typography sx={{
-                                color: "text.secondary", letterSpacing: "0.5px", textTransform: "uppercase"
-                            }}>
+                    <Box sx={tasksProgressAreaSx}>
+                        <Box sx={tasksProgressLabelRowSx}>
+                            <Typography sx={tasksProgressLabelTypographySx}>
                 Task {currentIdx + 1} of {tasks.length}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            <Typography variant="caption" sx={textSecondaryColorSx}>
                                 {doneCount} done
                             </Typography>
                         </Box>
-                        <Box sx={{ height: 4, bgcolor: "grey.400", borderRadius: 2 }}>
+                        <Box sx={tasksProgressTrackSx}>
                             <Box sx={{
                                 height: "100%", bgcolor: "primary.main", borderRadius: 2,
                                 width: `${(doneCount / tasks.length) * 100}%`,
@@ -1133,7 +1028,7 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                     </Box>
 
                     {/* Scrollable content: task card + button + dots nav */}
-                    <Box sx={{ flex: 1, overflowY: "auto", px: 2, pb: 2, display: "flex", flexDirection: "column" }}>
+                    <Box sx={tasksScrollableSx}>
 
                         {/* Task card — fixed min-height so button doesn't shift between tasks */}
                         <Box sx={{
@@ -1146,11 +1041,9 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                             transition: "background-color 0.2s, border-color 0.2s"
                         }}>
                             {currentTask.done && (
-                                <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <CheckCircleOutlineIcon sx={{ fontSize: 16, color: "success.main" }} />
-                                    <Typography variant="caption" sx={{
-                                        color: "success.main", letterSpacing: "0.3px"
-                                    }}>
+                                <Box sx={taskDoneIndicatorRowSx}>
+                                    <SvgIcon sx={taskDoneIndicatorIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon>
+                                    <Typography variant="caption" sx={taskDoneLabelSx}>
                     Done
                                     </Typography>
                                 </Box>
@@ -1170,24 +1063,20 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                         <Button
                             fullWidth
                             variant="contained"
+                            color={currentTask.done ? "success" : "primary"}
                             disabled={currentTask.done}
                             onClick={markDone}
-                            sx={{
-                                mt: "10px",
-                                bgcolor: currentTask.done ? "success.main" : "primary.main",
-                                "&:hover": { bgcolor: currentTask.done ? "success.main" : "#0042BB" },
-                                "&.Mui-disabled": { bgcolor: "success.light", color: "success.main" }
-                            }}
+                            sx={{ mt: "10px" }}
                         >
                             {currentTask.done ? "✓  Done" : "I'm done"}
                         </Button>
 
                         {/* Dot navigation */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pt: "2px", mt: "4px" }}>
-                            <IconButton size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={{ color: "action.active" }}>
-                                <ArrowBackIcon sx={{ fontSize: 18 }} />
+                        <Box sx={tasksDotNavRowSx}>
+                            <IconButton size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={iconButtonActiveColorSx}>
+                                <SvgIcon sx={tasksRestartIconSx}><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                             </IconButton>
-                            <Box sx={{ display: "flex", gap: "5px" }}>
+                            <Box sx={tasksDotsSx}>
                                 {tasks.map((task, i) => (
                                     <Box
                                         key={task.id}
@@ -1200,8 +1089,8 @@ function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) 
                                     />
                                 ))}
                             </Box>
-                            <IconButton size="small" disabled={currentIdx === tasks.length - 1} onClick={() => setCurrentIdx(i => i + 1)} sx={{ color: "action.active" }}>
-                                <ArrowForwardIcon sx={{ fontSize: 18 }} />
+                            <IconButton size="small" disabled={currentIdx === tasks.length - 1} onClick={() => setCurrentIdx(i => i + 1)} sx={iconButtonActiveColorSx}>
+                                <SvgIcon sx={tasksRestartIconSx}><FontAwesomeIcon icon={faArrowRight} /></SvgIcon>
                             </IconButton>
                         </Box>
                     </Box>
@@ -1224,6 +1113,7 @@ type VideoState = { phase: number; pageState: "draft" | "pending"; sentApprovers
 const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: "draft", sentApprovers: [] };
 
 export default function App() {
+    const theme = useTheme();
     const [currentPage, setCurrentPage] = useState<"video" | "library" | "studio">("library");
     const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
     const [videoStates, setVideoStates] = useState<Record<string, VideoState>>({});
@@ -1246,6 +1136,7 @@ export default function App() {
     const [approvalsDisabledDialogOpen, setApprovalsDisabledDialogOpen] = useState(false);
     const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
     const [accountSettingsInitialTab, setAccountSettingsInitialTab] = useState<"users" | "permissions" | "approvals" | "access">("users");
+    const [videoNavTab, setVideoNavTab] = useState<"edit" | "share" | "analyze">("edit");
 
     // Derive current video's state from the map (defaults to fresh draft)
     const currentKey = selectedVideo?.title || "Stay Safe During Missile Threats";
@@ -1284,7 +1175,7 @@ export default function App() {
     if (videoPhase >= 3) {
         notifications.push({
             id: 3,
-            iconColor: "#045E2D",
+            iconColor: theme.palette.success.dark,
             parts: [
                 { text: `"${videoTitleForNotif}"` },
                 { text: ` was approved by ${allApproversStr}. You can now ` },
@@ -1299,7 +1190,7 @@ export default function App() {
     if (videoPhase >= 2) {
         notifications.push({
             id: 2,
-            iconColor: "#F46900",
+            iconColor: theme.palette.warning.main,
             parts: [
                 { text: `${allApproversStr} have reviewed "${videoTitleForNotif}". There are ${TOTAL_COMMENT_COUNT} comments. ` },
                 { text: "View them now", isLink: true }
@@ -1317,7 +1208,7 @@ export default function App() {
     if (videoPhase >= 1) {
         notifications.push({
             id: 1,
-            iconColor: "#F46900",
+            iconColor: theme.palette.warning.main,
             parts: [
                 { text: `${approver1Name} reviewed "${videoTitleForNotif}". Waiting for ${pendingApproversStr}'s approval.` }
             ],
@@ -1357,10 +1248,10 @@ export default function App() {
         : "Sent for approval on Mar 15 by you";
 
     return (
-        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+        <Box sx={appRootSx}>
 
             {/* ── Main app area ───────────────────────────────────────────────────── */}
-            <Box sx={{ flex: 1, display: "flex", overflow: "hidden" }}>
+            <Box sx={appMainAreaSx}>
                 {currentPage === "library" ? (
                     <VideoLibraryPage
                         onSelectVideo={handleSelectVideo}
@@ -1422,69 +1313,78 @@ export default function App() {
 
                 ) : (
                 /* ── Video page ───────────────────────────────────────────────────── */
-                    <Box sx={{ display: "flex", width: "100%", height: "100%", bgcolor: "primary.light", overflow: "hidden" }}>
+                    <Box sx={videoPageLayoutSx}>
                         <Sidebar
                             effectiveStatus={effectiveStatus}
                             videoTitle={selectedVideo?.title ?? "Video"}
                             onNavigateToLibrary={() => setCurrentPage("library")}
                             videoPermSettings={videoPermSettings}
                             onManageAccess={() => setVideoPermDialogOpen(true)}
+                            selectedNav={videoNavTab}
+                            onNavChange={setVideoNavTab}
                         />
 
-                        <Box sx={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-                            {/* Header */}
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 4, py: 2 }}>
-                                <Typography variant="h1" sx={{ color: "text.primary" }}>
-                  Video Page
-                                </Typography>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                    <OutlinedInput
+                        <Box sx={videoPageContentColumnSx}>
+                            {/* AppBar */}
+                            <AppBar position="sticky" color="primary" elevation={4}>
+                                <Toolbar variant="dense">
+                                    <Box sx={flexOneSx} />
+                                    <Search
+                                        value=""
+                                        onChange={() => {}}
+                                        onClear={() => {}}
+                                        numberOfResults={0}
                                         placeholder="Search Video Library"
-                                        size="small"
-                                        startAdornment={
-                                            <InputAdornment position="start">
-                                                <SearchIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                                            </InputAdornment>
-                                        }
-                                        sx={{ width: 240, bgcolor: "background.paper" }}
+                                        sx={{ width: 240 }}
                                     />
-                                </Box>
-                            </Box>
+                                </Toolbar>
+                            </AppBar>
 
                             {/* Content */}
-                            <Box sx={{ flex: 1, overflow: "auto" }}>
-                                <Box sx={{
-                                    maxWidth: 900, mx: "auto",
-                                    px: 4, pb: 4, pt: 2,
-                                    display: "flex", gap: 3, alignItems: "flex-start"
-                                }}>
-                                    <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-                                        <VideoPreviewCard
-                                            videoPhase={videoPhase}
-                                            effectiveStatus={effectiveStatus}
-                                            approvers={sentApprovers.length > 0 ? sentApprovers : ["sjohnson", "erodriguez"]}
-                                            pendingTooltip={pendingTooltip}
-                                            headingText={currentVState.headingText}
-                                            subheadingText={currentVState.subheadingText}
-                                            videoTitle={selectedVideo?.title}
-                                            onSentForApproval={() => setDialogStep("form")}
-                                            onEdit={(fromComments?: boolean) => {
-                                                if (isPending && videoPhase !== 2 && !fromComments) {
-                                                    setCancelApprovalDialogOpen(true);
-                                                }
-                                                else {
-                                                    setOpenCommentsOnStudio(fromComments ?? false);
-                                                    setCurrentPage("studio");
-                                                }
-                                            }}
-                                            onApproveVideo={() => setApproveDialogOpen(true)}
-                                            videoPermSettings={videoPermSettings}
-                                            onManageAccess={() => setVideoPermDialogOpen(true)}
-                                            approvalsEnabled={approvalsEnabled}
-                                        />
+                            <Box sx={videoPageScrollSx}>
+                                {videoNavTab === "share" ? (
+                                    <Box sx={shareEmptyStateSx}>
+                                        <Box component="img" src="" alt="" sx={shareEmptyIllustrationSx} />
+                                        <Typography variant="h2" sx={shareEmptyTitleSx}>
+                                            No versions have been approved
+                                        </Typography>
+                                        <Typography variant="body1" color="text.secondary">
+                                            Once a version is approved, it will appear here.{" "}
+                                            <Link component="button" variant="body1" onClick={() => setVideoNavTab("edit")}>
+                                                Go to Edit
+                                            </Link>
+                                        </Typography>
                                     </Box>
-                                    <ReviewOptionsPanel isPending={effectiveStatus === "pending" && videoPhase !== 2} />
-                                </Box>
+                                ) : (
+                                    <Box sx={videoPageInnerSx}>
+                                        <Box sx={videoPageCardColumnSx}>
+                                            <VideoPreviewCard
+                                                videoPhase={videoPhase}
+                                                effectiveStatus={effectiveStatus}
+                                                approvers={sentApprovers.length > 0 ? sentApprovers : ["sjohnson", "erodriguez"]}
+                                                pendingTooltip={pendingTooltip}
+                                                headingText={currentVState.headingText}
+                                                subheadingText={currentVState.subheadingText}
+                                                videoTitle={selectedVideo?.title}
+                                                onSentForApproval={() => setDialogStep("form")}
+                                                onEdit={(fromComments?: boolean) => {
+                                                    if (isPending && videoPhase !== 2 && !fromComments) {
+                                                        setCancelApprovalDialogOpen(true);
+                                                    }
+                                                    else {
+                                                        setOpenCommentsOnStudio(fromComments ?? false);
+                                                        setCurrentPage("studio");
+                                                    }
+                                                }}
+                                                onApproveVideo={() => setApproveDialogOpen(true)}
+                                                videoPermSettings={videoPermSettings}
+                                                onManageAccess={() => setVideoPermDialogOpen(true)}
+                                                approvalsEnabled={approvalsEnabled}
+                                            />
+                                        </Box>
+                                        <ReviewOptionsPanel isPending={effectiveStatus === "pending" && videoPhase !== 2} />
+                                    </Box>
+                                )}
                             </Box>
                         </Box>
                     </Box>
@@ -1545,15 +1445,14 @@ export default function App() {
                 onClose={() => setPendingApprovalsDialogOpen(false)}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{ sx: { borderRadius: "12px" } }}
             >
-                <DialogTitle sx={{ color: "text.primary", pb: 1 }}>
+                <DialogTitle sx={dialogTitleSx}>
                     {pendingApprovalsWarningReason === "turn-off"
                         ? "Cannot turn off approvals"
                         : "Cannot remove user"}
                 </DialogTitle>
-                <DialogContent sx={{ pt: 2 }}>
-                    <Typography variant="body1" sx={{ color: "text.secondary", mb: 2 }}>
+                <DialogContent sx={dialogContentTopPaddingSx}>
+                    <Typography variant="body1" sx={pendingApprovalsDescriptionSx}>
                         {pendingApprovalsWarningReason === "turn-off"
                             ? `You have ${Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length} video${
                                 Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length !== 1 ? "s" : ""
@@ -1562,18 +1461,18 @@ export default function App() {
                     </Typography>
 
                     {/* List of pending approvals */}
-                    <Box sx={{ bgcolor: "grey.100", borderRadius: "8px", p: 2, mb: 2 }}>
+                    <Box sx={pendingApprovalsListBoxSx}>
                         {Object.entries(videoStates)
                             .filter(([_, state]) => state.sentApprovers?.length > 0)
                             .slice(0, 5)
                             .map(([videoTitle, state]) => (
-                                <Box key={videoTitle} sx={{ display: "flex", gap: 2, mb: 1.5, alignItems: "flex-start", "&:last-child": { mb: 0 } }}>
-                                    <Box sx={{ width: 60, height: 60, borderRadius: "6px", bgcolor: "primary.light", flexShrink: 0, border: 1, borderColor: "divider" }} />
-                                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                                        <Typography variant="body1" sx={{ color: "text.primary", mb: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <Box key={videoTitle} sx={pendingApprovalItemRowSx}>
+                                    <Box sx={pendingApprovalThumbnailSx} />
+                                    <Box sx={pendingApprovalItemInfoSx}>
+                                        <Typography variant="body1" sx={pendingApprovalItemTitleSx}>
                                             {videoTitle}
                                         </Typography>
-                                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                        <Typography variant="caption" sx={textSecondaryColorSx}>
                       Awaiting approval • {formatApproverNames(state.sentApprovers)}
                                         </Typography>
                                     </Box>
@@ -1581,7 +1480,7 @@ export default function App() {
                             ))}
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, py: 2 }}>
+                <DialogActions sx={dialogActionsSx}>
                     <Button
                         variant="contained"
                         onClick={() => {
@@ -1600,23 +1499,21 @@ export default function App() {
                 onClose={() => setApprovalsDisabledDialogOpen(false)}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{ sx: { borderRadius: "12px" } }}
             >
-                <DialogTitle sx={{ color: "text.primary", pb: 1 }}>
+                <DialogTitle sx={dialogTitleSx}>
           Enable approvals
                 </DialogTitle>
-                <DialogContent sx={{ pt: 2 }}>
-                    <Typography variant="body1" sx={{ color: "text.secondary", mb: 2 }}>
+                <DialogContent sx={dialogContentTopPaddingSx}>
+                    <Typography variant="body1" sx={pendingApprovalsDescriptionSx}>
             To use this feature, set up approvers in Account Settings and turn on "Require approvals from specific users for videos and templates".
                     </Typography>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, py: 2 }}>
+                <DialogActions sx={dialogActionsSx}>
                     <Button
                         variant="outlined"
                         onClick={() => setApprovalsDisabledDialogOpen(false)}
-                        sx={{ color: "text.primary", borderColor: "divider" }}
                     >
-            Cancel
+                        Cancel
                     </Button>
                     <Button
                         variant="contained"
@@ -1634,3 +1531,290 @@ export default function App() {
         </Box>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+// ── Shared primitives ─────────────────────────────────────────────────────────
+const textPrimaryColorSx: SxProps<Theme> = { color: "text.primary" };
+const textSecondaryColorSx: SxProps<Theme> = { color: "text.secondary" };
+const dividerSx: SxProps<Theme> = { borderColor: "divider" };
+const flexOneSx: SxProps<Theme> = { flex: 1 };
+const minWidthZeroSx: SxProps<Theme> = { minWidth: 0 };
+const iconButtonActiveColorSx: SxProps<Theme> = { color: "action.active" };
+
+// ── Dark tooltip (untyped — MUI componentsProps.tooltip.sx is incompatible with SxProps<Theme>) ──
+const darkTooltipSx = {
+    bgcolor: "secondary.main", borderRadius: 2,
+    px: "12px", pt: "10px", pb: "12px",
+    color: "common.white", maxWidth: 320
+};
+const darkTooltipPhase1Sx = {
+    bgcolor: "secondary.main", borderRadius: 2,
+    px: "12px", pt: "10px", pb: "12px", maxWidth: 280
+};
+const darkTooltipArrowSx = { color: "secondary.main" };
+
+// ── Tooltip content ───────────────────────────────────────────────────────────
+const tooltipContentBoxSx: SxProps<Theme> = { p: "2px" };
+const tooltipTextWithMbSx: SxProps<Theme> = { color: "common.white", display: "block", mb: "2px" };
+const tooltipTextBlockSx: SxProps<Theme> = { color: "common.white", display: "block" };
+
+// ── Button start icon ─────────────────────────────────────────────────────────
+const buttonStartIconSx: SxProps<Theme> = { fontSize: "16px !important" };
+
+// ── CircularIconAvatar ────────────────────────────────────────────────────────
+const circularIconAvatarSx: SxProps<Theme> = {
+    width: 40, height: 40, borderRadius: "50%", bgcolor: "action.selected",
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+};
+
+// ── AvatarChip (VideoPermissionStrip) ─────────────────────────────────────────
+const avatarChipOuterSx: SxProps<Theme> = {
+    display: "inline-flex", alignItems: "baseline", gap: "5px", flexShrink: 0,
+    bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
+};
+const avatarChipIconBoxSx: SxProps<Theme> = {
+    width: 16, height: 16, borderRadius: "3px", bgcolor: "divider",
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    flexShrink: 0, alignSelf: "center"
+};
+const avatarChipRoleIconSx: SxProps<Theme> = { fontSize: 10, color: "text.primary" };
+
+// ── Lock icons ────────────────────────────────────────────────────────────────
+const lockIconSuccessSx: SxProps<Theme> = { fontSize: 19, color: "success.main" };
+const lockIconPrimarySx: SxProps<Theme> = { fontSize: 19, color: "primary.main" };
+
+// ── VideoPermissionStrip ──────────────────────────────────────────────────────
+const permStripRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "flex-start", gap: "6px", px: 2, py: 1.5,
+    cursor: "pointer",
+    "&:hover": { bgcolor: "action.hover" }
+};
+const permStripLabelSx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "4px" };
+const permStripIndicatorsRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px"
+};
+const everyoneSeparatorSx: SxProps<Theme> = { width: "1px", height: 16, bgcolor: "divider", flexShrink: 0 };
+const everyoneIconBoxSx: SxProps<Theme> = {
+    width: 16, height: 16, borderRadius: "3px", bgcolor: "action.selected",
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    flexShrink: 0, alignSelf: "center"
+};
+const everyoneIconSx: SxProps<Theme> = { fontSize: 11, color: "text.primary" };
+
+// ── SundaySkyLogo ─────────────────────────────────────────────────────────────
+const logoBoxSx: SxProps<Theme> = { px: 1, pb: 0.5 };
+const logoTypographySx: SxProps<Theme> = {
+    letterSpacing: "0.25em", color: "text.primary", textTransform: "uppercase", lineHeight: 1
+};
+const logoSkySx: SxProps<Theme> = { color: "primary.main" };
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+const sidebarContainerSx: SxProps<Theme> = {
+    width: 300, flexShrink: 0, display: "flex", flexDirection: "column",
+    height: "100%", bgcolor: "background.paper", borderRight: 1, borderColor: "divider"
+};
+const sidebarLogoClickSx: SxProps<Theme> = {
+    px: 2.5, pt: 2, pb: 0, cursor: "pointer", "&:hover": { opacity: 0.75 }
+};
+const sidebarBackNavSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: 0.5,
+    px: 2.5, pt: 2, pb: 1, cursor: "pointer", width: "fit-content",
+    "&:hover": { opacity: 0.75 }
+};
+const sidebarBackIconSx: SxProps<Theme> = { fontSize: 16, color: "text.secondary" };
+const sidebarTitleRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+    px: 2.5, pr: 1.5
+};
+const sidebarMenuIconButtonSx: SxProps<Theme> = { mt: 0.3, color: "action.active", flexShrink: 0 };
+const menuPaperSx: SxProps<Theme> = { minWidth: 256, mt: "4px", py: "4px" };
+const menuHeaderBoxSx: SxProps<Theme> = { px: 2, pt: "10px", pb: 1 };
+const menuHeaderTitleSx: SxProps<Theme> = { color: "text.primary", mb: "4px" };
+const menuHeaderFolderRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px" };
+const menuHeaderFolderIconSx: SxProps<Theme> = { fontSize: 13, color: "text.secondary" };
+const menuDividerSx: SxProps<Theme> = { my: "4px" };
+const menuItemIconSx: SxProps<Theme> = { fontSize: 16, color: "action.active", mr: 1 };
+const menuItemDeleteIconSx: SxProps<Theme> = { fontSize: 16, mr: 1 };
+const sidebarStatusChipBoxSx: SxProps<Theme> = { pl: "20px", py: "1px" };
+const sidebarDividerSx: SxProps<Theme> = { borderColor: "divider", mx: 2.5, my: 1 };
+const sidebarNavBoxSx: SxProps<Theme> = { px: 2, py: 1 };
+const sidebarNavListSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px" };
+const navItemRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px", flex: 1 };
+const navItemIconContainerSx: SxProps<Theme> = { minWidth: 24 };
+const navItemIconSx: SxProps<Theme> = { fontSize: 18, color: "action.active" };
+const navItemUpdatedIconSx: SxProps<Theme> = { fontSize: 14, color: "info.main" };
+const sidebarFooterRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, py: 1.5
+};
+const sidebarFooterUserSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 };
+
+// ── VideoPreviewCard ──────────────────────────────────────────────────────────
+const videoPreviewCardPaperSx: SxProps<Theme> = {
+    borderRadius: 2, overflow: "hidden", borderColor: "divider", bgcolor: "background.paper"
+};
+const cardActionBarSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.5
+};
+const previewContainerSx: SxProps<Theme> = { position: "relative", width: "100%", overflow: "hidden" };
+const previewImgSx: SxProps<Theme> = { width: "100%", display: "block", objectFit: "cover" };
+const previewLeftHalfSx: SxProps<Theme> = {
+    position: "absolute", inset: 0, width: "50%", bgcolor: "common.white", pointerEvents: "none"
+};
+const previewAccentLineSx: SxProps<Theme> = { height: 5, bgcolor: "secondary.light", width: "100%" };
+const previewRightHalfSx: SxProps<Theme> = {
+    position: "absolute", top: 0, right: 0, bottom: 0, width: "50%",
+    bgcolor: "grey.200",
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    gap: "6px", pointerEvents: "none"
+};
+const previewDragIconSx: SxProps<Theme> = { fontSize: 36, color: "grey.500" };
+const previewDragTextSx: SxProps<Theme> = { color: "grey.500" };
+const previewTextOverlaySx: SxProps<Theme> = {
+    position: "absolute", left: "4%", top: "20%", width: "43%",
+    containerType: "inline-size", pointerEvents: "none",
+    display: "flex", flexDirection: "column"
+};
+const previewHeadingTypographySx: SxProps<Theme> = {
+    fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw",
+    color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word"
+};
+const previewSubheadingTypographySx: SxProps<Theme> = {
+    fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw",
+    color: "text.secondary", lineHeight: 1.4, wordBreak: "break-word", mt: "6%"
+};
+const previewFootnoteBoxSx: SxProps<Theme> = {
+    position: "absolute", left: "4%", width: "43%", bottom: "5%",
+    containerType: "inline-size", pointerEvents: "none"
+};
+const previewFootnoteTypographySx: SxProps<Theme> = {
+    fontFamily: "\"Open Sans\", sans-serif", fontWeight: 400, fontSize: "2.5cqw",
+    letterSpacing: "0.4px", color: "text.disabled", lineHeight: 1.66
+};
+const cardMetaRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.5 };
+const captionBlockSx: SxProps<Theme> = { color: "text.secondary", display: "block" };
+const captionBlockWithMbSx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "1px" };
+const captionBlockWithMb2Sx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "2px" };
+const dataPersonalizationIconSx: SxProps<Theme> = { fontSize: 19, color: "error.main" };
+const globeIconSx: SxProps<Theme> = { fontSize: 19, color: "action.active" };
+const languageChipSx: SxProps<Theme> = {
+    display: "inline-flex", alignItems: "baseline", gap: "4px",
+    bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
+};
+const languageFlagSx: SxProps<Theme> = { fontSize: 12, lineHeight: 1 };
+
+// ── ReviewOptionsPanel ────────────────────────────────────────────────────────
+const reviewPanelContainerSx: SxProps<Theme> = {
+    display: "flex", flexDirection: "column", gap: 2, width: 340, flexShrink: 0
+};
+const reviewPaperSx: SxProps<Theme> = {
+    borderRadius: 2, borderColor: "divider", bgcolor: "background.paper",
+    p: 2, display: "flex", flexDirection: "column", gap: 1
+};
+const reviewPanelHeaderRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: "4px", height: 30, minHeight: 30
+};
+const reviewPanelTitleSx: SxProps<Theme> = { color: "text.primary", whiteSpace: "nowrap" };
+const panelInfoIconSx: SxProps<Theme> = { fontSize: 16, color: "action.active", cursor: "pointer" };
+const reviewListItemButtonSx: SxProps<Theme> = { borderRadius: 1, px: 1, py: "4px" };
+const reviewListItemIconContainerSx: SxProps<Theme> = { minWidth: 28 };
+const panelListIconSx: SxProps<Theme> = { fontSize: 16, color: "action.active" };
+const reviewPanelHeader2RowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", justifyContent: "space-between", height: 30, minHeight: 30
+};
+const reviewPanelHeader2InnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px" };
+const updatedIconSx: SxProps<Theme> = { fontSize: 16, color: "info.main" };
+const reviewLibraryItemRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", px: 1, py: "4px", gap: 1 };
+const reviewLibraryItemLabelSx: SxProps<Theme> = {
+    color: "text.secondary", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+};
+const truffleLinkIconSx: SxProps<Theme> = { fontSize: 14 };
+
+// ── TasksPanel ────────────────────────────────────────────────────────────────
+const tasksPanelContainerSx: SxProps<Theme> = {
+    width: 250, flexShrink: 0, bgcolor: "grey.100",
+    borderLeft: 1, borderLeftColor: "grey.400",
+    display: "flex", flexDirection: "column", height: "100%"
+};
+const tasksPanelHeaderSx: SxProps<Theme> = {
+    px: 2, pt: 2, pb: 1.5, borderBottom: 1, borderBottomColor: "grey.400",
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    flexShrink: 0
+};
+const tasksCounterTypographySx: SxProps<Theme> = { color: "text.secondary", mt: "2px" };
+const tasksRestartButtonSx: SxProps<Theme> = { color: "text.secondary" };
+const tasksRestartIconSx: SxProps<Theme> = { fontSize: 18 };
+const tasksDoneStateSx: SxProps<Theme> = {
+    flex: 1, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center", gap: 2, px: 2.5
+};
+const tasksDoneIconSx: SxProps<Theme> = { fontSize: 48, color: "success.main" };
+const tasksDoneTitleSx: SxProps<Theme> = { color: "text.primary", textAlign: "center" };
+const tasksDoneSubtitleSx: SxProps<Theme> = { color: "text.secondary", textAlign: "center" };
+const tasksRestartSmallIconSx: SxProps<Theme> = { fontSize: 14 };
+const surveyDialogPaperSx: SxProps<Theme> = { p: 1 };
+const surveyDialogTitleSx: SxProps<Theme> = {
+    pb: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between"
+};
+const surveyCloseButtonSx: SxProps<Theme> = { color: "action.active", mr: -1 };
+const surveyDialogContentSx: SxProps<Theme> = { pt: 1.5, display: "flex", flexDirection: "column", gap: 2 };
+const surveyScaleRowSx: SxProps<Theme> = { display: "flex", gap: "4px" };
+const surveyScaleLabelRowSx: SxProps<Theme> = { display: "flex", justifyContent: "space-between", mt: "-8px" };
+const surveyDialogActionsSx: SxProps<Theme> = { px: 3, pb: 2.5, pt: 0.5 };
+const tasksActiveSessionSx: SxProps<Theme> = { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" };
+const tasksProgressAreaSx: SxProps<Theme> = { px: 2, pt: 1.5, pb: 1, flexShrink: 0 };
+const tasksProgressLabelRowSx: SxProps<Theme> = { display: "flex", justifyContent: "space-between", mb: "6px" };
+const tasksProgressLabelTypographySx: SxProps<Theme> = {
+    color: "text.secondary", letterSpacing: "0.5px", textTransform: "uppercase"
+};
+const tasksProgressTrackSx: SxProps<Theme> = { height: 4, bgcolor: "grey.400", borderRadius: 2 };
+const tasksScrollableSx: SxProps<Theme> = {
+    flex: 1, overflowY: "auto", px: 2, pb: 2, display: "flex", flexDirection: "column"
+};
+const taskDoneIndicatorRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px" };
+const taskDoneIndicatorIconSx: SxProps<Theme> = { fontSize: 16, color: "success.main" };
+const taskDoneLabelSx: SxProps<Theme> = { color: "success.main", letterSpacing: "0.3px" };
+const tasksDotNavRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", justifyContent: "space-between", pt: "2px", mt: "4px"
+};
+const tasksDotsSx: SxProps<Theme> = { display: "flex", gap: "5px" };
+
+// ── App root ──────────────────────────────────────────────────────────────────
+const appRootSx: SxProps<Theme> = { display: "flex", height: "100vh", overflow: "hidden" };
+const appMainAreaSx: SxProps<Theme> = { flex: 1, display: "flex", overflow: "hidden" };
+const videoPageLayoutSx: SxProps<Theme> = {
+    display: "flex", width: "100%", height: "100%", bgcolor: "primary.light", overflow: "hidden"
+};
+const videoPageContentColumnSx: SxProps<Theme> = { display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" };
+const videoPageScrollSx: SxProps<Theme> = { flex: 1, overflow: "auto" };
+const videoPageInnerSx: SxProps<Theme> = {
+    maxWidth: 900, mx: "auto",
+    px: 4, pb: 4, pt: 2,
+    display: "flex", gap: 3, alignItems: "flex-start"
+};
+const videoPageCardColumnSx: SxProps<Theme> = { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 };
+
+// ── Pending approvals dialog ──────────────────────────────────────────────────
+const dialogTitleSx: SxProps<Theme> = { color: "text.primary", pb: 1 };
+const dialogContentTopPaddingSx: SxProps<Theme> = { pt: 2 };
+const pendingApprovalsDescriptionSx: SxProps<Theme> = { color: "text.secondary", mb: 2 };
+const pendingApprovalsListBoxSx: SxProps<Theme> = { bgcolor: "grey.100", borderRadius: "8px", p: 2, mb: 2 };
+const pendingApprovalItemRowSx: SxProps<Theme> = {
+    display: "flex", gap: 2, mb: 1.5, alignItems: "flex-start", "&:last-child": { mb: 0 }
+};
+const pendingApprovalThumbnailSx: SxProps<Theme> = {
+    width: 60, height: 60, borderRadius: "6px", bgcolor: "primary.light", flexShrink: 0, border: 1, borderColor: "divider"
+};
+const pendingApprovalItemInfoSx: SxProps<Theme> = { flex: 1, minWidth: 0 };
+const pendingApprovalItemTitleSx: SxProps<Theme> = {
+    color: "text.primary", mb: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+};
+const dialogActionsSx: SxProps<Theme> = { px: 3, py: 2 };
+
+const shareEmptyStateSx: SxProps<Theme> = {
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    flex: 1, gap: 2, py: 8, textAlign: "center"
+};
+const shareEmptyIllustrationSx: SxProps<Theme> = { width: 120, height: 120, opacity: 0.3 };
+const shareEmptyTitleSx: SxProps<Theme> = { color: "text.primary" };
+

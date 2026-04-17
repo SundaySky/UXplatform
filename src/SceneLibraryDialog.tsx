@@ -1,21 +1,11 @@
 import { useState } from "react";
+import type { SxProps, Theme } from "@mui/material";
 import {
-    Dialog, Box, Typography, IconButton, Button, Divider
+    Dialog, Box, Typography, IconButton, Button, Divider, SvgIcon
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import TableRowsOutlinedIcon from "@mui/icons-material/TableRowsOutlined";
-import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
-import AddIcon from "@mui/icons-material/Add";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTableRows, faFileArrowUp, faPlus, faFilter, faChevronDown, faPalette, faXmark, faCircleQuestion } from "@fortawesome/pro-regular-svg-icons";
 
-// Sidebar-specific tokens not in standard palette
-const SIDEBAR_BG = "#F5F6FA";
-const ACTIVE_BG = "rgba(0,83,229,0.08)";
-const ACTIVE_BORDER = "rgba(0,83,229,0.18)";
-const DIVIDER_COLOR = "#E6E9F0";
 
 // ─── Color combination swatches ──────────────────────────────────────────────
 const COLOR_COMBOS = [
@@ -304,37 +294,20 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
                 } handleClose(); 
             }}
             maxWidth={false}
-            PaperProps={{
-                sx: {
-                    width: 1380, maxWidth: "97vw", height: 760, maxHeight: "92vh",
-                    borderRadius: "16px",
-                    boxShadow: "0px 8px 40px rgba(3,25,79,0.22)",
-                    display: "flex", flexDirection: "row",
-                    overflow: "hidden"
-                }
-            }}
+            PaperProps={{ sx: paperSx }}
         >
             {/* ── Left sidebar ─────────────────────────────────────────────────── */}
-            <Box sx={{
-                width: 192, flexShrink: 0,
-                bgcolor: SIDEBAR_BG,
-                display: "flex", flexDirection: "column",
-                borderRight: `1px solid ${DIVIDER_COLOR}`,
-                py: "24px", px: "12px"
-            }}>
+            <Box sx={sidebarSx}>
                 {/* "Scenes" title */}
-                <Typography variant="h2" sx={{
-                    color: "secondary.main",
-                    px: "8px", pb: "20px"
-                }}>
+                <Typography variant="h2" sx={sidebarTitleSx}>
           Scenes
                 </Typography>
 
                 {/* Nav items */}
-                <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <Box sx={navListSx}>
                     {([
-                        { key: "library" as Nav, icon: <TableRowsOutlinedIcon sx={{ fontSize: 18 }} />, label: "Scene library" },
-                        { key: "import" as Nav, icon: <UploadFileOutlinedIcon sx={{ fontSize: 18 }} />, label: "Import scene" }
+                        { key: "library" as Nav, icon: <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTableRows} /></SvgIcon>, label: "Scene library" },
+                        { key: "import" as Nav, icon: <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faFileArrowUp} /></SvgIcon>, label: "Import scene" }
                     ]).map(({ key, icon, label }) => (
                         <Box
                             key={key}
@@ -342,10 +315,11 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
                             sx={{
                                 display: "flex", alignItems: "center", gap: "10px",
                                 px: "12px", py: "9px", borderRadius: "8px", cursor: "pointer",
-                                bgcolor: nav === key ? ACTIVE_BG : "transparent",
-                                border: nav === key ? `1px solid ${ACTIVE_BORDER}` : "1px solid transparent",
+                                bgcolor: nav === key ? "primary.light" : "transparent",
+                                border: 1,
+                                borderColor: nav === key ? "primary.light" : "transparent",
                                 color: nav === key ? "primary.main" : "text.secondary",
-                                "&:hover": { bgcolor: nav === key ? ACTIVE_BG : "rgba(0,83,229,0.04)" },
+                                "&:hover": { bgcolor: "primary.light" },
                                 transition: "all 0.12s"
                             }}
                         >
@@ -359,45 +333,35 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
                     ))}
                 </Box>
 
-                <Divider sx={{ my: "16px", borderColor: DIVIDER_COLOR }} />
+                <Divider sx={sidebarDividerSx} />
 
                 {/* + Custom scene button */}
                 <Button
                     variant="outlined"
-                    startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                    startIcon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
                     onClick={() => {
                         onAddScene("custom"); handleClose(); 
                     }}
-                    sx={{
-                        borderRadius: "8px", borderColor: ACTIVE_BORDER,
-                        color: "text.secondary", justifyContent: "flex-start",
-                        px: "10px", py: "7px", mx: "2px",
-                        "&:hover": { bgcolor: ACTIVE_BG, borderColor: "primary.main", color: "primary.main" }
-                    }}
+                    sx={customSceneBtnSx}
                 >
           Custom scene
                 </Button>
             </Box>
 
             {/* ── Main content ─────────────────────────────────────────────────── */}
-            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", bgcolor: "background.paper" }}>
+            <Box sx={mainContentSx}>
 
                 {/* Title bar */}
-                <Box sx={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    px: "32px", pt: "24px", pb: "16px", flexShrink: 0
-                }}>
-                    <Typography variant="h2" sx={{
-                        color: "secondary.main"
-                    }}>
+                <Box sx={titleBarSx}>
+                    <Typography variant="h2" sx={titleTextSx}>
                         {nav === "library" ? "Scene library" : "Import scene"}
                     </Typography>
-                    <Box sx={{ display: "flex", gap: "4px" }}>
-                        <IconButton size="small" sx={{ color: "text.secondary" }}>
-                            <HelpOutlineIcon sx={{ fontSize: 20 }} />
+                    <Box sx={titleActionsSx}>
+                        <IconButton size="small" sx={iconBtnSecondarySx}>
+                            <SvgIcon sx={icon20Sx}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
                         </IconButton>
-                        <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
-                            <CloseIcon sx={{ fontSize: 20 }} />
+                        <IconButton size="small" onClick={handleClose} sx={iconBtnSecondarySx}>
+                            <SvgIcon sx={icon20Sx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                         </IconButton>
                     </Box>
                 </Box>
@@ -406,40 +370,32 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
                 {nav === "library" && (
                     <>
                         {/* Filter + color combos row */}
-                        <Box sx={{
-                            display: "flex", alignItems: "center", justifyContent: "space-between",
-                            px: "32px", pb: "20px", flexShrink: 0
-                        }}>
+                        <Box sx={filterRowSx}>
                             {/* Left: Filter */}
-                            <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <FilterListIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                                    <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                            <Box sx={filterLeftSx}>
+                                <Box sx={filterLabelBoxSx}>
+                                    <SvgIcon sx={icon20SecondarySx}><FontAwesomeIcon icon={faFilter} /></SvgIcon>
+                                    <Typography variant="body1" sx={secondaryTextSx}>
                     Filter
                                     </Typography>
                                 </Box>
-                                <Box sx={{
-                                    display: "flex", alignItems: "center", gap: "6px",
-                                    border: `1px solid ${DIVIDER_COLOR}`, borderRadius: "20px",
-                                    px: "14px", py: "6px", cursor: "pointer",
-                                    "&:hover": { bgcolor: ACTIVE_BG }
-                                }}>
-                                    <Typography variant="caption" sx={{ color: "secondary.main" }}>
+                                <Box sx={filterPillSx}>
+                                    <Typography variant="caption" sx={secondaryMainTextSx}>
                     Scene templates
                                     </Typography>
-                                    <KeyboardArrowDownIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                                    <SvgIcon sx={icon18SecondarySx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>
                                 </Box>
                             </Box>
 
                             {/* Right: Color combinations */}
-                            <Box sx={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: "7px" }}>
-                                    <PaletteOutlinedIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            <Box sx={colorCombosRightSx}>
+                                <Box sx={colorCombosLabelSx}>
+                                    <SvgIcon sx={icon20SecondarySx}><FontAwesomeIcon icon={faPalette} /></SvgIcon>
+                                    <Typography variant="caption" sx={secondaryTextSx}>
                     Color combinations
                                     </Typography>
                                 </Box>
-                                <Box sx={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                <Box sx={swatchesRowSx}>
                                     {colors.map((c, i) => (
                                         <Box
                                             key={i}
@@ -461,13 +417,11 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
                         </Box>
 
                         {/* Template grid — scrollable */}
-                        <Box sx={{ flex: 1, overflowY: "auto", px: "32px", pb: "100px" }}>
-                            <Typography variant="body1" sx={{
-                                color: "text.secondary", mb: "16px"
-                            }}>
+                        <Box sx={templateGridScrollSx}>
+                            <Typography variant="body1" sx={sectionLabelSx}>
                 Single Message with Media
                             </Typography>
-                            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px" }}>
+                            <Box sx={templateGridSx}>
                                 {TEMPLATES.map(t => (
                                     <TemplateThumbnail
                                         key={t.id}
@@ -485,45 +439,33 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
 
                 {/* ── Import view ──────────────────────────────────────────────── */}
                 {nav === "import" && (
-                    <Box sx={{
-                        flex: 1, display: "flex", flexDirection: "column",
-                        alignItems: "center", justifyContent: "center", gap: "16px", px: "40px"
-                    }}>
-                        <UploadFileOutlinedIcon sx={{ fontSize: 60, color: "text.secondary", opacity: 0.4 }} />
-                        <Typography variant="h4" sx={{ color: "secondary.main" }}>
+                    <Box sx={importViewSx}>
+                        <SvgIcon sx={importIconSx}><FontAwesomeIcon icon={faFileArrowUp} /></SvgIcon>
+                        <Typography variant="h4" sx={importTitleSx}>
               Import a custom scene
                         </Typography>
-                        <Typography variant="body1" sx={{
-                            color: "text.secondary", textAlign: "center", maxWidth: 360
-                        }}>
+                        <Typography variant="body1" sx={importDescSx}>
               Upload a scene file exported from another project to reuse it here.
                         </Typography>
-                        <Button variant="outlined" startIcon={<UploadFileOutlinedIcon />}
-                            sx={{ mt: 1, borderRadius: "8px" }}>
+                        <Button variant="outlined" startIcon={<SvgIcon><FontAwesomeIcon icon={faFileArrowUp} /></SvgIcon>}
+                            sx={importBtnSx}>
               Browse files
                         </Button>
                     </Box>
                 )}
 
                 {/* ── Sticky footer ────────────────────────────────────────────── */}
-                <Box sx={{
-                    position: "absolute", bottom: 0, right: 0,
-                    width: "calc(100% - 192px)",
-                    bgcolor: "background.paper",
-                    borderTop: `1px solid ${DIVIDER_COLOR}`,
-                    display: "flex", justifyContent: "flex-end", gap: "10px",
-                    px: "32px", py: "16px", zIndex: 10
-                }}>
+                <Box sx={footerSx}>
                     <Button
                         variant="outlined" size="large" onClick={handleClose}
-                        sx={{ borderRadius: "8px", minWidth: 100 }}
+                        sx={footerCancelBtnSx}
                     >
             Cancel
                     </Button>
                     <Button
                         variant="contained" size="large"
                         disabled={nav === "library" && !selected} onClick={handleAdd}
-                        sx={{ borderRadius: "8px", minWidth: 120 }}
+                        sx={footerAddBtnSx}
                     >
                         {nav === "import" ? "Import" : "Add scene"}
                     </Button>
@@ -532,3 +474,54 @@ export default function SceneLibraryDialog({ open, onClose, onAddScene }: Props)
         </Dialog>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const paperSx: SxProps<Theme> = {
+    width: 1380, maxWidth: "97vw", height: 760, maxHeight: "92vh",
+    borderRadius: "16px",
+    boxShadow: "0px 8px 40px rgba(3,25,79,0.22)",
+    display: "flex", flexDirection: "row", overflow: "hidden"
+};
+const sidebarSx: SxProps<Theme> = {
+    width: 192, flexShrink: 0, bgcolor: "background.default",
+    display: "flex", flexDirection: "column",
+    borderRight: 1, borderRightColor: "divider",
+    py: "24px", px: "12px"
+};
+const sidebarTitleSx: SxProps<Theme> = { color: "secondary.main", px: "8px", pb: "20px" };
+const navListSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px" };
+const sidebarDividerSx: SxProps<Theme> = { my: "16px", borderColor: "divider" };
+const customSceneBtnSx: SxProps<Theme> = {
+    borderRadius: "8px", borderColor: "primary.light",
+    color: "text.secondary", justifyContent: "flex-start",
+    px: "10px", py: "7px", mx: "2px",
+    "&:hover": { bgcolor: "primary.light", borderColor: "primary.main", color: "primary.main" }
+};
+const mainContentSx: SxProps<Theme> = { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", bgcolor: "background.paper" };
+const titleBarSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", px: "32px", pt: "24px", pb: "16px", flexShrink: 0 };
+const titleTextSx: SxProps<Theme> = { color: "secondary.main" };
+const titleActionsSx: SxProps<Theme> = { display: "flex", gap: "4px" };
+const iconBtnSecondarySx: SxProps<Theme> = { color: "text.secondary" };
+const icon20Sx: SxProps<Theme> = { fontSize: 20 };
+const icon20SecondarySx: SxProps<Theme> = { fontSize: 20, color: "text.secondary" };
+const icon18SecondarySx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
+const filterRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", px: "32px", pb: "20px", flexShrink: 0 };
+const filterLeftSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "10px" };
+const filterLabelBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px" };
+const secondaryTextSx: SxProps<Theme> = { color: "text.secondary" };
+const filterPillSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px", border: 1, borderColor: "divider", borderRadius: "20px", px: "14px", py: "6px", cursor: "pointer", "&:hover": { bgcolor: "primary.light" } };
+const secondaryMainTextSx: SxProps<Theme> = { color: "secondary.main" };
+const colorCombosRightSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "14px" };
+const colorCombosLabelSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "7px" };
+const swatchesRowSx: SxProps<Theme> = { display: "flex", gap: "8px", alignItems: "center" };
+const templateGridScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", px: "32px", pb: "100px" };
+const sectionLabelSx: SxProps<Theme> = { color: "text.secondary", mb: "16px" };
+const templateGridSx: SxProps<Theme> = { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px" };
+const importViewSx: SxProps<Theme> = { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", px: "40px" };
+const importIconSx: SxProps<Theme> = { fontSize: 60, color: "text.secondary", opacity: 0.4 };
+const importTitleSx: SxProps<Theme> = { color: "secondary.main" };
+const importDescSx: SxProps<Theme> = { color: "text.secondary", textAlign: "center", maxWidth: 360 };
+const importBtnSx: SxProps<Theme> = { mt: 1, borderRadius: "8px" };
+const footerSx: SxProps<Theme> = { position: "absolute", bottom: 0, right: 0, width: "calc(100% - 192px)", bgcolor: "background.paper", borderTop: 1, borderTopColor: "divider", display: "flex", justifyContent: "flex-end", gap: "10px", px: "32px", py: "16px", zIndex: 10 };
+const footerCancelBtnSx: SxProps<Theme> = { borderRadius: "8px", minWidth: 100 };
+const footerAddBtnSx: SxProps<Theme> = { borderRadius: "8px", minWidth: 120 };

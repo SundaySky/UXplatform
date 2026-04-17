@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import type { SxProps, Theme } from "@mui/material";
 import {
-    Box, Typography, Button, Popover, Divider, Badge, IconButton
+    Box, Typography, Button, Popover, Divider, Badge, IconButton, SvgIcon,
+    ToggleButton
 } from "@mui/material";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import ThumbUpAltOutlinedIcon from "@mui/icons-material/ThumbUpAltOutlined";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBell, faThumbsUp } from "@fortawesome/pro-regular-svg-icons";
+import { TruffleToggleButtonGroup } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 
 export interface NotificationItem {
@@ -35,97 +38,60 @@ export default function NotificationsPanel({ anchorEl, onClose, onMarkAllRead, n
             onClose={onClose}
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
-            PaperProps={{
-                sx: {
-                    width: 332, borderRadius: "8px",
-                    boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)",
-                    mt: "4px", overflow: "visible"
-                }
-            }}
+            PaperProps={{ sx: popoverPaperSx }}
         >
-            <Box sx={{ pt: 1, pb: 2, px: 2 }}>
+            <Box sx={panelBodySx}>
 
                 {/* ── Title ───────────────────────────────────────────────────────────── */}
-                <Box sx={{ display: "flex", alignItems: "center", minHeight: 40, pb: 1 }}>
+                <Box sx={titleRowSx}>
                     <Typography variant="subtitle1" color="text.primary">
             Notifications
                     </Typography>
                 </Box>
 
                 {/* ── Toggle tabs + Mark all as read ──────────────────────────────────── */}
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Box sx={{
-                        display: "inline-flex", alignItems: "stretch",
-                        border: 1, borderColor: "grey.300",
-                        borderRadius: "8px", padding: "1px",
-                        overflow: "hidden"
-                    }}>
-                        {(["all", "unread"] as const).map((key, i) => (
-                            <React.Fragment key={key}>
-                                {i > 0 && (
-                                    <Box sx={{ width: "1px", bgcolor: "grey.300", flexShrink: 0, my: "2px" }} />
-                                )}
-                                <Box
-                                    onClick={() => setTab(key)}
-                                    sx={{
-                                        px: "8px", py: "4px", borderRadius: "7px", cursor: "pointer",
-                                        bgcolor: tab === key ? "action.selected" : "transparent",
-                                        transition: "background-color 0.15s"
-                                    }}
-                                >
-                                    <Typography variant="subtitle2" sx={{
-                                        color: tab === key ? "text.primary" : "text.secondary", whiteSpace: "nowrap"
-                                    }}>
-                                        {key === "all" ? "All" : `Unread (${unreadCount})`}
-                                    </Typography>
-                                </Box>
-                            </React.Fragment>
-                        ))}
-                    </Box>
-                    <Button
-                        variant="text" size="small"
-                        onClick={onMarkAllRead}
-                        sx={{ color: "primary.main" }}
+                <Box sx={tabRowSx}>
+                    <TruffleToggleButtonGroup
+                        value={tab}
+                        exclusive
+                        onChange={(_, v) => {
+                            if (v !== null) {
+                                setTab(v as "all" | "unread");
+                            } 
+                        }}
+                        size="small"
                     >
-            Mark all as read
+                        <ToggleButton value="all">All</ToggleButton>
+                        <ToggleButton value="unread">Unread ({unreadCount})</ToggleButton>
+                    </TruffleToggleButtonGroup>
+                    <Button variant="text" size="small" onClick={onMarkAllRead}>
+                        Mark all as read
                     </Button>
                 </Box>
 
                 {/* ── Divider ─────────────────────────────────────────────────────────── */}
-                <Divider sx={{ my: "12px", borderColor: "divider" }} />
+                <Divider sx={dividerSx} />
 
                 {/* ── Notification items ───────────────────────────────────────────────── */}
-                <Box sx={{ display: "flex", flexDirection: "column" }}>
+                <Box sx={listSx}>
                     {displayed.length === 0 && (
-                        <Typography variant="caption" sx={{
-                            color: "text.secondary", textAlign: "center", py: 2
-                        }}>
+                        <Typography variant="caption" sx={emptyTextSx}>
               No {tab === "unread" ? "unread " : ""}notifications
                         </Typography>
                     )}
 
                     {displayed.map(n => (
-                        <Box key={n.id} sx={{
-                            py: "8px", display: "flex", gap: "6px", alignItems: "flex-start",
-                            borderRadius: "8px"
-                        }}>
+                        <Box key={n.id} sx={notifItemSx}>
                             {/* Icon avatar — no badge */}
-                            <Box sx={{ flexShrink: 0, mr: "4px" }}>
-                                <Box sx={{
-                                    width: 32, height: 32, bgcolor: "primary.light",
-                                    borderRadius: "4px",
-                                    display: "flex", alignItems: "center", justifyContent: "center"
-                                }}>
-                                    <ThumbUpAltOutlinedIcon sx={{ fontSize: 18, color: n.iconColor }} />
+                            <Box sx={notifIconWrapSx}>
+                                <Box sx={notifIconBoxSx}>
+                                    <SvgIcon sx={{ fontSize: 18, color: n.iconColor }}><FontAwesomeIcon icon={faThumbsUp} /></SvgIcon>
                                 </Box>
                             </Box>
 
                             {/* Text + date */}
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography component="div" variant="caption" sx={{
-                                    color: "text.primary",
-                                    whiteSpace: "pre-wrap"
-                                }}>
+                            <Box sx={notifTextColSx}>
+                                <Typography component="div" variant="caption" sx={notifBodySx}>
                                     {n.parts.map((part, pi) => (
                                         <Box
                                             key={pi}
@@ -144,9 +110,7 @@ export default function NotificationsPanel({ anchorEl, onClose, onMarkAllRead, n
                                         </Box>
                                     ))}
                                 </Typography>
-                                <Typography variant="caption" sx={{
-                                    color: "text.disabled", mt: "2px"
-                                }}>
+                                <Typography variant="caption" sx={notifDateSx}>
                                     {n.date}
                                 </Typography>
                             </Box>
@@ -181,14 +145,14 @@ export function NotificationBell({ dark = false, notifications = [] }: BellProps
             <IconButton
                 size="small"
                 onClick={(e) => setAnchorEl(e.currentTarget)}
-                sx={{ color: dark ? "rgba(255,255,255,0.7)" : "action.active" }}
+                sx={{ color: dark ? "common.white" : "action.active" }}
             >
                 <Badge
                     badgeContent={unreadCount}
                     color="error"
-                    sx={{ "& .MuiBadge-badge": { fontSize: 9, minWidth: 14, height: 14, padding: 0 } }}
+                    sx={badgeSx}
                 >
-                    <NotificationsNoneIcon sx={{ fontSize: 22 }} />
+                    <SvgIcon sx={bellIconSx}><FontAwesomeIcon icon={faBell} /></SvgIcon>
                 </Badge>
             </IconButton>
             <NotificationsPanel
@@ -200,3 +164,24 @@ export function NotificationBell({ dark = false, notifications = [] }: BellProps
         </>
     );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+const popoverPaperSx: SxProps<Theme> = {
+    width: 332, borderRadius: "8px",
+    boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)",
+    mt: "4px", overflow: "visible"
+};
+const panelBodySx: SxProps<Theme> = { pt: 1, pb: 2, px: 2 };
+const titleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", minHeight: 40, pb: 1 };
+const tabRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between" };
+const dividerSx: SxProps<Theme> = { my: "12px", borderColor: "divider" };
+const listSx: SxProps<Theme> = { display: "flex", flexDirection: "column" };
+const emptyTextSx: SxProps<Theme> = { color: "text.secondary", textAlign: "center", py: 2 };
+const notifItemSx: SxProps<Theme> = { py: "8px", display: "flex", gap: "6px", alignItems: "flex-start", borderRadius: "8px" };
+const notifIconWrapSx: SxProps<Theme> = { flexShrink: 0, mr: "4px" };
+const notifIconBoxSx: SxProps<Theme> = { width: 32, height: 32, bgcolor: "primary.light", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center" };
+const notifTextColSx: SxProps<Theme> = { flex: 1, minWidth: 0 };
+const notifBodySx: SxProps<Theme> = { color: "text.primary", whiteSpace: "pre-wrap" };
+const notifDateSx: SxProps<Theme> = { color: "text.disabled", mt: "2px" };
+const bellIconSx: SxProps<Theme> = { fontSize: 22 };
+const badgeSx: SxProps<Theme> = { "& .MuiBadge-badge": { fontSize: 9, minWidth: 14, height: 14, padding: 0 } };
