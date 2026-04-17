@@ -1471,6 +1471,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   <ListItemIcon sx={navItemIconSx}>{icon}</ListItemIcon>
                                   <ListItemText
                                       primary={label}
+                                      sx={studioNavItemTextSx}
                                       primaryTypographyProps={{ variant: "body2", color: activeNav === label ? "text.primary" : "text.secondary" }}
                                   />
                               </ListItemButton>
@@ -2135,7 +2136,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       {/* Thumbnails row — disabled + dimmed when a toolbar/panel is active */}
                       <Box sx={thumbnailsRowWrapperSx}>
                           <Box sx={{
-                              display: "flex", gap: "8px", overflowX: "auto", pb: 0.5,
+                              display: "flex", gap: "12px", overflowX: "auto",
+                              padding: "4px 6px 2px 4px",
                               opacity: isToolbarActive ? 0.38 : 1,
                               pointerEvents: isToolbarActive ? "none" : "auto",
                               transition: "opacity 0.2s",
@@ -2375,6 +2377,10 @@ const navItemButtonSx: SxProps<Theme> = {
 
 const navItemIconSx: SxProps<Theme> = {
     minWidth: 32
+};
+
+const studioNavItemTextSx: SxProps<Theme> = {
+    "& .MuiListItemText-primary": { whiteSpace: "normal" }
 };
 
 const narrationBarSx: SxProps<Theme> = {

@@ -273,7 +273,28 @@ When implementing any UI element:
 2. **Second**: Use standard MUI component (`@mui/material`) — it already has theme overrides applied
 3. **Last resort**: Build a new component — but follow all rules above (theme tokens, typography variants, no hardcoded styles)
 
-### 10. What NOT to Do — Summary
+### 11. Truffle Theme Overrides That Can Surprise You
+
+The Truffle theme sets base styles on some MUI components that are not obvious from reading JSX. These overrides CASCADE everywhere the component is used. When mirroring the real app, check whether the real app *also* accepts the override, or whether it works around it.
+
+Known load-bearing overrides (verify in `node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/MuiComponents/` before assuming):
+
+- **`MuiListItemText.primary` and `.secondary`** default to `whiteSpace: nowrap; overflow: hidden; text-overflow: ellipsis`. In any narrow container (e.g. a 112px sidebar, a 150px studio nav, a compact menu), labels will TRUNCATE with an ellipsis instead of wrapping. The real app works around this either by (a) passing a JSX label with an explicit `<br />` inside a Box wrapper (`textAlign: "center", display: "inline-block"`), or (b) overriding `whiteSpace: "normal"` via the `sx` prop.
+  - If the real-app label for that slot is multi-word and visually wraps, add `"& .MuiListItemText-primary": { whiteSpace: "normal" }` to the ListItemText `sx`, plus `wordBreak: "break-word"` to the primary Typography if needed.
+- **Other overrides to check when something looks off**: `MuiButton`, `MuiChip`, `MuiDialog`, `MuiTooltip`. Read the override file in `node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/MuiComponents/<Name>/<Name>.js` before concluding "this is a base MUI behavior."
+
+### 12. Hover Shadows Need Clearance in Scroll Containers
+
+When a card or thumbnail applies a large hover shadow (e.g. `boxShadow: 24`) AND sits inside a container with `overflow: auto` (or `overflowX: auto`), the container clips the shadow. You MUST add padding on every side where the shadow extends so the shadow isn't cut off. Match the real app's scroll-container padding exactly — don't guess.
+
+Known real-app reference values:
+- **Scene thumbnails strip** (`LineupSortableSceneContainer`): `padding: "4px 6px 2px 4px"`, `gap: "12px"`.
+- **Recent cards horizontal strip** (`cardsContainerSxProps`): `padding: "16px 0 16px 16px"`, `gap: "8px"`.
+- **Video grid** (`videosOverviewGridSxProps`): `rowGap: "24px"`, `columnGap: "8px"`.
+
+If you set a scroll container's padding to `0` on any side where a hovered child extends, the visual result is a clipped shadow/border. Treat scroll-container padding as load-bearing, not decorative.
+
+### 13. What NOT to Do — Summary
 
 - Do NOT hardcode colors (hex, rgb, rgba, named colors)
 - Do NOT set custom font sizes, weights, or families
@@ -291,6 +312,8 @@ When implementing any UI element:
 - Do NOT declare a phase ✅ without a side-by-side visual diff against `real_app/Real_App.png` or the real app running in a browser
 - Do NOT invent a primitive (e.g. `Box`-as-card) when the real app uses an existing component (e.g. `Card`, `TruffleVideoCard`) — mirror, don't re-derive
 - Do NOT trust `AI-COMPONENT-GUIDE.md` over the real app — the real app wins every conflict
+- Do NOT assume narrow-sidebar `ListItemText` labels will wrap — Truffle's theme sets `whiteSpace: nowrap` by default; match the real app's wrap strategy (explicit `<br />` in JSX labels OR `whiteSpace: normal` override)
+- Do NOT set a horizontal scroll container's top/side padding to `0` if the children have hover shadows — the shadow will be clipped; use the real app's exact padding values (see rule 12)
 
 ---
 

@@ -1001,13 +1001,15 @@ const navItemIconSx: SxProps<Theme> = {
 
 const navItemTextRootSx: SxProps<Theme> = {
     "& .MuiListItemText-primary": {
-        color: "common.white"
+        color: "common.white",
+        whiteSpace: "normal"
     }
 };
 
 const navItemTextSx: SxProps<Theme> = {
     textAlign: "center",
-    lineHeight: 1.3
+    lineHeight: 1.3,
+    wordBreak: "break-word"
 };
 
 const appBarSx: SxProps<Theme> = {
