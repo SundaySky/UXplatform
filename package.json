@@ -13,7 +13,6 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "pre-commit": "npm run eslint && npm run type-check",
-    "pre-push": "branch-name-lint ./branch-name-lint.json",
     "prepare": "husky"
   },
   "dependencies": {
