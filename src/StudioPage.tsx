@@ -4,7 +4,7 @@ import type { SxProps, Theme } from "@mui/material";
 import {
     AppBar, Box, Typography, IconButton, Button,
     Badge, Dialog, DialogContent,
-    TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem,
+    TextField, Snackbar, Alert, Divider, Switch, Menu, MenuItem,
     SvgIcon, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, ListSubheader,
     useTheme
 } from "@mui/material";
@@ -637,34 +637,41 @@ export const INITIAL_THREADS: CommentThread[] = [
     }
 ];
 
-// ─── Unresolved warning dialog (Figma node 19050-66136) ───────────────────────
-function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: boolean; count: number; onClose: () => void; onConfirm: () => void }) {
+// ─── Past comments (history tab) ──────────────────────────────────────────────
+interface PastComment { author: string; date: string; text: string }
+
+const PAST_COMMENTS: PastComment[] = [
+    { author: "Sarah Johnson", date: "March 2, 2026", text: "Opening scene — please add the company name to the title card and consider a more corporate tone." },
+    { author: "Emma Rodriguez", date: "February 24, 2026", text: "Closing scene — a legal disclaimer is required on this screen per compliance review." },
+    { author: "Manager", date: "February 12, 2026", text: "Please add a new scene with three bullet points outlining key aspects of the delivery policy." }
+];
+
+const DEFAULT_CURRENT_COMMENT: PastComment = {
+    author: "Sarah Johnson",
+    date: "April 17, 2026",
+    text: "The pacing in the middle section feels rushed — can we give viewers more time to absorb the key points before transitioning to the CTA?"
+};
+
+// ─── Re-submit warning dialog ─────────────────────────────────────────────────
+function UnresolvedWarningDialog({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
     const [explanation, setExplanation] = useState("");
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth sx={{ zIndex: 1500 }}>
             <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
-                Unresolved comments require explanation
+                Re-submit for approval
             </TruffleDialogTitle>
             <DialogContent sx={{ pt: "8px !important" }}>
-                <Typography variant="body1" sx={{
-                    color: "text.primary", mb: 2
-                }}>
-          There are {count} unresolved {count === 1 ? "comment" : "comments"}.{" "}
-                    <Box component="span"
-                        sx={{ color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
-                        onClick={onClose}
-                    >
-            View comments
-                    </Box>
+                <Typography variant="body1" sx={{ color: "text.primary", mb: 2 }}>
+          Your video will be sent back to approvers for another review.
                 </Typography>
                 <Typography sx={{
                     lineHeight: 1.5, color: "text.primary", mb: 1
                 }}>
-          Explain why you're requesting sign-off again without changes
+          Describe the changes you made in response to the comments
                 </Typography>
                 <TextField
                     fullWidth multiline rows={3}
-                    placeholder="Explain unresolved comments"
+                    placeholder="Describe your changes"
                     value={explanation}
                     onChange={e => setExplanation(e.target.value)}
                     variant="outlined" size="medium"
@@ -676,28 +683,41 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
                     Cancel
                 </Button>
                 <Button variant="contained" color="primary" size="large" onClick={onConfirm}>
-                    Send for approvers
+                    Re-submit
                 </Button>
             </TruffleDialogActions>
         </Dialog>
     );
 }
 
+// ─── Comment block (shared by History tab and creator-mode Unresolved tab) ────
+function CommentBlock({ comment }: { comment: PastComment }) {
+    return (
+        <Box>
+            <Typography variant="h5" sx={{ color: "text.primary", mb: "4px" }}>
+                {comment.author} · {comment.date}
+            </Typography>
+            <Typography variant="body1" sx={{ color: "text.primary", lineHeight: 1.5 }}>
+                {comment.text}
+            </Typography>
+        </Box>
+    );
+}
+
 // ─── Comments panel ────────────────────────────────────────────────────────────
 function CommentsPanel({
-    open, onClose, threads, setThreads, onRequestApproval, awaitingApprovers
+    open, onClose, onRequestApproval, awaitingApprovers
 }: {
   open: boolean
   onClose: () => void
-  threads: CommentThread[]
-  setThreads: React.Dispatch<React.SetStateAction<CommentThread[]>>
-  approverNames?: string
   onRequestApproval: () => void
   awaitingApprovers?: boolean
 }) {
     const [pos, setPos] = useState({ x: 0, y: 80 });
     const [tab, setTab] = useState<"unresolved" | "completed">("unresolved");
     const [warningOpen, setWarningOpen] = useState(false);
+    const [panelMode, setPanelMode] = useState<"commenting" | "responding">("commenting");
+    const [draftComment, setDraftComment] = useState("");
     const dragging = useRef(false);
     const dragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 });
 
@@ -708,17 +728,10 @@ function CommentsPanel({
         }
     }, [open]);
 
-    // On close: move checkedNow → resolved (for next session)
-    useEffect(() => {
-        if (!open) {
-            setThreads(prev => prev.map(t => ({
-                ...t,
-                comments: t.comments.map(c =>
-                    c.checkedNow ? { ...c, checkedNow: false, resolved: true } : c
-                )
-            })));
-        }
-    }, [open, setThreads]);
+    // Creator sees the current comment to address — carries over any draft typed in commenting mode
+    const currentComment: PastComment = draftComment.trim()
+        ? { author: DEFAULT_CURRENT_COMMENT.author, date: DEFAULT_CURRENT_COMMENT.date, text: draftComment }
+        : DEFAULT_CURRENT_COMMENT;
 
     // Drag
     const onHeaderMouseDown = useCallback((e: React.MouseEvent) => {
@@ -744,22 +757,8 @@ function CommentsPanel({
         };
     }, []);
 
-    // Toggle check: stays in Unresolved tab (strikethrough) until panel closes
-    const toggleCheck = (threadId: number, idx: number) =>
-        setThreads(prev => prev.map(t =>
-            t.id === threadId
-                ? { ...t, comments: t.comments.map((c, i) => i === idx ? { ...c, checkedNow: !c.checkedNow } : c) }
-                : t
-        ));
-
-    const unresolvedCount = threads.reduce((n, t) => n + t.comments.filter(c => !c.checkedNow && !c.resolved).length, 0);
-    const allAddressed = threads.every(t => t.comments.every(c => c.checkedNow || c.resolved));
-
     const handleRequestApproval = () => {
-        if (!allAddressed) {
-            setWarningOpen(true); return; 
-        }
-        onRequestApproval();
+        setWarningOpen(true);
     };
 
     if (!open) {
@@ -783,21 +782,29 @@ function CommentsPanel({
                     <Typography variant="subtitle2" sx={{ color: "text.primary" }}>
             Comments
                     </Typography>
-                    <IconButton
-                        size="small"
-                        onClick={onClose}
-                        sx={{ color: "text.primary", p: "8px", borderRadius: "8px" }}
-                    >
-                        <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
-                    </IconButton>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Switch
+                            size="small"
+                            checked={panelMode === "responding"}
+                            onChange={e => setPanelMode(e.target.checked ? "responding" : "commenting")}
+                            onMouseDown={e => e.stopPropagation()}
+                        />
+                        <IconButton
+                            size="small"
+                            onClick={onClose}
+                            sx={{ color: "text.primary", p: "8px", borderRadius: "8px" }}
+                        >
+                            <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                        </IconButton>
+                    </Box>
                 </Box>
 
                 {/* ── Toggle tab selector (ToggleButtonGroup pill style) ────────── */}
                 <Box sx={commentsTabAreaSx}>
                     <Box sx={commentsTabGroupSx}>
                         {[
-                            { key: "unresolved", label: awaitingApprovers ? "Unresolved" : `Unresolved (${unresolvedCount})` },
-                            { key: "completed", label: "Completed" }
+                            { key: "unresolved", label: "Unresolved" },
+                            { key: "completed", label: "History" }
                         ].map(({ key, label }) => (
                             <Box
                                 key={key}
@@ -824,17 +831,6 @@ function CommentsPanel({
                 {/* ── Divider ───────────────────────────────────────────────────── */}
                 <Divider sx={{ borderColor: "grey.400", flexShrink: 0 }} />
 
-                {/* ── "View version" link — Unresolved tab only, hidden when no comments ── */}
-                {tab === "unresolved" && unresolvedCount > 0 && (
-                    <Box sx={commentsViewVersionRowSx}>
-                        <SvgIcon sx={{ fontSize: 14, color: "primary.main" }}><FontAwesomeIcon icon={faEye} /></SvgIcon>
-                        <Typography variant="body1" sx={{ color: "primary.main" }}>
-              View version sent for approval
-                        </Typography>
-                        <SvgIcon sx={{ fontSize: 11, color: "primary.main" }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
-                    </Box>
-                )}
-
                 {/* ── Awaiting all approvers state ──────────────────────────────── */}
                 {awaitingApprovers && tab === "unresolved" && (
                     <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", px: 2, py: 3 }}>
@@ -847,92 +843,65 @@ function CommentsPanel({
                     </Box>
                 )}
 
-                {/* ── Comment threads ───────────────────────────────────────────── */}
-                <Box sx={{ flex: 1, overflowY: "auto", px: 2, py: "4px", pb: "12px", display: "flex", flexDirection: "column", gap: "16px", ...(awaitingApprovers && tab === "unresolved" ? { display: "none" } : {}) }}>
-                    {threads.map(thread => {
-                        const visibleComments = tab === "unresolved"
-                            ? thread.comments.filter(c => !c.resolved)
-                            : thread.comments.filter(c => c.resolved);
-                        if (visibleComments.length === 0) {
-                            return null;
-                        }
-                        return (
-                            <Box key={thread.id}>
-                                {/* "By [Approver Name]" label — only when multiple approvers */}
-                                {threads.length > 1 && (
-                                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "8px" }}>
-                    By {thread.author}
-                                    </Typography>
-                                )}
-
-                                {/* Comments with MUI Checkbox */}
-                                {visibleComments.map((c, visibleIdx) => {
-                                    const originalIdx = thread.comments.indexOf(c);
-                                    const isChecked = c.checkedNow || c.resolved;
-                                    return (
-                                        <Box key={originalIdx}>
-                                            {visibleIdx > 0 && (
-                                                <Divider sx={{ my: "8px", borderColor: "grey.400" }} />
-                                            )}
-                                            <Box sx={{ display: "flex", gap: "6px", alignItems: "flex-start" }}>
-                                                <Checkbox
-                                                    size="small"
-                                                    checked={isChecked}
-                                                    onChange={() => tab === "unresolved" && toggleCheck(thread.id, originalIdx)}
-                                                    disabled={tab === "completed"}
-                                                    sx={commentCheckboxSx}
-                                                />
-                                                <Typography sx={{
-                                                    color: isChecked ? "text.secondary" : "text.primary",
-                                                    lineHeight: 1.5,
-                                                    textDecoration: isChecked ? "line-through" : "none",
-                                                    flex: 1
-                                                }}>
-                                                    {c.text}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                    );
-                                })}
-                            </Box>
-                        );
-                    })}
-
-                    {/* Empty states */}
-                    {tab === "completed" && threads.every(t => t.comments.every(c => !c.resolved)) && (
-                        <Typography variant="caption" sx={{ color: "text.secondary", textAlign: "center", mt: 2 }}>
-              No completed comments yet
-                        </Typography>
-                    )}
-                    {tab === "unresolved" && unresolvedCount === 0 && (
-                        <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", mt: 3, pb: "50px" }}>
-              There are no unresolved comments
-                        </Typography>
+                {/* ── Body content — varies by tab + mode ───────────────────────── */}
+                <Box sx={{ flex: 1, overflowY: "auto", px: 2, py: "12px", display: "flex", flexDirection: "column", gap: "16px", ...(awaitingApprovers && tab === "unresolved" ? { display: "none" } : {}) }}>
+                    {tab === "unresolved" ? (
+                        panelMode === "commenting" ? (
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={4}
+                                placeholder="Add a comment"
+                                value={draftComment}
+                                onChange={e => setDraftComment(e.target.value)}
+                                variant="outlined"
+                                size="medium"
+                            />
+                        ) : (
+                            <CommentBlock comment={currentComment} />
+                        )
+                    ) : (
+                        PAST_COMMENTS.map((c, i) => (
+                            <CommentBlock key={i} comment={c} />
+                        ))
                     )}
                 </Box>
 
-                {/* ── Footer: "Resend for approval" — hidden when awaiting approvers or no comments yet ── */}
-                {!awaitingApprovers && threads.length > 0 && (
+                {/* ── Footer ────────────────────────────────────────────────────── */}
+                {panelMode === "commenting" ? (
+                    <Box sx={commentsCommentingFooterSx}>
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            size="medium"
+                            disabled={!draftComment.trim()}
+                        >
+              Ask for changes
+                        </Button>
+                        <Button variant="outlined" color="primary" size="medium">
+              Approved
+                        </Button>
+                    </Box>
+                ) : (
                     <Box sx={commentsPanelFooterSx}>
                         <Button
                             variant="contained"
-                            size="small"
+                            color="primary"
+                            size="medium"
                             onClick={handleRequestApproval}
-                            sx={commentsResendBtnSx}
                         >
-              Resend for approval
+              Re-submit
                         </Button>
                     </Box>
                 )}
             </Box>
 
-            {/* ── Unresolved warning dialog ─────────────────────────────────────── */}
+            {/* ── Re-submit warning dialog ──────────────────────────────────────── */}
             <UnresolvedWarningDialog
                 open={warningOpen}
-                count={unresolvedCount}
                 onClose={() => setWarningOpen(false)}
                 onConfirm={() => {
-                    setWarningOpen(false); onRequestApproval(); 
+                    setWarningOpen(false); onRequestApproval();
                 }}
             />
         </>
@@ -1291,7 +1260,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
           setPlaceholderMenuOpen(false);
       }
   };
-  const [threads, setThreads] = useState<CommentThread[]>(initialThreads ?? []);
+  const threads = initialThreads ?? [];
   const [snackbarMsg, setSnackbarMsg] = useState<string | null>(null);
   const [videoPermOpen, setVideoPermOpen] = useState(false);
   const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(initialPermSettings);
@@ -2223,9 +2192,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
           <CommentsPanel
               open={commentsOpen}
               onClose={() => setCommentsOpen(false)}
-              threads={threads}
-              setThreads={setThreads}
-              approverNames={approverNames}
               awaitingApprovers={awaitingApprovers}
               onRequestApproval={() => {
                   setSnackbarMsg(`Version sent for additional approval by ${approverNames}`);
@@ -2635,17 +2601,6 @@ const commentsTabGroupSx: SxProps<Theme> = {
     gap: 0
 };
 
-const commentsViewVersionRowSx: SxProps<Theme> = {
-    px: 2,
-    py: "8px",
-    flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-    cursor: "pointer",
-    "&:hover": { opacity: 0.8 }
-};
-
 const commentsPanelFooterSx: SxProps<Theme> = {
     px: 2,
     py: "12px",
@@ -2657,18 +2612,16 @@ const commentsPanelFooterSx: SxProps<Theme> = {
     justifyContent: "flex-end"
 };
 
-const commentsResendBtnSx: SxProps<Theme> = {
-    bgcolor: "primary.main",
-    "&:hover": { bgcolor: "primary.dark" },
-    px: 2
-};
-
-const commentCheckboxSx: SxProps<Theme> = {
-    p: "2px",
+const commentsCommentingFooterSx: SxProps<Theme> = {
+    px: 2,
+    py: "12px",
+    borderTop: 1,
+    borderTopStyle: "solid",
+    borderTopColor: "grey.400",
     flexShrink: 0,
-    mt: "1px",
-    color: "action.active",
-    "&.Mui-checked": { color: "primary.main" }
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 1
 };
 
 // ─── SceneThumbnail / CustomSceneThumbnail ────────────────────────────────────
