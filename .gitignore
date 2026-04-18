@@ -29,3 +29,15 @@ npm-debug.log*
 # Claude preview cache
 .claude/preview/
 /.claude/worktrees/
+
+# Local-only reference material (not shared with the UX team)
+real_app/
+REAL-APP-REFERENCE.md
+COMPLIANCE-REBUILD-PROMPT.md
+GAP-ANALYSIS.md
+IMPLEMENTATION-PLAN.md
+REBUILD-PHASE-1-MAP.md
+REBUILD-PHASE-2-GAPS.md
+REBUILD-PHASE-3-PLAN.md
+SESSION-SUMMARY.md
+main_screen_gaps1.md

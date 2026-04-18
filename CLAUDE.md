@@ -69,58 +69,35 @@ public/
 
 ---
 
-## Source of Truth — THE REAL APP (READ FIRST)
+## Component Library — Primary Reference
 
-**UXplatform is a prototype. It must mirror the real app.** Compliance with design-system rules is necessary but NOT sufficient — the real app is the ground truth for structure, component choice, layout, colors, and behavior. Rules alone will let wrong-but-"legal" code slip through (e.g. a `Box` styled as a card when the real app uses `Card`; default body margins; wrong palette slot on the sidebar).
+**The Truffle component library is the first-priority source of building blocks.** Before writing new UI code, find the existing component in `@sundaysky/smartvideo-hub-truffle-component-library` and use it as intended:
 
-### Authoritative locations (read access granted)
+- Use its documented props rather than re-styling via `sx`.
+- Do not override its typography, colors, borders, radii, shadows, or other appearance-related styles.
+- Layout-only `sx` (margin, padding, width, flex) is fine.
 
-| Resource | Path | What it is |
-|---|---|---|
-| **Real app source** | `/Users/zoel/IdeaProjects/studio/smartvideo-hub/smartvideo-hub/client/components/newNav/` | Canonical React/TS implementation. **The primary reference.** |
-| **Real app rendered HTML** | `real_app/*.html` (`main_page.html`, `video_page.html`, `studio.html`) | DOM + inline styles as rendered by the real app. Use for CSS classes, computed styles, layout. |
-| **Real app React tree** | `real_app/*_components.txt` | Component hierarchy dumps from React DevTools. Use to identify which component renders which section. |
-| **Real app screenshot** | `real_app/Real_App.png` | Visual target. |
-| **Current prototype screenshot** | `real_app/UXPlatform.png` | Current state — for diffing. |
-| **Truffle library guide** | `AI-COMPONENT-GUIDE.md` | Props/variants reference for Truffle components. Secondary to real app usage. |
+Read `AI-COMPONENT-GUIDE.md` for Truffle component props/variants — it is the authoritative reference for the library. If a need is not met by the Truffle library, fall back to plain MUI (`@mui/material`), which already has the library's theme overrides applied. Build a new component only as a last resort, and only when no library or MUI component fits.
 
-### The order of consultation (non-negotiable)
+### Component decision order
 
-For every section, component, or style decision:
-
-1. **Open the real app source first.** Find the file in `smartvideo-hub/client/components/newNav/` that renders the equivalent UI. Mirror its component choice, props, structure, and sx.
-2. **Cross-check the rendered HTML.** Open the matching `real_app/*.html` to confirm DOM structure, class names, and any global/root styles (body margin, html reset, font loading, background colors).
-3. **Cross-check the React tree dump** (`*_components.txt`) to confirm which wrappers / providers / containers are in play.
-4. **Consult `AI-COMPONENT-GUIDE.md`** for props/variants of any Truffle component the real app uses.
-5. **Fall back to plain MUI** only if the real app does so.
-6. **Build a new custom thing only if the real app does.** Never invent a primitive (`Box`-as-card) when the real app uses an existing component (`Card`, `TruffleVideoCard`).
-
-If the real app and `AI-COMPONENT-GUIDE.md` disagree, **the real app wins.**
-
-### Global / root scope must be checked too
-
-Component-level compliance misses page-wide issues. Always inspect and match the real app for:
-
-- `index.html` — root element, viewport, preloaded fonts, favicon
-- `index.css` / global CSS — body/html reset, margin, font-family on root, background color
-- `main.tsx` — providers, wrappers, order of `TruffleThemeProvider` / `NewNavThemeProvider` / `StyledEngineProvider`
-- App shell — `MainContainer`, sidebar, top nav, layout grid
-
-### Visual diff is a gate, not a "nice to have"
-
-A phase is **not** complete until the page has been opened in the browser and diffed side-by-side against `real_app/Real_App.png` (or the real app running locally if available). `tsc --noEmit` passing and `style=` grep-clean is not "done." Use the `platform-browser-debug` skill to drive this.
-
-If you cannot perform the visual diff (no browser access, skill unavailable), the phase status is **incomplete / blocked on visual verification** — never ✅.
-
-### Prototype → real-app file map (living document)
-
-See `REAL-APP-REFERENCE.md` for the prototype-to-real-app file map. **Update it whenever you discover a new mapping.**
+1. **Truffle library component** from `@sundaysky/smartvideo-hub-truffle-component-library` (see the table in Rule 5 for common needs).
+2. **Standard MUI component** from `@mui/material` — theme overrides are already applied.
+3. **New custom component** — last resort, and must follow every rule in this file.
 
 ---
 
-## Component Library — Secondary Reference
+## Figma Designs as Input
 
-Read `AI-COMPONENT-GUIDE.md` for Truffle component props/variants. It is the authoritative reference for the library, but the **real app source determines *which* components to use and *how* to compose them.** Do not choose a component based solely on the guide's table — confirm the real app uses it in the equivalent place.
+When the input for a task is a Figma design (a `figma.com/...` URL, a Figma file reference, or a screenshot shared from Figma), the workflow is:
+
+1. **Pull the design.** Use the Figma MCP tools — primarily `get_design_context` with the file key and node id extracted from the URL — to retrieve the design, its variables, and a screenshot. Fall back to `get_screenshot` + `get_metadata` if a full code context is not needed.
+2. **Match Figma layers to library components.** Walk the design top-down and, for each layer, identify what it is conceptually (button, text field, dialog, avatar, card, menu item, accordion, etc.). Map that to the equivalent Truffle library component first, then to a standard MUI component. **Name matching is not exact** — a Figma layer called "Primary CTA" should still map to `Button variant="contained"`; a "Status pill" maps to `Label`; an "Icon button w/ dropdown" maps to `TruffleIconButton` + `Menu`. Use the Rule 5 table and `AI-COMPONENT-GUIDE.md` to find the right match.
+3. **Match props.** If the Figma layer's properties (size, variant, disabled state, color role, icon placement, etc.) correspond to props on the identified component, use those props. Do not re-implement the same behavior via `sx` or by building a new wrapper. Note that Figma prop names often differ from component prop names — match by meaning, not by string.
+4. **Only introduce new primitives if the library has no match.** If neither the Truffle library nor MUI has a component that fits the Figma layer, confirm with the user before building something new.
+5. **Tokens over hex.** If the design exposes design tokens (CSS variables), map them to the theme palette and typography variants. If it only exposes raw hex/rgb values, still map them to the nearest theme slot — never copy the raw value into code. If no slot fits, ask the user before inventing one.
+
+Screenshots alone (no Figma URL) follow the same mapping rules — just without MCP retrieval.
 
 ---
 
@@ -267,32 +244,20 @@ import CloseIcon from "@mui/icons-material/Close";
 
 ### 9. Component Decision Order
 
-When implementing any UI element:
-
-1. **First**: Check if it exists as a custom component in the Truffle library (see table in rule 5)
-2. **Second**: Use standard MUI component (`@mui/material`) — it already has theme overrides applied
-3. **Last resort**: Build a new component — but follow all rules above (theme tokens, typography variants, no hardcoded styles)
+Follow the three-step decision order in the **Component Library — Primary Reference** section above: Truffle library → MUI → new custom component. When the task input is a Figma design, use the **Figma Designs as Input** workflow to map each layer to the right library or MUI component.
 
 ### 11. Truffle Theme Overrides That Can Surprise You
 
-The Truffle theme sets base styles on some MUI components that are not obvious from reading JSX. These overrides CASCADE everywhere the component is used. When mirroring the real app, check whether the real app *also* accepts the override, or whether it works around it.
+The Truffle theme sets base styles on some MUI components that are not obvious from reading JSX. These overrides CASCADE everywhere the component is used. If a standard MUI component is behaving in a way you didn't expect, assume the Truffle theme has customized it before assuming a base-MUI bug.
 
 Known load-bearing overrides (verify in `node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/MuiComponents/` before assuming):
 
-- **`MuiListItemText.primary` and `.secondary`** default to `whiteSpace: nowrap; overflow: hidden; text-overflow: ellipsis`. In any narrow container (e.g. a 112px sidebar, a 150px studio nav, a compact menu), labels will TRUNCATE with an ellipsis instead of wrapping. The real app works around this either by (a) passing a JSX label with an explicit `<br />` inside a Box wrapper (`textAlign: "center", display: "inline-block"`), or (b) overriding `whiteSpace: "normal"` via the `sx` prop.
-  - If the real-app label for that slot is multi-word and visually wraps, add `"& .MuiListItemText-primary": { whiteSpace: "normal" }` to the ListItemText `sx`, plus `wordBreak: "break-word"` to the primary Typography if needed.
+- **`MuiListItemText.primary` and `.secondary`** default to `whiteSpace: nowrap; overflow: hidden; text-overflow: ellipsis`. In any narrow container (e.g. a 112px sidebar, a compact menu), labels TRUNCATE with an ellipsis instead of wrapping. If you need the label to wrap, either (a) pass a JSX label with an explicit `<br />` inside a Box wrapper (`textAlign: "center", display: "inline-block"`), or (b) override `whiteSpace: "normal"` via the `sx` prop — e.g. `"& .MuiListItemText-primary": { whiteSpace: "normal" }`, plus `wordBreak: "break-word"` on the primary Typography if needed.
 - **Other overrides to check when something looks off**: `MuiButton`, `MuiChip`, `MuiDialog`, `MuiTooltip`. Read the override file in `node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/MuiComponents/<Name>/<Name>.js` before concluding "this is a base MUI behavior."
 
 ### 12. Hover Shadows Need Clearance in Scroll Containers
 
-When a card or thumbnail applies a large hover shadow (e.g. `boxShadow: 24`) AND sits inside a container with `overflow: auto` (or `overflowX: auto`), the container clips the shadow. You MUST add padding on every side where the shadow extends so the shadow isn't cut off. Match the real app's scroll-container padding exactly — don't guess.
-
-Known real-app reference values:
-- **Scene thumbnails strip** (`LineupSortableSceneContainer`): `padding: "4px 6px 2px 4px"`, `gap: "12px"`.
-- **Recent cards horizontal strip** (`cardsContainerSxProps`): `padding: "16px 0 16px 16px"`, `gap: "8px"`.
-- **Video grid** (`videosOverviewGridSxProps`): `rowGap: "24px"`, `columnGap: "8px"`.
-
-If you set a scroll container's padding to `0` on any side where a hovered child extends, the visual result is a clipped shadow/border. Treat scroll-container padding as load-bearing, not decorative.
+When a card or thumbnail applies a large hover shadow (e.g. `boxShadow: 24`) AND sits inside a container with `overflow: auto` (or `overflowX: auto`), the container clips the shadow. Add padding on every side where the shadow extends so it isn't cut off. Treat scroll-container padding on those sides as load-bearing, not decorative — setting it to `0` on a side where a hovered child's shadow extends will visibly clip the shadow.
 
 ### 13. What NOT to Do — Summary
 
@@ -307,13 +272,10 @@ If you set a scroll container's padding to `0` on any side where a hovered child
 - Do NOT use deprecated components (`InlineTextField`, `DeprecatedInlineTextField`, `ComplexInputDialog`, `TabbedDialog`)
 - Do NOT use `useIsEllipsisActive` — use `TypographyWithTooltipOnOverflow`
 - Do NOT define inline `SxProps` objects — define them as named constants at the bottom of the file
-- Do NOT choose a component or primitive without first opening the equivalent file in the real app source (`smartvideo-hub/client/components/newNav/`)
-- Do NOT skip global/root styles — always check `index.html`, `index.css`, `main.tsx`, body margin, font-family on root
-- Do NOT declare a phase ✅ without a side-by-side visual diff against `real_app/Real_App.png` or the real app running in a browser
-- Do NOT invent a primitive (e.g. `Box`-as-card) when the real app uses an existing component (e.g. `Card`, `TruffleVideoCard`) — mirror, don't re-derive
-- Do NOT trust `AI-COMPONENT-GUIDE.md` over the real app — the real app wins every conflict
-- Do NOT assume narrow-sidebar `ListItemText` labels will wrap — Truffle's theme sets `whiteSpace: nowrap` by default; match the real app's wrap strategy (explicit `<br />` in JSX labels OR `whiteSpace: normal` override)
-- Do NOT set a horizontal scroll container's top/side padding to `0` if the children have hover shadows — the shadow will be clipped; use the real app's exact padding values (see rule 12)
+- Do NOT invent a primitive (e.g. `Box`-as-card) when the Truffle library or MUI already provides a component for it — search the library first
+- Do NOT re-implement a component's built-in props via `sx` or a wrapper — use the props the component already exposes
+- Do NOT assume narrow-sidebar `ListItemText` labels will wrap — Truffle's theme sets `whiteSpace: nowrap` by default; use an explicit `<br />` in a JSX label OR a `whiteSpace: normal` override
+- Do NOT set a horizontal scroll container's top/side padding to `0` if the children have hover shadows — the shadow will be clipped (see rule 12)
 
 ---
 
