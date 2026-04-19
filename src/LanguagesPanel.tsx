@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Divider
+    Select, MenuItem, FormControl, Divider, Checkbox
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -66,24 +66,26 @@ export default function LanguagesPanel({
     onClose: () => void;
 }) {
     const [panelState, setPanelState] = useState<PanelState>("promo");
-    const [selectedLangs, setSelectedLangs] = useState<string[]>(
-        Array(MAX_LANGUAGES).fill("")
-    );
-    // Snapshot of languages confirmed via "Enable translation"
-    const [enabledLangs, setEnabledLangs] = useState<string[]>(
-        Array(MAX_LANGUAGES).fill("")
-    );
+    // Plain list of selected language names (not slot-indexed)
+    const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+    // Snapshot confirmed via "Enable translation"
+    const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
 
-    const selectedCount = selectedLangs.filter((l) => l !== "").length;
-    const enabledCount = enabledLangs.filter((l) => l !== "").length;
+    const selectedCount = selectedLangs.length;
+    const enabledCount = enabledLangs.length;
     const hasSelection = selectedCount > 0;
-    const isRemovingAny = enabledLangs.some((lang, i) => lang !== "" && selectedLangs[i] === "");
-    const activeLangsList = enabledLangs.filter(l => l !== "");
+    const isRemovingAny = enabledLangs.some(lang => !selectedLangs.includes(lang));
+    const activeLangsList = enabledLangs;
 
-    function handleLangChange(index: number, value: string) {
-        const next = [...selectedLangs];
-        next[index] = value;
-        setSelectedLangs(next);
+    function handleMultiSelectChange(value: string[]) {
+        // Enforce MAX_LANGUAGES cap; ignore if somehow exceeded
+        if (value.length <= MAX_LANGUAGES) {
+            setSelectedLangs(value);
+        }
+    }
+
+    function handleRemoveLang(lang: string) {
+        setSelectedLangs(prev => prev.filter(l => l !== lang));
     }
 
     function handleEnableTranslation() {
@@ -279,51 +281,73 @@ export default function LanguagesPanel({
                 {/* ── Language selector ────────────────────────────────────── */}
                 {panelState === "selector" && (
                     <>
-                        {/* Scrollable list of dropdowns */}
+                        {/* Scrollable area: multi-select + selected language rows */}
                         <Box sx={selectorScrollSx}>
-                            <Typography variant="h5" sx={{ mb: 2 }}>
+                            <Typography variant="h5" sx={{ mb: 1.5 }}>
                                 Select up to {MAX_LANGUAGES} languages
                             </Typography>
 
-                            {Array.from({ length: MAX_LANGUAGES }, (_, i) => (
-                                <FormControl key={i} fullWidth size="small" sx={{ mb: 1.5 }}>
-                                    <Select
-                                        displayEmpty
-                                        value={selectedLangs[i]}
-                                        onChange={(e) => handleLangChange(i, e.target.value)}
-                                        renderValue={(val) => {
-                                            if (!val) {
-                                                return (
-                                                    <Typography variant="body1" color="text.disabled">
-                                                        Choose language {i + 1}
-                                                    </Typography>
-                                                );
-                                            }
+                            {/* Single multi-select dropdown */}
+                            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                                <Select
+                                    multiple
+                                    displayEmpty
+                                    value={selectedLangs}
+                                    onChange={(e) => handleMultiSelectChange(e.target.value as string[])}
+                                    renderValue={(selected) => {
+                                        if (selected.length === 0) {
                                             return (
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>
-                                                        {FLAG_BY_NAME[val]}
-                                                    </Typography>
-                                                    <Typography variant="body1">{val}</Typography>
-                                                </Box>
+                                                <Typography variant="body1" color="text.disabled">
+                                                    Choose languages…
+                                                </Typography>
                                             );
-                                        }}
-                                    >
-                                        <MenuItem value="">
-                                            <Typography variant="body1" color="text.secondary">
-                                                Choose language {i + 1}
+                                        }
+                                        return (
+                                            <Typography variant="body1">
+                                                {selected.length} language{selected.length !== 1 ? "s" : ""} selected
                                             </Typography>
-                                        </MenuItem>
-                                        {LANGUAGE_OPTIONS.map(({ name, flag }) => (
-                                            <MenuItem key={name} value={name}>
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{flag}</Typography>
-                                                    <Typography variant="body1">{name}</Typography>
-                                                </Box>
+                                        );
+                                    }}
+                                    MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+                                >
+                                    {LANGUAGE_OPTIONS.map(({ name, flag }) => {
+                                        const checked = selectedLangs.includes(name);
+                                        const atMax = selectedCount >= MAX_LANGUAGES && !checked;
+                                        return (
+                                            <MenuItem key={name} value={name} disabled={atMax}>
+                                                <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
+                                                <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
+                                                <Typography variant="body1">{name}</Typography>
                                             </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
+                                        );
+                                    })}
+                                </Select>
+                            </FormControl>
+
+                            {/* Selected language rows */}
+                            {selectedLangs.map((lang, i) => (
+                                <Box key={lang}>
+                                    {i > 0 && <Divider />}
+                                    <Box sx={selectedLangRowSx}>
+                                        <Box sx={flagCircleSmSx}>
+                                            <Typography sx={{ fontSize: 16, lineHeight: 1 }}>
+                                                {FLAG_BY_NAME[lang]}
+                                            </Typography>
+                                        </Box>
+                                        <Typography variant="body1" sx={{ flex: 1 }}>
+                                            {lang}
+                                        </Typography>
+                                        <IconButton
+                                            size="small"
+                                            sx={iconBtnSx}
+                                            onClick={() => handleRemoveLang(lang)}
+                                        >
+                                            <SvgIcon sx={iconSmSx}>
+                                                <FontAwesomeIcon icon={faXmark} />
+                                            </SvgIcon>
+                                        </IconButton>
+                                    </Box>
+                                </Box>
                             ))}
                         </Box>
 
@@ -719,6 +743,28 @@ const flagCircleMdSx: SxProps<Theme> = {
     justifyContent: "center",
     width: 36,
     height: 36,
+    borderRadius: "50%",
+    bgcolor: "action.hover",
+    border: "1px solid",
+    borderColor: "divider",
+    flexShrink: 0
+};
+
+// ─── Selector — selected language rows ────────────────────────────────────────
+
+const selectedLangRowSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    py: 1
+};
+
+const flagCircleSmSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 28,
+    height: 28,
     borderRadius: "50%",
     bgcolor: "action.hover",
     border: "1px solid",
