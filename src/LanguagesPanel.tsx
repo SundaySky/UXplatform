@@ -73,8 +73,6 @@ export default function LanguagesPanel({
     const selectedCount = selectedLangs.filter((l) => l !== "").length;
     const hasSelection = selectedCount > 0;
 
-    // User is adding a language they hadn't enabled before
-    const isAddingAny = selectedLangs.some((lang, i) => lang !== "" && lang !== enabledLangs[i]);
     // User is removing a language that was previously enabled
     const isRemovingAny = enabledLangs.some((lang, i) => lang !== "" && selectedLangs[i] === "");
 
@@ -288,6 +286,21 @@ export default function LanguagesPanel({
 
                         {/* Sticky footer — always visible */}
                         <Box sx={stickyFooterSx}>
+                            {/* Credits notice — always shown when in selector, above the button */}
+                            <AttentionBox
+                                color="info"
+                                icon={
+                                    <SvgIcon sx={iconSmSx}>
+                                        <FontAwesomeIcon icon={faCircleInfo} />
+                                    </SvgIcon>
+                                }
+                                sx={{ mb: 1.5 }}
+                            >
+                                <Typography variant="body1">
+                                    Credits will apply on video approval
+                                </Typography>
+                            </AttentionBox>
+
                             <Button
                                 variant="contained"
                                 color="primary"
@@ -300,7 +313,7 @@ export default function LanguagesPanel({
                                 Enable translation{selectedCount > 0 ? ` (${selectedCount})` : ""}
                             </Button>
 
-                            <Box sx={{ textAlign: "center", mb: isAddingAny || isRemovingAny ? 2 : 0 }}>
+                            <Box sx={{ textAlign: "center", mb: isRemovingAny ? 2 : 0 }}>
                                 <TruffleLink
                                     href="#"
                                     underline="hover"
@@ -312,22 +325,6 @@ export default function LanguagesPanel({
                                     Cancel
                                 </TruffleLink>
                             </Box>
-
-                            {isAddingAny && (
-                                <AttentionBox
-                                    color="info"
-                                    icon={
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faCircleInfo} />
-                                        </SvgIcon>
-                                    }
-                                    sx={isRemovingAny ? { mb: 1.5 } : undefined}
-                                >
-                                    <Typography variant="body1">
-                                        Credits will apply on video approval
-                                    </Typography>
-                                </AttentionBox>
-                            )}
 
                             {isRemovingAny && (
                                 <AttentionBox
