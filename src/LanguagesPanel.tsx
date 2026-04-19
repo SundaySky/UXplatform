@@ -1,22 +1,26 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Divider, Checkbox
+    Select, MenuItem, FormControl, Divider, Checkbox, Tooltip
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
-    faTriangleExclamation, faPencil
+    faTriangleExclamation, faPencil, faTrashCan
 } from "@fortawesome/pro-regular-svg-icons";
-import { faPlay, faCircleCheck } from "@fortawesome/pro-solid-svg-icons";
+import { faPlay, faCircleCheck, faCircleXmark } from "@fortawesome/pro-solid-svg-icons";
 import {
     AttentionBox,
     TruffleLink
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type PanelState = "promo" | "selector" | "applying" | "success" | "settled";
+type PanelState =
+    | "promo" | "selector" | "settled"
+    | "applying" | "success" | "error"
+    | "applying_changes" | "success_changes" | "error_changes"
+    | "removing" | "success_remove";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PANEL_WIDTH = 260;
@@ -68,32 +72,53 @@ export default function LanguagesPanel({
     const [panelState, setPanelState] = useState<PanelState>("promo");
     // Plain list of selected language names (not slot-indexed)
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
-    // Snapshot confirmed via "Enable translation"
+    // Last successfully confirmed set
     const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
+    // Snapshot of what was sent to "apply" (used in transient states before confirmation)
+    const [pendingLangs, setPendingLangs] = useState<string[]>([]);
 
     const selectedCount = selectedLangs.length;
-    const enabledCount = enabledLangs.length;
-    const hasSelection = selectedCount > 0;
     const isRemovingAny = enabledLangs.some(lang => !selectedLangs.includes(lang));
+    const isRemovingAll = enabledLangs.length > 0 && selectedLangs.length === 0;
+    // Button is enabled when there's a selection OR the user is removing all enabled languages
+    const canEnable = selectedCount > 0 || isRemovingAll;
+
     const activeLangsList = enabledLangs;
 
     function handleMultiSelectChange(value: string[]) {
-        // Enforce MAX_LANGUAGES cap; ignore if somehow exceeded
         if (value.length <= MAX_LANGUAGES) {
             setSelectedLangs(value);
         }
     }
 
-    function handleRemoveLang(lang: string) {
-        setSelectedLangs(prev => prev.filter(l => l !== lang));
-    }
-
     function handleEnableTranslation() {
-        setEnabledLangs([...selectedLangs]);
-        setPanelState("applying");
-        setTimeout(() => {
-            setPanelState("success");
-        }, APPLYING_DELAY_MS);
+        const newLangs = [...selectedLangs];
+        const isUpdating = enabledLangs.length > 0 && newLangs.length > 0;
+
+        setPendingLangs(newLangs);
+
+        if (isRemovingAll) {
+            setPanelState("removing");
+            setTimeout(() => {
+                setEnabledLangs([]);
+                setSelectedLangs([]);
+                setPanelState("success_remove");
+            }, APPLYING_DELAY_MS);
+        }
+        else if (isUpdating) {
+            setPanelState("applying_changes");
+            setTimeout(() => {
+                setEnabledLangs(newLangs);
+                setPanelState("success_changes");
+            }, APPLYING_DELAY_MS);
+        }
+        else {
+            setPanelState("applying");
+            setTimeout(() => {
+                setEnabledLangs(newLangs);
+                setPanelState("success");
+            }, APPLYING_DELAY_MS);
+        }
     }
 
     function handleCancel() {
@@ -105,15 +130,33 @@ export default function LanguagesPanel({
         setPanelState("settled");
     }
 
+    function handleGotItRemove() {
+        setPanelState("promo");
+    }
+
+    function handleTryAgain() {
+        setPanelState("selector");
+    }
+
     function handleEdit() {
         setSelectedLangs([...enabledLangs]);
         setPanelState("selector");
     }
 
-    // In applying/success states the header is minimal (no credits badge) and
-    // the source-language section is hidden so the content fills the full panel.
-    const showCredits = panelState !== "applying" && panelState !== "success";
-    const showSourceLang = panelState !== "applying" && panelState !== "success";
+    // Header and source-language section are hidden during all transient states
+    const isTransient = panelState !== "promo" && panelState !== "selector" && panelState !== "settled";
+    const showCredits = !isTransient;
+    const showSourceLang = !isTransient;
+
+    // ── Shared bullet lists ──────────────────────────────────────────────────
+    const applyingBullets = [
+        "Narration text can be edited at any time.",
+        "Any changes to the source language will automatically apply to all translated languages."
+    ];
+    const successBullets = [
+        "Use the top bar to switch display languages.",
+        "All translations can be edited at any time from the narration placeholders."
+    ];
 
     return (
         <Box
@@ -129,7 +172,6 @@ export default function LanguagesPanel({
                 height: "100%"
             }}
         >
-            {/* Fixed-width inner container */}
             <Box sx={panelInnerSx}>
 
                 {/* ── Header ──────────────────────────────────────────────── */}
@@ -177,9 +219,7 @@ export default function LanguagesPanel({
                                 ? "Editable until additional languages are added"
                                 : "Locked for switching once language setup starts"}
                         </Typography>
-
                         <Box sx={sourceSelectRowSx}>
-                            {/* Settled state: plain flag + name row, no dropdown */}
                             {panelState === "settled" ? (
                                 <>
                                     <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
@@ -187,9 +227,7 @@ export default function LanguagesPanel({
                                         <Typography variant="body1">English</Typography>
                                     </Box>
                                     <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faPlay} />
-                                        </SvgIcon>
+                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                     </IconButton>
                                 </>
                             ) : (
@@ -205,15 +243,11 @@ export default function LanguagesPanel({
                                         </Select>
                                     </FormControl>
                                     <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faPlay} />
-                                        </SvgIcon>
+                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                     </IconButton>
                                     {panelState === "selector" && (
                                         <IconButton size="small" color="primary">
-                                            <SvgIcon sx={iconSmSx}>
-                                                <FontAwesomeIcon icon={faCheck} />
-                                            </SvgIcon>
+                                            <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>
                                         </IconButton>
                                     )}
                                 </>
@@ -226,14 +260,11 @@ export default function LanguagesPanel({
                 {panelState === "promo" && (
                     <Box sx={bodyScrollSx}>
                         <Box sx={promoCardSx}>
-                            {/* Thumbnail */}
                             <Box sx={promoThumbSx}>
                                 <Box sx={promoFlagsRowSx}>
                                     {["🇮🇹", "🇩🇪", "🇪🇸"].map((flag) => (
                                         <Box key={flag} sx={promoFlagPillSx}>
-                                            <Typography sx={{ fontSize: 14, lineHeight: 1 }}>
-                                                {flag}
-                                            </Typography>
+                                            <Typography sx={{ fontSize: 14, lineHeight: 1 }}>{flag}</Typography>
                                         </Box>
                                     ))}
                                 </Box>
@@ -252,9 +283,7 @@ export default function LanguagesPanel({
                                     "Review, edit, and preview narration without credits. Credits apply at approval or publishing."
                                 ].map((text, i) => (
                                     <Box component="li" key={i} sx={{ mb: 0.75 }}>
-                                        <Typography variant="body1" color="text.secondary">
-                                            {text}
-                                        </Typography>
+                                        <Typography variant="body1" color="text.secondary">{text}</Typography>
                                     </Box>
                                 ))}
                             </Box>
@@ -281,91 +310,77 @@ export default function LanguagesPanel({
                 {/* ── Language selector ────────────────────────────────────── */}
                 {panelState === "selector" && (
                     <>
-                        {/* Scrollable area: multi-select + selected language rows */}
                         <Box sx={selectorScrollSx}>
-                            <Typography variant="h5" sx={{ mb: 1.5 }}>
+                            <Typography variant="h5" sx={{ mb: 2 }}>
                                 Select up to {MAX_LANGUAGES} languages
                             </Typography>
 
-                            {/* Single multi-select dropdown */}
-                            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                                <Select
-                                    multiple
-                                    displayEmpty
-                                    value={selectedLangs}
-                                    onChange={(e) => handleMultiSelectChange(e.target.value as string[])}
-                                    renderValue={(selected) => {
-                                        if (selected.length === 0) {
+                            {Array.from({ length: MAX_LANGUAGES }, (_, i) => (
+                                <FormControl key={i} fullWidth size="small" sx={{ mb: 1.5 }}>
+                                    <Select
+                                        multiple
+                                        displayEmpty
+                                        value={selectedLangs}
+                                        onChange={(e) => handleMultiSelectChange(e.target.value as string[])}
+                                        renderValue={(selected) => {
+                                            if (!selected[i]) {
+                                                return (
+                                                    <Typography variant="body1" color="text.disabled">
+                                                        Choose language {i + 1}
+                                                    </Typography>
+                                                );
+                                            }
                                             return (
-                                                <Typography variant="body1" color="text.disabled">
-                                                    Choose languages…
-                                                </Typography>
+                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>
+                                                        {FLAG_BY_NAME[selected[i]]}
+                                                    </Typography>
+                                                    <Typography variant="body1">{selected[i]}</Typography>
+                                                </Box>
                                             );
-                                        }
-                                        return (
-                                            <Typography variant="body1">
-                                                {selected.length} language{selected.length !== 1 ? "s" : ""} selected
-                                            </Typography>
-                                        );
-                                    }}
-                                    MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
-                                >
-                                    {LANGUAGE_OPTIONS.map(({ name, flag }) => {
-                                        const checked = selectedLangs.includes(name);
-                                        const atMax = selectedCount >= MAX_LANGUAGES && !checked;
-                                        return (
-                                            <MenuItem key={name} value={name} disabled={atMax}>
-                                                <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
-                                                <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
-                                                <Typography variant="body1">{name}</Typography>
-                                            </MenuItem>
-                                        );
-                                    })}
-                                </Select>
-                            </FormControl>
-
-                            {/* Selected language rows */}
-                            {selectedLangs.map((lang, i) => (
-                                <Box key={lang}>
-                                    {i > 0 && <Divider />}
-                                    <Box sx={selectedLangRowSx}>
-                                        <Box sx={flagCircleSmSx}>
-                                            <Typography sx={{ fontSize: 16, lineHeight: 1 }}>
-                                                {FLAG_BY_NAME[lang]}
-                                            </Typography>
-                                        </Box>
-                                        <Typography variant="body1" sx={{ flex: 1 }}>
-                                            {lang}
-                                        </Typography>
-                                        <IconButton
-                                            size="small"
-                                            sx={iconBtnSx}
-                                            onClick={() => handleRemoveLang(lang)}
-                                        >
-                                            <SvgIcon sx={iconSmSx}>
-                                                <FontAwesomeIcon icon={faXmark} />
-                                            </SvgIcon>
-                                        </IconButton>
-                                    </Box>
-                                </Box>
+                                        }}
+                                        MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+                                    >
+                                        {LANGUAGE_OPTIONS.map(({ name, flag }) => {
+                                            const checked = selectedLangs.includes(name);
+                                            const atMax = selectedCount >= MAX_LANGUAGES && !checked;
+                                            return (
+                                                <MenuItem key={name} value={name} disabled={atMax}>
+                                                    {/* Tooltip on the inner Box so it works even when disabled */}
+                                                    <Tooltip
+                                                        title={atMax ? "Remove a language to add another (max 10)" : ""}
+                                                        placement="right"
+                                                        disableInteractive
+                                                    >
+                                                        <Box sx={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            width: "100%",
+                                                            // Restore pointer-events so Tooltip detects hover
+                                                            // even though the parent MenuItem is disabled
+                                                            pointerEvents: atMax ? "all" : undefined
+                                                        }}>
+                                                            <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
+                                                            <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
+                                                            <Typography variant="body1">{name}</Typography>
+                                                        </Box>
+                                                    </Tooltip>
+                                                </MenuItem>
+                                            );
+                                        })}
+                                    </Select>
+                                </FormControl>
                             ))}
                         </Box>
 
-                        {/* Sticky footer — always visible */}
+                        {/* Sticky footer */}
                         <Box sx={stickyFooterSx}>
-                            {/* Credits notice — always shown when in selector, above the button */}
                             <AttentionBox
                                 color="info"
-                                icon={
-                                    <SvgIcon sx={iconSmSx}>
-                                        <FontAwesomeIcon icon={faCircleInfo} />
-                                    </SvgIcon>
-                                }
+                                icon={<SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
                                 sx={{ mb: 1.5 }}
                             >
-                                <Typography variant="body1">
-                                    Credits will apply on video approval
-                                </Typography>
+                                <Typography variant="body1">Credits will apply on video approval</Typography>
                             </AttentionBox>
 
                             <Button
@@ -373,15 +388,13 @@ export default function LanguagesPanel({
                                 color="primary"
                                 fullWidth
                                 size="medium"
-                                disabled={!hasSelection}
+                                disabled={!canEnable}
                                 onClick={handleEnableTranslation}
                                 sx={{ mb: 1.5 }}
                             >
-                                Enable translation
+                                {isRemovingAll ? "Remove languages" : "Enable translation"}
                                 {selectedCount > 0 && (
-                                    <Box component="span" sx={countBadgeSx}>
-                                        {selectedCount}
-                                    </Box>
+                                    <Box component="span" sx={countBadgeSx}>{selectedCount}</Box>
                                 )}
                             </Button>
 
@@ -390,8 +403,7 @@ export default function LanguagesPanel({
                                     href="#"
                                     underline="hover"
                                     onClick={(e) => {
-                                        e.preventDefault();
-                                        handleCancel();
+                                        e.preventDefault(); handleCancel(); 
                                     }}
                                 >
                                     Cancel
@@ -401,11 +413,7 @@ export default function LanguagesPanel({
                             {isRemovingAny && (
                                 <AttentionBox
                                     color="warning"
-                                    icon={
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faTriangleExclamation} />
-                                        </SvgIcon>
-                                    }
+                                    icon={<SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faTriangleExclamation} /></SvgIcon>}
                                 >
                                     <Typography variant="body1">
                                         Removing a language deletes its generated content, and the AI
@@ -417,11 +425,11 @@ export default function LanguagesPanel({
                     </>
                 )}
 
-                {/* ── Applying (loading) state ─────────────────────────────── */}
-                {panelState === "applying" && (
+                {/* ── Applying / Applying changes ──────────────────────────── */}
+                {(panelState === "applying" || panelState === "applying_changes") && (
                     <Box sx={centeredBodySx}>
                         <Box sx={flagCirclesRowSx}>
-                            {activeLangsList.slice(0, 3).map(lang => (
+                            {pendingLangs.slice(0, 3).map(lang => (
                                 <Box key={lang} sx={flagCircleLgSx}>
                                     <Typography sx={{ fontSize: 28, lineHeight: 1 }}>
                                         {FLAG_BY_NAME[lang]}
@@ -429,78 +437,112 @@ export default function LanguagesPanel({
                                 </Box>
                             ))}
                         </Box>
-
                         <Typography variant="h4" sx={{ textAlign: "center", mt: 3, mb: 2.5 }}>
-                            Applying {enabledCount} language{enabledCount !== 1 ? "s" : ""}
+                            {panelState === "applying_changes"
+                                ? "Applying changes"
+                                : `Applying ${pendingLangs.length} language${pendingLangs.length !== 1 ? "s" : ""}`}
                         </Typography>
-
                         <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
-                            <Box component="li" sx={{ mb: 1 }}>
-                                <Typography variant="body1" color="text.secondary">
-                                    Narration text can be edited at any time.
-                                </Typography>
-                            </Box>
-                            <Box component="li">
-                                <Typography variant="body1" color="text.secondary">
-                                    Any changes to the source language will automatically apply to all translated languages.
-                                </Typography>
-                            </Box>
+                            {applyingBullets.map((text, i) => (
+                                <Box component="li" key={i} sx={{ mb: i < applyingBullets.length - 1 ? 1 : 0 }}>
+                                    <Typography variant="body1" color="text.secondary">{text}</Typography>
+                                </Box>
+                            ))}
                         </Box>
                     </Box>
                 )}
 
-                {/* ── Success state ────────────────────────────────────────── */}
-                {panelState === "success" && (
+                {/* ── Success / Changes applied ────────────────────────────── */}
+                {(panelState === "success" || panelState === "success_changes") && (
                     <Box sx={centeredBodySx}>
                         <SvgIcon sx={successIconSx}>
                             <FontAwesomeIcon icon={faCircleCheck} />
                         </SvgIcon>
-
                         <Typography variant="h4" sx={{ textAlign: "center", mt: 3, mb: 2.5 }}>
-                            {enabledCount} language{enabledCount !== 1 ? "s" : ""} applied successfully
+                            {panelState === "success_changes"
+                                ? "Changes applied successfully"
+                                : `${enabledLangs.length} language${enabledLangs.length !== 1 ? "s" : ""} applied successfully`}
                         </Typography>
-
                         <Box component="ul" sx={{ pl: 2.5, m: 0, mb: 3 }}>
-                            <Box component="li" sx={{ mb: 1 }}>
-                                <Typography variant="body1" color="text.secondary">
-                                    Use the top bar to switch display languages.
-                                </Typography>
-                            </Box>
-                            <Box component="li">
-                                <Typography variant="body1" color="text.secondary">
-                                    All translations can be edited at any time from the narration placeholders.
-                                </Typography>
-                            </Box>
+                            {successBullets.map((text, i) => (
+                                <Box component="li" key={i} sx={{ mb: i < successBullets.length - 1 ? 1 : 0 }}>
+                                    <Typography variant="body1" color="text.secondary">{text}</Typography>
+                                </Box>
+                            ))}
                         </Box>
-
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            fullWidth
-                            size="medium"
-                            onClick={handleGotIt}
-                        >
+                        <Button variant="contained" color="primary" fullWidth size="medium" onClick={handleGotIt}>
                             Got it!
                         </Button>
                     </Box>
                 )}
 
-                {/* ── Settled state (language list) ────────────────────────── */}
+                {/* ── Error / Changes error ────────────────────────────────── */}
+                {(panelState === "error" || panelState === "error_changes") && (
+                    <Box sx={centeredBodySx}>
+                        <SvgIcon sx={errorIconSx}>
+                            <FontAwesomeIcon icon={faCircleXmark} />
+                        </SvgIcon>
+                        <Typography variant="h4" sx={{ textAlign: "center", mt: 3, mb: 3 }}>
+                            {panelState === "error_changes"
+                                ? "Changes couldn't be applied"
+                                : "Languages couldn't be applied"}
+                        </Typography>
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            fullWidth
+                            size="medium"
+                            onClick={handleTryAgain}
+                            sx={{ mb: 1.5 }}
+                        >
+                            Try again
+                        </Button>
+                        <Box sx={{ textAlign: "center" }}>
+                            <TruffleLink href="#" underline="hover" color="primary">
+                                Contact support
+                            </TruffleLink>
+                        </Box>
+                    </Box>
+                )}
+
+                {/* ── Removing ─────────────────────────────────────────────── */}
+                {panelState === "removing" && (
+                    <Box sx={centeredBodySx}>
+                        <Box sx={trashIconCircleSx}>
+                            <SvgIcon sx={{ fontSize: "26px", color: "background.paper" }}>
+                                <FontAwesomeIcon icon={faTrashCan} />
+                            </SvgIcon>
+                        </Box>
+                        <Typography variant="h4" sx={{ textAlign: "center", mt: 3 }}>
+                            Removing languages
+                        </Typography>
+                    </Box>
+                )}
+
+                {/* ── Languages removed successfully ───────────────────────── */}
+                {panelState === "success_remove" && (
+                    <Box sx={centeredBodySx}>
+                        <SvgIcon sx={successIconSx}>
+                            <FontAwesomeIcon icon={faCircleCheck} />
+                        </SvgIcon>
+                        <Typography variant="h4" sx={{ textAlign: "center", mt: 3, mb: 3 }}>
+                            Languages removed successfully
+                        </Typography>
+                        <Button variant="contained" color="primary" fullWidth size="medium" onClick={handleGotItRemove}>
+                            Got it!
+                        </Button>
+                    </Box>
+                )}
+
+                {/* ── Settled (language list) ──────────────────────────────── */}
                 {panelState === "settled" && (
                     <Box sx={bodyScrollSx}>
-                        {/* "Additional languages" header row with Edit link */}
                         <Box sx={additionalLangsHeaderSx}>
-                            <Typography variant="h5" sx={{ flex: 1 }}>
-                                Additional languages
-                            </Typography>
+                            <Typography variant="h5" sx={{ flex: 1 }}>Additional languages</Typography>
                             <Button
                                 variant="text"
                                 size="small"
-                                startIcon={
-                                    <SvgIcon sx={iconXsSx}>
-                                        <FontAwesomeIcon icon={faPencil} />
-                                    </SvgIcon>
-                                }
+                                startIcon={<SvgIcon sx={iconXsSx}><FontAwesomeIcon icon={faPencil} /></SvgIcon>}
                                 onClick={handleEdit}
                                 sx={editBtnSx}
                             >
@@ -508,7 +550,6 @@ export default function LanguagesPanel({
                             </Button>
                         </Box>
 
-                        {/* Language rows */}
                         {activeLangsList.map((lang, i) => (
                             <Box key={lang}>
                                 {i > 0 && <Divider />}
@@ -518,13 +559,9 @@ export default function LanguagesPanel({
                                             {FLAG_BY_NAME[lang]}
                                         </Typography>
                                     </Box>
-                                    <Typography variant="body1" sx={{ flex: 1 }}>
-                                        {lang}
-                                    </Typography>
+                                    <Typography variant="body1" sx={{ flex: 1 }}>{lang}</Typography>
                                     <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faPlay} />
-                                        </SvgIcon>
+                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                     </IconButton>
                                 </Box>
                             </Box>
@@ -676,7 +713,7 @@ const countBadgeSx: SxProps<Theme> = {
     lineHeight: 1.5
 };
 
-// ─── Applying / Success shared layout ─────────────────────────────────────────
+// ─── Transient states layout ──────────────────────────────────────────────────
 
 const centeredBodySx: SxProps<Theme> = {
     flex: 1,
@@ -704,13 +741,27 @@ const flagCircleLgSx: SxProps<Theme> = {
     borderRadius: "50%",
     bgcolor: "action.hover",
     border: "1px solid",
-    borderColor: "divider",
-    fontSize: "28px"
+    borderColor: "divider"
 };
 
 const successIconSx: SxProps<Theme> = {
     fontSize: "52px !important",
     color: "success.main"
+};
+
+const errorIconSx: SxProps<Theme> = {
+    fontSize: "52px !important",
+    color: "error.main"
+};
+
+const trashIconCircleSx: SxProps<Theme> = {
+    width: 52,
+    height: 52,
+    borderRadius: "50%",
+    bgcolor: "text.primary",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
 };
 
 // ─── Settled (language list) ───────────────────────────────────────────────────
@@ -725,9 +776,7 @@ const editBtnSx: SxProps<Theme> = {
     p: 0,
     minWidth: 0,
     fontWeight: 400,
-    "& .MuiButton-startIcon": {
-        mr: "4px"
-    }
+    "& .MuiButton-startIcon": { mr: "4px" }
 };
 
 const langListItemSx: SxProps<Theme> = {
@@ -743,28 +792,6 @@ const flagCircleMdSx: SxProps<Theme> = {
     justifyContent: "center",
     width: 36,
     height: 36,
-    borderRadius: "50%",
-    bgcolor: "action.hover",
-    border: "1px solid",
-    borderColor: "divider",
-    flexShrink: 0
-};
-
-// ─── Selector — selected language rows ────────────────────────────────────────
-
-const selectedLangRowSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    gap: 1,
-    py: 1
-};
-
-const flagCircleSmSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 28,
-    height: 28,
     borderRadius: "50%",
     bgcolor: "action.hover",
     border: "1px solid",
