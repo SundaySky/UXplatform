@@ -340,12 +340,39 @@ Several people may be working on this codebase simultaneously. Keep the followin
 
 ## Git Workflow
 
+### Branching Rules — STRICT
+
+- **Never work directly on `main`.** All work must happen on a local user branch.
+- **Starting a new task:** always create a new branch from the latest remote `main`:
+
 ```bash
-git pull                      # always start here
+git fetch origin
+git checkout -b <branch-name> origin/main
+```
+
+- **Merging back to main:** when the user is ready to merge, follow these steps in order:
+  1. Confirm the current branch is a user branch (not `main`)
+  2. Commit all changes and push the branch to GitHub
+  3. Open a Pull Request (via `gh pr create`)
+  4. Merge the PR into `main` (via `gh pr merge`)
+
+```bash
+git add <specific files>
+git commit -m "Short description of change"
+git push -u origin <branch-name>
+gh pr create --title "..." --body "..."
+gh pr merge --merge
+```
+
+### General
+
+```bash
+git fetch origin              # always start here
+git checkout -b <branch> origin/main   # new branch from latest main
 # ... make changes ...
 git add <specific files>      # prefer explicit file staging over git add .
 git commit -m "Short description of change"
-git push
+git push -u origin <branch-name>
 ```
 
 Commit message style (match existing history):
