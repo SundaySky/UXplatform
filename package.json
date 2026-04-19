@@ -12,7 +12,7 @@
     "type-check": "tsc -b",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "pre-commit": "npm run eslint && npm run type-check",
+    "pre-commit": "npm run eslint-fix && npm run type-check",
     "pre-push": "echo Not running branch name lint for now",
     "prepare": "husky"
   },

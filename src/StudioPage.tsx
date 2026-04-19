@@ -20,6 +20,7 @@ import AvatarLibraryPanel from "./AvatarLibraryPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import { OWNER_USER } from "./ManageAccessDialog";
 import SceneLibraryDialog from "./SceneLibraryDialog";
+import ApproverCommentsDemo from "./ApproverCommentsDemo";
 
 // ─── Floating toolbar (matches Figma DS node 22171-65559) ────────────────────
 function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void; onDelete?: () => void }) {
@@ -684,7 +685,8 @@ function UnresolvedWarningDialog({ open, count, onClose, onConfirm }: { open: bo
 }
 
 // ─── Comments panel ────────────────────────────────────────────────────────────
-function CommentsPanel({
+// Retained (exported) while the Comments button is temporarily wired to ApproverCommentsDemo.
+export function CommentsPanel({
     open, onClose, threads, setThreads, onRequestApproval, awaitingApprovers
 }: {
   open: boolean
@@ -1106,7 +1108,7 @@ interface Props {
   onEditAttempt?: () => void
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers, onEditAttempt }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, onNavigateToVideoPage, onNavigateToLibrary, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, onEditAttempt }: Props) {
     const theme = useTheme();
     const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false);
 
@@ -1291,7 +1293,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
           setPlaceholderMenuOpen(false);
       }
   };
-  const [threads, setThreads] = useState<CommentThread[]>(initialThreads ?? []);
+  const [threads] = useState<CommentThread[]>(initialThreads ?? []);
   const [snackbarMsg, setSnackbarMsg] = useState<string | null>(null);
   const [videoPermOpen, setVideoPermOpen] = useState(false);
   const [videoPermSettings, setVideoPermSettings] = useState<VideoPermissionSettings | undefined>(initialPermSettings);
@@ -2219,19 +2221,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               }}
           />
 
-          {/* ── Comments panel — draggable + resizable ────────────────────────── */}
-          <CommentsPanel
+          {/* ── ApproverComments demo (wired to the Comments button) ───────────── */}
+          <ApproverCommentsDemo
               open={commentsOpen}
               onClose={() => setCommentsOpen(false)}
-              threads={threads}
-              setThreads={setThreads}
-              approverNames={approverNames}
-              awaitingApprovers={awaitingApprovers}
-              onRequestApproval={() => {
-                  setSnackbarMsg(`Version sent for additional approval by ${approverNames}`);
-                  onRequestReapproval();
-                  setCommentsOpen(false);
-              }}
           />
 
 
