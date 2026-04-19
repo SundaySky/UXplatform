@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Divider, Tooltip
+    Select, MenuItem, FormControl, Divider, Checkbox, Tooltip
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -70,44 +70,37 @@ export default function LanguagesPanel({
     onClose: () => void;
 }) {
     const [panelState, setPanelState] = useState<PanelState>("promo");
-    // Slot-indexed array: selectedLangs[i] is the language in slot i, or "" if empty
-    const [selectedLangs, setSelectedLangs] = useState<string[]>(Array(MAX_LANGUAGES).fill(""));
-    // Last successfully confirmed set (compact list, no empty strings)
+    // Compact list of selected language names (multi-select; order = slot order)
+    const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+    // Last successfully confirmed set
     const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
     // Snapshot of what was sent to "apply"
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
 
-    const currentNonEmpty = selectedLangs.filter(s => s !== "");
-    const selectedCount = currentNonEmpty.length;
+    const selectedCount = selectedLangs.length;
     const isEditMode = enabledLangs.length > 0;
     const isRemovingAll = isEditMode && selectedCount === 0;
-    const isRemovingAny = enabledLangs.some(lang => !currentNonEmpty.includes(lang));
+    const isRemovingAny = enabledLangs.some(lang => !selectedLangs.includes(lang));
     const hasChanges =
-        currentNonEmpty.length !== enabledLangs.length ||
-        currentNonEmpty.some(lang => !enabledLangs.includes(lang)) ||
-        enabledLangs.some(lang => !currentNonEmpty.includes(lang));
+        selectedLangs.length !== enabledLangs.length ||
+        selectedLangs.some(lang => !enabledLangs.includes(lang)) ||
+        enabledLangs.some(lang => !selectedLangs.includes(lang));
     const canEnable = isRemovingAll || (hasChanges && selectedCount > 0);
 
     const activeLangsList = enabledLangs;
 
-    function handleSlotChange(slotIndex: number, value: string) {
-        setSelectedLangs(prev => {
-            const next = [...prev];
-            next[slotIndex] = value;
-            return next;
-        });
+    function handleMultiSelectChange(value: string[]) {
+        if (value.length <= MAX_LANGUAGES) {
+            setSelectedLangs(value);
+        }
     }
 
-    function handleSlotClear(slotIndex: number) {
-        setSelectedLangs(prev => {
-            const next = [...prev];
-            next[slotIndex] = "";
-            return next;
-        });
+    function handleSlotClear(langName: string) {
+        setSelectedLangs(prev => prev.filter(l => l !== langName));
     }
 
     function handleEnableTranslation() {
-        const newLangs = currentNonEmpty;
+        const newLangs = [...selectedLangs];
         const isUpdating = isEditMode && newLangs.length > 0;
 
         setPendingLangs(newLangs);
@@ -137,11 +130,7 @@ export default function LanguagesPanel({
     }
 
     function handleCancel() {
-        const slots = Array(MAX_LANGUAGES).fill("") as string[];
-        enabledLangs.forEach((lang, i) => {
-            slots[i] = lang; 
-        });
-        setSelectedLangs(slots);
+        setSelectedLangs([...enabledLangs]);
         setPanelState(enabledLangs.length > 0 ? "settled" : "promo");
     }
 
@@ -158,11 +147,7 @@ export default function LanguagesPanel({
     }
 
     function handleEdit() {
-        const slots = Array(MAX_LANGUAGES).fill("") as string[];
-        enabledLangs.forEach((lang, i) => {
-            slots[i] = lang; 
-        });
-        setSelectedLangs(slots);
+        setSelectedLangs([...enabledLangs]);
         setPanelState("selector");
     }
 
@@ -341,19 +326,18 @@ export default function LanguagesPanel({
                             </Typography>
 
                             {Array.from({ length: MAX_LANGUAGES }, (_, i) => {
-                                const slotValue = selectedLangs[i];
-                                const usedElsewhere = new Set(
-                                    selectedLangs.filter((s, idx) => s !== "" && idx !== i)
-                                );
+                                const slotLang = selectedLangs[i] ?? "";
                                 return (
                                     <Box key={i} sx={slotRowSx}>
                                         <FormControl size="small" sx={{ flex: 1, minWidth: 0 }}>
                                             <Select
+                                                multiple
                                                 displayEmpty
-                                                value={slotValue}
-                                                onChange={(e) => handleSlotChange(i, e.target.value as string)}
+                                                value={selectedLangs}
+                                                onChange={(e) => handleMultiSelectChange(e.target.value as string[])}
                                                 renderValue={(selected) => {
-                                                    if (!selected) {
+                                                    const lang = selected[i];
+                                                    if (!lang) {
                                                         return (
                                                             <Typography variant="body1" color="text.disabled" sx={{ fontStyle: "italic" }}>
                                                                 Choose language {i + 1}
@@ -364,11 +348,11 @@ export default function LanguagesPanel({
                                                         <Box sx={slotRenderValueSx}>
                                                             <Box sx={flagCircleSmSx}>
                                                                 <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
-                                                                    {FLAG_BY_NAME[selected]}
+                                                                    {FLAG_BY_NAME[lang]}
                                                                 </Typography>
                                                             </Box>
                                                             <Typography variant="body1" sx={{ flex: 1, minWidth: 0 }} noWrap>
-                                                                {selected}
+                                                                {lang}
                                                             </Typography>
                                                             <IconButton
                                                                 size="small"
@@ -376,7 +360,7 @@ export default function LanguagesPanel({
                                                                 onMouseDown={(e) => {
                                                                     e.stopPropagation();
                                                                     e.preventDefault();
-                                                                    handleSlotClear(i);
+                                                                    handleSlotClear(lang);
                                                                 }}
                                                             >
                                                                 <SvgIcon sx={iconXsSx}>
@@ -389,23 +373,22 @@ export default function LanguagesPanel({
                                                 MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
                                             >
                                                 {LANGUAGE_OPTIONS.map(({ name, flag }) => {
-                                                    const isUsed = usedElsewhere.has(name);
-                                                    const atMax = selectedCount >= MAX_LANGUAGES && !slotValue && !isUsed;
-                                                    const isDisabled = isUsed || atMax;
-                                                    const tooltipTitle = isUsed
-                                                        ? "Already selected in another slot"
-                                                        : atMax
-                                                            ? "Remove a language to add another (max 10)"
-                                                            : "";
+                                                    const checked = selectedLangs.includes(name);
+                                                    const atMax = selectedCount >= MAX_LANGUAGES && !checked;
                                                     return (
-                                                        <MenuItem key={name} value={name} disabled={isDisabled}>
-                                                            <Tooltip title={tooltipTitle} placement="right" disableInteractive>
+                                                        <MenuItem key={name} value={name} disabled={atMax}>
+                                                            <Tooltip
+                                                                title={atMax ? "Remove a language to add another (max 10)" : ""}
+                                                                placement="right"
+                                                                disableInteractive
+                                                            >
                                                                 <Box sx={{
                                                                     display: "flex",
                                                                     alignItems: "center",
                                                                     width: "100%",
-                                                                    pointerEvents: isDisabled ? "all" : undefined
+                                                                    pointerEvents: atMax ? "all" : undefined
                                                                 }}>
+                                                                    <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
                                                                     <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
                                                                     <Typography variant="body1">{name}</Typography>
                                                                 </Box>
@@ -418,7 +401,7 @@ export default function LanguagesPanel({
                                         <IconButton
                                             size="small"
                                             color="primary"
-                                            sx={{ visibility: slotValue ? "visible" : "hidden", flexShrink: 0 }}
+                                            sx={{ visibility: slotLang ? "visible" : "hidden", flexShrink: 0 }}
                                         >
                                             <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                         </IconButton>
