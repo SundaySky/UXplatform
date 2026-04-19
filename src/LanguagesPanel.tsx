@@ -310,7 +310,12 @@ export default function LanguagesPanel({
                                 onClick={handleEnableTranslation}
                                 sx={{ mb: 1.5 }}
                             >
-                                Enable translation{selectedCount > 0 ? ` (${selectedCount})` : ""}
+                                Enable translation
+                                {selectedCount > 0 && (
+                                    <Box component="span" sx={countBadgeSx}>
+                                        {selectedCount}
+                                    </Box>
+                                )}
                             </Button>
 
                             <Box sx={{ textAlign: "center", mb: isRemovingAny ? 2 : 0 }}>
@@ -467,4 +472,19 @@ const promoFlagPillSx: SxProps<Theme> = {
     height: 28,
     borderRadius: "50%",
     bgcolor: "background.paper"
+};
+
+const countBadgeSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    ml: 1,
+    px: "7px",
+    py: "1px",
+    borderRadius: "10px",
+    bgcolor: "primary.contrastText",
+    color: "primary.main",
+    fontSize: "12px",
+    fontWeight: 600,
+    lineHeight: 1.5
 };
