@@ -1,14 +1,19 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { ThemeProvider, CssBaseline } from '@mui/material'
-import { theme } from './theme'
-import App from './App'
+import { StrictMode, type FC, type PropsWithChildren } from "react";
+import { createRoot } from "react-dom/client";
+import { StyledEngineProvider } from "@mui/material";
+import { TruffleThemeProvider, TruffleGradientDefinitions } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import App from "./App";
+import "./index.css";
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
-  </StrictMode>,
-)
+const ThemeProvider = TruffleThemeProvider as FC<PropsWithChildren>;
+
+createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+        <StyledEngineProvider injectFirst>
+            <ThemeProvider>
+                <TruffleGradientDefinitions />
+                <App />
+            </ThemeProvider>
+        </StyledEngineProvider>
+    </StrictMode>
+);

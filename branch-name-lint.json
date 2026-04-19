@@ -1,0 +1,35 @@
+{
+    "branchNameLinter": {
+        "regex": "^(SD|PCF|PCA|DIS|PPE|CI|OPT|CHANNELS|APP|SSU|TG|ST|PDADS|PG|PCT|PCS|CB|PDECO|ARCH|UX)-([0-9]+)-([\\w-]+)$",
+        "regexOptions": "i",
+        "prefixes": [
+            "SD", "sd",
+            "PCF", "pcf",
+            "PCA", "pca",
+            "DIS", "dis",
+            "PPE", "ppe",
+            "CI", "ci",
+            "OPT","opt",
+            "CHANNELS", "channels",
+            "APP", "app",
+            "SSU", "ssu",
+            "TG", "tg",
+            "ST", "st",
+            "PDADS", "pdads",
+            "PG", "pg",
+            "CB", "cb",
+            "PCT", "pct",
+            "PCS", "pcs",
+            "PDECO","pdeco",
+            "ARCH", "arch",
+            "UX", "ux"
+        ],
+        "banned": [
+            "wip"
+        ],
+        "disallowed": [
+            "main"
+        ],
+        "separator": "-"
+    }
+}
