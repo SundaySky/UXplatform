@@ -17,6 +17,7 @@ import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActio
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
 import AvatarLibraryPanel from "./AvatarLibraryPanel";
+import LanguagesPanel from "./LanguagesPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import { OWNER_USER } from "./ManageAccessDialog";
 import SceneLibraryDialog from "./SceneLibraryDialog";
@@ -1121,6 +1122,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     const [mediaFolder, setMediaFolder] = useState<string | null>(null);
     const [avatarLibOpen, setAvatarLibOpen] = useState(false);
     const [avatarReqCount, setAvatarReqCount] = useState(4); // mock: adam has 4 pending
+    const [langsOpen, setLangsOpen] = useState(false);
     const [selectedScene, setSelectedScene] = useState(0);
     const [headingSelected, setHeadingSelected] = useState(false);
     const [headingText, setHeadingText] = useState(initialHeadingText ?? videoTitle);
@@ -1333,7 +1335,22 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
           section: "SETTINGS",
           items: [
               { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faCropSimple} /></SvgIcon>, label: "Aspect ratio" },
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faLanguage} /></SvgIcon>, label: "Languages" }
+              {
+                  icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faLanguage} /></SvgIcon>,
+                  label: "Languages",
+                  onClickOverride: () => {
+                      if (activeNav === "Languages" && langsOpen) {
+                          setLangsOpen(false);
+                          setActiveNav(null);
+                      }
+                      else {
+                          setLangsOpen(true);
+                          setMediaLibOpen(false);
+                          setAvatarLibOpen(false);
+                          setActiveNav("Languages");
+                      }
+                  }
+              }
           ]
       },
       {
@@ -1495,9 +1512,17 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               <AvatarLibraryPanel
                   open={avatarLibOpen}
                   onClose={() => {
-                      setAvatarLibOpen(false); setActiveNav(null); 
+                      setAvatarLibOpen(false); setActiveNav(null);
                   }}
                   onTotalRequestsChange={setAvatarReqCount}
+              />
+
+              {/* Languages Panel — slides in between nav and stage */}
+              <LanguagesPanel
+                  open={langsOpen}
+                  onClose={() => {
+                      setLangsOpen(false); setActiveNav(null); 
+                  }}
               />
 
               {/* Stage */}
