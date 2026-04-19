@@ -24,7 +24,7 @@ type PanelState =
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PANEL_WIDTH = 260;
-const MAX_LANGUAGES = 10;
+export const MAX_LANGUAGES = 10;
 const APPLYING_DELAY_MS = 1500;
 
 export const LANGUAGE_OPTIONS: { name: string; flag: string; code: string }[] = [

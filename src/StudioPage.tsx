@@ -4,20 +4,20 @@ import type { SxProps, Theme } from "@mui/material";
 import {
     AppBar, Box, Typography, IconButton, Button,
     Badge, Dialog, DialogContent,
-    TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem,
+    TextField, Snackbar, Alert, Divider, Checkbox, Switch, Menu, MenuItem, MenuList, Popover,
     SvgIcon, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, ListSubheader,
     useTheme
 } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown } from "@fortawesome/pro-regular-svg-icons";
+import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faRotateLeft } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
-import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleLink } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
 import AvatarLibraryPanel from "./AvatarLibraryPanel";
-import LanguagesPanel, { FLAG_BY_NAME, CODE_BY_NAME } from "./LanguagesPanel";
+import LanguagesPanel, { FLAG_BY_NAME, CODE_BY_NAME, MAX_LANGUAGES } from "./LanguagesPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import { OWNER_USER } from "./ManageAccessDialog";
 import SceneLibraryDialog from "./SceneLibraryDialog";
@@ -1398,7 +1398,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       <Typography variant="h4" noWrap sx={{ color: "text.primary" }}>
                           {videoTitle}
                       </Typography>
-                      {/* Language picker */}
+                      {/* Language picker badge */}
                       <Box
                           sx={studioLangBadgeSx}
                           onClick={(e) => setLangMenuAnchor(e.currentTarget)}
@@ -1409,40 +1409,92 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <Typography variant="body2" sx={{ color: "text.secondary" }}>
                               {selectedDisplayLang === "English" ? "EN" : CODE_BY_NAME[selectedDisplayLang]}
                           </Typography>
-                          {enabledLangs.length > 0 && (
-                              <SvgIcon sx={{ fontSize: "11px !important", color: "text.secondary", ml: "2px" }}>
-                                  <FontAwesomeIcon icon={faChevronDown} />
-                              </SvgIcon>
-                          )}
+                          <SvgIcon sx={{ fontSize: "10px !important", color: "text.secondary", ml: "2px" }}>
+                              <FontAwesomeIcon icon={faChevronDown} />
+                          </SvgIcon>
                       </Box>
-                      <Menu
+
+                      {/* Language dropdown — content differs based on whether languages are enabled */}
+                      <Popover
                           anchorEl={langMenuAnchor}
                           open={Boolean(langMenuAnchor)}
                           onClose={() => setLangMenuAnchor(null)}
-                          slotProps={{ paper: { sx: { minWidth: 180 } } }}
+                          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                          transformOrigin={{ vertical: "top", horizontal: "left" }}
+                          slotProps={{ paper: { sx: { mt: 0.5, minWidth: 260 } } }}
                       >
-                          <MenuItem
-                              selected={selectedDisplayLang === "English"}
-                              onClick={() => {
-                                  setSelectedDisplayLang("English"); setLangMenuAnchor(null); 
-                              }}
-                          >
-                              <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>🇺🇸</Typography>
-                              <Typography variant="body1">English</Typography>
-                          </MenuItem>
-                          {enabledLangs.map(lang => (
-                              <MenuItem
-                                  key={lang}
-                                  selected={selectedDisplayLang === lang}
-                                  onClick={() => {
-                                      setSelectedDisplayLang(lang); setLangMenuAnchor(null); 
-                                  }}
-                              >
-                                  <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{FLAG_BY_NAME[lang]}</Typography>
-                                  <Typography variant="body1">{lang}</Typography>
-                              </MenuItem>
-                          ))}
-                      </Menu>
+                          {enabledLangs.length === 0 ? (
+                              /* ── No additional languages yet ── */
+                              <Box sx={{ p: 1.5 }}>
+                                  <Button
+                                      variant="outlined"
+                                      size="small"
+                                      fullWidth
+                                      startIcon={
+                                          <SvgIcon sx={{ fontSize: "13px !important" }}>
+                                              <FontAwesomeIcon icon={faRotateLeft} />
+                                          </SvgIcon>
+                                      }
+                                      onClick={() => {
+                                          setLangMenuAnchor(null);
+                                          setLangsOpen(true);
+                                          setActiveNav("Languages");
+                                      }}
+                                  >
+                                      Change narration source language
+                                  </Button>
+                                  <Divider sx={{ my: 1.5 }} />
+                                  <Box sx={langInfoCardSx}>
+                                      <SvgIcon sx={{ fontSize: "18px !important", color: "text.secondary", flexShrink: 0, mt: "1px" }}>
+                                          <FontAwesomeIcon icon={faDatabase} />
+                                      </SvgIcon>
+                                      <Box>
+                                          <Typography variant="body1" color="text.secondary">
+                                              Select up to {MAX_LANGUAGES} additional languages to expand your video&apos;s reach
+                                          </Typography>
+                                          <Box sx={{ textAlign: "right", mt: 1 }}>
+                                              <TruffleLink
+                                                  href="#"
+                                                  underline="hover"
+                                                  onClick={(e) => {
+                                                      e.preventDefault();
+                                                      setLangMenuAnchor(null);
+                                                      setLangsOpen(true);
+                                                      setActiveNav("Languages");
+                                                  }}
+                                              >
+                                                  Add languages
+                                              </TruffleLink>
+                                          </Box>
+                                      </Box>
+                                  </Box>
+                              </Box>
+                          ) : (
+                              /* ── Languages enabled — show picker list ── */
+                              <MenuList sx={{ py: 0.5 }}>
+                                  {[{ name: "English", flag: "🇺🇸" }, ...enabledLangs.map(name => ({ name, flag: FLAG_BY_NAME[name] }))].map(({ name, flag }) => (
+                                      <MenuItem
+                                          key={name}
+                                          onClick={() => {
+                                              setSelectedDisplayLang(name); setLangMenuAnchor(null); 
+                                          }}
+                                      >
+                                          <Box sx={langMenuItemSx}>
+                                              <Box sx={langFlagCircleSx}>
+                                                  <Typography sx={{ fontSize: 14, lineHeight: 1 }}>{flag}</Typography>
+                                              </Box>
+                                              <Typography variant="body1" sx={{ flex: 1 }}>{name}</Typography>
+                                              {selectedDisplayLang === name && (
+                                                  <SvgIcon sx={{ fontSize: "13px !important", color: "primary.main" }}>
+                                                      <FontAwesomeIcon icon={faCheck} />
+                                                  </SvgIcon>
+                                              )}
+                                          </Box>
+                                      </MenuItem>
+                                  ))}
+                              </MenuList>
+                          )}
+                      </Popover>
                   </Box>
 
                   {/* Right */}
@@ -2396,6 +2448,35 @@ const studioAppBarRightSx: SxProps<Theme> = {
     alignItems: "center",
     gap: 1,
     pr: 2
+};
+
+const langInfoCardSx: SxProps<Theme> = {
+    bgcolor: "action.hover",
+    borderRadius: 1,
+    p: 1.5,
+    display: "flex",
+    gap: 1.5,
+    alignItems: "flex-start"
+};
+
+const langFlagCircleSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 28,
+    height: 28,
+    borderRadius: "50%",
+    bgcolor: "action.hover",
+    border: "1px solid",
+    borderColor: "divider",
+    flexShrink: 0
+};
+
+const langMenuItemSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1.5,
+    width: "100%"
 };
 
 const studioDividerSx: SxProps<Theme> = {
