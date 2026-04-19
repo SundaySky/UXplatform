@@ -1,23 +1,27 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl
+    Select, MenuItem, FormControl, Divider
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
-    faTriangleExclamation
+    faTriangleExclamation, faPencil
 } from "@fortawesome/pro-regular-svg-icons";
-import { faPlay } from "@fortawesome/pro-solid-svg-icons";
+import { faPlay, faCircleCheck } from "@fortawesome/pro-solid-svg-icons";
 import {
     AttentionBox,
     TruffleLink
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+type PanelState = "promo" | "selector" | "applying" | "success" | "settled";
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PANEL_WIDTH = 260;
 const MAX_LANGUAGES = 10;
+const APPLYING_DELAY_MS = 1500;
 
 const LANGUAGE_OPTIONS: { name: string; flag: string }[] = [
     { name: "Arabic", flag: "🇸🇦" },
@@ -61,20 +65,20 @@ export default function LanguagesPanel({
     open: boolean;
     onClose: () => void;
 }) {
-    const [showSelector, setShowSelector] = useState(false);
+    const [panelState, setPanelState] = useState<PanelState>("promo");
     const [selectedLangs, setSelectedLangs] = useState<string[]>(
         Array(MAX_LANGUAGES).fill("")
     );
-    // Snapshot of languages that have been "enabled" via the button
+    // Snapshot of languages confirmed via "Enable translation"
     const [enabledLangs, setEnabledLangs] = useState<string[]>(
         Array(MAX_LANGUAGES).fill("")
     );
 
     const selectedCount = selectedLangs.filter((l) => l !== "").length;
+    const enabledCount = enabledLangs.filter((l) => l !== "").length;
     const hasSelection = selectedCount > 0;
-
-    // User is removing a language that was previously enabled
     const isRemovingAny = enabledLangs.some((lang, i) => lang !== "" && selectedLangs[i] === "");
+    const activeLangsList = enabledLangs.filter(l => l !== "");
 
     function handleLangChange(index: number, value: string) {
         const next = [...selectedLangs];
@@ -84,13 +88,30 @@ export default function LanguagesPanel({
 
     function handleEnableTranslation() {
         setEnabledLangs([...selectedLangs]);
-        setShowSelector(false);
+        setPanelState("applying");
+        setTimeout(() => {
+            setPanelState("success");
+        }, APPLYING_DELAY_MS);
     }
 
     function handleCancel() {
-        setShowSelector(false);
         setSelectedLangs([...enabledLangs]);
+        setPanelState(enabledLangs.some(l => l !== "") ? "settled" : "promo");
     }
+
+    function handleGotIt() {
+        setPanelState("settled");
+    }
+
+    function handleEdit() {
+        setSelectedLangs([...enabledLangs]);
+        setPanelState("selector");
+    }
+
+    // In applying/success states the header is minimal (no credits badge) and
+    // the source-language section is hidden so the content fills the full panel.
+    const showCredits = panelState !== "applying" && panelState !== "success";
+    const showSourceLang = panelState !== "applying" && panelState !== "success";
 
     return (
         <Box
@@ -114,15 +135,16 @@ export default function LanguagesPanel({
                     <Typography variant="h4" sx={{ flex: 1 }}>
                         Languages
                     </Typography>
-                    {/* Credits badge */}
-                    <Box sx={creditBadgeSx}>
-                        <SvgIcon sx={iconSmSx}>
-                            <FontAwesomeIcon icon={faCoins} />
-                        </SvgIcon>
-                        <Typography variant="caption" sx={{ lineHeight: 1 }}>
-                            340
-                        </Typography>
-                    </Box>
+                    {showCredits && (
+                        <Box sx={creditBadgeSx}>
+                            <SvgIcon sx={iconSmSx}>
+                                <FontAwesomeIcon icon={faCoins} />
+                            </SvgIcon>
+                            <Typography variant="caption" sx={{ lineHeight: 1 }}>
+                                340
+                            </Typography>
+                        </Box>
+                    )}
                     <IconButton size="small" sx={iconBtnSx}>
                         <SvgIcon sx={iconSmSx}>
                             <FontAwesomeIcon icon={faCircleQuestion} />
@@ -136,51 +158,70 @@ export default function LanguagesPanel({
                 </Box>
 
                 {/* ── Narration source language ────────────────────────────── */}
-                <Box sx={sourceLanguageSectionSx}>
-                    <Box sx={sourceLabelRowSx}>
-                        <Typography variant="h5">
-                            Narration source language
-                        </Typography>
-                        <IconButton size="small" sx={{ p: "2px" }}>
-                            <SvgIcon sx={iconSmSx}>
-                                <FontAwesomeIcon icon={faCircleInfo} />
-                            </SvgIcon>
-                        </IconButton>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: "block" }}>
-                        {showSelector
-                            ? "Editable until additional languages are added"
-                            : "Locked for switching once language setup starts"}
-                    </Typography>
-
-                    <Box sx={sourceSelectRowSx}>
-                        <FormControl size="small" sx={{ flex: 1 }}>
-                            <Select value="en" disabled={showSelector}>
-                                <MenuItem value="en">
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                        <Typography sx={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</Typography>
-                                        <Typography variant="body1">English</Typography>
-                                    </Box>
-                                </MenuItem>
-                            </Select>
-                        </FormControl>
-                        <IconButton size="small" color="primary">
-                            <SvgIcon sx={iconSmSx}>
-                                <FontAwesomeIcon icon={faPlay} />
-                            </SvgIcon>
-                        </IconButton>
-                        {showSelector && (
-                            <IconButton size="small" color="primary">
+                {showSourceLang && (
+                    <Box sx={sourceLanguageSectionSx}>
+                        <Box sx={sourceLabelRowSx}>
+                            <Typography variant="h5">
+                                Narration source language
+                            </Typography>
+                            <IconButton size="small" sx={{ p: "2px" }}>
                                 <SvgIcon sx={iconSmSx}>
-                                    <FontAwesomeIcon icon={faCheck} />
+                                    <FontAwesomeIcon icon={faCircleInfo} />
                                 </SvgIcon>
                             </IconButton>
-                        )}
-                    </Box>
-                </Box>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: "block" }}>
+                            {panelState === "selector"
+                                ? "Editable until additional languages are added"
+                                : "Locked for switching once language setup starts"}
+                        </Typography>
 
-                {!showSelector ? (
-                    // ── Promo card (scrollable) ──────────────────────────────
+                        <Box sx={sourceSelectRowSx}>
+                            {/* Settled state: plain flag + name row, no dropdown */}
+                            {panelState === "settled" ? (
+                                <>
+                                    <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
+                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</Typography>
+                                        <Typography variant="body1">English</Typography>
+                                    </Box>
+                                    <IconButton size="small" color="primary">
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faPlay} />
+                                        </SvgIcon>
+                                    </IconButton>
+                                </>
+                            ) : (
+                                <>
+                                    <FormControl size="small" sx={{ flex: 1 }}>
+                                        <Select value="en" disabled={panelState === "selector"}>
+                                            <MenuItem value="en">
+                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</Typography>
+                                                    <Typography variant="body1">English</Typography>
+                                                </Box>
+                                            </MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <IconButton size="small" color="primary">
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faPlay} />
+                                        </SvgIcon>
+                                    </IconButton>
+                                    {panelState === "selector" && (
+                                        <IconButton size="small" color="primary">
+                                            <SvgIcon sx={iconSmSx}>
+                                                <FontAwesomeIcon icon={faCheck} />
+                                            </SvgIcon>
+                                        </IconButton>
+                                    )}
+                                </>
+                            )}
+                        </Box>
+                    </Box>
+                )}
+
+                {/* ── Promo card ───────────────────────────────────────────── */}
+                {panelState === "promo" && (
                     <Box sx={bodyScrollSx}>
                         <Box sx={promoCardSx}>
                             {/* Thumbnail */}
@@ -221,7 +262,7 @@ export default function LanguagesPanel({
                                 color="primary"
                                 fullWidth
                                 size="medium"
-                                onClick={() => setShowSelector(true)}
+                                onClick={() => setPanelState("selector")}
                             >
                                 Add up to {MAX_LANGUAGES} languages
                             </Button>
@@ -233,8 +274,10 @@ export default function LanguagesPanel({
                             </Box>
                         </Box>
                     </Box>
-                ) : (
-                    // ── Language selector ────────────────────────────────────
+                )}
+
+                {/* ── Language selector ────────────────────────────────────── */}
+                {panelState === "selector" && (
                     <>
                         {/* Scrollable list of dropdowns */}
                         <Box sx={selectorScrollSx}>
@@ -349,6 +392,122 @@ export default function LanguagesPanel({
                         </Box>
                     </>
                 )}
+
+                {/* ── Applying (loading) state ─────────────────────────────── */}
+                {panelState === "applying" && (
+                    <Box sx={centeredBodySx}>
+                        <Box sx={flagCirclesRowSx}>
+                            {activeLangsList.slice(0, 3).map(lang => (
+                                <Box key={lang} sx={flagCircleLgSx}>
+                                    <Typography sx={{ fontSize: 28, lineHeight: 1 }}>
+                                        {FLAG_BY_NAME[lang]}
+                                    </Typography>
+                                </Box>
+                            ))}
+                        </Box>
+
+                        <Typography variant="h4" sx={{ textAlign: "center", mt: 3, mb: 2.5 }}>
+                            Applying {enabledCount} language{enabledCount !== 1 ? "s" : ""}
+                        </Typography>
+
+                        <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
+                            <Box component="li" sx={{ mb: 1 }}>
+                                <Typography variant="body1" color="text.secondary">
+                                    Narration text can be edited at any time.
+                                </Typography>
+                            </Box>
+                            <Box component="li">
+                                <Typography variant="body1" color="text.secondary">
+                                    Any changes to the source language will automatically apply to all translated languages.
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+                )}
+
+                {/* ── Success state ────────────────────────────────────────── */}
+                {panelState === "success" && (
+                    <Box sx={centeredBodySx}>
+                        <SvgIcon sx={successIconSx}>
+                            <FontAwesomeIcon icon={faCircleCheck} />
+                        </SvgIcon>
+
+                        <Typography variant="h4" sx={{ textAlign: "center", mt: 3, mb: 2.5 }}>
+                            {enabledCount} language{enabledCount !== 1 ? "s" : ""} applied successfully
+                        </Typography>
+
+                        <Box component="ul" sx={{ pl: 2.5, m: 0, mb: 3 }}>
+                            <Box component="li" sx={{ mb: 1 }}>
+                                <Typography variant="body1" color="text.secondary">
+                                    Use the top bar to switch display languages.
+                                </Typography>
+                            </Box>
+                            <Box component="li">
+                                <Typography variant="body1" color="text.secondary">
+                                    All translations can be edited at any time from the narration placeholders.
+                                </Typography>
+                            </Box>
+                        </Box>
+
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            fullWidth
+                            size="medium"
+                            onClick={handleGotIt}
+                        >
+                            Got it!
+                        </Button>
+                    </Box>
+                )}
+
+                {/* ── Settled state (language list) ────────────────────────── */}
+                {panelState === "settled" && (
+                    <Box sx={bodyScrollSx}>
+                        {/* "Additional languages" header row with Edit link */}
+                        <Box sx={additionalLangsHeaderSx}>
+                            <Typography variant="h5" sx={{ flex: 1 }}>
+                                Additional languages
+                            </Typography>
+                            <Button
+                                variant="text"
+                                size="small"
+                                startIcon={
+                                    <SvgIcon sx={iconXsSx}>
+                                        <FontAwesomeIcon icon={faPencil} />
+                                    </SvgIcon>
+                                }
+                                onClick={handleEdit}
+                                sx={editBtnSx}
+                            >
+                                Edit
+                            </Button>
+                        </Box>
+
+                        {/* Language rows */}
+                        {activeLangsList.map((lang, i) => (
+                            <Box key={lang}>
+                                {i > 0 && <Divider />}
+                                <Box sx={langListItemSx}>
+                                    <Box sx={flagCircleMdSx}>
+                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
+                                            {FLAG_BY_NAME[lang]}
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="body1" sx={{ flex: 1 }}>
+                                        {lang}
+                                    </Typography>
+                                    <IconButton size="small" color="primary">
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faPlay} />
+                                        </SvgIcon>
+                                    </IconButton>
+                                </Box>
+                            </Box>
+                        ))}
+                    </Box>
+                )}
+
             </Box>
         </Box>
     );
@@ -395,6 +554,10 @@ const iconBtnSx: SxProps<Theme> = {
 
 const iconSmSx: SxProps<Theme> = {
     fontSize: "18px !important"
+};
+
+const iconXsSx: SxProps<Theme> = {
+    fontSize: "14px !important"
 };
 
 const sourceLanguageSectionSx: SxProps<Theme> = {
@@ -487,4 +650,78 @@ const countBadgeSx: SxProps<Theme> = {
     fontSize: "12px",
     fontWeight: 600,
     lineHeight: 1.5
+};
+
+// ─── Applying / Success shared layout ─────────────────────────────────────────
+
+const centeredBodySx: SxProps<Theme> = {
+    flex: 1,
+    overflowY: "auto",
+    px: 2,
+    pt: 4,
+    pb: 3,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center"
+};
+
+const flagCirclesRowSx: SxProps<Theme> = {
+    display: "flex",
+    gap: "10px",
+    justifyContent: "center"
+};
+
+const flagCircleLgSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 52,
+    height: 52,
+    borderRadius: "50%",
+    bgcolor: "action.hover",
+    border: "1px solid",
+    borderColor: "divider",
+    fontSize: "28px"
+};
+
+const successIconSx: SxProps<Theme> = {
+    fontSize: "52px !important",
+    color: "success.main"
+};
+
+// ─── Settled (language list) ───────────────────────────────────────────────────
+
+const additionalLangsHeaderSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    mb: 1
+};
+
+const editBtnSx: SxProps<Theme> = {
+    p: 0,
+    minWidth: 0,
+    fontWeight: 400,
+    "& .MuiButton-startIcon": {
+        mr: "4px"
+    }
+};
+
+const langListItemSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1.5,
+    py: 1.5
+};
+
+const flagCircleMdSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    bgcolor: "action.hover",
+    border: "1px solid",
+    borderColor: "divider",
+    flexShrink: 0
 };

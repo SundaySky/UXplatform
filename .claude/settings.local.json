@@ -13,7 +13,8 @@
       "Bash(npm run *)",
       "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__get_design_context",
       "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__get_screenshot",
-      "Bash(node -e \"const lib = require\\('./node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/index.js'\\); console.log\\(Object.keys\\(lib\\).filter\\(k => k.includes\\('Attention'\\) || k.includes\\('TruffleLink'\\) || k.includes\\('Label'\\)\\).join\\('\\\\n'\\)\\)\")"
+      "Bash(node -e \"const lib = require\\('./node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/index.js'\\); console.log\\(Object.keys\\(lib\\).filter\\(k => k.includes\\('Attention'\\) || k.includes\\('TruffleLink'\\) || k.includes\\('Label'\\)\\).join\\('\\\\n'\\)\\)\")",
+      "mcp__Figma__get_screenshot"
     ]
   }
 }
