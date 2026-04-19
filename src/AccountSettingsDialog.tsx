@@ -2415,6 +2415,58 @@ export default function AccountSettingsDialog({
     return videoTitles
   }
 
+  // Memoized callbacks to prevent infinite loops in child components
+  const memoizedOnUserDeleted = React.useCallback((userId: string) => {
+    const pendingApprovalsForUser = getUserPendingApprovals(userId)
+    if (approvalsEnabled && pendingApprovalsForUser.length > 0) {
+      onUserDeletionBlocked?.(userId, 'pending-approvals')
+      return
+    }
+    setUsers(prev => prev.filter(u => u.user.id !== userId))
+    setApproverIds(prev => { const s = new Set(prev); s.delete(userId); return s })
+  }, [approvalsEnabled])
+
+  const memoizedOnPermissionsChanged = React.useCallback((userId: string, createSpace: string, amplifySpace: string) => {
+    // Fetch the current user from state inside the callback to avoid stale closures
+    setUsers(prev => {
+      const user = prev.find(u => u.user.id === userId)
+      const isPending = user?.pending ?? false
+      const userHasApprover = createSpace.includes('Approver')
+
+      // Update approverIds based on whether this user now has Approver role
+      setApproverIds(prevIds => {
+        const s = new Set(prevIds)
+        if (userHasApprover && !s.has(userId)) {
+          s.add(userId)
+        } else if (!userHasApprover && s.has(userId) && !isPending) {
+          s.delete(userId)
+        }
+        return s
+      })
+
+      return prev.map(u =>
+        u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
+      )
+    })
+  }, [])
+
+  const memoizedOnEnableApprovalsPrompt = React.useCallback(() => {
+    setEnableApprovalsPromptOpen(true)
+  }, [])
+
+  const memoizedOnToggle = React.useCallback((enabled: boolean) => {
+    setApprovalsEnabled(enabled)
+    if (!enabled && pendingApprovalsCount > 0) {
+      onApprovalsEnabledChange?.(enabled, true)
+    } else {
+      onApprovalsEnabledChange?.(enabled)
+    }
+  }, [pendingApprovalsCount, onApprovalsEnabledChange])
+
+  const memoizedOnSetApprovers = React.useCallback((ids: string[]) => {
+    handleSetApprovers(ids)
+  }, [])
+
   return (
     <Dialog
       open={open}
@@ -2470,41 +2522,12 @@ export default function AccountSettingsDialog({
           <UsersSection
             users={users}
             onInviteUser={rows => handleInviteUser(rows, false)}
-            onUserDeleted={(userId) => {
-              const pendingApprovalsForUser = getUserPendingApprovals(userId)
-              if (approvalsEnabled && pendingApprovalsForUser.length > 0) {
-                // Block deletion if user has ANY pending approvals - they must cancel them first
-                onUserDeletionBlocked?.(userId, 'pending-approvals')
-                return
-              }
-              setUsers(prev => prev.filter(u => u.user.id !== userId))
-              setApproverIds(prev => { const s = new Set(prev); s.delete(userId); return s })
-            }}
-            onPermissionsChanged={(userId, createSpace, amplifySpace) => {
-              setUsers(prev => prev.map(u =>
-                u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
-              ))
-              // If user now has Approver role, add to approverIds
-              // Never remove pending users from approverIds — keep them as approvers even if their role changes
-              const userHasApprover = createSpace.includes('Approver')
-              const user = users.find(u => u.user.id === userId)
-              const isPending = user?.pending ?? false
-
-              setApproverIds(prev => {
-                const s = new Set(prev)
-                if (userHasApprover && !s.has(userId)) {
-                  s.add(userId)
-                } else if (!userHasApprover && s.has(userId) && !isPending) {
-                  // Only remove if not pending
-                  s.delete(userId)
-                }
-                return s
-              })
-            }}
+            onUserDeleted={memoizedOnUserDeleted}
+            onPermissionsChanged={memoizedOnPermissionsChanged}
             approvalsEnabled={approvalsEnabled}
             approverIds={approverIds}
             videoStates={videoStates}
-            onEnableApprovalsPrompt={() => setEnableApprovalsPromptOpen(true)}
+            onEnableApprovalsPrompt={memoizedOnEnableApprovalsPrompt}
           />
         )}
           {nav === 'permissions' && <PlaceholderSection label="Permissions" />}
@@ -2513,24 +2536,10 @@ export default function AccountSettingsDialog({
               users={users}
               approverIds={approverIds}
               enabled={approvalsEnabled}
-              onToggle={(enabled) => {
-                setApprovalsEnabled(enabled)
-                // Notify parent if approvals are being turned OFF with pending approvals
-                if (!enabled && pendingApprovalsCount > 0) {
-                  onApprovalsEnabledChange?.(enabled, true)
-                } else {
-                  onApprovalsEnabledChange?.(enabled)
-                }
-              }}
-              onSetApprovers={(ids) => {
-                handleSetApprovers(ids)
-              }}
+              onToggle={memoizedOnToggle}
+              onSetApprovers={memoizedOnSetApprovers}
               onAddUsers={(rows, asApprover) => handleInviteUser(rows, asApprover)}
-              onPermissionsChanged={(userId, createSpace, amplifySpace) => {
-                setUsers(prev => prev.map(u =>
-                  u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
-                ))
-              }}
+              onPermissionsChanged={memoizedOnPermissionsChanged}
               pendingApprovalsCount={pendingApprovalsCount}
               videoStates={videoStates}
             />
