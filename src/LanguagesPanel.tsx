@@ -27,53 +27,56 @@ const PANEL_WIDTH = 260;
 const MAX_LANGUAGES = 10;
 const APPLYING_DELAY_MS = 1500;
 
-const LANGUAGE_OPTIONS: { name: string; flag: string }[] = [
-    { name: "Arabic", flag: "🇸🇦" },
-    { name: "Chinese (Simplified)", flag: "🇨🇳" },
-    { name: "Chinese (Traditional)", flag: "🇹🇼" },
-    { name: "Czech", flag: "🇨🇿" },
-    { name: "Danish", flag: "🇩🇰" },
-    { name: "Dutch", flag: "🇳🇱" },
-    { name: "Finnish", flag: "🇫🇮" },
-    { name: "French", flag: "🇫🇷" },
-    { name: "German", flag: "🇩🇪" },
-    { name: "Greek", flag: "🇬🇷" },
-    { name: "Hebrew", flag: "🇮🇱" },
-    { name: "Hindi", flag: "🇮🇳" },
-    { name: "Hungarian", flag: "🇭🇺" },
-    { name: "Indonesian", flag: "🇮🇩" },
-    { name: "Italian", flag: "🇮🇹" },
-    { name: "Japanese", flag: "🇯🇵" },
-    { name: "Korean", flag: "🇰🇷" },
-    { name: "Norwegian", flag: "🇳🇴" },
-    { name: "Polish", flag: "🇵🇱" },
-    { name: "Portuguese (Brazil)", flag: "🇧🇷" },
-    { name: "Portuguese (Portugal)", flag: "🇵🇹" },
-    { name: "Romanian", flag: "🇷🇴" },
-    { name: "Russian", flag: "🇷🇺" },
-    { name: "Spanish", flag: "🇪🇸" },
-    { name: "Swedish", flag: "🇸🇪" },
-    { name: "Thai", flag: "🇹🇭" },
-    { name: "Turkish", flag: "🇹🇷" },
-    { name: "Ukrainian", flag: "🇺🇦" },
-    { name: "Vietnamese", flag: "🇻🇳" }
+export const LANGUAGE_OPTIONS: { name: string; flag: string; code: string }[] = [
+    { name: "Arabic", flag: "🇸🇦", code: "AR" },
+    { name: "Chinese (Simplified)", flag: "🇨🇳", code: "ZH" },
+    { name: "Chinese (Traditional)", flag: "🇹🇼", code: "ZH" },
+    { name: "Czech", flag: "🇨🇿", code: "CS" },
+    { name: "Danish", flag: "🇩🇰", code: "DA" },
+    { name: "Dutch", flag: "🇳🇱", code: "NL" },
+    { name: "Finnish", flag: "🇫🇮", code: "FI" },
+    { name: "French", flag: "🇫🇷", code: "FR" },
+    { name: "German", flag: "🇩🇪", code: "DE" },
+    { name: "Greek", flag: "🇬🇷", code: "EL" },
+    { name: "Hebrew", flag: "🇮🇱", code: "HE" },
+    { name: "Hindi", flag: "🇮🇳", code: "HI" },
+    { name: "Hungarian", flag: "🇭🇺", code: "HU" },
+    { name: "Indonesian", flag: "🇮🇩", code: "ID" },
+    { name: "Italian", flag: "🇮🇹", code: "IT" },
+    { name: "Japanese", flag: "🇯🇵", code: "JA" },
+    { name: "Korean", flag: "🇰🇷", code: "KO" },
+    { name: "Norwegian", flag: "🇳🇴", code: "NO" },
+    { name: "Polish", flag: "🇵🇱", code: "PL" },
+    { name: "Portuguese (Brazil)", flag: "🇧🇷", code: "PT" },
+    { name: "Portuguese (Portugal)", flag: "🇵🇹", code: "PT" },
+    { name: "Romanian", flag: "🇷🇴", code: "RO" },
+    { name: "Russian", flag: "🇷🇺", code: "RU" },
+    { name: "Spanish", flag: "🇪🇸", code: "ES" },
+    { name: "Swedish", flag: "🇸🇪", code: "SV" },
+    { name: "Thai", flag: "🇹🇭", code: "TH" },
+    { name: "Turkish", flag: "🇹🇷", code: "TR" },
+    { name: "Ukrainian", flag: "🇺🇦", code: "UK" },
+    { name: "Vietnamese", flag: "🇻🇳", code: "VI" }
 ];
 
-const FLAG_BY_NAME = Object.fromEntries(LANGUAGE_OPTIONS.map(l => [l.name, l.flag]));
+export const FLAG_BY_NAME: Record<string, string> = Object.fromEntries(LANGUAGE_OPTIONS.map(l => [l.name, l.flag]));
+export const CODE_BY_NAME: Record<string, string> = Object.fromEntries(LANGUAGE_OPTIONS.map(l => [l.name, l.code]));
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LanguagesPanel({
     open,
-    onClose
+    onClose,
+    enabledLangs,
+    onEnabledLangsChange
 }: {
     open: boolean;
     onClose: () => void;
+    enabledLangs: string[];
+    onEnabledLangsChange: (langs: string[]) => void;
 }) {
     const [panelState, setPanelState] = useState<PanelState>("promo");
     // Compact list of selected language names (multi-select; order = slot order)
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
-    // Last successfully confirmed set
-    const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
     // Snapshot of what was sent to "apply"
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
 
@@ -108,7 +111,7 @@ export default function LanguagesPanel({
         if (isRemovingAll) {
             setPanelState("removing");
             setTimeout(() => {
-                setEnabledLangs([]);
+                onEnabledLangsChange([]);
                 setSelectedLangs([]);
                 setPanelState("success_remove");
             }, APPLYING_DELAY_MS);
@@ -116,14 +119,14 @@ export default function LanguagesPanel({
         else if (isUpdating) {
             setPanelState("applying_changes");
             setTimeout(() => {
-                setEnabledLangs(newLangs);
+                onEnabledLangsChange(newLangs);
                 setPanelState("success_changes");
             }, APPLYING_DELAY_MS);
         }
         else {
             setPanelState("applying");
             setTimeout(() => {
-                setEnabledLangs(newLangs);
+                onEnabledLangsChange(newLangs);
                 setPanelState("success");
             }, APPLYING_DELAY_MS);
         }

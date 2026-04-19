@@ -17,7 +17,7 @@ import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActio
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
 import AvatarLibraryPanel from "./AvatarLibraryPanel";
-import LanguagesPanel from "./LanguagesPanel";
+import LanguagesPanel, { FLAG_BY_NAME, CODE_BY_NAME } from "./LanguagesPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import { OWNER_USER } from "./ManageAccessDialog";
 import SceneLibraryDialog from "./SceneLibraryDialog";
@@ -1123,6 +1123,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     const [avatarLibOpen, setAvatarLibOpen] = useState(false);
     const [avatarReqCount, setAvatarReqCount] = useState(4); // mock: adam has 4 pending
     const [langsOpen, setLangsOpen] = useState(false);
+    const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
+    const [selectedDisplayLang, setSelectedDisplayLang] = useState("English");
+    const [langMenuAnchor, setLangMenuAnchor] = useState<HTMLElement | null>(null);
     const [selectedScene, setSelectedScene] = useState(0);
     const [headingSelected, setHeadingSelected] = useState(false);
     const [headingText, setHeadingText] = useState(initialHeadingText ?? videoTitle);
@@ -1395,11 +1398,51 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       <Typography variant="h4" noWrap sx={{ color: "text.primary" }}>
                           {videoTitle}
                       </Typography>
-                      {/* Language badge */}
-                      <Box sx={studioLangBadgeSx}>
-                          <Typography variant="caption">🇺🇸</Typography>
-                          <Typography variant="body2" sx={{ color: "text.secondary" }}>EN</Typography>
+                      {/* Language picker */}
+                      <Box
+                          sx={studioLangBadgeSx}
+                          onClick={(e) => setLangMenuAnchor(e.currentTarget)}
+                      >
+                          <Typography variant="caption">
+                              {selectedDisplayLang === "English" ? "🇺🇸" : FLAG_BY_NAME[selectedDisplayLang]}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              {selectedDisplayLang === "English" ? "EN" : CODE_BY_NAME[selectedDisplayLang]}
+                          </Typography>
+                          {enabledLangs.length > 0 && (
+                              <SvgIcon sx={{ fontSize: "11px !important", color: "text.secondary", ml: "2px" }}>
+                                  <FontAwesomeIcon icon={faChevronDown} />
+                              </SvgIcon>
+                          )}
                       </Box>
+                      <Menu
+                          anchorEl={langMenuAnchor}
+                          open={Boolean(langMenuAnchor)}
+                          onClose={() => setLangMenuAnchor(null)}
+                          slotProps={{ paper: { sx: { minWidth: 180 } } }}
+                      >
+                          <MenuItem
+                              selected={selectedDisplayLang === "English"}
+                              onClick={() => {
+                                  setSelectedDisplayLang("English"); setLangMenuAnchor(null); 
+                              }}
+                          >
+                              <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>🇺🇸</Typography>
+                              <Typography variant="body1">English</Typography>
+                          </MenuItem>
+                          {enabledLangs.map(lang => (
+                              <MenuItem
+                                  key={lang}
+                                  selected={selectedDisplayLang === lang}
+                                  onClick={() => {
+                                      setSelectedDisplayLang(lang); setLangMenuAnchor(null); 
+                                  }}
+                              >
+                                  <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{FLAG_BY_NAME[lang]}</Typography>
+                                  <Typography variant="body1">{lang}</Typography>
+                              </MenuItem>
+                          ))}
+                      </Menu>
                   </Box>
 
                   {/* Right */}
@@ -1522,6 +1565,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   open={langsOpen}
                   onClose={() => {
                       setLangsOpen(false); setActiveNav(null); 
+                  }}
+                  enabledLangs={enabledLangs}
+                  onEnabledLangsChange={(langs) => {
+                      setEnabledLangs(langs);
+                      // If the currently displayed lang was removed, fall back to English
+                      if (selectedDisplayLang !== "English" && !langs.includes(selectedDisplayLang)) {
+                          setSelectedDisplayLang("English");
+                      }
                   }}
               />
 
