@@ -3,11 +3,11 @@ import type { SxProps, Theme } from "@mui/material";
 import {
     Dialog, DialogContent, Box, Typography, Stack, Divider,
     FormControl, FormLabel, RadioGroup, FormControlLabel, Radio,
-    Checkbox, Button,
+    Checkbox, Button
 } from "@mui/material";
 import { TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import ApproverComments, {
-    type CommentEntry, type CreatorView, type ApproverView, type UpdatedWarning,
+    type CommentEntry, type CreatorView, type ApproverView, type UpdatedWarning
 } from "./ApproverComments";
 
 type Role = "creator" | "approver";
@@ -19,10 +19,10 @@ const SAMPLE_COMMENT_TEXT = `We have a lot of right-to-left "wipe" animations an
 1:12 – similar thing, we cycle 2 video examples in 1 second. Just let the Chair ad sit there then zoom out to the others. No need to cram another example in first.`;
 
 const CREATOR_ENTRIES: CommentEntry[] = [
-    { id: "c1", author: "[Approver 1]", timestamp: "Mar 23, 12:05 PM", text: SAMPLE_COMMENT_TEXT },
+    { id: "c1", author: "[Approver 1]", timestamp: "Mar 23, 12:05 PM", text: SAMPLE_COMMENT_TEXT }
 ];
 const APPROVER_ENTRIES: CommentEntry[] = [
-    { id: "a1", author: "You (or approver name)", timestamp: "Mar 23 12:05PM", text: SAMPLE_COMMENT_TEXT },
+    { id: "a1", author: "You (or approver name)", timestamp: "Mar 23 12:05PM", text: SAMPLE_COMMENT_TEXT }
 ];
 const WARNING: UpdatedWarning = { timestamp: "Today, 2:32 PM", author: "[Creator Name]" };
 const FULL_DRAFT_TEXT = "All the comments the approver wrote will show here";
@@ -38,13 +38,13 @@ type Preset = {
 };
 
 const PRESETS: Preset[] = [
-    { key: "c-unresolved-filled", label: "(C) Unresolved — free text",           role: "creator",  creatorView: "unresolved", hasEntries: true  },
-    { key: "c-unresolved-empty",  label: "(C) Unresolved — no comments yet",     role: "creator",  creatorView: "unresolved", hasEntries: false },
-    { key: "c-history",           label: "(C) History — free text",              role: "creator",  creatorView: "history",    hasEntries: true  },
-    { key: "a-decision",          label: "(A) Approve or comments",              role: "approver", approverView: "decision",  hasEntries: false },
-    { key: "a-comments-empty",    label: "(A) Empty comments",                   role: "approver", approverView: "comments",  hasEntries: false, draftText: "" },
-    { key: "a-comments-full",     label: "(A) Full comments",                    role: "approver", approverView: "comments",  hasEntries: false, draftText: FULL_DRAFT_TEXT },
-    { key: "a-history",           label: "(A) History comments",                 role: "approver", approverView: "history",   hasEntries: true  },
+    { key: "c-unresolved-filled", label: "(C) Unresolved — free text", role: "creator", creatorView: "unresolved", hasEntries: true },
+    { key: "c-unresolved-empty", label: "(C) Unresolved — no comments yet", role: "creator", creatorView: "unresolved", hasEntries: false },
+    { key: "c-history", label: "(C) History — free text", role: "creator", creatorView: "history", hasEntries: true },
+    { key: "a-decision", label: "(A) Approve or comments", role: "approver", approverView: "decision", hasEntries: false },
+    { key: "a-comments-empty", label: "(A) Empty comments", role: "approver", approverView: "comments", hasEntries: false, draftText: "" },
+    { key: "a-comments-full", label: "(A) Full comments", role: "approver", approverView: "comments", hasEntries: false, draftText: FULL_DRAFT_TEXT },
+    { key: "a-history", label: "(A) History comments", role: "approver", approverView: "history", hasEntries: true }
 ];
 
 interface Props {
@@ -140,7 +140,7 @@ export default function ApproverCommentsDemo({ open, onClose }: Props) {
                                     >
                                         <FormControlLabel value="decision" control={<Radio size="small" />} label="Decision" />
                                         <FormControlLabel value="comments" control={<Radio size="small" />} label="Comments" />
-                                        <FormControlLabel value="history"  control={<Radio size="small" />} label="History"  />
+                                        <FormControlLabel value="history" control={<Radio size="small" />} label="History" />
                                     </RadioGroup>
                                 )}
                             </FormControl>
@@ -189,11 +189,11 @@ export default function ApproverCommentsDemo({ open, onClose }: Props) {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const dialogContentSx: SxProps<Theme> = {
-    p: "0 !important",
+    p: "0 !important"
 };
 const layoutSx: SxProps<Theme> = {
     display: "flex",
-    minHeight: 520,
+    minHeight: 520
 };
 const controlsSx: SxProps<Theme> = {
     width: 280,
@@ -201,7 +201,7 @@ const controlsSx: SxProps<Theme> = {
     borderRight: "1px solid",
     borderColor: "divider",
     p: 2,
-    overflowY: "auto",
+    overflowY: "auto"
 };
 const previewSx: SxProps<Theme> = {
     flex: 1,
@@ -210,16 +210,16 @@ const previewSx: SxProps<Theme> = {
     justifyContent: "center",
     alignItems: "flex-start",
     bgcolor: "primary.light",
-    overflowY: "auto",
+    overflowY: "auto"
 };
 const sectionTitleSx: SxProps<Theme> = {
     color: "text.primary",
-    mb: 1,
+    mb: 1
 };
 const formGroupSx: SxProps<Theme> = {
     mb: 1,
-    display: "block",
+    display: "block"
 };
 const presetBtnSx: SxProps<Theme> = {
-    justifyContent: "flex-start",
+    justifyContent: "flex-start"
 };

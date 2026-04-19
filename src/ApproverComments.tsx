@@ -1,13 +1,13 @@
 import type { SxProps, Theme } from "@mui/material";
 import {
     Stack, Box, Typography, TextField, Button,
-    ToggleButton, Divider, SvgIcon,
+    ToggleButton, Divider, SvgIcon
 } from "@mui/material";
 import {
     TruffleToggleButtonGroup,
     AttentionBox, AttentionBoxContent,
     Label,
-    combineSxProps,
+    combineSxProps
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTriangleExclamation } from "@fortawesome/pro-regular-svg-icons";
@@ -128,16 +128,16 @@ type TabOption<V extends string> = { value: V; label: string };
 
 const creatorTabs: TabOption<CreatorView>[] = [
     { value: "unresolved", label: "Unresolved" },
-    { value: "history", label: "History" },
+    { value: "history", label: "History" }
 ];
 
 const approverTabs: TabOption<ApproverView>[] = [
     { value: "comments", label: "Comments" },
-    { value: "history", label: "History" },
+    { value: "history", label: "History" }
 ];
 
 function TabsBar<V extends string>({
-    value, options, onChange,
+    value, options, onChange
 }: {
     value: V;
     options: TabOption<V>[];
@@ -219,40 +219,40 @@ function CommentList({ entries }: { entries: CommentEntry[] }) {
 const containerSx: SxProps<Theme> = {
     width: 260,
     display: "flex",
-    flexDirection: "column",
+    flexDirection: "column"
 };
 
 const tabsBarSx: SxProps<Theme> = {
-    mb: 1.5,
+    mb: 1.5
 };
 
 const tabsDividerSx: SxProps<Theme> = {
-    mt: 1,
+    mt: 1
 };
 
 const decisionContainerSx: SxProps<Theme> = {
-    pt: 2,
+    pt: 2
 };
 
 const fieldLabelSx: SxProps<Theme> = {
     color: "text.primary",
-    mb: 0.75,
+    mb: 0.75
 };
 
 const warningIconSx: SxProps<Theme> = {
     color: "warning.main",
-    fontSize: 16,
+    fontSize: 16
 };
 
 const emptyStateSx: SxProps<Theme> = {
-    py: 3,
+    py: 3
 };
 
 const emptyStateLineSx: SxProps<Theme> = {
-    mt: 2,
+    mt: 2
 };
 
 const commentTextSx: SxProps<Theme> = {
     color: "text.primary",
-    whiteSpace: "pre-wrap",
+    whiteSpace: "pre-wrap"
 };
