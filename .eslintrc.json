@@ -24,6 +24,10 @@
         "react/react-in-jsx-scope": "off",
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn",
+        "react/jsx-props-no-multi-spaces": "error",
+        "react/jsx-equals-spacing": ["error", "never"],
+        "react/jsx-tag-spacing": ["error", { "beforeSelfClosing": "always", "afterOpening": "never", "beforeClosing": "never", "closingSlash": "never" }],
+        "react/jsx-curly-spacing": ["error", { "when": "never", "children": true }],
         "import/no-default-export": "off",
         "@typescript-eslint/consistent-type-imports": ["error", { "prefer": "type-imports" }],
         "no-restricted-imports": ["error", {

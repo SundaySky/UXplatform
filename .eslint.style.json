@@ -8,6 +8,7 @@
         ],
         "indent": ["error", 4, { "SwitchCase": 1 }],
         "quotes": ["error", "double"],
+        "jsx-quotes": ["error", "prefer-double"],
         "semi": ["error", "always"],
         "curly": ["error", "all"],
         "brace-style": ["error", "stroustrup"],
