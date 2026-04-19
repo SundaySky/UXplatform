@@ -98,7 +98,7 @@ export default function LanguagesPanel({
 
     function handleCancel() {
         setSelectedLangs([...enabledLangs]);
-        setPanelState(enabledLangs.some(l => l !== "") ? "settled" : "promo");
+        setPanelState(enabledLangs.length > 0 ? "settled" : "promo");
     }
 
     function handleGotIt() {
