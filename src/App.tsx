@@ -1224,7 +1224,7 @@ export default function App() {
     const handleSelectVideo = (video: VideoItem) => {
         setSelectedVideo(video);
         setDialogStep("closed");
-        setCurrentPage("video");
+        setCurrentPage("studio");
         // Initialise video state if it hasn't been set yet
         setVideoStates(prev => {
             if (prev[video.title]) {
