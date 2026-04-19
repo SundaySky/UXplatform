@@ -66,7 +66,8 @@ export default function LanguagesPanel({
         Array(MAX_LANGUAGES).fill("")
     );
 
-    const hasSelection = selectedLangs.some((l) => l !== "");
+    const selectedCount = selectedLangs.filter((l) => l !== "").length;
+    const hasSelection = selectedCount > 0;
 
     function handleLangChange(index: number, value: string) {
         const next = [...selectedLangs];
@@ -281,7 +282,7 @@ export default function LanguagesPanel({
                                 disabled={!hasSelection}
                                 sx={{ mb: 1.5 }}
                             >
-                                Enable translation
+                                Enable translation{selectedCount > 0 ? ` (${selectedCount})` : ""}
                             </Button>
 
                             <Box sx={{ textAlign: "center", mb: 2 }}>
