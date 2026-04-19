@@ -844,6 +844,10 @@ const FOLDERS = [
   { name: 'Archive',                  count: 0 },
 ]
 
+// ─── Stable defaults to prevent unnecessary re-renders ─────────────────────────
+const EMPTY_APPROVER_IDS = new Set<string>()
+const EMPTY_APPROVERS_LIST: { value: string; label: string }[] = []
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VideoLibraryPage({
   onSelectVideo,
@@ -853,8 +857,8 @@ export default function VideoLibraryPage({
   onSubmitForApproval,
   approvalsEnabled = false,
   onApprovalsDisabled,
-  approverIds = new Set(),
-  approversList = [],
+  approverIds = EMPTY_APPROVER_IDS,
+  approversList = EMPTY_APPROVERS_LIST,
   onApprovalsEnabledChange,
   onApproversChange,
   onApproversListChange,
