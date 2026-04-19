@@ -65,9 +65,18 @@ export default function LanguagesPanel({
     const [selectedLangs, setSelectedLangs] = useState<string[]>(
         Array(MAX_LANGUAGES).fill("")
     );
+    // Snapshot of languages that have been "enabled" via the button
+    const [enabledLangs, setEnabledLangs] = useState<string[]>(
+        Array(MAX_LANGUAGES).fill("")
+    );
 
     const selectedCount = selectedLangs.filter((l) => l !== "").length;
     const hasSelection = selectedCount > 0;
+
+    // User is adding a language they hadn't enabled before
+    const isAddingAny = selectedLangs.some((lang, i) => lang !== "" && lang !== enabledLangs[i]);
+    // User is removing a language that was previously enabled
+    const isRemovingAny = enabledLangs.some((lang, i) => lang !== "" && selectedLangs[i] === "");
 
     function handleLangChange(index: number, value: string) {
         const next = [...selectedLangs];
@@ -75,9 +84,14 @@ export default function LanguagesPanel({
         setSelectedLangs(next);
     }
 
+    function handleEnableTranslation() {
+        setEnabledLangs([...selectedLangs]);
+        setShowSelector(false);
+    }
+
     function handleCancel() {
         setShowSelector(false);
-        setSelectedLangs(Array(MAX_LANGUAGES).fill(""));
+        setSelectedLangs([...enabledLangs]);
     }
 
     return (
@@ -280,12 +294,13 @@ export default function LanguagesPanel({
                                 fullWidth
                                 size="medium"
                                 disabled={!hasSelection}
+                                onClick={handleEnableTranslation}
                                 sx={{ mb: 1.5 }}
                             >
                                 Enable translation{selectedCount > 0 ? ` (${selectedCount})` : ""}
                             </Button>
 
-                            <Box sx={{ textAlign: "center", mb: 2 }}>
+                            <Box sx={{ textAlign: "center", mb: isAddingAny || isRemovingAny ? 2 : 0 }}>
                                 <TruffleLink
                                     href="#"
                                     underline="hover"
@@ -298,33 +313,37 @@ export default function LanguagesPanel({
                                 </TruffleLink>
                             </Box>
 
-                            <AttentionBox
-                                color="info"
-                                icon={
-                                    <SvgIcon sx={iconSmSx}>
-                                        <FontAwesomeIcon icon={faCircleInfo} />
-                                    </SvgIcon>
-                                }
-                                sx={{ mb: 1.5 }}
-                            >
-                                <Typography variant="body1">
-                                    Credits will apply on video approval
-                                </Typography>
-                            </AttentionBox>
+                            {isAddingAny && (
+                                <AttentionBox
+                                    color="info"
+                                    icon={
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faCircleInfo} />
+                                        </SvgIcon>
+                                    }
+                                    sx={isRemovingAny ? { mb: 1.5 } : undefined}
+                                >
+                                    <Typography variant="body1">
+                                        Credits will apply on video approval
+                                    </Typography>
+                                </AttentionBox>
+                            )}
 
-                            <AttentionBox
-                                color="warning"
-                                icon={
-                                    <SvgIcon sx={iconSmSx}>
-                                        <FontAwesomeIcon icon={faTriangleExclamation} />
-                                    </SvgIcon>
-                                }
-                            >
-                                <Typography variant="body1">
-                                    Removing a language deletes its generated content, and the AI
-                                    credits used to create it won&apos;t be refunded.
-                                </Typography>
-                            </AttentionBox>
+                            {isRemovingAny && (
+                                <AttentionBox
+                                    color="warning"
+                                    icon={
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faTriangleExclamation} />
+                                        </SvgIcon>
+                                    }
+                                >
+                                    <Typography variant="body1">
+                                        Removing a language deletes its generated content, and the AI
+                                        credits used to create it won&apos;t be refunded.
+                                    </Typography>
+                                </AttentionBox>
+                            )}
                         </Box>
                     </>
                 )}
