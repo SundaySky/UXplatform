@@ -1421,7 +1421,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           onClose={() => setLangMenuAnchor(null)}
                           anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
                           transformOrigin={{ vertical: "top", horizontal: "left" }}
-                          slotProps={{ paper: { sx: { mt: 0.5, minWidth: 260 } } }}
+                          slotProps={{ paper: { sx: langDropdownPaperSx } }}
                       >
                           {enabledLangs.length === 0 ? (
                               /* ── No additional languages yet ── */
@@ -2448,6 +2448,13 @@ const studioAppBarRightSx: SxProps<Theme> = {
     alignItems: "center",
     gap: 1,
     pr: 2
+};
+
+// Figma node 21003-129682: width 298px, elevation/11 shadow (DROP_SHADOW #03194F40, 5px blur)
+const langDropdownPaperSx: SxProps<Theme> = {
+    width: 298,
+    mt: "4px",
+    boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)"
 };
 
 const langInfoCardSx: SxProps<Theme> = {
