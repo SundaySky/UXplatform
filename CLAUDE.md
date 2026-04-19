@@ -255,9 +255,12 @@ Known load-bearing overrides (verify in `node_modules/@sundaysky/smartvideo-hub-
 - **`MuiListItemText.primary` and `.secondary`** default to `whiteSpace: nowrap; overflow: hidden; text-overflow: ellipsis`. In any narrow container (e.g. a 112px sidebar, a compact menu), labels TRUNCATE with an ellipsis instead of wrapping. If you need the label to wrap, either (a) pass a JSX label with an explicit `<br />` inside a Box wrapper (`textAlign: "center", display: "inline-block"`), or (b) override `whiteSpace: "normal"` via the `sx` prop — e.g. `"& .MuiListItemText-primary": { whiteSpace: "normal" }`, plus `wordBreak: "break-word"` on the primary Typography if needed.
 - **Other overrides to check when something looks off**: `MuiButton`, `MuiChip`, `MuiDialog`, `MuiTooltip`. Read the override file in `node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/MuiComponents/<Name>/<Name>.js` before concluding "this is a base MUI behavior."
 
-### 12. Hover Shadows Need Clearance in Scroll Containers
+### 12. Hover Shadows Need Clearance — from Containers AND from Neighbors
 
-When a card or thumbnail applies a large hover shadow (e.g. `boxShadow: 24`) AND sits inside a container with `overflow: auto` (or `overflowX: auto`), the container clips the shadow. Add padding on every side where the shadow extends so it isn't cut off. Treat scroll-container padding on those sides as load-bearing, not decorative — setting it to `0` on a side where a hovered child's shadow extends will visibly clip the shadow.
+Cards/thumbnails with hover shadows (e.g. `boxShadow: 24`, which in the Truffle theme is a soft glow with ~10px blur) need clearance in two directions:
+
+- **From scroll-container edges.** When the card sits inside a container with `overflow: auto` (or `overflowX: auto`), the container clips the shadow. Add padding on every side where the shadow extends. Treat scroll-container padding on those sides as load-bearing, not decorative — setting it to `0` on a side where a hovered child's shadow extends will visibly clip the shadow.
+- **From neighbor cards in a grid/flex row.** When cards sit in a grid (or flex row) with tight `columnGap`/`rowGap`/`gap`, the hovered card's shadow visually overlaps the adjacent card. The gap must be at least the shadow's blur radius plus any desired visual clearance. With Truffle's 10px-blur shadow 24, an 8px gap causes overlap; use `columnGap: "24px"` (or similar) when cards in the grid have hover shadows.
 
 ### 13. What NOT to Do — Summary
 
@@ -276,6 +279,7 @@ When a card or thumbnail applies a large hover shadow (e.g. `boxShadow: 24`) AND
 - Do NOT re-implement a component's built-in props via `sx` or a wrapper — use the props the component already exposes
 - Do NOT assume narrow-sidebar `ListItemText` labels will wrap — Truffle's theme sets `whiteSpace: nowrap` by default; use an explicit `<br />` in a JSX label OR a `whiteSpace: normal` override
 - Do NOT set a horizontal scroll container's top/side padding to `0` if the children have hover shadows — the shadow will be clipped (see rule 12)
+- Do NOT use a grid/flex gap smaller than the hover shadow's blur radius — hovered cards will visually overlap neighbors (see rule 12)
 
 ---
 
