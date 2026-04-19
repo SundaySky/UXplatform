@@ -2,13 +2,12 @@ import { useState, useRef, useCallback } from "react";
 import type { SxProps, Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import {
-    AppBar, Badge, Box, Breadcrumbs, Button, Card, CardContent, Divider, IconButton, List, ListItemButton,
+    AppBar, Badge, Box, Breadcrumbs, Button, Card, CardContent, CardMedia, Divider, IconButton, List, ListItemButton,
     ListItemIcon, ListItemText, Menu, Skeleton, SvgIcon, Table, TableBody, TableCell, TableContainer,
     TableHead, TableRow, Toolbar, Tooltip, Typography
 } from "@mui/material";
 import {
-    Label, Search, TruffleAvatar, ThumbnailActions, ThumbnailActionsButton,
-    ThumbnailActionsIconButton, TruffleToggleButtonGroup, ToggleIconButton,
+    Label, Search, TruffleAvatar, TruffleIconButton, TruffleToggleButtonGroup, ToggleIconButton,
     TruffleMenuItem, TypographyWithTooltipOnOverflow
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -171,7 +170,7 @@ function VideoThumbnail() {
             {!loaded && <Skeleton variant="rectangular" sx={thumbnailSkeletonSx} />}
             <Box
                 component="img"
-                src="/thumbnails/editor-thumbnail.png"
+                src={IMG_THUMB}
                 onLoad={() => setLoaded(true)}
                 sx={thumbnailImgSx(loaded)}
             />
@@ -293,26 +292,33 @@ function VideoCard({
             }}
             sx={videocardSx}
         >
-            {/* Thumbnail with ThumbnailActions hover overlay */}
-            <ThumbnailActions
-                showActions="onHover"
-                leftActions={
-                    <ThumbnailActionsIconButton size="small">
+            {/* Thumbnail with hover overlay + hover actions */}
+            <CardMedia sx={thumbnailContentPropsSx}>
+                <VideoThumbnail />
+                <Box className="thumbnail-hover-overlay" sx={thumbnailHoverOverlaySx} />
+                <Box className="thumbnail-actions-left" sx={thumbnailActionsLeftSx}>
+                    <TruffleIconButton
+                        size="small"
+                        color="white"
+                        variant="contained"
+                        placeholder={undefined}
+                        onPointerEnterCapture={undefined}
+                        onPointerLeaveCapture={undefined}
+                    >
                         <FontAwesomeIcon icon={faPlay} />
-                    </ThumbnailActionsIconButton>
-                }
-                rightActions={
-                    <ThumbnailActionsButton
+                    </TruffleIconButton>
+                </Box>
+                <Box className="thumbnail-actions-right" sx={thumbnailActionsRightSx}>
+                    <Button
+                        variant="contained"
+                        color="white"
                         size="small"
                         startIcon={<FontAwesomeIcon icon={faPen} />}
                     >
                         Edit
-                    </ThumbnailActionsButton>
-                }
-                ContentProps={{ sx: thumbnailContentPropsSx }}
-            >
-                <VideoThumbnail />
-            </ThumbnailActions>
+                    </Button>
+                </Box>
+            </CardMedia>
 
             {/* Card body */}
             <Box sx={cardBodySx}>
@@ -1101,10 +1107,10 @@ const recentScrollRowSx: SxProps<Theme> = {
 const recentScrollContainerSx: SxProps<Theme> = {
     display: "flex",
     flexDirection: "row",
-    gap: "8px",
+    gap: "24px",
     overflow: "auto",
     scrollBehavior: "smooth",
-    p: "16px 0 16px 16px",
+    p: "16px",
     bgcolor: "primary.light",
     flexGrow: 1,
     "&::-webkit-scrollbar-thumb": { visibility: "hidden" }
@@ -1154,7 +1160,7 @@ const videosGridSx: SxProps<Theme> = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))",
     rowGap: "24px",
-    columnGap: "8px",
+    columnGap: "24px",
     pb: 4
 };
 
@@ -1213,8 +1219,12 @@ const videocardSx: SxProps<Theme> = {
     flexDirection: "column",
     boxShadow: 0,
     transition: "box-shadow 0.15s",
+    "& .thumbnail-hover-overlay": { display: "none" },
+    "& .thumbnail-actions-left, & .thumbnail-actions-right": { visibility: "hidden" },
     "&:hover": {
-        boxShadow: 24
+        boxShadow: 24,
+        "& .thumbnail-hover-overlay": { display: "block" },
+        "& .thumbnail-actions-left, & .thumbnail-actions-right": { visibility: "visible" }
     }
 };
 
@@ -1225,10 +1235,34 @@ const appBarDividerSx: SxProps<Theme> = {
 };
 
 const thumbnailContentPropsSx: SxProps<Theme> = {
-    width: "100%",
-    aspectRatio: "16/9",
-    overflow: "hidden"
+    position: "relative"
 };
+
+const thumbnailHoverOverlaySx: SxProps<Theme> = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    bgcolor: "text.disabled"
+};
+
+const thumbnailActionsLeftSx: SxProps<Theme> = {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    display: "flex",
+    gap: "8px"
+};
+
+const thumbnailActionsRightSx: SxProps<Theme> = {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    display: "flex",
+    gap: "8px"
+};
+
 
 const cardBodySx: SxProps<Theme> = {
     pt: 1,
@@ -1294,9 +1328,7 @@ const menuFolderLabelSx: SxProps<Theme> = {
 
 // Thumbnail styles
 const thumbnailWrapperSx: SxProps<Theme> = {
-    position: "relative",
-    width: "100%",
-    height: "100%"
+    position: "relative"
 };
 
 const thumbnailSkeletonSx: SxProps<Theme> = {
