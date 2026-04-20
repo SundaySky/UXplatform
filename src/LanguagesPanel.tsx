@@ -1,13 +1,13 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Divider, Checkbox, Tooltip, Menu
+    Select, MenuItem, FormControl, Divider, Checkbox, Tooltip
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
-    faTriangleExclamation, faPencil, faTrashCan, faChevronDown
+    faTriangleExclamation, faPencil, faTrashCan
 } from "@fortawesome/pro-regular-svg-icons";
 import { faPlay, faCircleCheck, faCircleXmark } from "@fortawesome/pro-solid-svg-icons";
 import {
@@ -79,8 +79,6 @@ export default function LanguagesPanel({
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
     // Pending multi-select value for the "add next" adder slot (committed on dropdown close)
     const [addingValue, setAddingValue] = useState<string[]>([]);
-    // Anchor for the "Add more languages" Menu
-    const [addMoreAnchorEl, setAddMoreAnchorEl] = useState<HTMLElement | null>(null);
     // Snapshot of what was sent to "apply"
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
 
@@ -110,19 +108,6 @@ export default function LanguagesPanel({
 
     function handleSwapLang(index: number, newLang: string) {
         setSelectedLangs(prev => prev.map((l, i) => i === index ? newLang : l));
-    }
-
-    // "Add more" menu toggles: checked → remove, unchecked → add
-    function handleAddMoreToggle(langName: string) {
-        setSelectedLangs(prev => {
-            if (prev.includes(langName)) {
-                return prev.filter(l => l !== langName);
-            }
-            if (prev.length >= MAX_LANGUAGES) {
-                return prev;
-            }
-            return [...prev, langName];
-        });
     }
 
     function handleEnableTranslation() {
@@ -440,15 +425,7 @@ export default function LanguagesPanel({
                                             multiple
                                             displayEmpty
                                             value={addingValue}
-                                            onChange={(e) => {
-                                                const newValue = e.target.value as string[];
-                                                // If a confirmed lang was clicked, MUI "adds" it to newValue — treat that as removal
-                                                const toRemove = newValue.filter(v => selectedLangs.includes(v));
-                                                if (toRemove.length > 0) {
-                                                    setSelectedLangs(prev => prev.filter(l => !toRemove.includes(l)));
-                                                }
-                                                setAddingValue(newValue.filter(v => !selectedLangs.includes(v)));
-                                            }}
+                                            onChange={(e) => setAddingValue(e.target.value as string[])}
                                             onClose={handleAddingClose}
                                             renderValue={(sel) => {
                                                 const selected = sel as string[];
@@ -476,93 +453,36 @@ export default function LanguagesPanel({
                                             }}
                                             MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
                                         >
-                                            {LANGUAGE_OPTIONS.map(({ name, flag }) => {
-                                                const alreadySelected = selectedLangs.includes(name);
-                                                const inAdding = addingValue.includes(name);
-                                                const checked = alreadySelected || inAdding;
-                                                const atMax = (selectedCount + addingValue.length) >= MAX_LANGUAGES && !checked;
-                                                return (
-                                                    <MenuItem
-                                                        key={name}
-                                                        value={name}
-                                                        disabled={atMax}
-                                                    >
-                                                        <Tooltip
-                                                            title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}
-                                                            placement="right"
-                                                            disableInteractive
-                                                        >
-                                                            <Box sx={{
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                width: "100%",
-                                                                pointerEvents: atMax ? "all" : undefined
-                                                            }}>
-                                                                <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
-                                                                <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
-                                                                <Typography variant="body1">{name}</Typography>
-                                                            </Box>
-                                                        </Tooltip>
-                                                    </MenuItem>
-                                                );
-                                            })}
+                                            {LANGUAGE_OPTIONS
+                                                .filter(l => !selectedLangs.includes(l.name))
+                                                .map(({ name, flag }) => {
+                                                    const checked = addingValue.includes(name);
+                                                    const atMax = (selectedCount + addingValue.length) >= MAX_LANGUAGES && !checked;
+                                                    return (
+                                                        <MenuItem key={name} value={name} disabled={atMax}>
+                                                            <Tooltip
+                                                                title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}
+                                                                placement="right"
+                                                                disableInteractive
+                                                            >
+                                                                <Box sx={{
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    width: "100%",
+                                                                    pointerEvents: atMax ? "all" : undefined
+                                                                }}>
+                                                                    <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
+                                                                    <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
+                                                                    <Typography variant="body1">{name}</Typography>
+                                                                </Box>
+                                                            </Tooltip>
+                                                        </MenuItem>
+                                                    );
+                                                })}
                                         </Select>
                                     </FormControl>
                                 </Box>
                             )}
-
-                            {/* ── "Add more languages" text button → full language menu ── */}
-                            <Divider sx={{ my: 1 }} />
-                            <Button
-                                variant="text"
-                                size="small"
-                                onClick={(e) => setAddMoreAnchorEl(e.currentTarget)}
-                                endIcon={<SvgIcon sx={iconXsSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
-                                sx={addMoreBtnSx}
-                            >
-                                Add more languages
-                            </Button>
-                            <Menu
-                                anchorEl={addMoreAnchorEl}
-                                open={Boolean(addMoreAnchorEl)}
-                                onClose={() => setAddMoreAnchorEl(null)}
-                                PaperProps={{ sx: { maxHeight: 320, minWidth: 220 } }}
-                            >
-                                {LANGUAGE_OPTIONS.map(({ name, flag }) => {
-                                    const alreadySelected = selectedLangs.includes(name);
-                                    const inAdder = addingValue.includes(name);
-                                    const checked = alreadySelected || inAdder;
-                                    const atMax = selectedCount >= MAX_LANGUAGES && !checked;
-                                    return (
-                                        <MenuItem
-                                            key={name}
-                                            onClick={() => {
-                                                if (!atMax) {
-                                                    handleAddMoreToggle(name);
-                                                } 
-                                            }}
-                                            disabled={atMax}
-                                        >
-                                            <Tooltip
-                                                title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}
-                                                placement="right"
-                                                disableInteractive
-                                            >
-                                                <Box sx={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    width: "100%",
-                                                    pointerEvents: atMax ? "all" : undefined
-                                                }}>
-                                                    <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
-                                                    <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
-                                                    <Typography variant="body1">{name}</Typography>
-                                                </Box>
-                                            </Tooltip>
-                                        </MenuItem>
-                                    );
-                                })}
-                            </Menu>
                         </Box>
 
                         {/* Sticky footer */}
@@ -1032,10 +952,6 @@ const slotRenderValueSx: SxProps<Theme> = {
     minWidth: 0
 };
 
-const addMoreBtnSx: SxProps<Theme> = {
-    px: 0,
-    justifyContent: "flex-start"
-};
 
 // ── Selector-state layout ─────────────────────────────────────────────────────
 
