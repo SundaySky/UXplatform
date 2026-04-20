@@ -11,7 +11,7 @@ import {
 import Tooltip from "@mui/material/Tooltip";
 import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faRotateLeft } from "@fortawesome/pro-regular-svg-icons";
+import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faWaveformLines, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faArrowsRotate } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
 import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleLink } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
@@ -52,30 +52,30 @@ function PlaceholderToolbar({ onEditClick, onDelete }: { onEditClick: () => void
             onMouseDown={e => e.stopPropagation()}
             sx={placeholderToolbarWrapperSx}
         >
-            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" onClick={onEditClick} />
+            <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" onClick={onEditClick} />
 
             {/* Zoom — single bordered box */}
             <Box sx={pillZoomBoxSx}>
                 <Box sx={pillZoomClickableSx}>
-                    <SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faEraser} /></SvgIcon>
+                    <SvgIcon sx={{ fontSize: "12px !important", width: "12px !important", height: "12px !important" }}><FontAwesomeIcon icon={faEraser} /></SvgIcon>
                 </Box>
                 <Typography variant="caption" sx={{ color: "primary.main", mx: "3px", minWidth: 28, textAlign: "center" }}>
           100%
                 </Typography>
                 <Box sx={pillZoomClickableSx}>
-                    <SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
+                    <SvgIcon sx={{ fontSize: "12px !important", width: "12px !important", height: "12px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
                 </Box>
             </Box>
 
-            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faT} /></SvgIcon>} label="Style" />
-            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faAlignLeft} /></SvgIcon>} label="Align" />
-            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faPaintbrush} /></SvgIcon>} label="Color" />
-            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>} label="Timing" />
-            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faCopy} /></SvgIcon>} label="Copy" />
-            <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEye} /></SvgIcon>} />
-            <Pill icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>} />
+            <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faT} /></SvgIcon>} label="Style" />
+            <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faAlignLeft} /></SvgIcon>} label="Align" />
+            <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faPaintbrush} /></SvgIcon>} label="Color" />
+            <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>} label="Timing" />
+            <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faCopy} /></SvgIcon>} label="Copy" />
+            <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faEye} /></SvgIcon>} />
+            <Pill icon={<SvgIcon sx={{ fontSize: "16px !important", width: "16px !important", height: "16px !important" }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>} />
             {onDelete && (
-                <Pill icon={<SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>} onClick={onDelete} />
+                <Pill icon={<SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>} onClick={onDelete} />
             )}
         </Box>
     );
@@ -116,7 +116,7 @@ function ButtonPlaceholderToolbar({
             sx={buttonToolbarWrapperSx}
         >
             {/* Edit */}
-            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: "13px !important", color: "primary.main" }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" />
 
             <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
@@ -151,7 +151,7 @@ function ButtonPlaceholderToolbar({
 
             {/* Timing (disabled) */}
             <ActionBtn
-                icon={<SvgIcon sx={{ fontSize: 13, color: "text.disabled" }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>}
+                icon={<SvgIcon sx={{ fontSize: "13px !important", color: "text.disabled" }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>}
                 label="Timing"
                 disabled
             />
@@ -159,16 +159,16 @@ function ButtonPlaceholderToolbar({
             <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Copy */}
-            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faCopy} /></SvgIcon>} label="Copy" />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: "13px !important", color: "primary.main" }}><FontAwesomeIcon icon={faCopy} /></SvgIcon>} label="Copy" />
 
             {/* Delete */}
             <IconButton size="small" onClick={onDelete} sx={toolbarDeleteBtnSx}>
-                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
             </IconButton>
 
             {/* More */}
             <IconButton size="small" sx={toolbarMoreBtnSx}>
-                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>
+                <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>
             </IconButton>
         </Box>
     );
@@ -211,7 +211,7 @@ function BulletPlaceholderToolbar({
             <Typography variant="h6" sx={{ color: "primary.main", lineHeight: 1.5 }}>
                 {label}
             </Typography>
-            <SvgIcon sx={{ fontSize: 16, color: "primary.main" }}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>
+            <SvgIcon sx={{ fontSize: "16px !important", color: "primary.main" }}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>
         </Box>
     );
 
@@ -222,7 +222,7 @@ function BulletPlaceholderToolbar({
             sx={buttonToolbarWrapperSx}
         >
             {/* Edit */}
-            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" onClick={onEditClick} />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: "13px !important", color: "primary.main" }}><FontAwesomeIcon icon={faPen} /></SvgIcon>} label="Edit" onClick={onEditClick} />
 
             <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
@@ -264,18 +264,18 @@ function BulletPlaceholderToolbar({
             <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Timing (enabled, blue star) */}
-            <ActionBtn icon={<SvgIcon sx={{ fontSize: 13, color: "primary.main" }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>} label="Timing" />
+            <ActionBtn icon={<SvgIcon sx={{ fontSize: "13px !important", color: "primary.main" }}><FontAwesomeIcon icon={faAlarmClock} /></SvgIcon>} label="Timing" />
 
             <Divider orientation="vertical" flexItem sx={toolbarDividerSx} />
 
             {/* Delete */}
             <IconButton size="small" onClick={onDelete} sx={toolbarDeleteBtnSx}>
-                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
             </IconButton>
 
             {/* More */}
             <IconButton size="small" onClick={(e) => onOptionsMenuClick?.(e.currentTarget)} sx={toolbarMoreBtnSx}>
-                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>
+                <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faEllipsisH} /></SvgIcon>
             </IconButton>
         </Box>
     );
@@ -316,7 +316,7 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
                     {title ?? "Heading"}
                 </Typography>
                 <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
-                    <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                    <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                 </IconButton>
             </Box>
 
@@ -332,7 +332,7 @@ function EditHeadingDialog({ open, title, currentText, onClose }: {
             Message by audience
                     </Typography>
                     <Tooltip title="Personalize the heading text per viewer" placement="top" arrow>
-                        <SvgIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
+                        <SvgIcon sx={{ fontSize: "16px !important", color: "text.secondary", cursor: "default" }}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
                     </Tooltip>
                 </Box>
 
@@ -429,7 +429,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
                     </Typography>
                 </Box>
                 <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
-                    <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                    <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                 </IconButton>
             </Box>
 
@@ -447,7 +447,7 @@ function EditBulletDialog({ open, currentText, bulletIconSize, onClose }: {
               Message by audience
                         </Typography>
                         <Tooltip title="Personalize the bullet text per viewer" placement="top" arrow>
-                            <SvgIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "default" }}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
+                            <SvgIcon sx={{ fontSize: "16px !important", color: "text.secondary", cursor: "default" }}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
                         </Tooltip>
                     </Box>
 
@@ -789,7 +789,7 @@ function CommentsPanel({
                         onClick={onClose}
                         sx={{ color: "text.primary", p: "8px", borderRadius: "8px" }}
                     >
-                        <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                        <SvgIcon sx={{ fontSize: "16px !important", width: "16px !important", height: "16px !important" }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                     </IconButton>
                 </Box>
 
@@ -828,11 +828,11 @@ function CommentsPanel({
                 {/* ── "View version" link — Unresolved tab only, hidden when no comments ── */}
                 {tab === "unresolved" && unresolvedCount > 0 && (
                     <Box sx={commentsViewVersionRowSx}>
-                        <SvgIcon sx={{ fontSize: 14, color: "primary.main" }}><FontAwesomeIcon icon={faEye} /></SvgIcon>
+                        <SvgIcon sx={{ fontSize: "14px !important", color: "primary.main" }}><FontAwesomeIcon icon={faEye} /></SvgIcon>
                         <Typography variant="body1" sx={{ color: "primary.main" }}>
               View version sent for approval
                         </Typography>
-                        <SvgIcon sx={{ fontSize: 11, color: "primary.main" }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
+                        <SvgIcon sx={{ fontSize: "11px !important", color: "primary.main" }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
                     </Box>
                 )}
 
@@ -950,7 +950,7 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
             label={<Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>}
             rightActions={
                 <ThumbnailActionsIconButton size="small">
-                    <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                    <SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                 </ThumbnailActionsIconButton>
             }
             sx={sceneThumbnailOuterSx}
@@ -966,7 +966,7 @@ function SceneThumbnail({ index, selected, headingText, subheadingText, footnote
 
             {/* Right side — drag media */}
             <Box sx={thumbRightDragAreaSmSx}>
-                <SvgIcon sx={{ fontSize: 22, color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
+                <SvgIcon sx={{ fontSize: "22px !important", color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
                 <Typography variant="caption" sx={{ fontSize: 7, color: "action.disabled" }}>
             Drag media here
                 </Typography>
@@ -1034,7 +1034,7 @@ function CustomSceneThumbnail({ index, selected, onClick }: { index: number; sel
             label={<Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>}
             rightActions={
                 <ThumbnailActionsIconButton size="small">
-                    <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                    <SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                 </ThumbnailActionsIconButton>
             }
             sx={sceneThumbnailOuterSx}
@@ -1308,8 +1308,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       {
           section: "STYLE",
           items: [
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faPalette} /></SvgIcon>, label: "Brand" },
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faPaintbrush} /></SvgIcon>, label: "Theme" },
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faPalette} /></SvgIcon>, label: "Brand" },
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faPaintbrush} /></SvgIcon>, label: "Theme" },
               {
                   icon: (
                       <Badge
@@ -1317,7 +1317,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           color="error"
                           sx={navBadgeSx}
                       >
-                          <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faCircleUser} /></SvgIcon>
+                          <SvgIcon fontSize="small"><FontAwesomeIcon icon={faCircleUser} /></SvgIcon>
                       </Badge>
                   ),
                   label: "Avatar"
@@ -1327,19 +1327,19 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       {
           section: "LIBRARIES",
           items: [
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faPhotoFilm} /></SvgIcon>, label: "Media" },
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faMusic} /></SvgIcon>, label: "Music" },
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faMicrophone} /></SvgIcon>, label: "Voice" },
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faDatabase} /></SvgIcon>, label: "Data" },
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faInputText} /></SvgIcon>, label: "Input fields" }
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faPhotoFilm} /></SvgIcon>, label: "Media" },
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faMusic} /></SvgIcon>, label: "Music" },
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faWaveformLines} /></SvgIcon>, label: "Voice" },
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faDatabase} /></SvgIcon>, label: "Data" },
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faInputText} /></SvgIcon>, label: "Input fields" }
           ]
       },
       {
           section: "SETTINGS",
           items: [
-              { icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faCropSimple} /></SvgIcon>, label: "Aspect ratio" },
+              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faCropSimple} /></SvgIcon>, label: "Aspect ratio" },
               {
-                  icon: <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faLanguage} /></SvgIcon>,
+                  icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faLanguage} /></SvgIcon>,
                   label: "Languages",
                   onClickOverride: () => {
                       if (activeNav === "Languages" && langsOpen) {
@@ -1366,7 +1366,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           color="error"
                           sx={navBadgeSx}
                       >
-                          <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faComment} /></SvgIcon>
+                          <SvgIcon fontSize="small"><FontAwesomeIcon icon={faComment} /></SvgIcon>
                       </Badge>
                   ),
                   label: "Comments",
@@ -1382,7 +1382,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       <Box sx={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflow: "hidden" }}>
 
           {/* ── Appbar ─────────────────────────────────────────────────────────── */}
-          <AppBar position="static" color="inherit" elevation={0} sx={studioAppBarSx}>
+          <AppBar position="static" color="secondary" elevation={0} sx={studioAppBarSx}>
               <Toolbar variant="dense" disableGutters sx={studioToolbarSx}>
                   {/* Left — logo + video name + save indicator */}
                   <Box sx={studioAppBarLeftSx}>
@@ -1391,11 +1391,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <Box component="img" src="" alt="sundaysky-logo" sx={studioLogoImgSx} />
                       </Box>
                       {/* Save indicator */}
-                      <SvgIcon sx={{ fontSize: 16, color: "action.disabledBackground" }}>
+                      <SvgIcon sx={(theme) => ({ fontSize: "14px !important", width: "14px !important", height: "14px !important", color: alpha(theme.palette.common.white, 0.4) })}>
                           <FontAwesomeIcon icon={faCloudCheck} />
                       </SvgIcon>
                       {/* Video name */}
-                      <Typography variant="h4" noWrap sx={{ color: "text.primary" }}>
+                      <Typography variant="h4" noWrap sx={{ color: "inherit" }}>
                           {videoTitle}
                       </Typography>
                       {/* Language picker badge */}
@@ -1406,10 +1406,10 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <Typography variant="caption">
                               {selectedDisplayLang === "English" ? "🇺🇸" : FLAG_BY_NAME[selectedDisplayLang]}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                          <Typography variant="body2" sx={{ color: "inherit" }}>
                               {selectedDisplayLang === "English" ? "EN" : CODE_BY_NAME[selectedDisplayLang]}
                           </Typography>
-                          <SvgIcon sx={{ fontSize: "10px !important", color: "text.secondary", ml: "2px" }}>
+                          <SvgIcon sx={{ fontSize: "10px !important", width: "10px !important", height: "10px !important", color: "inherit", ml: "2px" }}>
                               <FontAwesomeIcon icon={faChevronDown} />
                           </SvgIcon>
                       </Box>
@@ -1431,8 +1431,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       size="small"
                                       fullWidth
                                       startIcon={
-                                          <SvgIcon sx={{ fontSize: "13px !important" }}>
-                                              <FontAwesomeIcon icon={faRotateLeft} />
+                                          <SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}>
+                                              <FontAwesomeIcon icon={faArrowsRotate} />
                                           </SvgIcon>
                                       }
                                       onClick={() => {
@@ -1445,7 +1445,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   </Button>
                                   <Divider sx={{ my: 1.5 }} />
                                   <Box sx={langInfoCardSx}>
-                                      <SvgIcon sx={{ fontSize: "18px !important", color: "text.secondary", flexShrink: 0, mt: "1px" }}>
+                                      <SvgIcon fontSize="small" sx={{ color: "text.secondary", flexShrink: 0, mt: "1px" }}>
                                           <FontAwesomeIcon icon={faDatabase} />
                                       </SvgIcon>
                                       <Box>
@@ -1485,9 +1485,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                               </Box>
                                               <Typography variant="body1" sx={{ flex: 1 }}>{name}</Typography>
                                               {selectedDisplayLang === name && (
-                                                  <SvgIcon sx={{ fontSize: "13px !important", color: "primary.main" }}>
-                                                      <FontAwesomeIcon icon={faCheck} />
-                                                  </SvgIcon>
+                                                  <>
+                                                      <SvgIcon sx={{ fontSize: "12px !important", width: "12px !important", height: "12px !important", color: "text.disabled", mr: 1 }}>
+                                                          <FontAwesomeIcon icon={faLanguage} />
+                                                      </SvgIcon>
+                                                      <SvgIcon sx={{ fontSize: "13px !important", width: "13px !important", height: "13px !important", color: "primary.main" }}>
+                                                          <FontAwesomeIcon icon={faCheck} />
+                                                      </SvgIcon>
+                                                  </>
                                               )}
                                           </Box>
                                       </MenuItem>
@@ -1500,16 +1505,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   {/* Right */}
                   <Box sx={studioAppBarRightSx}>
                       <IconButton size="medium" color="inherit">
-                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faArrowTurnLeft} /></SvgIcon>
+                          <SvgIcon fontSize="small"><FontAwesomeIcon icon={faArrowTurnLeft} /></SvgIcon>
                       </IconButton>
                       <IconButton size="medium" color="inherit">
-                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faArrowTurnRight} /></SvgIcon>
+                          <SvgIcon fontSize="small"><FontAwesomeIcon icon={faArrowTurnRight} /></SvgIcon>
                       </IconButton>
                       <Divider orientation="vertical" flexItem sx={studioDividerSx} />
                       {/* Manage permissions button */}
                       <Tooltip title="Manage permission" placement="bottom" arrow slotProps={{ tooltip: { sx: studioTooltipSx } }}>
                           <IconButton size="medium" onClick={() => setVideoPermOpen(true)} sx={studioPermBtnSx}>
-                              <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                              <SvgIcon fontSize="small"><FontAwesomeIcon icon={faLock} /></SvgIcon>
                           </IconButton>
                       </Tooltip>
                       <TruffleAvatar text={OWNER_USER.initials} size="small" />
@@ -1520,7 +1525,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           variant="contained"
                           color="gradient"
                           size="medium"
-                          endIcon={<SvgIcon sx={{ fontSize: 11 }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>}
+                          endIcon={<SvgIcon sx={{ fontSize: "11px !important", width: "11px !important", height: "11px !important" }}><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>}
                           onClick={onNavigateToVideoPage}
                           sx={studioVideoPageBtnSx}
                       >
@@ -1681,7 +1686,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       Placeholder
                                           </Typography>
                                           <IconButton size="small" onClick={() => setPlaceholderMenuOpen(false)} sx={{ color: "text.secondary", p: "4px" }}>
-                                              <SvgIcon sx={{ fontSize: 20 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                                              <SvgIcon sx={{ fontSize: "20px !important", width: "20px !important", height: "20px !important" }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                                           </IconButton>
                                       </Box>
 
@@ -1705,12 +1710,12 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                               ) },
                                               { label: "Vertical bullet point", blue: true, iconEl: (
                                                   <Box sx={placeholderMenuBulletIconBoxSx}>
-                                                      <SvgIcon sx={{ fontSize: 22, color: "background.paper" }}><FontAwesomeIcon icon={faListUl} /></SvgIcon>
+                                                      <SvgIcon sx={{ fontSize: "22px !important", color: "background.paper" }}><FontAwesomeIcon icon={faListUl} /></SvgIcon>
                                                   </Box>
                                               ) },
                                               { label: "Horizontal bullet point", blue: true, iconEl: (
                                                   <Box sx={placeholderMenuBulletIconBoxSx}>
-                                                      <SvgIcon sx={{ fontSize: 22, color: "background.paper" }}><FontAwesomeIcon icon={faTableColumns} /></SvgIcon>
+                                                      <SvgIcon sx={{ fontSize: "22px !important", color: "background.paper" }}><FontAwesomeIcon icon={faTableColumns} /></SvgIcon>
                                                   </Box>
                                               ) },
                                               { label: "Footnote", blue: false, iconEl: (
@@ -2056,7 +2061,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   {/* Right side — drag media area */}
                                   <Box sx={regularSceneDragAreaSx}>
                                       <Box sx={{ position: "relative", display: "inline-flex" }}>
-                                          <SvgIcon sx={{ fontSize: 52, color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
+                                          <SvgIcon sx={{ fontSize: "52px !important", color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
                                       </Box>
                                       <Typography variant="caption" sx={{ color: "action.disabled", letterSpacing: "0.15px" }}>
                     Drag media here
@@ -2164,7 +2169,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   <Tooltip title="Layout" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
                                           sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTableLayout} /></SvgIcon>
+                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faTableLayout} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
 
@@ -2172,7 +2177,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   <Tooltip title="Theme" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
                                           sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faPalette} /></SvgIcon>
+                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faPalette} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
 
@@ -2202,7 +2207,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   <Tooltip title="Info" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
                                           sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
 
@@ -2210,7 +2215,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                   <Tooltip title="More" placement="left" arrow>
                                       <IconButton size="small" onClick={e => e.stopPropagation()}
                                           sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
                                       </IconButton>
                                   </Tooltip>
                               </Box>
@@ -2232,7 +2237,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   {/* Narration bar */}
                   <Box sx={narrationBarSx}>
                       <Box sx={narrationAvatarSx}>
-                          <SvgIcon sx={{ fontSize: 15, color: "text.secondary" }}><FontAwesomeIcon icon={faMicrophone} /></SvgIcon>
+                          <SvgIcon sx={{ fontSize: "15px !important", color: "text.secondary" }}><FontAwesomeIcon icon={faMicrophone} /></SvgIcon>
                       </Box>
                       <Typography variant="body1" sx={{ color: "text.secondary", flex: 1 }}>
                           Add narration…
@@ -2252,7 +2257,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           transition: "opacity 0.2s"
                       }}>
                           <Box sx={playBtnCircleSx}>
-                              <SvgIcon sx={{ fontSize: 22, color: "primary.main" }}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                              <SvgIcon sx={{ fontSize: "22px !important", color: "primary.main" }}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                           </Box>
                           <Typography variant="caption" sx={{
                               color: "primary.light", letterSpacing: "0.4px", ml: 1.5
@@ -2286,7 +2291,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedElId(null);
                                       }}
                                       sx={addSceneBtnSx}>
-                                      <SvgIcon sx={{ fontSize: 18, color: "primary.main" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
+                                      <SvgIcon sx={{ fontSize: "18px !important", color: "primary.main" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
                                   </Box>
                               </Box>
                           </Box>
@@ -2396,9 +2401,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
 const studioAppBarSx: SxProps<Theme> = {
     flexShrink: 0,
-    bgcolor: "background.paper",
+    // bgcolor handled by AppBar color="secondary"
     borderBottom: "1px solid",
-    borderBottomColor: "divider"
+    borderBottomColor: (theme) => alpha(theme.palette.common.white, 0.1)
 };
 
 const studioToolbarSx: SxProps<Theme> = {
@@ -2439,8 +2444,9 @@ const studioLangBadgeSx: SxProps<Theme> = {
     py: "4px",
     borderRadius: 1,
     border: "1px solid",
-    borderColor: "divider",
-    cursor: "pointer"
+    borderColor: (theme) => alpha(theme.palette.common.white, 0.25),
+    cursor: "pointer",
+    "&:hover": { bgcolor: (theme) => alpha(theme.palette.common.white, 0.08) }
 };
 
 const studioAppBarRightSx: SxProps<Theme> = {
@@ -2458,7 +2464,7 @@ const langDropdownPaperSx: SxProps<Theme> = {
 };
 
 const langInfoCardSx: SxProps<Theme> = {
-    bgcolor: "action.hover",
+    bgcolor: "primary.light",
     borderRadius: 1,
     p: 1.5,
     display: "flex",
@@ -2487,7 +2493,7 @@ const langMenuItemSx: SxProps<Theme> = {
 };
 
 const studioDividerSx: SxProps<Theme> = {
-    borderColor: "divider",
+    borderColor: (theme) => alpha(theme.palette.common.white, 0.2),
     mx: 0.5,
     alignSelf: "center",
     height: 20
@@ -2502,12 +2508,12 @@ const studioTooltipSx: SxProps<Theme> = {
 };
 
 const studioPermBtnSx: SxProps<Theme> = {
-    bgcolor: "secondary.dark",
+    bgcolor: (theme) => alpha(theme.palette.common.white, 0.1),
     borderRadius: 1,
     p: "5px",
     border: "1px solid",
-    borderColor: "divider",
-    "&:hover": { bgcolor: "secondary.dark" }
+    borderColor: (theme) => alpha(theme.palette.common.white, 0.2),
+    "&:hover": { bgcolor: (theme) => alpha(theme.palette.common.white, 0.18) }
 };
 
 const studioVideoPageBtnSx: SxProps<Theme> = {
@@ -2515,36 +2521,41 @@ const studioVideoPageBtnSx: SxProps<Theme> = {
 };
 
 const studioLeftNavSx: SxProps<Theme> = {
-    width: 150,
+    width: 136,
     flexShrink: 0,
     bgcolor: "background.paper",
     borderRight: 1,
     borderRightStyle: "solid",
     borderRightColor: "divider",
     overflowY: "auto",
-    pt: 2,
+    pt: 1,
     display: "flex",
     flexDirection: "column"
 };
 
 const navSubheaderSx: SxProps<Theme> = {
-    letterSpacing: "1px",
+    letterSpacing: "0.8px",
     textTransform: "uppercase",
     color: "text.secondary",
-    py: 0.5
+    pt: 1.5,
+    pb: 0.25,
+    lineHeight: 1.6,
+    px: 1
 };
 
 const navItemButtonSx: SxProps<Theme> = {
-    borderRadius: "8px 0 0 8px",
-    py: 1
+    borderRadius: "6px 0 0 6px",
+    py: 0.75,
+    px: 1
 };
 
 const navItemIconSx: SxProps<Theme> = {
-    minWidth: 32
+    minWidth: 26
 };
 
 const studioNavItemTextSx: SxProps<Theme> = {
-    "& .MuiListItemText-primary": { whiteSpace: "normal" }
+    my: 0,
+    "& .MuiListItemText-primary": { whiteSpace: "normal", wordBreak: "break-word" }
 };
 
 const narrationBarSx: SxProps<Theme> = {
