@@ -1135,8 +1135,6 @@ export default function App() {
             .filter(u => u.createSpace.includes("Approver"))
             .map(u => ({ value: u.user.id, label: `${u.user.name} (${u.user.email})` }))
     );
-    const [pendingApprovalsDialogOpen, setPendingApprovalsDialogOpen] = useState(false);
-    const [pendingApprovalsWarningReason, setPendingApprovalsWarningReason] = useState<"turn-off" | "delete-user" | null>(null);
     const [approvalsDisabledDialogOpen, setApprovalsDisabledDialogOpen] = useState(false);
     const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
     const [accountSettingsInitialTab, setAccountSettingsInitialTab] = useState<"users" | "permissions" | "approvals" | "access">("users");
@@ -1265,15 +1263,8 @@ export default function App() {
                         onSubmitForApproval={(key, approvers) => updateVideoState(key, { sentApprovers: approvers, pageState: "pending", sentAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) })}
                         approvalsEnabled={approvalsEnabled}
                         approverIds={approverIds}
-                        onApprovalsEnabledChange={(enabled, hasPendingApprovals) => {
-                            if (!enabled && hasPendingApprovals) {
-                                // Show pending approvals warning dialog
-                                setPendingApprovalsWarningReason("turn-off");
-                                setPendingApprovalsDialogOpen(true);
-                            }
-                            else {
-                                setApprovalsEnabled(enabled);
-                            }
+                        onApprovalsEnabledChange={(enabled) => {
+                            setApprovalsEnabled(enabled);
                         }}
                         approversList={approversList}
                         accountSettingsOpen={accountSettingsOpen}
@@ -1285,10 +1276,8 @@ export default function App() {
                         onApproversListChange={(approvers) => {
                             setApproversList(approvers);
                         }}
-                        onUserDeletionBlocked={(_userId, _reason) => {
-                            // Show user deletion blocked dialog
-                            setPendingApprovalsWarningReason("delete-user");
-                            setPendingApprovalsDialogOpen(true);
+                        onUserDeletionBlocked={() => {
+                            // User deletion blocked - dialog removed
                         }}
                     />
 
@@ -1441,60 +1430,6 @@ export default function App() {
                     setCurrentPage("studio");
                 }}
             />
-
-            {/* Pending Approvals Warning Dialog — when turning off or deleting with pending approvals */}
-            <Dialog
-                open={pendingApprovalsDialogOpen}
-                onClose={() => setPendingApprovalsDialogOpen(false)}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle sx={dialogTitleSx}>
-                    {pendingApprovalsWarningReason === "turn-off"
-                        ? "Cannot turn off approvals"
-                        : "Cannot remove user"}
-                </DialogTitle>
-                <DialogContent sx={dialogContentTopPaddingSx}>
-                    <Typography variant="body1" sx={pendingApprovalsDescriptionSx}>
-                        {pendingApprovalsWarningReason === "turn-off"
-                            ? `You have ${Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length} video${
-                                Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length !== 1 ? "s" : ""
-                            } awaiting approval. You must remove all pending approvals before turning off the "Require approvals" feature.`
-                            : "This user has pending approvals. You must remove all pending approvals or add other approvers before removing this user."}
-                    </Typography>
-
-                    {/* List of pending approvals */}
-                    <Box sx={pendingApprovalsListBoxSx}>
-                        {Object.entries(videoStates)
-                            .filter(([_, state]) => state.sentApprovers?.length > 0)
-                            .slice(0, 5)
-                            .map(([videoTitle, state]) => (
-                                <Box key={videoTitle} sx={pendingApprovalItemRowSx}>
-                                    <Box sx={pendingApprovalThumbnailSx} />
-                                    <Box sx={pendingApprovalItemInfoSx}>
-                                        <Typography variant="body1" sx={pendingApprovalItemTitleSx}>
-                                            {videoTitle}
-                                        </Typography>
-                                        <Typography variant="caption" sx={textSecondaryColorSx}>
-                      Awaiting approval • {formatApproverNames(state.sentApprovers)}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            ))}
-                    </Box>
-                </DialogContent>
-                <DialogActions sx={dialogActionsSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => {
-                            setPendingApprovalsDialogOpen(false);
-                            // Don't allow the action
-                        }}
-                    >
-            Got it
-                    </Button>
-                </DialogActions>
-            </Dialog>
 
             {/* Approvals Disabled Dialog */}
             <Dialog
@@ -1808,17 +1743,6 @@ const videoPageCardColumnSx: SxProps<Theme> = { flex: 1, minWidth: 0, display: "
 const dialogTitleSx: SxProps<Theme> = { color: "text.primary", pb: 1 };
 const dialogContentTopPaddingSx: SxProps<Theme> = { pt: 2 };
 const pendingApprovalsDescriptionSx: SxProps<Theme> = { color: "text.secondary", mb: 2 };
-const pendingApprovalsListBoxSx: SxProps<Theme> = { bgcolor: "grey.100", borderRadius: "8px", p: 2, mb: 2 };
-const pendingApprovalItemRowSx: SxProps<Theme> = {
-    display: "flex", gap: 2, mb: 1.5, alignItems: "flex-start", "&:last-child": { mb: 0 }
-};
-const pendingApprovalThumbnailSx: SxProps<Theme> = {
-    width: 60, height: 60, borderRadius: "6px", bgcolor: "primary.light", flexShrink: 0, border: 1, borderColor: "divider"
-};
-const pendingApprovalItemInfoSx: SxProps<Theme> = { flex: 1, minWidth: 0 };
-const pendingApprovalItemTitleSx: SxProps<Theme> = {
-    color: "text.primary", mb: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-};
 const dialogActionsSx: SxProps<Theme> = { px: 3, py: 2 };
 
 const shareEmptyStateSx: SxProps<Theme> = {

@@ -803,12 +803,12 @@ function DeleteUserDialog({
 
     // Determine title and CTA based on conditions
     if (isLastApproverWithPermission) {
-        dialogTitle = `Delete ${user.user.name} and disable approvals?`;
+        dialogTitle = `Delete ${user.user.name}?`;
         primaryButtonText = "Delete user and disable approvals";
     }
     else if (hasPendingApprovals) {
-        dialogTitle = `Delete ${user.user.name} and cancel its pending approvals?`;
-        primaryButtonText = "Delete user and cancel its pending approvals";
+        dialogTitle = `Delete ${user.user.name}?`;
+        primaryButtonText = "Delete user and cancel approvals";
     }
     else {
         dialogTitle = `Delete ${user.user.name}?`;
@@ -905,7 +905,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteAsApprover, setInviteAsApprover] = useState(false);
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
-    const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false);
     const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedUserForMenu, setSelectedUserForMenu] = useState<AccountUser | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -927,15 +926,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     }
 
     function handleToggle(v: boolean) {
-        if (v) {
-            onToggle(true);
-        }
-        else if (!v && approverIds.size > 0) {
-            setToggleConfirmOpen(true);
-        }
-        else {
-            onToggle(false);
-        }
+        onToggle(v);
     }
 
     return (
@@ -1175,40 +1166,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                 }}
             />
 
-
-            {/* Toggle OFF confirmation dialog */}
-            <Dialog
-                open={toggleConfirmOpen}
-                onClose={() => setToggleConfirmOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 460, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodySx}>
-                    <Typography variant="h4" sx={dialogTitleSx}>
- Disable requiring approvals?
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextSx}>
- If you disable this feature, any editor can approve any video or template
-                    </Typography>
-                    <Box sx={dialogActionsRowSx}>
-                        <Button
-                            variant="outlined"
-                            onClick={() => setToggleConfirmOpen(false)}
-                            sx={cancelButtonSx}
-                        >
- Cancel
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={() => {
-                                onToggle(false); setToggleConfirmOpen(false); 
-                            }}
-                        >
- Disable requiring approvals
-                        </Button>
-                    </Box>
-                </Box>
-            </Dialog>
 
             {/* Delete User Dialog */}
             <DeleteUserDialog
