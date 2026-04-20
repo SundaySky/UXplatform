@@ -112,12 +112,12 @@ export default function LanguagesPanel({
         setSelectedLangs(prev => prev.map((l, i) => i === index ? newLang : l));
     }
 
-    // "Add more" menu only adds — already-selected langs show as checked but can't be removed here
+    // "Add more" menu toggles: checked → remove, unchecked → add
     function handleAddMoreToggle(langName: string) {
         setSelectedLangs(prev => {
             if (prev.includes(langName)) {
-                return prev;
-            } // already added, no-op
+                return prev.filter(l => l !== langName);
+            }
             if (prev.length >= MAX_LANGUAGES) {
                 return prev;
             }
@@ -441,9 +441,13 @@ export default function LanguagesPanel({
                                             displayEmpty
                                             value={addingValue}
                                             onChange={(e) => {
-                                                // Guard: never allow already-confirmed langs into the pending set
-                                                const next = (e.target.value as string[]).filter(v => !selectedLangs.includes(v));
-                                                setAddingValue(next);
+                                                const newValue = e.target.value as string[];
+                                                // If a confirmed lang was clicked, MUI "adds" it to newValue — treat that as removal
+                                                const toRemove = newValue.filter(v => selectedLangs.includes(v));
+                                                if (toRemove.length > 0) {
+                                                    setSelectedLangs(prev => prev.filter(l => !toRemove.includes(l)));
+                                                }
+                                                setAddingValue(newValue.filter(v => !selectedLangs.includes(v)));
                                             }}
                                             onClose={handleAddingClose}
                                             renderValue={(sel) => {
@@ -481,8 +485,7 @@ export default function LanguagesPanel({
                                                     <MenuItem
                                                         key={name}
                                                         value={name}
-                                                        disabled={atMax || alreadySelected}
-                                                        sx={alreadySelected ? { opacity: "1 !important", cursor: "default" } : undefined}
+                                                        disabled={atMax}
                                                     >
                                                         <Tooltip
                                                             title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}
@@ -534,12 +537,11 @@ export default function LanguagesPanel({
                                         <MenuItem
                                             key={name}
                                             onClick={() => {
-                                                if (!atMax && !alreadySelected) {
+                                                if (!atMax) {
                                                     handleAddMoreToggle(name);
-                                                }
+                                                } 
                                             }}
                                             disabled={atMax}
-                                            sx={alreadySelected ? { opacity: "1 !important", cursor: "default" } : undefined}
                                         >
                                             <Tooltip
                                                 title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}
