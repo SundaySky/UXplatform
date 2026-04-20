@@ -17,7 +17,8 @@
       "mcp__Figma__get_screenshot",
       "Bash(node -e \" const theme = require\\('/Users/Maya.Carmel/Claude code/Workflow/node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/theme/theme.js'\\); const t = theme.default || theme; const p = t.palette || \\(t.createTheme && t.createTheme\\(\\).palette\\); if\\(p\\) { console.log\\('secondary:', JSON.stringify\\(p.secondary, null, 2\\)\\); console.log\\('primary:', JSON.stringify\\(p.primary, null, 2\\)\\); console.log\\('background:', JSON.stringify\\(p.background, null, 2\\)\\); console.log\\('text:', JSON.stringify\\(p.text, null, 2\\)\\); } else { console.log\\(Object.keys\\(t\\)\\); } \")",
       "mcp__Figma__get_design_context",
-      "mcp__Figma__get_metadata"
+      "mcp__Figma__get_metadata",
+      "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__get_metadata"
     ]
   }
 }
