@@ -803,11 +803,11 @@ function DeleteUserDialog({
 
     // Determine title and CTA based on conditions
     if (isLastApproverWithPermission) {
-        dialogTitle = `Delete ${user.user.name}?`;
+        dialogTitle = `Delete ${user.user.name} and disable approvals?`;
         primaryButtonText = "Delete user and disable approvals";
     }
     else if (hasPendingApprovals) {
-        dialogTitle = `Delete ${user.user.name}?`;
+        dialogTitle = `Delete ${user.user.name} and cancel approvals?`;
         primaryButtonText = "Delete user and cancel approvals";
     }
     else {
