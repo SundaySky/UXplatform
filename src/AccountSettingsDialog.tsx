@@ -975,21 +975,11 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                             Set users as approvers by adding an approver permission in the users tab
                         </Typography>
                     </Box>
-                    <Tooltip
-                        title={approvers.length === 0 ? "To enable approvals, please add at least one user with approver permission in the users tab" : ""}
-                        placement="top"
-                        arrow
-                        disableHoverListener={approvers.length > 0}
-                    >
-                        <span>
-                            <Switch
-                                checked={enabled}
-                                onChange={e => handleToggle(e.target.checked)}
-                                disabled={approvers.length === 0}
-                                sx={switchSx}
-                            />
-                        </span>
-                    </Tooltip>
+                    <Switch
+                        checked={enabled}
+                        onChange={e => handleToggle(e.target.checked)}
+                        sx={switchSx}
+                    />
                 </Box>
 
                 {enabled && (
@@ -1008,84 +998,76 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                         </Box>
 
                         {/* Approvers table */}
-                        {approvers.length === 0 ? (
-                            <Box sx={emptyStateBoxSx}>
-                                <Typography variant="body1" sx={textSecondarySx}>
-                                    No users with approver permission found
-                                </Typography>
-                            </Box>
-                        ) : (
-                            <Box sx={approversTableContainerSx}>
-                                <Table size="small" sx={tableFullWidthSx}>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell sx={{ ...headCellSx, width: 220, position: "sticky", left: 0, zIndex: 4 }}>
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+                        <Box sx={approversTableContainerSx}>
+                            <Table size="small" sx={tableFullWidthSx}>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell sx={{ ...headCellSx, width: 220, position: "sticky", left: 0, zIndex: 4 }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
                                                     User <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
-                                                </Box>
-                                            </TableCell>
-                                            <TableCell sx={headCellSx}>
-                                                <Typography variant="subtitle2" sx={textPrimarySx}>User permission</Typography>
-                                            </TableCell>
-                                            <TableCell sx={headCellSx}>
-                                                <Typography variant="subtitle2" sx={textPrimarySx}>Job role</Typography>
-                                            </TableCell>
-                                            <TableCell sx={{ ...headCellSx, width: 160 }}>
-                                                <Typography variant="subtitle2" sx={textPrimarySx}>Last login</Typography>
-                                            </TableCell>
-                                            <TableCell sx={{ ...headCellSx, width: 160 }}>
-                                                <Typography variant="subtitle2" sx={textPrimarySx}>Creation date</Typography>
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {filtered.map(row => {
-                                            const isHovered = hoveredRow === row.user.id;
-                                            return (
-                                                <TableRow
-                                                    key={row.user.id}
-                                                    onMouseEnter={() => setHoveredRow(row.user.id)}
-                                                    onMouseLeave={() => setHoveredRow(null)}
-                                                    sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
-                                                >
-                                                    <TableCell sx={{ ...bodyCellSx, position: "sticky", left: 0, zIndex: 1, bgcolor: isHovered ? "grey.100" : "background.paper" }}>
-                                                        <UserCell row={row} />
-                                                    </TableCell>
-                                                    <TableCell sx={bodyCellSx}>
-                                                        <Box sx={userTypeCellSx}>
-                                                            {row.isOwner && <Label label="Account owner" color="info" size="small" />}
-                                                            <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                                                                <Typography variant="body1" sx={textPrimarySx}>
-                                                                    {getUserTypeRoles(row)}
-                                                                </Typography>
-                                                                {row.isOwner && (
-                                                                    <Tooltip title="Account owners have full access to the account" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                                                                        <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                                                                    </Tooltip>
-                                                                )}
-                                                            </Box>
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell sx={headCellSx}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>User permission</Typography>
+                                        </TableCell>
+                                        <TableCell sx={headCellSx}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>Job role</Typography>
+                                        </TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 160 }}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>Last login</Typography>
+                                        </TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 160 }}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>Creation date</Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {filtered.map(row => {
+                                        const isHovered = hoveredRow === row.user.id;
+                                        return (
+                                            <TableRow
+                                                key={row.user.id}
+                                                onMouseEnter={() => setHoveredRow(row.user.id)}
+                                                onMouseLeave={() => setHoveredRow(null)}
+                                                sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
+                                            >
+                                                <TableCell sx={{ ...bodyCellSx, position: "sticky", left: 0, zIndex: 1, bgcolor: isHovered ? "grey.100" : "background.paper" }}>
+                                                    <UserCell row={row} />
+                                                </TableCell>
+                                                <TableCell sx={bodyCellSx}>
+                                                    <Box sx={userTypeCellSx}>
+                                                        {row.isOwner && <Label label="Account owner" color="info" size="small" />}
+                                                        <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                                            <Typography variant="body1" sx={textPrimarySx}>
+                                                                {getUserTypeRoles(row)}
+                                                            </Typography>
+                                                            {row.isOwner && (
+                                                                <Tooltip title="Account owners have full access to the account" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
+                                                                    <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                                                </Tooltip>
+                                                            )}
                                                         </Box>
-                                                    </TableCell>
-                                                    <TableCell sx={bodyCellSx}>
-                                                        <Typography variant="body1" sx={textPrimarySx}>{row.jobRole}</Typography>
-                                                    </TableCell>
-                                                    <TableCell sx={{ ...bodyCellSx, width: 160 }}>
-                                                        <Typography variant="body1" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
-                                                            {row.pending ? "Pending" : row.lastLogin}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell sx={{ ...bodyCellSx, width: 160 }}>
-                                                        <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
-                                                            {row.createdDate}
-                                                        </Typography>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </Box>
-                        )}
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell sx={bodyCellSx}>
+                                                    <Typography variant="body1" sx={textPrimarySx}>{row.jobRole}</Typography>
+                                                </TableCell>
+                                                <TableCell sx={{ ...bodyCellSx, width: 160 }}>
+                                                    <Typography variant="body1" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
+                                                        {row.pending ? "Pending" : row.lastLogin}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell sx={{ ...bodyCellSx, width: 160 }}>
+                                                    <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
+                                                        {row.createdDate}
+                                                    </Typography>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </Box>
                     </Box>
                 )}
             </Box>
@@ -2138,7 +2120,6 @@ const approvalToggleContainerSx: SxProps<Theme> = { border: 1, borderColor: "gre
 const approvalToggleInnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "14px" };
 const approvalStampIconSx: SxProps<Theme> = { fontSize: 22, color: "primary.main", flexShrink: 0 };
 const switchSx: SxProps<Theme> = { "& .MuiSwitch-switchBase.Mui-checked": { color: "common.white" }, "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "primary.main" } };
-const emptyStateBoxSx: SxProps<Theme> = { bgcolor: "grey.100", borderRadius: "8px", py: "20px", display: "flex", alignItems: "center", justifyContent: "center" };
 
 // Main dialog layout
 const sidebarSx: SxProps<Theme> = { width: 176, flexShrink: 0, borderRight: 1, borderRightColor: "grey.300", py: "12px", px: "8px", display: "flex", flexDirection: "column", gap: "2px", bgcolor: "background.default" };
