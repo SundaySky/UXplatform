@@ -2528,29 +2528,28 @@ const studioLeftNavSx: SxProps<Theme> = {
     borderRightStyle: "solid",
     borderRightColor: "divider",
     overflowY: "auto",
-    pt: 1,
+    pt: 0,
     display: "flex",
     flexDirection: "column"
 };
 
 const navSubheaderSx: SxProps<Theme> = {
     letterSpacing: "0.8px",
-    textTransform: "uppercase",
-    color: "text.secondary",
-    pt: 1.5,
-    pb: 0.25,
+    color: "text.primary",
+    pt: 2,
+    pb: 0,
     lineHeight: 1.6,
     px: 1
 };
 
 const navItemButtonSx: SxProps<Theme> = {
     borderRadius: "6px 0 0 6px",
-    py: 0.75,
+    py: 1,
     px: 1
 };
 
 const navItemIconSx: SxProps<Theme> = {
-    minWidth: 26
+    minWidth: 24
 };
 
 const studioNavItemTextSx: SxProps<Theme> = {
