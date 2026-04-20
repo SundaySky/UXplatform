@@ -2535,7 +2535,7 @@ const studioLeftNavSx: SxProps<Theme> = {
 
 const navSubheaderSx: SxProps<Theme> = {
     letterSpacing: "0.8px",
-    color: "text.primary",
+    color: "grey.500",
     pt: 2,
     pb: 0,
     lineHeight: 1.6,
