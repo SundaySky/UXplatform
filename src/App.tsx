@@ -144,7 +144,7 @@ function VideoPermissionStrip({
             <Box sx={minWidthZeroSx}>
                 {/* Label row */}
                 <Typography variant="caption" sx={permStripLabelSx}>
-                    {isPrivate ? "Video permission — Only you can see this video" : "Video permission"}
+                    {isPrivate ? "Video access — Only you can see this video" : "Video access"}
                 </Typography>
 
                 {/* Indicators — all users shown with name, then Everyone at the end */}
@@ -291,12 +291,12 @@ function Sidebar({
                     </TruffleMenuItem>
 
                     <TruffleMenuItem onClick={() => {
-                        setMenuAnchor(null); onManageAccess?.(); 
+                        setMenuAnchor(null); onManageAccess?.();
                     }}
                     secondaryAction={<PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />}
                     >
                         <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
-                        Permissions
+                        Video access
                     </TruffleMenuItem>
 
                     <Divider sx={menuDividerSx} />
@@ -1264,7 +1264,6 @@ export default function App() {
                         onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
                         onSubmitForApproval={(key, approvers) => updateVideoState(key, { sentApprovers: approvers, pageState: "pending", sentAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) })}
                         approvalsEnabled={approvalsEnabled}
-                        onApprovalsDisabled={() => setApprovalsDisabledDialogOpen(true)}
                         approverIds={approverIds}
                         onApprovalsEnabledChange={(enabled, hasPendingApprovals) => {
                             if (!enabled && hasPendingApprovals) {
@@ -1643,17 +1642,17 @@ const menuPaperSx: SxProps<Theme> = { minWidth: 256, mt: "4px", py: "4px" };
 const menuHeaderBoxSx: SxProps<Theme> = { px: 2, pt: "10px", pb: 1 };
 const menuHeaderTitleSx: SxProps<Theme> = { color: "text.primary", mb: "4px" };
 const menuHeaderFolderRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px" };
-const menuHeaderFolderIconSx: SxProps<Theme> = { fontSize: 13, color: "text.secondary" };
+const menuHeaderFolderIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, color: "text.secondary" };
 const menuDividerSx: SxProps<Theme> = { my: "4px" };
-const menuItemIconSx: SxProps<Theme> = { fontSize: 16, color: "action.active", mr: 1 };
-const menuItemDeleteIconSx: SxProps<Theme> = { fontSize: 16, mr: 1 };
+const menuItemIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, color: "action.active", mr: 1 };
+const menuItemDeleteIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, mr: 1 };
 const sidebarStatusChipBoxSx: SxProps<Theme> = { pl: "20px", py: "1px" };
 const sidebarDividerSx: SxProps<Theme> = { borderColor: "divider", mx: 2.5, my: 1 };
 const sidebarNavBoxSx: SxProps<Theme> = { px: 2, py: 1 };
 const sidebarNavListSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px" };
 const navItemRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px", flex: 1 };
 const navItemIconContainerSx: SxProps<Theme> = { minWidth: 24 };
-const navItemIconSx: SxProps<Theme> = { fontSize: 18, color: "action.active" };
+const navItemIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, color: "action.active" };
 const navItemUpdatedIconSx: SxProps<Theme> = { fontSize: 14, color: "info.main" };
 const sidebarFooterRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, py: 1.5

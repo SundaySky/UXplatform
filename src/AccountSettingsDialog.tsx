@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck } from "@fortawesome/pro-regular-svg-icons";
-import { TruffleDialogTitle, AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { TruffleDialogTitle, AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, SimpleInputDialog } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./ManageAccessDialog";
 
@@ -737,164 +737,158 @@ interface DeleteUserDialogProps {
     onClose: () => void
     user: AccountUser | null
     onConfirm: () => void
-    approvalsEnabled: boolean
     onDisableApprovals?: () => void
+    remainingApproversAfterDelete?: number
+    hasPendingApprovals?: boolean
+    isContributor?: boolean
+    approvalsEnabledInAccount?: boolean
 }
 
-function DeleteUserDialog({ open, onClose, user, onConfirm, approvalsEnabled, onDisableApprovals }: DeleteUserDialogProps) {
+function DeleteUserDialog({
+    open,
+    onClose,
+    user,
+    onConfirm,
+    onDisableApprovals,
+    remainingApproversAfterDelete = 0,
+    hasPendingApprovals = false,
+    isContributor = false,
+    approvalsEnabledInAccount = false
+}: DeleteUserDialogProps) {
+    const [inputValue, setInputValue] = useState("");
+
     if (!user) {
         return null;
     }
 
-    const isApprover = user.createSpace.includes("Approver");
-    const hasPendingApprovals = user.addedAsApprover;
-    const isLastApprover = isApprover && approvalsEnabled;
+    const isLastApproverWithPermission = remainingApproversAfterDelete === 0 && approvalsEnabledInAccount;
+    const isConfirmed = inputValue === "Delete";
 
-    // Variant 1: Not an approver, no contributor access — basic delete
-    if (!isApprover && user.amplifySpace !== "Contributor") {
-        return (
-            <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}>
-                <Box sx={dialogBodySx}>
-                    <Box sx={dialogTitleRowMb24Sx}>
-                        <Typography variant="h4" sx={textPrimarySx}>Delete {user.user.name}?</Typography>
-                        <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                    </Box>
-                    <Typography variant="body1" sx={{ color: "text.primary", mb: "24px" }}>
-                        This user will lose access to the account.
+    let dialogTitle = "";
+    let primaryButtonText = "";
+    const bulletPoints: { text: React.ReactNode; show: boolean }[] = [];
+    let showContributorWarning = false;
+
+    // Build bullet points conditionally
+    if (isLastApproverWithPermission) {
+        bulletPoints.push({
+            text: "Approvals will be disabled until you enable it again.",
+            show: true
+        });
+    }
+
+    if (hasPendingApprovals) {
+        bulletPoints.push({
+            text: <>All pending approvals assigned to {user.user.name} will be cancelled.</>,
+            show: true
+        });
+    }
+
+    if (hasPendingApprovals) {
+        bulletPoints.push({
+            text: "The user who submitted the approvals will be notified via email.",
+            show: true
+        });
+    }
+
+    if (isContributor) {
+        showContributorWarning = true;
+    }
+
+    // Always show this bullet
+    bulletPoints.push({
+        text: "This user will lose access to the account.",
+        show: true
+    });
+
+    // Determine title and CTA based on conditions
+    if (isLastApproverWithPermission) {
+        dialogTitle = `Delete ${user.user.name} and disable approvals?`;
+        primaryButtonText = "Delete user and disable approvals";
+    }
+    else if (hasPendingApprovals) {
+        dialogTitle = `Delete ${user.user.name} and cancel its pending approvals?`;
+        primaryButtonText = "Delete user and cancel its pending approvals";
+    }
+    else {
+        dialogTitle = `Delete ${user.user.name}?`;
+        primaryButtonText = "Delete user";
+    }
+
+    const visibleBulletPoints = bulletPoints.filter(bp => bp.show);
+
+    const bodyContent = (
+        <Box>
+            {visibleBulletPoints.length > 0 && (
+                <Box sx={{ mb: "16px" }}>
+                    {visibleBulletPoints.map((bp, idx) => (
+                        <Typography key={idx} variant="body1" sx={{ color: "text.primary", mb: idx < visibleBulletPoints.length - 1 ? "8px" : "0px" }}>
+                            • {bp.text}
+                        </Typography>
+                    ))}
+                </Box>
+            )}
+            {showContributorWarning && (
+                <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
+                    <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                    <Typography variant="body1" sx={{ color: "text.primary" }}>
+                        All videos and analytics will be inaccessible in SundaySky, previously shared links will remain viewable.
                     </Typography>
-                    <OutlinedInput fullWidth placeholder='Type "Delete" to confirm' sx={{ height: 40, mb: "24px" }} />
-                    <Box sx={dialogActionsRowSx}>
-                        <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                        <Button variant="contained" color="error" onClick={() => {
-                            onConfirm(); onClose(); 
-                        }}>Delete user</Button>
-                    </Box>
                 </Box>
-            </Dialog>
-        );
-    }
+            )}
+        </Box>
+    );
 
-    // Variant 2: Contributor but not approver — shows contributor warning
-    if (!isApprover && user.amplifySpace === "Contributor") {
-        return (
-            <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}>
-                <Box sx={dialogBodySx}>
-                    <Box sx={dialogTitleRowMb24Sx}>
-                        <Typography variant="h4" sx={textPrimarySx}>Delete {user.user.name}?</Typography>
-                        <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                    </Box>
-                    <Typography variant="body1" sx={{ color: "text.primary", mb: "16px" }}>
-                        This user will lose access to the account.
-                    </Typography>
-                    <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
-                        <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                        <Typography variant="body1" sx={{ color: "text.primary" }}>
-                            All videos and analytics will be inaccessible in SundaySky, previously shared links will remain viewable.
-                        </Typography>
-                    </Box>
-                    <OutlinedInput fullWidth placeholder='Type "Delete" to confirm' sx={{ height: 40, mb: "24px" }} />
-                    <Box sx={dialogActionsRowSx}>
-                        <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                        <Button variant="contained" color="error" onClick={() => {
-                            onConfirm(); onClose(); 
-                        }}>Delete user</Button>
-                    </Box>
-                </Box>
-            </Dialog>
-        );
-    }
+    const handleConfirm = () => {
+        if (isLastApproverWithPermission) {
+            onConfirm();
+            onDisableApprovals?.();
+        }
+        else {
+            onConfirm();
+        }
+        onClose();
+        setInputValue("");
+    };
 
-    // Variant 3: Approver with pending approvals (not last approver)
-    if (isApprover && hasPendingApprovals && !isLastApprover) {
-        return (
-            <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}>
-                <Box sx={dialogBodySx}>
-                    <Box sx={dialogTitleRowMb24Sx}>
-                        <Typography variant="h4" sx={textPrimarySx}>Delete {user.user.name} and cancel its pending approvals?</Typography>
-                        <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                    </Box>
-                    <Box sx={{ mb: "16px" }}>
-                        <Typography variant="body1" sx={{ color: "text.primary", mb: "8px" }}>• All pending approvals assigned to {user.user.name} will be cancelled.</Typography>
-                        <Typography variant="body1" sx={{ color: "text.primary", mb: "8px" }}>• The user who submitted the approvals will be notified via email.</Typography>
-                        <Typography variant="body1" sx={{ color: "text.primary" }}>• This user will lose access to the account.</Typography>
-                    </Box>
-                    <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
-                        <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                        <Typography variant="body1" sx={{ color: "text.primary" }}>
-                            All videos and analytics will be inaccessible in SundaySky, previously shared links will remain viewable.
-                        </Typography>
-                    </Box>
-                    <OutlinedInput fullWidth placeholder='Type "Delete" to confirm' sx={{ height: 40, mb: "24px" }} />
-                    <Box sx={dialogActionsRowSx}>
-                        <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                        <Button variant="contained" color="error" onClick={() => {
-                            onConfirm(); onClose(); 
-                        }}>Delete user and cancel its pending approvals</Button>
-                    </Box>
-                </Box>
-            </Dialog>
-        );
-    }
+    const handleClose = () => {
+        onClose();
+        setInputValue("");
+    };
 
-    // Variant 4: Approver is the last approver — disable approvals
-    if (isApprover && isLastApprover) {
-        return (
-            <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}>
-                <Box sx={dialogBodySx}>
-                    <Box sx={dialogTitleRowMb24Sx}>
-                        <Typography variant="h4" sx={textPrimarySx}>Delete {user.user.name} and disable approvals?</Typography>
-                        <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                    </Box>
-                    <Box sx={{ mb: "16px" }}>
-                        <Typography variant="body1" sx={{ color: "text.primary", mb: "8px" }}>• Approvals will be disabled until you enable it again.</Typography>
-                        <Typography variant="body1" sx={{ color: "text.primary", mb: "8px" }}>• All pending approvals assigned to {user.user.name} will be cancelled.</Typography>
-                        <Typography variant="body1" sx={{ color: "text.primary", mb: "8px" }}>• The user who submitted the approvals will be notified via email.</Typography>
-                        <Typography variant="body1" sx={{ color: "text.primary" }}>• This user will lose access to the account.</Typography>
-                    </Box>
-                    <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
-                        <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                        <Typography variant="body1" sx={{ color: "text.primary" }}>
-                            All videos and analytics will be inaccessible in SundaySky, previously shared links will remain viewable.
-                        </Typography>
-                    </Box>
-                    <OutlinedInput fullWidth placeholder='Type "Delete" to confirm' sx={{ height: 40, mb: "24px" }} />
-                    <Box sx={dialogActionsRowSx}>
-                        <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                        <Button variant="contained" color="error" onClick={() => {
-                            onConfirm(); onDisableApprovals?.(); onClose(); 
-                        }}>Delete user and disable approvals</Button>
-                    </Box>
-                </Box>
-            </Dialog>
-        );
-    }
-
-    // Default: basic delete dialog
     return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}>
-            <Box sx={dialogBodySx}>
-                <Box sx={dialogTitleRowMb24Sx}>
-                    <Typography variant="h4" sx={textPrimarySx}>Delete {user.user.name}?</Typography>
-                    <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                </Box>
-                <Typography variant="body1" sx={{ color: "text.primary", mb: "24px" }}>
-                    This user will lose access to the account.
-                </Typography>
-                <OutlinedInput fullWidth placeholder='Type "Delete" to confirm' sx={{ height: 40, mb: "24px" }} />
-                <Box sx={dialogActionsRowSx}>
-                    <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                    <Button variant="contained" color="error" onClick={() => {
-                        onConfirm(); onClose(); 
-                    }}>Delete user</Button>
-                </Box>
-            </Box>
-        </Dialog>
+        <SimpleInputDialog
+            open={open}
+            dialogTitle={dialogTitle}
+            primaryActionButtonText={primaryButtonText}
+            HelpCenterIconButtonProps={{ onClick: () => {} }}
+            CloseIconButtonProps={{ onClick: handleClose }}
+            PrimaryActionButtonProps={{
+                onClick: handleConfirm,
+                disabled: !isConfirmed,
+                color: "error",
+                variant: "contained"
+            }}
+            secondaryActionButtonText="Cancel"
+            SecondaryActionButtonProps={{
+                onClick: handleClose
+            }}
+        >
+            {bodyContent}
+            <OutlinedInput
+                fullWidth
+                placeholder={"Type \"Delete\" to confirm"}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                sx={{ height: 40 }}
+            />
+        </SimpleInputDialog>
     );
 }
 
 
 // ─── Approvals Section ────────────────────────────────────────────────────────
-function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, pendingApprovalsCount = 0, videoStates = {} }: {
+function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, onUserDeleted }: {
  users: AccountUser[]
  approverIds: Set<string>
  enabled: boolean
@@ -904,6 +898,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
  onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
  pendingApprovalsCount?: number
  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
+ onUserDeleted?: (userId: string) => void
 }) {
     const [search, setSearch] = useState("");
     const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false);
@@ -911,8 +906,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     const [inviteAsApprover, setInviteAsApprover] = useState(false);
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false);
-    const [cannotTurnOffWithPendingOpen, setCannotTurnOffWithPendingOpen] = useState(false);
-    const [turnOffPendingVideos, setTurnOffPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([]);
+    const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+    const [selectedUserForMenu, setSelectedUserForMenu] = useState<AccountUser | null>(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null);
 
 
     const approvers = users.filter(u => u.createSpace.includes("Approver"));
@@ -932,22 +929,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     function handleToggle(v: boolean) {
         if (v) {
             onToggle(true);
-        }
-        else if (pendingApprovalsCount > 0) {
-            // Collect all pending videos
-            const pendingVideos = Object.entries(videoStates)
-                .map(([title, state]) => {
-                    const sentByUserId = state.sentApprovers?.[0];
-                    const sentByUser = sentByUserId ? users.find(u => u.user.id === sentByUserId) : null;
-                    return {
-                        title,
-                        sentAt: state.sentAt,
-                        sentBy: sentByUser?.user.name || "Unknown"
-                    };
-                });
-            setTurnOffPendingVideos(pendingVideos);
-            setCannotTurnOffWithPendingOpen(true);
-            // Do NOT call onToggle(false) — keep it ON
         }
         else if (!v && approverIds.size > 0) {
             setToggleConfirmOpen(true);
@@ -975,11 +956,20 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                             Set users as approvers by adding an approver permission in the users tab
                         </Typography>
                     </Box>
-                    <Switch
-                        checked={enabled}
-                        onChange={e => handleToggle(e.target.checked)}
-                        sx={switchSx}
-                    />
+                    <Tooltip
+                        title={approvers.length === 0 ? "To enable approvals, please add at least one user with approver permission." : ""}
+                        placement="top"
+                        arrow
+                    >
+                        <Box sx={{ display: "flex" }}>
+                            <Switch
+                                checked={enabled}
+                                onChange={e => handleToggle(e.target.checked)}
+                                disabled={approvers.length === 0}
+                                sx={switchSx}
+                            />
+                        </Box>
+                    </Tooltip>
                 </Box>
 
                 {enabled && (
@@ -1019,6 +1009,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                         <TableCell sx={{ ...headCellSx, width: 160 }}>
                                             <Typography variant="subtitle2" sx={textPrimarySx}>Creation date</Typography>
                                         </TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 44 }} />
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -1062,6 +1053,18 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                                         {row.createdDate}
                                                     </Typography>
                                                 </TableCell>
+                                                <TableCell sx={{ ...bodyCellSx, width: 44, textAlign: "center" }}>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => {
+                                                            setMenuAnchorEl(e.currentTarget);
+                                                            setSelectedUserForMenu(row);
+                                                        }}
+                                                        sx={{ color: "text.primary" }}
+                                                    >
+                                                        <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsis} /></SvgIcon>
+                                                    </IconButton>
+                                                </TableCell>
                                             </TableRow>
                                         );
                                     })}
@@ -1070,6 +1073,31 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                         </Box>
                     </Box>
                 )}
+
+                {/* Menu for approver actions */}
+                <Menu
+                    anchorEl={menuAnchorEl}
+                    open={Boolean(menuAnchorEl)}
+                    onClose={() => {
+                        setMenuAnchorEl(null);
+                        setSelectedUserForMenu(null);
+                    }}
+                >
+                    <MenuItem
+                        onClick={() => {
+                            if (selectedUserForMenu) {
+                                setUserToDelete(selectedUserForMenu);
+                                setDeleteOpen(true);
+                                setMenuAnchorEl(null);
+                                setSelectedUserForMenu(null);
+                            }
+                        }}
+                        sx={{ color: "error.main" }}
+                    >
+                        <SvgIcon sx={{ fontSize: 16, mr: "8px" }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                        Delete
+                    </MenuItem>
+                </Menu>
             </Box>
 
             {/* Add Approver Dialog */}
@@ -1182,61 +1210,29 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                 </Box>
             </Dialog>
 
-            {/* Cannot Turn Off Approvals with Pending Approvals Dialog */}
-            <Dialog
-                open={cannotTurnOffWithPendingOpen}
-                onClose={() => setCannotTurnOffWithPendingOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb16Sx}>
- Cancel or resolve pending approvals to disable request approvals
-                    </Typography>
-                    {turnOffPendingVideos.length > 0 && (
-                        <Box sx={pendingVideoListSx}>
-                            {turnOffPendingVideos.map(v => (
-                                <Box
-                                    key={v.title}
-                                    onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, "_blank")}
-                                    sx={pendingVideoCardSx}
-                                >
-                                    <Box sx={videoThumbnailSx}>
-                                        <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                    </Box>
-                                    <Box sx={flex1MinWidth0Sx}>
-                                        <Typography variant="subtitle2" sx={cardTitleSx}>
-                                            {v.title}
-                                        </Typography>
-                                        {v.sentAt && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- Sent for approval: {v.sentAt}
-                                            </Typography>
-                                        )}
-                                        {v.sentBy && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- Requested by: {v.sentBy}
-                                            </Typography>
-                                        )}
-                                        <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            ))}
-                        </Box>
-                    )}
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setCannotTurnOffWithPendingOpen(false)}
-                    >
- Got it
-                    </Button>
-                </Box>
-            </Dialog>
-
+            {/* Delete User Dialog */}
+            <DeleteUserDialog
+                open={deleteOpen}
+                onClose={() => {
+                    setDeleteOpen(false);
+                    setUserToDelete(null);
+                }}
+                user={userToDelete}
+                remainingApproversAfterDelete={userToDelete ? Array.from(approverIds).filter(id => id !== userToDelete.user.id).length : 0}
+                hasPendingApprovals={!!userToDelete?.addedAsApprover}
+                isContributor={userToDelete?.amplifySpace === "Contributor"}
+                approvalsEnabledInAccount={enabled}
+                onConfirm={() => {
+                    if (userToDelete) {
+                        const newApprovers = Array.from(approverIds).filter(id => id !== userToDelete.user.id);
+                        onSetApprovers(newApprovers);
+                        onUserDeleted?.(userToDelete.user.id);
+                    }
+                }}
+                onDisableApprovals={() => {
+                    onToggle(false);
+                }}
+            />
 
         </Box>
     );
@@ -1250,8 +1246,8 @@ function UsersSection({
     onPermissionsChanged,
     approvalsEnabled = false,
     approverIds = new Set(),
-    videoStates = {},
-    onClose
+    onClose,
+    onEnableApprovalsRequested
 }: {
  users: AccountUser[]
  onInviteUser: (rows: InviteRow[]) => void
@@ -1261,6 +1257,7 @@ function UsersSection({
  approverIds?: Set<string>
  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
  onClose?: () => void
+ onEnableApprovalsRequested?: () => void
 }) {
     const [search, setSearch] = useState("");
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -1268,14 +1265,12 @@ function UsersSection({
     const [editingUser, setEditingUser] = useState<AccountUser | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null);
-    const [cannotRemoveApproverOpen, setCannotRemoveApproverOpen] = useState(false);
-    const [soleApproverWarningOpen, setSoleApproverWarningOpen] = useState(false);
-    const [pendingApprovalDeleteOpen, setPendingApprovalDeleteOpen] = useState(false);
-    const [pendingVideosForUser, setPendingVideosForUser] = useState<{ title: string; sentAt?: string; otherApprovers: string[] }[]>([]);
     const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(null);
     const [userMenuUser, setUserMenuUser] = useState<AccountUser | null>(null);
     const [usersList, setUsersList] = useState<AccountUser[]>(users);
     const [activeTab, setActiveTab] = useState<"create" | "amplify">("create");
+    const [enableApprovalsDialogOpen, setEnableApprovalsDialogOpen] = useState(false);
+    const [userWithApproverAdded, setUserWithApproverAdded] = useState<AccountUser | null>(null);
 
     const filtered = search
         ? usersList.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
@@ -1459,8 +1454,18 @@ function UsersSection({
                 users={usersList}
                 onSave={(createSpace, amplifySpace) => {
                     if (editingUser) {
+                        const hadApprover = editingUser.createSpace.includes("Approver");
+                        const hasApprover = createSpace.includes("Approver");
+                        const becameApprover = !hadApprover && hasApprover;
+
                         setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u));
                         onPermissionsChanged?.(editingUser.user.id, createSpace, amplifySpace);
+
+                        // Show enable approvals dialog if user gained approver permission and approvals are disabled
+                        if (becameApprover && !approvalsEnabled) {
+                            setUserWithApproverAdded(editingUser);
+                            setEnableApprovalsDialogOpen(true);
+                        }
                     }
                 }}
             />
@@ -1468,144 +1473,61 @@ function UsersSection({
             {/* Delete User Dialog */}
             <DeleteUserDialog
                 open={deleteOpen}
-                onClose={() => setDeleteOpen(false)}
+                onClose={() => {
+                    setDeleteOpen(false);
+                    setUserToDelete(null);
+                    setUserMenuAnchor(null);
+                }}
                 user={userToDelete}
-                approvalsEnabled={false}
+                remainingApproversAfterDelete={userToDelete && userToDelete.createSpace.includes("Approver") ? Array.from(approverIds).filter(id => id !== userToDelete.user.id).length : undefined}
+                hasPendingApprovals={!!userToDelete?.addedAsApprover}
+                isContributor={userToDelete?.amplifySpace === "Contributor"}
+                approvalsEnabledInAccount={approvalsEnabled}
                 onConfirm={() => {
                     if (userToDelete) {
                         setUsersList(prev => prev.filter(u => u.user.id !== userToDelete.user.id));
                         onUserDeleted?.(userToDelete.user.id);
+                        setUserMenuAnchor(null);
                     }
                 }}
             />
 
-            {/* Cannot Remove Only Approver Dialog */}
+            {/* Enable Approvals Dialog */}
             <Dialog
-                open={cannotRemoveApproverOpen}
-                onClose={() => setCannotRemoveApproverOpen(false)}
+                open={enableApprovalsDialogOpen}
+                onClose={() => setEnableApprovalsDialogOpen(false)}
                 maxWidth={false}
-                PaperProps={{ sx: { width: 460, borderRadius: "12px", p: 0 } }}
+                PaperProps={{ sx: { width: 480, borderRadius: "12px", p: 0 } }}
             >
                 <Box sx={dialogBodySx}>
                     <Typography variant="h4" sx={dialogTitleSx}>
- Cannot remove this user
+                        Enable approvals for videos?
                     </Typography>
                     <Typography variant="body1" sx={dialogBodyTextSx}>
-                        <strong>{userToDelete?.user.name}</strong> is currently the only approver in your account. To remove this user, you must either:
+                        You added an approver permission to {userWithApproverAdded?.user.name}.
+                        <br />
+                        <br />
+                        In order to be able to submit for approval, you need to enable approvals.
                     </Typography>
-                    <Box sx={infoBoxAltSx}>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            <Typography variant="body1" sx={textPrimarySx}>
- • <strong>Turn off</strong> the "Require approvals from specific users for videos and templates" setting
-                            </Typography>
-                            <Typography variant="body1" sx={textPrimarySx}>
- • <strong>Add another approver</strong> first, then remove this user
-                            </Typography>
-                        </Box>
-                    </Box>
                     <Box sx={dialogActionsRowSx}>
                         <Button
                             variant="outlined"
-                            onClick={() => setCannotRemoveApproverOpen(false)}
+                            onClick={() => setEnableApprovalsDialogOpen(false)}
                             sx={cancelButtonSx}
                         >
- Close
+                            I'll do it later
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                                setEnableApprovalsDialogOpen(false);
+                                onEnableApprovalsRequested?.();
+                            }}
+                        >
+                            Enable approvals
                         </Button>
                     </Box>
-                </Box>
-            </Dialog>
-
-            {/* Sole Approver Warning — Cannot Remove */}
-            <Dialog
-                open={soleApproverWarningOpen}
-                onClose={() => setSoleApproverWarningOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb8Sx}>
- Cannot remove this user
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextMb16Sx}>
-                        <strong>{userToDelete?.user.name}</strong> is the only approver on a video currently awaiting approval. To remove this user, first stop the approval process for the following {pendingVideosForUser.filter(v => v.otherApprovers.length === 0).length > 1 ? "videos" : "video"}:
-                    </Typography>
-                    <Box sx={pendingVideoListSx}>
-                        {pendingVideosForUser.filter(v => v.otherApprovers.length === 0).map(v => (
-                            <Box key={v.title} sx={pendingVideoCardStaticSx}>
-                                <Box sx={videoThumbnailSx}>
-                                    <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                </Box>
-                                <Box sx={flex1MinWidth0Sx}>
-                                    <Typography variant="subtitle2" sx={cardTitleSx}>
-                                        {v.title}
-                                    </Typography>
-                                    {v.sentAt && (
-                                        <Typography variant="body1" sx={textSecondarySx}>
- Sent for approval: {v.sentAt}
-                                        </Typography>
-                                    )}
-                                    <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        ))}
-                    </Box>
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setSoleApproverWarningOpen(false)}
-                    >
- Got it
-                    </Button>
-                </Box>
-            </Dialog>
-
-            {/* Pending Approvals Delete Warning */}
-            <Dialog
-                open={pendingApprovalDeleteOpen}
-                onClose={() => setPendingApprovalDeleteOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb8Sx}>
- Cannot remove this user
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextMb16Sx}>
-                        <strong>{userToDelete?.user.name}</strong> has pending approvals and cannot be removed until the approval process is completed or cancelled for the following {pendingVideosForUser.length > 1 ? "videos" : "video"}:
-                    </Typography>
-                    <Box sx={pendingVideoListSx}>
-                        {pendingVideosForUser.map(v => (
-                            <Box key={v.title} sx={pendingVideoCardStaticSx}>
-                                <Box sx={videoThumbnailSx}>
-                                    <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                </Box>
-                                <Box sx={flex1MinWidth0Sx}>
-                                    <Typography variant="subtitle2" sx={cardTitleSx}>
-                                        {v.title}
-                                    </Typography>
-                                    {v.sentAt && (
-                                        <Typography variant="body1" sx={textSecondarySx}>
- Sent for approval: {v.sentAt}
-                                        </Typography>
-                                    )}
-                                    <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        ))}
-                    </Box>
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setPendingApprovalDeleteOpen(false)}
-                    >
- Got it
-                    </Button>
                 </Box>
             </Dialog>
 
@@ -1632,31 +1554,7 @@ function UsersSection({
                         if (userMenuUser) {
                             setUserMenuAnchor(null);
                             setUserToDelete(userMenuUser);
-                            const pendingVideos = Object.entries(videoStates)
-                                .filter(([_, state]) => state.sentApprovers?.includes(userMenuUser.user.id))
-                                .map(([title, state]) => ({
-                                    title,
-                                    sentAt: state.sentAt,
-                                    otherApprovers: (state.sentApprovers || []).filter(id => id !== userMenuUser.user.id)
-                                }));
-                            if (pendingVideos.length > 0) {
-                                setPendingVideosForUser(pendingVideos);
-                                if (pendingVideos.some(v => v.otherApprovers.length === 0)) {
-                                    setSoleApproverWarningOpen(true);
-                                }
-                                else {
-                                    setPendingApprovalDeleteOpen(true);
-                                }
-                            }
-                            else {
-                                const isOnlyApprover = approvalsEnabled && approverIds.size === 1 && approverIds.has(userMenuUser.user.id);
-                                if (isOnlyApprover) {
-                                    setCannotRemoveApproverOpen(true); 
-                                }
-                                else {
-                                    setDeleteOpen(true); 
-                                }
-                            }
+                            setDeleteOpen(true);
                         }
                     }}
                     sx={menuItemRemoveSx}
@@ -1867,7 +1765,7 @@ export default function AccountSettingsDialog({
                                 }
                                 setUsers(prev => prev.filter(u => u.user.id !== userId));
                                 setApproverIds(prev => {
-                                    const s = new Set(prev); s.delete(userId); return s; 
+                                    const s = new Set(prev); s.delete(userId); return s;
                                 });
                             }}
                             onPermissionsChanged={(userId, createSpace, amplifySpace) => {
@@ -1896,6 +1794,11 @@ export default function AccountSettingsDialog({
                             approverIds={approverIds}
                             videoStates={videoStates}
                             onClose={onClose}
+                            onEnableApprovalsRequested={() => {
+                                setNav("approvals");
+                                setApprovalsEnabled(true);
+                                onApprovalsEnabledChange?.(true);
+                            }}
                         />
                     )}
                     {nav === "permissions" && <PlaceholderSection label="Permissions" />}
@@ -1922,6 +1825,9 @@ export default function AccountSettingsDialog({
                                 setUsers(prev => prev.map(u =>
                                     u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
                                 ));
+                            }}
+                            onUserDeleted={(userId) => {
+                                setUsers(prev => prev.filter(u => u.user.id !== userId));
                             }}
                             pendingApprovalsCount={pendingApprovalsCount}
                             videoStates={videoStates}
@@ -1975,8 +1881,6 @@ export default function AccountSettingsDialog({
 // General / shared
 const textPrimarySx: SxProps<Theme> = { color: "text.primary" };
 const textSecondarySx: SxProps<Theme> = { color: "text.secondary" };
-const flex1MinWidth0Sx: SxProps<Theme> = { flex: 1, minWidth: 0 };
-
 // Buttons
 const cancelButtonSx: SxProps<Theme> = { color: "text.primary", borderColor: "grey.300" };
 const textCancelButtonSx: SxProps<Theme> = { color: "text.primary" };
@@ -2001,21 +1905,15 @@ const userCellRoleSx: SxProps<Theme> = { color: "text.secondary", lineHeight: 1.
 
 // Dialogs (shared layout)
 const dialogBodySx: SxProps<Theme> = { px: "24px", py: "20px" };
-const dialogBodyReducedBottomSx: SxProps<Theme> = { px: "24px", pt: "20px", pb: "8px" };
 const dialogTitleRowMb16Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px" };
 const dialogTitleRowMb24Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "24px" };
 const dialogTitleSx: SxProps<Theme> = { color: "text.primary", mb: "12px" };
-const dialogTitleMb16Sx: SxProps<Theme> = { color: "text.primary", mb: "16px" };
-const dialogTitleMb8Sx: SxProps<Theme> = { color: "text.primary", mb: "8px" };
 const dialogBodyTextSx: SxProps<Theme> = { color: "text.secondary", mb: "24px", lineHeight: 1.6 };
-const dialogBodyTextMb16Sx: SxProps<Theme> = { color: "text.secondary", mb: "16px", lineHeight: 1.6 };
 const dialogActionsRowSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", gap: "12px" };
-const dialogFooterSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", px: "24px", py: "16px", borderTop: 1, borderTopColor: "grey.300" };
 const dialogFlexBodySx: SxProps<Theme> = { display: "flex", flex: 1, overflow: "hidden" };
 
 // Info box
 const infoBoxSx: SxProps<Theme> = { display: "flex", alignItems: "flex-start", gap: "8px", bgcolor: "action.hover", borderRadius: "8px", px: "14px", py: "12px", mb: "20px" };
-const infoBoxAltSx: SxProps<Theme> = { bgcolor: "action.hover", borderRadius: "8px", px: "14px", py: "12px", mb: "24px" };
 const existingEmailInputSx: SxProps<Theme> = { height: 40, mb: "16px", "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" } };
 
 // Context menus
@@ -2023,27 +1921,8 @@ const contextMenuPaperSx: SxProps<Theme> = { borderRadius: "10px", minWidth: 240
 const menuItemEditSx: SxProps<Theme> = { color: "text.primary", px: "16px", py: "8px", gap: "10px" };
 const menuItemRemoveSx: SxProps<Theme> = { color: "error.main", px: "16px", py: "8px", gap: "10px" };
 
-// Pending video cards
-const pendingVideoListSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "12px", mb: "20px" };
-const pendingVideoCardSx: SxProps<Theme> = {
-    display: "flex",
-    gap: "12px",
-    alignItems: "flex-start",
-    bgcolor: "background.default",
-    borderRadius: "8px",
-    p: "12px",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    "&:hover": {
-        bgcolor: "primary.light",
-        boxShadow: "0 2px 8px rgba(0, 83, 229, 0.15)"
-    }
-};
-const pendingVideoCardStaticSx: SxProps<Theme> = { display: "flex", gap: "12px", alignItems: "flex-start", bgcolor: "background.default", borderRadius: "8px", p: "12px" };
-const videoThumbnailSx: SxProps<Theme> = { width: 64, height: 48, borderRadius: "6px", bgcolor: "action.selected", flexShrink: 0, border: 1, borderColor: "grey.300", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" };
+// Card
 const cardTitleSx: SxProps<Theme> = { color: "text.primary", mb: "2px" };
-const cardCaptionSx: SxProps<Theme> = { color: "text.secondary", mb: "4px" };
-const awaitingApprovalLabelSx: SxProps<Theme> = { color: "warning.main", mt: "2px" };
 
 // Tables
 const tableFullWidthSx: SxProps<Theme> = { width: "100%" };
@@ -2061,7 +1940,6 @@ const switchSx: SxProps<Theme> = { "& .MuiSwitch-switchBase.Mui-checked": { colo
 const sidebarSx: SxProps<Theme> = { width: 176, flexShrink: 0, borderRight: 1, borderRightColor: "grey.300", py: "12px", px: "8px", display: "flex", flexDirection: "column", gap: "2px", bgcolor: "background.default" };
 const contentAreaSx: SxProps<Theme> = { flex: 1, overflow: "hidden", px: "24px", py: "20px", display: "flex", flexDirection: "column" };
 const placeholderContainerSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" };
-const thumbCoverSx: SxProps<Theme> = { width: "100%", height: "100%", objectFit: "cover" };
 
 // UsersSection
 const usersTitleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px", flexShrink: 0 };
