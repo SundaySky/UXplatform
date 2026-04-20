@@ -1719,9 +1719,7 @@ export default function AccountSettingsDialog({
     const [users, setUsers] = useState<AccountUser[]>(INITIAL_USERS);
     const [approverIds, setApproverIds] = useState<Set<string>>(externalApproverIds);
     const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled);
-    const [noApproversConfirmOpen, setNoApproversConfirmOpen] = useState(false);
     const [enableApprovalsPromptOpen, setEnableApprovalsPromptOpen] = useState(false);
-    const [pendingNav, setPendingNav] = useState<NavKey | null>(null);
 
     // Sync nav when initialTab changes
     React.useEffect(() => {
@@ -1828,14 +1826,7 @@ export default function AccountSettingsDialog({
             <TruffleDialogTitle
                 HelpCenterIconButtonProps={{ onClick: () => {} }}
                 CloseIconButtonProps={{
-                    onClick: () => {
-                        if (approvalsEnabled && approverIds.size === 0) {
-                            setNoApproversConfirmOpen(true);
-                        }
-                        else {
-                            onClose();
-                        }
-                    }
+                    onClick: onClose
                 }}
             >
  Account settings
@@ -1849,14 +1840,7 @@ export default function AccountSettingsDialog({
                         <Box
                             key={item.key}
                             onClick={() => {
-                                // Check if approvals are enabled but no approvers set when leaving the Approvals tab
-                                if (nav === "approvals" && approvalsEnabled && approverIds.size === 0 && item.key !== "approvals") {
-                                    setPendingNav(item.key);
-                                    setNoApproversConfirmOpen(true);
-                                }
-                                else {
-                                    setNav(item.key);
-                                }
+                                setNav(item.key);
                             }}
                             sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: nav === item.key ? "action.hover" : "action.hover" } }}
                         >
@@ -1946,54 +1930,6 @@ export default function AccountSettingsDialog({
                     {nav === "access" && <PlaceholderSection label="Access" />}
                 </Box>
             </Box>
-
-            {/* No Approvers Warning Dialog */}
-            <Dialog
-                open={noApproversConfirmOpen}
-                onClose={() => setNoApproversConfirmOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 480, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodySx}>
-                    <Typography variant="h4" sx={dialogTitleSx}>
- Approvals feature requires approvers
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextSx}>
- You've enabled "Require approvals from specific users for videos and templates" but haven't added any approvers yet. You must add at least one approver to keep this feature enabled, or turn it off.
-                    </Typography>
-                    <Box sx={dialogActionsRowSx}>
-                        <Button
-                            variant="outlined"
-                            onClick={() => {
-                                setNoApproversConfirmOpen(false);
-                                // Disable approvals
-                                setApprovalsEnabled(false);
-                                onApprovalsEnabledChange?.(false);
-                                setPendingNav(null);
-                                // Navigate to pending tab if set
-                                if (pendingNav) {
-                                    setNav(pendingNav);
-                                }
-                            }}
-                            sx={cancelButtonSx}
-                        >
- Disable approvals
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={() => {
-                                setNoApproversConfirmOpen(false);
-                                setPendingNav(null);
-                                // Stay on approvals tab and focus the add approver button
-                                setNav("approvals");
-                                // The AddApproverDialog will be opened via ApprovalsSection state
-                            }}
-                        >
- Add approvers
-                        </Button>
-                    </Box>
-                </Box>
-            </Dialog>
 
             {/* Enable Request Approvals Prompt */}
             <Dialog
