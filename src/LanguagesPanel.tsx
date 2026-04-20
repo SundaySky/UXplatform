@@ -96,9 +96,6 @@ export default function LanguagesPanel({
 
     const activeLangsList = enabledLangs;
 
-    // Options for the adder slot: everything not already confirmed
-    const adderAvailable = LANGUAGE_OPTIONS.filter(l => !selectedLangs.includes(l.name) && !addingValue.includes(l.name));
-
     // When the adder dropdown closes, commit each selection as its own individual row
     function handleAddingClose() {
         if (addingValue.length > 0) {
@@ -115,12 +112,12 @@ export default function LanguagesPanel({
         setSelectedLangs(prev => prev.map((l, i) => i === index ? newLang : l));
     }
 
-    // "Add more" menu directly toggles selectedLangs — checked = selected, uncheck = remove
+    // "Add more" menu only adds — already-selected langs show as checked but can't be removed here
     function handleAddMoreToggle(langName: string) {
         setSelectedLangs(prev => {
             if (prev.includes(langName)) {
-                return prev.filter(l => l !== langName);
-            }
+                return prev;
+            } // already added, no-op
             if (prev.length >= MAX_LANGUAGES) {
                 return prev;
             }
@@ -443,7 +440,11 @@ export default function LanguagesPanel({
                                             multiple
                                             displayEmpty
                                             value={addingValue}
-                                            onChange={(e) => setAddingValue(e.target.value as string[])}
+                                            onChange={(e) => {
+                                                // Guard: never allow already-confirmed langs into the pending set
+                                                const next = (e.target.value as string[]).filter(v => !selectedLangs.includes(v));
+                                                setAddingValue(next);
+                                            }}
                                             onClose={handleAddingClose}
                                             renderValue={(sel) => {
                                                 const selected = sel as string[];
@@ -471,11 +472,18 @@ export default function LanguagesPanel({
                                             }}
                                             MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
                                         >
-                                            {adderAvailable.map(({ name, flag }) => {
-                                                const checked = addingValue.includes(name);
+                                            {LANGUAGE_OPTIONS.map(({ name, flag }) => {
+                                                const alreadySelected = selectedLangs.includes(name);
+                                                const inAdding = addingValue.includes(name);
+                                                const checked = alreadySelected || inAdding;
                                                 const atMax = (selectedCount + addingValue.length) >= MAX_LANGUAGES && !checked;
                                                 return (
-                                                    <MenuItem key={name} value={name} disabled={atMax}>
+                                                    <MenuItem
+                                                        key={name}
+                                                        value={name}
+                                                        disabled={atMax || alreadySelected}
+                                                        sx={alreadySelected ? { opacity: "1 !important", cursor: "default" } : undefined}
+                                                    >
                                                         <Tooltip
                                                             title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}
                                                             placement="right"
@@ -518,17 +526,20 @@ export default function LanguagesPanel({
                                 PaperProps={{ sx: { maxHeight: 320, minWidth: 220 } }}
                             >
                                 {LANGUAGE_OPTIONS.map(({ name, flag }) => {
-                                    const checked = selectedLangs.includes(name) || addingValue.includes(name);
+                                    const alreadySelected = selectedLangs.includes(name);
+                                    const inAdder = addingValue.includes(name);
+                                    const checked = alreadySelected || inAdder;
                                     const atMax = selectedCount >= MAX_LANGUAGES && !checked;
                                     return (
                                         <MenuItem
                                             key={name}
                                             onClick={() => {
-                                                if (!atMax) {
+                                                if (!atMax && !alreadySelected) {
                                                     handleAddMoreToggle(name);
-                                                } 
+                                                }
                                             }}
                                             disabled={atMax}
+                                            sx={alreadySelected ? { opacity: "1 !important", cursor: "default" } : undefined}
                                         >
                                             <Tooltip
                                                 title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}

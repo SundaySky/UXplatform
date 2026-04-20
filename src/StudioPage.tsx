@@ -13,7 +13,7 @@ import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faWaveformLines, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faArrowsRotate } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
-import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleLink } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleLink, TruffleMenuPanel } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
 import AvatarLibraryPanel from "./AvatarLibraryPanel";
@@ -1539,11 +1539,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
           <Box sx={studioContentAreaSx}>
 
               {/* Left nav */}
-              <Box sx={studioLeftNavSx}>
+              <TruffleMenuPanel variant="outlined" sx={studioLeftNavSx}>
                   {NAV_SECTIONS.map(({ section, items }) => (
-                      <List key={section} dense disablePadding>
+                      <List key={section} disablePadding>
                           <ListSubheader disableSticky sx={navSubheaderSx}>
-                              <Typography variant="label">{section}</Typography>
+                              {section}
                           </ListSubheader>
                           {items.map(({ icon, label, onClickOverride }: { icon: React.ReactNode; label: string; onClickOverride?: () => void }) => (
                               <ListItemButton
@@ -1583,7 +1583,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           }
                                       }
                                   }}
-                                  sx={navItemButtonSx}
                               >
                                   <ListItemIcon sx={navItemIconSx}>{icon}</ListItemIcon>
                                   <ListItemText
@@ -1595,7 +1594,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           ))}
                       </List>
                   ))}
-              </Box>
+              </TruffleMenuPanel>
 
               {/* Media Library Panel — slides in between nav and stage */}
               <MediaLibraryPanel
@@ -2520,36 +2519,29 @@ const studioVideoPageBtnSx: SxProps<Theme> = {
     whiteSpace: "nowrap"
 };
 
+// Layout-only overrides for TruffleMenuPanel — appearance handled by the component
 const studioLeftNavSx: SxProps<Theme> = {
     width: 136,
     flexShrink: 0,
-    bgcolor: "background.paper",
-    borderRight: 1,
-    borderRightStyle: "solid",
-    borderRightColor: "divider",
     overflowY: "auto",
+    pl: 0, // TruffleMenuPanel outlined default is 20px — too wide for 136px nav
     pt: 0,
-    display: "flex",
-    flexDirection: "column"
-};
-
-const navSubheaderSx: SxProps<Theme> = {
-    letterSpacing: "0.8px",
-    color: "grey.500",
-    pt: 2,
     pb: 0,
-    lineHeight: 1.6,
-    px: 1
+    // Height fills the content area
+    alignSelf: "stretch"
 };
 
-const navItemButtonSx: SxProps<Theme> = {
-    borderRadius: "6px 0 0 6px",
-    py: 1,
-    px: 1
+// Theme already applies: uppercase, caption variant, padding "0 12px 8px 12px"
+const navSubheaderSx: SxProps<Theme> = {
+    color: "text.secondary",
+    pt: 2 // extra top gap for visual section grouping
 };
+
+// navItemButtonSx removed — TruffleMenuPanel + Truffle theme handle borderRadius,
+// padding, and right-edge squaring correctly via generalSxProps
 
 const navItemIconSx: SxProps<Theme> = {
-    minWidth: 24
+    minWidth: "auto" // let the theme gap handle spacing; MUI default 56px is too wide
 };
 
 const studioNavItemTextSx: SxProps<Theme> = {
