@@ -1226,6 +1226,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     if (userToDelete) {
                         const newApprovers = Array.from(approverIds).filter(id => id !== userToDelete.user.id);
                         onSetApprovers(newApprovers);
+                        // Disable approvals if no approvers left
+                        if (newApprovers.length === 0 && enabled) {
+                            onToggle(false);
+                        }
                         onUserDeleted?.(userToDelete.user.id);
                     }
                 }}

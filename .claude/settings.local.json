@@ -20,7 +20,8 @@
       "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__get_metadata",
       "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__whoami",
       "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__get_screenshot",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git commit -m 'Auto-disable approvals when last approver is removed *)"
     ]
   }
 }
