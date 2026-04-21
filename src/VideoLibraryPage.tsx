@@ -524,7 +524,7 @@ const NAV_ITEMS = [
     { icon: faChartBar, label: "Analytics", selected: false }
 ];
 
-function AppSidebar() {
+export function AppSidebar(_props?: { selectedNav?: string; onVideoLibraryClick?: () => void }) {
     return (
         <Box sx={sidebarSx}>
             {/* Logo area */}
@@ -1411,13 +1411,6 @@ const menuDividerSx: SxProps<Theme> = {
     my: "4px"
 };
 
-const menuSecondaryIconSx: SxProps<Theme> = {
-    fontSize: "16px !important",
-    width: "16px !important",
-    height: "16px !important",
-    color: "action.active"
-};
-
 const menuItemIconMrSx: SxProps<Theme> = {
     fontSize: "16px !important",
     width: "16px !important",
@@ -1426,13 +1419,6 @@ const menuItemIconMrSx: SxProps<Theme> = {
     mr: 1
 };
 
-const menuItemIconMlSx: SxProps<Theme> = {
-    fontSize: "16px !important",
-    width: "16px !important",
-    height: "16px !important",
-    color: "action.active",
-    ml: 1
-};
 
 const menuItemIconDeleteSx: SxProps<Theme> = {
     fontSize: "16px !important",
