@@ -2,15 +2,15 @@ import React, { useState } from "react";
 import type { SxProps, Theme } from "@mui/material";
 import {
     Box, Typography, Dialog, IconButton, SvgIcon,
-    Button, OutlinedInput,
+    Button, OutlinedInput, Tabs, Tab, Popover,
     Table, TableBody, TableCell, TableHead, TableRow,
-    Tooltip, Switch, Checkbox, Divider,
-    Select, MenuItem, FormControl, Menu,
+    Tooltip, Switch, Divider,
+    MenuItem, Menu,
     Autocomplete, TextField
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark } from "@fortawesome/pro-regular-svg-icons";
-import { TruffleDialogTitle, AttentionBox, AttentionBoxContent, TruffleAvatar, Search } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck } from "@fortawesome/pro-regular-svg-icons";
+import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./ManageAccessDialog";
 
@@ -31,7 +31,7 @@ interface AccountUser {
 export const INITIAL_USERS: AccountUser[] = [
     { user: OWNER_USER, isOwner: true, createSpace: "Account owner", amplifySpace: "Contributor", jobRole: "Integrator", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" },
     { user: ALL_USERS[1], createSpace: "Editor", amplifySpace: "Contributor", jobRole: "Data Analyst", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" },
-    { user: ALL_USERS[2], createSpace: "Editor", amplifySpace: "No access", jobRole: "Marketing", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" },
+    { user: ALL_USERS[2], createSpace: "Approver", amplifySpace: "No access", jobRole: "Marketing", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" },
     { user: ALL_USERS[3], createSpace: "No access", amplifySpace: "Contributor", jobRole: "Creative Agency", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" },
     { user: ALL_USERS[4], createSpace: "Viewer", amplifySpace: "No access", jobRole: "Marketing", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" },
     { user: ALL_USERS[5], createSpace: "Editor", amplifySpace: "Contributor", jobRole: "Marketing", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" }
@@ -47,149 +47,37 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
     { key: "access", label: "Access", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUserLock} /></SvgIcon> }
 ];
 
-// ─── Shared: column header with ⓘ tooltip + seat badge ───────────────────────
-function SeatHeader({ label, iconTooltip, chipTooltip, used, total }: { label: string; iconTooltip?: string; chipTooltip?: string; used: number; total: number }) {
-    return (
-        <Box sx={seatHeaderContainerSx}>
-            <Typography variant="subtitle2" sx={seatHeaderLabelSx}>{label}</Typography>
-            {iconTooltip ? (
-                <Tooltip title={iconTooltip} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                    <SvgIcon sx={seatHeaderInfoIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                </Tooltip>
-            ) : (
-                <SvgIcon sx={seatHeaderInfoIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-            )}
-            <Tooltip title={chipTooltip || ""} placement="top" arrow disableHoverListener={!chipTooltip} componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                <Box sx={seatBadgeSx}>
-                    <Typography variant="caption" sx={seatBadgeTextSx}>{used}/{total}</Typography>
-                </Box>
-            </Tooltip>
-        </Box>
-    );
-}
-
-// ─── Shared: Create Space Multi-Select with Checkboxes ─────────────────────
-function CreateSpaceSelector({
-    selected, onChange, options, isPermissionDisabled, getDisabledTooltip, lockedOption
-}: {
- selected: string[]
- onChange: (permissions: string[]) => void
- options: string[]
- isPermissionDisabled: (permission: string) => boolean
- getDisabledTooltip: (permission: string) => string | null
- lockedOption?: string
-}) {
-    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-    const displayText = selected.length > 0 ? selected.join(", ") : "No access";
-
-    // Permission descriptions
-    const permissionDescriptions: Record<string, string> = {
-        "Account owner": "Can edit, add users and change permissions",
-        "Editor": "Can edit videos and templates. Uses a seat.",
-        "Approver": "Can approve videos and templates and leave feedback. Uses a seat.",
-        "Viewer": "Has access to videos and template content with no option to share or edit.",
-        "No access": "Cannot view or edit videos and templates."
-    };
-
-    return (
-        <>
-            <FormControl fullWidth size="small">
-                <Button
-                    onClick={e => setAnchorEl(e.currentTarget)}
-                    sx={createSpaceSelectorButtonSx}
-                >
-                    {displayText}
-                </Button>
-            </FormControl>
-            <Menu
-                anchorEl={anchorEl}
-                open={!!anchorEl}
-                onClose={() => setAnchorEl(null)}
-                PaperProps={{ sx: createSpaceMenuPaperSx }}
-            >
-                {options.map(option => {
-                    const isLocked = option === lockedOption;
-                    const isDisabled = isLocked || isPermissionDisabled(option);
-                    const tooltip = isLocked ? `${option} is required and cannot be removed` : getDisabledTooltip(option);
-                    const isChecked = isLocked ? true : selected.includes(option);
-                    const description = permissionDescriptions[option] || "";
-
-                    const menuItem = (
-                        <Box
-                            key={option}
-                            onClick={() => {
-                                if (!isDisabled) {
-                                    let newSelected: string[];
-                                    if (option === "No access") {
-                                        // "No access" is exclusive — selecting it clears all others
-                                        newSelected = isChecked ? [] : ["No access"];
-                                    }
-                                    else {
-                                        // Selecting any real permission clears "No access" first
-                                        const withoutNoAccess = selected.filter(p => p !== "No access");
-                                        newSelected = isChecked
-                                            ? withoutNoAccess.filter(p => p !== option)
-                                            : [...withoutNoAccess, option];
-                                    }
-                                    onChange(newSelected);
-                                }
-                            }}
-                            sx={{
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: "8px",
-                                px: "12px",
-                                py: "10px",
-                                cursor: isDisabled ? "default" : "pointer",
-                                opacity: isDisabled && !isLocked ? 0.5 : 1,
-                                "&:hover": { bgcolor: !isDisabled ? "grey.100" : "transparent" }
-                            }}
-                        >
-                            <Checkbox
-                                checked={isChecked}
-                                disabled={isDisabled}
-                                size="small"
-                                sx={{ "&.Mui-checked": { color: isLocked ? "text.secondary" : "primary.main" }, "&.Mui-checked.Mui-disabled": { color: "text.secondary" }, mt: "2px", flexShrink: 0 }}
-                            />
-                            <Box sx={flex1Sx}>
-                                <Typography variant="body1" sx={{ color: isDisabled ? "text.secondary" : "text.primary" }}>
-                                    {option}
-                                </Typography>
-                                {description && (
-                                    <Typography variant="caption" sx={menuItemDescriptionSx}>
-                                        {description}
-                                    </Typography>
-                                )}
-                            </Box>
-                        </Box>
-                    );
-
-                    return isDisabled && tooltip ? (
-                        <Tooltip key={option} title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                            <Box component="span" sx={displayBlockSx}>{menuItem}</Box>
-                        </Tooltip>
-                    ) : menuItem;
-                })}
-            </Menu>
-        </>
-    );
-}
 
 // ─── Shared user avatar cell ──────────────────────────────────────────────────
 function UserCell({ row }: { row: AccountUser }) {
+    const showName = row.user.name && row.user.name !== row.user.email;
     return (
         <Box sx={userCellContainerSx}>
             <TruffleAvatar text={row.user.initials} size="medium" sx={userCellAvatarSx} />
             <Box sx={userCellTextBoxSx}>
-                <Typography variant="subtitle2" sx={userCellNameSx}>
-                    {row.user.name}
-                </Typography>
+                {showName && (
+                    <Typography variant="subtitle2" sx={userCellNameSx}>
+                        {row.user.name}
+                    </Typography>
+                )}
                 <Typography variant="caption" sx={userCellRoleSx}>
-                    {row.jobRole}
+                    {row.user.email}
                 </Typography>
             </Box>
         </Box>
     );
+}
+
+function getUserTypeRoles(row: AccountUser): string {
+    const cs = row.createSpace === "Account owner" ? "Editor" : row.createSpace;
+    const parts: string[] = [];
+    if (cs && cs !== "No access") {
+        parts.push(cs);
+    }
+    if (row.amplifySpace && row.amplifySpace !== "No access") {
+        parts.push(row.amplifySpace);
+    }
+    return parts.join(", ") || "No access";
 }
 
 // ─── Seat-count helpers ────────────────────────────────────────────────────────
@@ -215,369 +103,223 @@ function countPrivilegedCreateSpaceSeats(users: AccountUser[]): number {
     ).length;
 }
 
+// ─── User Type Selector ────────────────────────────────────────────────────────
+const CREATE_OPTIONS = [
+    { key: "Editor", label: "Editor (Require a seat)", description: "Can edit videos and templates" },
+    { key: "Approver", label: "Approver (Require a seat)", description: "Can approve videos and leave feedback" },
+    { key: "Viewer", label: "Viewer", description: "Have access to videos and template content with no option to share or edit" }
+];
+
+function UserTypeSelector({
+    createSelected, amplifyContributor, onCreateChange, onAmplifyChange, editorCount, contributorCount
+}: {
+    createSelected: string[]
+    amplifyContributor: boolean
+    onCreateChange: (v: string[]) => void
+    onAmplifyChange: (v: boolean) => void
+    editorCount: number
+    contributorCount: number
+}) {
+    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+    const allSelected = [...createSelected, ...(amplifyContributor ? ["Contributor"] : [])];
+    const displayText = allSelected.join(", ");
+
+    const toggleCreate = (key: string) => {
+        if (key === "Viewer") {
+            onCreateChange(createSelected.includes("Viewer") ? [] : ["Viewer"]);
+        }
+        else {
+            const withoutViewer = createSelected.filter(s => s !== "Viewer");
+            const updated = withoutViewer.includes(key)
+                ? withoutViewer.filter(s => s !== key)
+                : [...withoutViewer, key];
+            onCreateChange(updated);
+        }
+    };
+
+    return (
+        <>
+            <Box onClick={e => setAnchorEl(e.currentTarget)} sx={userTypeSelectorFieldSx}>
+                <Typography variant="body1" sx={{ flex: 1, color: displayText ? "text.primary" : "text.secondary" }}>
+                    {displayText || "Select user type"}
+                </Typography>
+                {allSelected.length > 0 && (
+                    <IconButton size="small" onClick={e => {
+                        e.stopPropagation(); onCreateChange([]); onAmplifyChange(false); 
+                    }} sx={{ p: "2px", color: "action.active" }}>
+                        <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                    </IconButton>
+                )}
+                <SvgIcon sx={{ fontSize: 12, color: "action.active" }}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>
+            </Box>
+            <Popover
+                open={!!anchorEl}
+                anchorEl={anchorEl}
+                onClose={() => setAnchorEl(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                transformOrigin={{ vertical: "top", horizontal: "left" }}
+                PaperProps={{ sx: userTypePopoverPaperSx }}
+            >
+                {/* Create section */}
+                <Box sx={userTypeSectionHeaderSx}>
+                    <Typography variant="subtitle2" sx={textPrimarySx}>Create</Typography>
+                    <Box sx={tabCountBadgeSx}>
+                        <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                        <Typography variant="caption">{editorCount}/5</Typography>
+                    </Box>
+                </Box>
+                {CREATE_OPTIONS.map(opt => {
+                    const isSelected = createSelected.includes(opt.key);
+                    const isDisabled = opt.key === "Viewer" && (createSelected.includes("Editor") || createSelected.includes("Approver"));
+                    const optionBox = (
+                        <Box
+                            key={opt.key}
+                            onClick={isDisabled ? undefined : () => toggleCreate(opt.key)}
+                            sx={{ ...userTypeOptionSx, cursor: isDisabled ? "not-allowed" : "pointer", opacity: isDisabled ? 0.4 : 1, bgcolor: isSelected ? "primary.light" : "transparent", "&:hover": { bgcolor: isDisabled ? "transparent" : isSelected ? "primary.light" : "action.hover" } }}
+                        >
+                            <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle2" sx={textPrimarySx}>{opt.label}</Typography>
+                                <Typography variant="body1" sx={textSecondarySx}>{opt.description}</Typography>
+                            </Box>
+                            {isSelected && <SvgIcon sx={{ fontSize: 14, color: "primary.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
+                        </Box>
+                    );
+                    return isDisabled ? (
+                        <Tooltip key={opt.key} title="Viewer and Editor can't be selected together" placement="right" arrow>
+                            {optionBox}
+                        </Tooltip>
+                    ) : (
+                        <React.Fragment key={opt.key}>{optionBox}</React.Fragment>
+                    );
+                })}
+                <Divider sx={{ my: "4px" }} />
+                {/* Amplify section */}
+                <Box sx={userTypeSectionHeaderSx}>
+                    <Typography variant="subtitle2" sx={textPrimarySx}>Amplify</Typography>
+                    <Box sx={tabCountBadgeSx}>
+                        <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
+                        <Typography variant="caption">{contributorCount}/10</Typography>
+                    </Box>
+                </Box>
+                <Box
+                    onClick={() => onAmplifyChange(!amplifyContributor)}
+                    sx={{ ...userTypeOptionSx, cursor: "pointer", bgcolor: amplifyContributor ? "primary.light" : "transparent", "&:hover": { bgcolor: amplifyContributor ? "primary.light" : "action.hover" } }}
+                >
+                    <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle2" sx={textPrimarySx}>Contributor (Require a seat)</Typography>
+                        <Typography variant="body1" sx={textSecondarySx}>Can access templates made by editors.</Typography>
+                    </Box>
+                    {amplifyContributor && <SvgIcon sx={{ fontSize: 14, color: "primary.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
+                </Box>
+            </Popover>
+        </>
+    );
+}
+
 // ─── Add User Dialog ───────────────────────────────────────────────────────
 interface InviteRow { email: string; createSpace: string; amplifySpace: string }
 
 function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEditExistingUser }: {
- open: boolean
- onClose: () => void
- onSend: (rows: InviteRow[]) => void
- users: AccountUser[]
- asApprover?: boolean
- onEditExistingUser?: (user: AccountUser) => void
+    open: boolean
+    onClose: () => void
+    onSend: (rows: InviteRow[]) => void
+    users: AccountUser[]
+    asApprover?: boolean
+    onEditExistingUser?: (user: AccountUser) => void
 }) {
-    const defaultRow = asApprover
-        ? { email: "", createSpace: "Approver", createSpaceSelected: ["Approver"], amplifySpace: "No access" }
-        : { email: "", createSpace: "Editor", createSpaceSelected: ["Editor"], amplifySpace: "Contributor" };
+    const defaultCreate = asApprover ? ["Approver"] : ["Editor"];
+    const defaultAmplify = !asApprover;
 
-    const [rows, setRows] = useState<(InviteRow & { createSpaceSelected: string[], emailError?: string })[]>([defaultRow]);
-    const [noSeatsOpen, setNoSeatsOpen] = useState(false);
-    const [validationTimeouts, setValidationTimeouts] = useState<Record<number, ReturnType<typeof setTimeout>>>({});
-    const [dialogMode, setDialogMode] = useState<"add" | "existing">("add");
+    const [email, setEmail] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [createSelected, setCreateSelected] = useState<string[]>(defaultCreate);
+    const [amplifyContributor, setAmplifyContributor] = useState(defaultAmplify);
+    const [validationTimeout, setValidationTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [existingMode, setExistingMode] = useState(false);
     const [existingUser, setExistingUser] = useState<AccountUser | null>(null);
 
-    const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    const editorCount = countEditorSeats(users);
     const contributorCount = countContributorSeats(users);
-    // Create space seat = Editor OR Approver (not Viewer, not No access)
-    const createSpaceSeatsUsed = countPrivilegedCreateSpaceSeats(users);
+    const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-    // Reset rows when dialog opens with a different mode, and cleanup timeouts
     React.useEffect(() => {
         if (open) {
-            setRows([defaultRow]);
-            setValidationTimeouts({});
+            setEmail(""); setEmailError(""); setCreateSelected(defaultCreate);
+            setAmplifyContributor(defaultAmplify); setExistingMode(false); setExistingUser(null);
         }
-        return () => {
-            // Clean up all timeouts
-            Object.values(validationTimeouts).forEach(timeout => {
-                if (timeout) {
-                    clearTimeout(timeout);
-                }
-            });
-        };
     }, [open, asApprover]);
 
-    // Pending rows that would consume a Create space seat (Editor or Approver)
-    const pendingCreateRows = rows.filter(r =>
-        r.email.trim() !== "" &&
- (r.createSpaceSelected.includes("Editor") || r.createSpaceSelected.includes("Approver"))
-    );
-    // Pending contributor rows (Contributor in Amplify, not an Editor)
-    const pendingContribRows = rows.filter(r =>
-        r.email.trim() !== "" &&
- r.amplifySpace === "Contributor" &&
- !r.createSpaceSelected.includes("Editor")
-    );
-    const displayCreateSpaceCount = createSpaceSeatsUsed + pendingCreateRows.length;
-    const displayContributorCount = contributorCount + pendingContribRows.length;
-
-    const updateRow = (i: number, field: string, val: string) => {
-        setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r));
-
-        // Handle email field validation with delay
-        if (field === "email") {
-            // Clear existing timeout for this row
-            if (validationTimeouts[i]) {
-                clearTimeout(validationTimeouts[i]);
-            }
-
-            // Clear error immediately while typing
-            setRows(prev => prev.map((r, idx) => idx === i ? { ...r, emailError: "" } : r));
-
-            // Set new timeout to validate after 500ms
-            if (val.trim().length > 0) {
-                const timeout = setTimeout(() => {
-                    const trimmedEmail = val.trim();
-                    const isValid = isValidEmail(trimmedEmail);
-
-                    if (!isValid) {
-                        setRows(prevRows =>
-                            prevRows.map((row, idx) => {
-                                if (idx !== i) {
-                                    return row;
-                                }
-                                return {
-                                    ...row,
-                                    emailError: "Enter a valid email address"
-                                };
-                            })
-                        );
+    const handleEmailChange = (val: string) => {
+        setEmail(val); setEmailError("");
+        if (validationTimeout) {
+            clearTimeout(validationTimeout);
+        }
+        if (val.trim()) {
+            const t = setTimeout(() => {
+                if (!isValidEmail(val.trim())) {
+                    setEmailError("Enter a valid email address");
+                }
+                else {
+                    const match = users.find(u => u.user.email.toLowerCase() === val.trim().toLowerCase());
+                    if (match) {
+                        setExistingUser(match); setExistingMode(true); 
                     }
-                    else {
-                        // Check if email matches an existing user
-                        const existingMatch = users.find(u => u.user.email.toLowerCase() === trimmedEmail.toLowerCase());
-                        if (existingMatch) {
-                            setExistingUser(existingMatch);
-                            setDialogMode("existing");
-                        }
-                        else {
-                            setRows(prevRows =>
-                                prevRows.map((row, idx) => {
-                                    if (idx !== i) {
-                                        return row;
-                                    }
-                                    return { ...row, emailError: "" };
-                                })
-                            );
-                        }
-                    }
-                }, 500);
-                setValidationTimeouts(prev => ({ ...prev, [i]: timeout }));
-            }
+                }
+            }, 500);
+            setValidationTimeout(t);
         }
     };
 
-    function handleSend() {
-        const valid = rows.filter(r => r.email.trim());
-        if (!valid.length) {
+    const handleSend = () => {
+        if (!email.trim() || emailError) {
             return;
         }
-
-        const newCreateSeats = valid.filter(r =>
-            r.createSpaceSelected.includes("Editor") || r.createSpaceSelected.includes("Approver")
-        ).length;
-        const newContribs = valid.filter(r =>
-            r.amplifySpace === "Contributor" && !r.createSpaceSelected.includes("Editor")
-        ).length;
-        if (createSpaceSeatsUsed + newCreateSeats > 10 || contributorCount + newContribs > 10) {
-            setNoSeatsOpen(true);
-            return;
-        }
-        onSend(valid.map(({ createSpaceSelected, ...r }) => r));
-        setRows([defaultRow]);
-    }
-
-    const createSpaceOptions = ["Viewer", "Approver", "Editor", "No access"];
-    const amplifySpaceOptions = ["Contributor", "No access"];
-    const selectSx = {
-        "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" },
-        height: 40
-    };
-
-    const isPermissionDisabled = (permission: string, selected: string[]) => {
-        if (permission === "Viewer" && (selected.includes("Editor") || selected.includes("Approver"))) {
-            return true;
-        }
-        if (permission === "Editor" && selected.includes("Viewer")) {
-            return true;
-        }
-        if (permission === "Approver" && selected.includes("Viewer")) {
-            return true;
-        }
-        return false;
-    };
-
-    const getDisabledTooltip = (permission: string, selected: string[]): string | null => {
-        if (permission === "Viewer" && selected.includes("Editor")) {
-            return "Viewer and Editor can't be selected together";
-        }
-        if (permission === "Viewer" && selected.includes("Approver")) {
-            return "Viewer and Approver can't be selected together";
-        }
-        if (permission === "Editor" && selected.includes("Viewer")) {
-            return "Editor and Viewer can't be selected together";
-        }
-        if (permission === "Approver" && selected.includes("Viewer")) {
-            return "Approver and Viewer can't be selected together";
-        }
-        return null;
+        onSend([{ email: email.trim(), createSpace: createSelected.join(", ") || "No access", amplifySpace: amplifyContributor ? "Contributor" : "No access" }]);
+        onClose();
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: dialogMode === "existing" ? 500 : 520, borderRadius: "12px", p: 0 } }}>
+        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}>
             <Box sx={dialogBodySx}>
-                {/* Title */}
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: dialogMode === "existing" ? "16px" : "24px" }}>
-                    <Typography variant="h4" sx={textPrimarySx}>
-                        {dialogMode === "existing" ? "Add user" : "Add users"}
-                    </Typography>
+                <Box sx={dialogTitleRowMb24Sx}>
+                    <Typography variant="h4" sx={textPrimarySx}>Add user</Typography>
                     <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
                 </Box>
 
-                {dialogMode === "existing" && existingUser ? (
+                {existingMode && existingUser ? (
                     <>
-                        {/* Existing user dialog content */}
-                        <OutlinedInput
-                            fullWidth
-                            disabled
-                            value={existingUser.user.email}
-                            placeholder="user@example.com"
-                            sx={existingEmailInputSx}
-                        />
-                        <AttentionBox
-                            color="warning"
-                            icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
-                            sx={{ mb: "24px" }}
-                        >
+                        <OutlinedInput fullWidth disabled value={existingUser.user.email} sx={existingEmailInputSx} />
+                        <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "24px" }}>
                             <AttentionBoxContent>
-                                <Typography variant="subtitle2" sx={{ color: "text.primary", mb: "4px" }}>
-             This email is already in use in this account.
-                                </Typography>
-                                <Typography variant="body1" sx={textPrimarySx}>
-             You can edit the user type if necessary.
-                                </Typography>
+                                <Typography variant="subtitle2" sx={{ color: "text.primary", mb: "4px" }}>This email is already in use in this account.</Typography>
+                                <Typography variant="body1" sx={textPrimarySx}>You can edit the user type if necessary.</Typography>
                             </AttentionBoxContent>
                         </AttentionBox>
                         <Box sx={dialogActionsRowSx}>
-                            <Button
-                                variant="outlined"
-                                onClick={() => setDialogMode("add")}
-                                sx={cancelButtonSx}
-                            >
- Cancel
-                            </Button>
-                            <Button
-                                variant="contained"
-                                onClick={() => {
-                                    if (existingUser) {
-                                        onEditExistingUser?.(existingUser);
-                                        setDialogMode("add");
-                                    }
-                                }}
-                            >
- Edit user type
-                            </Button>
+                            <Button variant="outlined" onClick={() => setExistingMode(false)} sx={cancelButtonSx}>Cancel</Button>
+                            <Button variant="contained" onClick={() => {
+                                onEditExistingUser?.(existingUser); setExistingMode(false); 
+                            }}>Edit user type</Button>
                         </Box>
                     </>
                 ) : (
                     <>
-                        {/* Add users dialog content */}
-                        {/* Rows */}
-                        {rows.map((row, i) => (
-                            <Box key={i} sx={{ display: "flex", flexDirection: "column", gap: "24px", mb: "20px", pb: "20px", borderBottom: 1, borderBottomColor: "grey.300" }}>
-                                <Box>
-                                    <Typography variant="overline" sx={{ color: "text.secondary", mb: "6px" }}>Email</Typography>
-                                    <OutlinedInput
-                                        placeholder="user@example.com"
-                                        value={row.email}
-                                        onChange={e => updateRow(i, "email", e.target.value)}
-                                        error={!!row.emailError}
-                                        fullWidth
-                                        sx={{ height: 40 }}
-                                    />
-                                    {row.emailError && (
-                                        <Typography variant="caption" sx={{ color: "error.light", mt: "4px" }}>
-                                            {row.emailError}
-                                        </Typography>
-                                    )}
-                                </Box>
-                                <Box>
-                                    <SeatHeader label="Create access" chipTooltip="Number of Create access seats used (Editor or Approver roles)" used={displayCreateSpaceCount} total={10} />
-                                    <Box sx={{ mt: "12px" }}>
-                                        <CreateSpaceSelector
-                                            selected={row.createSpaceSelected}
-                                            onChange={(selected) => {
-                                                setRows(prev => prev.map((r, idx) => idx === i ? { ...r, createSpaceSelected: selected, createSpace: selected.join(", ") || "No access" } : r));
-                                            }}
-                                            options={createSpaceOptions}
-                                            isPermissionDisabled={(option) => isPermissionDisabled(option, row.createSpaceSelected)}
-                                            getDisabledTooltip={(option) => getDisabledTooltip(option, row.createSpaceSelected)}
-                                            lockedOption={asApprover ? "Approver" : undefined}
-                                        />
-                                    </Box>
-                                </Box>
-                                <Box>
-                                    <SeatHeader label="Amplify space" chipTooltip="Number of contributors out of the allowed contributor seats" used={displayContributorCount} total={10} />
-                                    <FormControl fullWidth size="small" sx={formControlMt6Sx}>
-                                        <Select value={row.amplifySpace} onChange={e => updateRow(i, "amplifySpace", e.target.value as string)} renderValue={v => v as string} sx={selectSx}>
-                                            {amplifySpaceOptions.map(o => (
-                                                <MenuItem key={o} value={o} sx={amplifyMenuItemSx}>
-                                                    <Box sx={columnGap4Sx}>
-                                                        <Typography variant="body1" sx={textPrimarySx}>
-                                                            {o}
-                                                        </Typography>
-                                                        {o === "Contributor" && (
-                                                            <Typography variant="body1" sx={textSecondarySx}>
- Can access templates made by editors
-                                                            </Typography>
-                                                        )}
-                                                        {o === "No access" && (
-                                                            <Typography variant="body1" sx={textSecondarySx}>
- Cannot access any templates or contributors features
-                                                            </Typography>
-                                                        )}
-                                                    </Box>
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Box>
-                            </Box>
-                        ))}
-
-                        {/* Info box */}
-                        <Box sx={infoBoxSx}>
-                            <SvgIcon sx={infoBoxIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                            <Typography variant="body1" sx={textPrimarySx}>
- The user will receive an email invitation and will need to create an account to get access.
-                            </Typography>
+                        <Box sx={{ mb: "16px" }}>
+                            <Typography variant="body2" sx={editUserFieldLabelSx}>Email</Typography>
+                            <OutlinedInput fullWidth placeholder="user@example.com" value={email} onChange={e => handleEmailChange(e.target.value)} error={!!emailError} sx={{ height: 40 }} />
+                            {emailError && <Typography variant="caption" sx={{ color: "error.light", mt: "4px", display: "block" }}>{emailError}</Typography>}
                         </Box>
-
-                        {/* Seat warning */}
-                        {(displayCreateSpaceCount > 10 || displayContributorCount > 10) && (
-                            <AttentionBox
-                                color="warning"
-                                icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
-                                sx={{ mb: "20px" }}
-                            >
-                                <AttentionBoxContent>
-                                    <Typography variant="subtitle2" sx={cardTitleSx}>
-             No seats available
-                                    </Typography>
-                                    <Typography variant="body1" sx={textPrimarySx}>
-             You've reached your seat limit.{" "}
-                                        <Box component="span" sx={contactSalesLinkSx}>
-                 Contact sales
-                                        </Box>{" "}
-             to get more seats. (Note: Viewer permission does not consume a Create space seat.)
-                                    </Typography>
-                                </AttentionBoxContent>
-                            </AttentionBox>
-                        )}
-
-                        {/* Actions */}
+                        <Box sx={{ mb: "24px" }}>
+                            <Typography variant="body2" sx={editUserFieldLabelSx}>User permission</Typography>
+                            <UserTypeSelector createSelected={createSelected} amplifyContributor={amplifyContributor} onCreateChange={setCreateSelected} onAmplifyChange={setAmplifyContributor} editorCount={editorCount} contributorCount={contributorCount} />
+                        </Box>
                         <Box sx={dialogActionsRowSx}>
-                            <Button
-                                variant="outlined"
-                                onClick={onClose}
-                                sx={cancelButtonSx}>
- Cancel
-                            </Button>
-                            <Button
-                                variant="contained"
-                                onClick={handleSend}
-                                disabled={!rows.some(r => r.email.trim()) || displayCreateSpaceCount > 10 || displayContributorCount > 10 || rows.some(r => r.emailError)}
-                                sx={disabledButtonSx}
-                            >
- Add users
-                            </Button>
+                            <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
+                            <Button variant="contained" onClick={handleSend} disabled={!email.trim() || !!emailError} sx={disabledButtonSx}>Save</Button>
                         </Box>
                     </>
                 )}
             </Box>
-
-            {/* No seats dialog */}
-            <Dialog open={noSeatsOpen} onClose={() => setNoSeatsOpen(false)} maxWidth={false} PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}>
-                <Box sx={dialogBodySx}>
-                    <Box sx={dialogTitleRowMb16Sx}>
-                        <Typography variant="h4" sx={textPrimarySx}>No seats available</Typography>
-                        <IconButton size="small" onClick={() => setNoSeatsOpen(false)} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                    </Box>
-                    <Typography variant="body1" sx={{ color: "text.primary", mb: "24px", lineHeight: 1.6 }}>
- You've reached your seat limit and can't add more users with the selected permissions.
- Contact sales to increase your plan and get more seats.
-                    </Typography>
-                    <Box sx={dialogActionsRowSx}>
-                        <Button variant="outlined" onClick={() => setNoSeatsOpen(false)} sx={cancelButtonSx}>
- Close
-                        </Button>
-                        <Button variant="contained">
- Contact sales
-                        </Button>
-                    </Box>
-                </Box>
-            </Dialog>
-
         </Dialog>
     );
 }
@@ -938,245 +680,226 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
 
 // ─── Edit Permissions Dialog ──────────────────────────────────────────────────
 function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
- open: boolean
- onClose: () => void
- user: AccountUser | null
- users: AccountUser[]
- onSave: (createSpace: string, amplifySpace: string) => void
+    open: boolean
+    onClose: () => void
+    user: AccountUser | null
+    users: AccountUser[]
+    onSave: (createSpace: string, amplifySpace: string) => void
 }) {
-    const privilegedSeats = countPrivilegedCreateSpaceSeats(users);
     const editorCount = countEditorSeats(users);
     const contributorCount = countContributorSeats(users);
-    const initialCreateSpace = user?.createSpace || "Viewer";
-    const [createSpaceSelected, setCreateSpaceSelected] = useState<string[]>(initialCreateSpace ? initialCreateSpace.split(", ") : ["Viewer"]);
-    const [createSpace, setCreateSpace] = useState(initialCreateSpace);
-    const [amplifySpace, setAmplifySpace] = useState(user?.amplifySpace || "No access");
 
-    const createSpaceOptions = ["Account owner", "Viewer", "Approver", "Editor", "No access"];
-    const amplifySpaceOptions = ["Contributor", "No access"];
-    const selectSx = {
-        "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" },
-        height: 40
+    const parseCreate = (cs: string): string[] => {
+        if (!cs || cs === "No access" || cs === "Account owner") {
+            return [];
+        }
+        return cs.split(", ").filter(s => ["Editor", "Approver", "Viewer"].includes(s));
     };
 
-    // Check if current user has privileged access
-    const userCurrentlyHasPrivilegedAccess = user && (
-        user.createSpace.includes("Editor") ||
- user.createSpace.includes("Approver") ||
- user.createSpace === "Account owner"
-    );
-    // Check if new permission would require privileged access
-    const newPermissionIsPrivileged = createSpaceSelected.includes("Editor") ||
- createSpaceSelected.includes("Approver") ||
- createSpaceSelected.includes("Account owner");
-    // Show warning if upgrading from non-privileged to privileged and no seats available
-    const noSeatsForUpgrade = !userCurrentlyHasPrivilegedAccess && newPermissionIsPrivileged && privilegedSeats >= 10;
-
-    const isPermissionDisabled = (permission: string): boolean => {
-        if (permission === "Viewer" && (createSpaceSelected.includes("Editor") || createSpaceSelected.includes("Approver"))) {
-            return true;
-        }
-        if (permission === "Editor" && createSpaceSelected.includes("Viewer")) {
-            return true;
-        }
-        if (permission === "Approver" && createSpaceSelected.includes("Viewer")) {
-            return true;
-        }
-        return false;
-    };
-
-    const getDisabledTooltip = (permission: string): string | null => {
-        if (permission === "Viewer" && createSpaceSelected.includes("Editor")) {
-            return "Viewer cannot be combined with Editor";
-        }
-        if (permission === "Viewer" && createSpaceSelected.includes("Approver")) {
-            return "Viewer cannot be combined with Approver";
-        }
-        if (permission === "Editor" && createSpaceSelected.includes("Viewer")) {
-            return "Editor cannot be combined with Viewer";
-        }
-        if (permission === "Approver" && createSpaceSelected.includes("Viewer")) {
-            return "Approver cannot be combined with Viewer";
-        }
-        return null;
-    };
+    const [createSelected, setCreateSelected] = useState<string[]>(() => parseCreate(user?.createSpace || ""));
+    const [amplifyContributor, setAmplifyContributor] = useState(user?.amplifySpace === "Contributor");
 
     React.useEffect(() => {
-        const initial = user?.createSpace || "Viewer";
-        // Normalize: handle both ', ' and ' and ' as separators
-        const parsed = initial
-            ? initial.split(/,\s*|\s+and\s+/).map(s => s.trim()).filter(Boolean)
-            : ["Viewer"];
-        setCreateSpaceSelected(parsed);
-        setCreateSpace(initial);
-        setAmplifySpace(user?.amplifySpace || "No access");
+        setCreateSelected(parseCreate(user?.createSpace || ""));
+        setAmplifyContributor(user?.amplifySpace === "Contributor");
     }, [user, open]);
 
-    function handleSave() {
-        onSave(createSpace, amplifySpace);
-        onClose();
-    }
-
     return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 600, borderRadius: "12px", p: 0 } }}>
+        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}>
             <Box sx={dialogBodySx}>
-                {/* Title */}
                 <Box sx={dialogTitleRowMb24Sx}>
-                    <Typography variant="h4" sx={textPrimarySx}>
- Edit access for {user?.user.name}
-                    </Typography>
+                    <Typography variant="h4" sx={textPrimarySx}>Edit user</Typography>
                     <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
                 </Box>
-
-                {/* Create space section */}
-                <Box sx={{ mb: "24px" }}>
-                    <SeatHeader label="Create access" iconTooltip="Access to the Create workspace, including video and template editing, analytics, and AI features." chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
-                    <Box sx={{ mt: "12px" }}>
-                        <CreateSpaceSelector
-                            selected={createSpaceSelected}
-                            onChange={(selected) => {
-                                setCreateSpaceSelected(selected);
-                                setCreateSpace(selected.join(", ") || "No access");
-                            }}
-                            options={createSpaceOptions}
-                            isPermissionDisabled={isPermissionDisabled}
-                            getDisabledTooltip={getDisabledTooltip}
-                        />
-                    </Box>
+                <Box sx={{ mb: "16px" }}>
+                    <Typography variant="body2" sx={editUserFieldLabelSx}>Email</Typography>
+                    <OutlinedInput fullWidth disabled value={user?.user.email || ""} sx={{ height: 40 }} />
                 </Box>
-
-                {/* Amplify space section */}
                 <Box sx={{ mb: "24px" }}>
-                    <SeatHeader label="Amplify access" iconTooltip="Access to published templates and analytics for sent videos. Users with Create editor access don't require a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
-                    <FormControl fullWidth size="small" sx={formControlMt6Sx}>
-                        <Select value={amplifySpace} onChange={e => setAmplifySpace(e.target.value as string)} renderValue={v => v as string} sx={selectSx}>
-                            {amplifySpaceOptions.map(o => (
-                                <MenuItem key={o} value={o} sx={amplifyMenuItemSx}>
-                                    <Box sx={columnGap4Sx}>
-                                        <Typography variant="body1" sx={textPrimarySx}>
-                                            {o}
-                                        </Typography>
-                                        {o === "Contributor" && (
-                                            <Typography variant="body1" sx={textSecondarySx}>
- Can access templates and analytics. Uses a seat unless they have Create editor or approver access.
-                                            </Typography>
-                                        )}
-                                        {o === "No access" && (
-                                            <Typography variant="body1" sx={textSecondarySx}>
- Cannot access templates or contributor features.
-                                            </Typography>
-                                        )}
-                                    </Box>
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                    <Typography variant="body2" sx={editUserFieldLabelSx}>User type</Typography>
+                    <UserTypeSelector
+                        createSelected={createSelected}
+                        amplifyContributor={amplifyContributor}
+                        onCreateChange={setCreateSelected}
+                        onAmplifyChange={setAmplifyContributor}
+                        editorCount={editorCount}
+                        contributorCount={contributorCount}
+                    />
                 </Box>
-
-                {/* No seats warning */}
-                {noSeatsForUpgrade && (
-                    <AttentionBox
-                        color="warning"
-                        icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
-                        sx={{ mb: "20px" }}
-                    >
-                        <AttentionBoxContent>
-                            <Typography variant="subtitle2" sx={cardTitleSx}>
-             No seats available
-                            </Typography>
-                            <Typography variant="body1" sx={textPrimarySx}>
-             You've reached your seat limit.{" "}
-                                <Box component="span" sx={contactSalesLinkSx}>
-                 Contact sales
-                                </Box>{" "}
-             to get more seats. (Note: Viewer permission does not consume a Create space seat.)
-                            </Typography>
-                        </AttentionBoxContent>
-                    </AttentionBox>
-                )}
-
-                {/* Actions */}
                 <Box sx={dialogActionsRowSx}>
                     <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSave}
-                        disabled={noSeatsForUpgrade}
-                        sx={disabledButtonSx}
-                    >
- Save
-                    </Button>
+                    <Button variant="contained" onClick={() => {
+                        onSave(createSelected.join(", ") || "No access", amplifyContributor ? "Contributor" : "No access"); onClose(); 
+                    }}>Save</Button>
                 </Box>
             </Box>
         </Dialog>
     );
 }
 
-// ─── Delete User Dialog ────────────────────────────────────────────────────────
-function DeleteUserDialog({ open, onClose, userName, onConfirm }: {
- open: boolean
- onClose: () => void
- userName: string
- onConfirm: () => void
-}) {
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 400, borderRadius: "12px", p: 0 } }}>
-            <Box sx={dialogBodySx}>
-                {/* Title */}
-                <Typography variant="h4" sx={dialogTitleSx}>
- Remove user
-                </Typography>
-                <Typography variant="body1" sx={dialogBodyTextNoLineHeightSx}>
- Are you sure you want to remove <strong>{userName}</strong> from your account?
-                </Typography>
-
-                {/* Actions */}
-                <Box sx={dialogActionsRowSx}>
-                    <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                    <Button
-                        variant="contained"
-                        onClick={() => {
-                            onConfirm(); onClose(); 
-                        }}
-                        color="error"
-                    >
- Remove
-                    </Button>
-                </Box>
-            </Box>
-        </Dialog>
-    );
+// ─── Delete User Dialog (4 variants) ──────────────────────────────────────────
+interface DeleteUserDialogProps {
+    open: boolean
+    onClose: () => void
+    user: AccountUser | null
+    onConfirm: () => void
+    onDisableApprovals?: () => void
+    remainingApproversAfterDelete?: number
+    hasPendingApprovals?: boolean
+    isContributor?: boolean
+    approvalsEnabledInAccount?: boolean
 }
 
-// ─── Remove Approver Dialog ────────────────────────────────────────────────────
-function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
- open: boolean
- onClose: () => void
- userName: string
- onConfirm: () => void
-}) {
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 400, borderRadius: "12px", p: 0 } }}>
-            <Box sx={dialogBodySx}>
-                {/* Title */}
-                <Typography variant="h4" sx={dialogTitleSx}>
- Remove approver access
-                </Typography>
-                <Typography variant="body1" sx={dialogBodyTextNoLineHeightSx}>
- Are you sure you want to remove <strong>{userName}</strong> as an approver?
-                </Typography>
+function DeleteUserDialog({
+    open,
+    onClose,
+    user,
+    onConfirm,
+    onDisableApprovals,
+    remainingApproversAfterDelete = 0,
+    hasPendingApprovals = false,
+    isContributor = false,
+    approvalsEnabledInAccount = false
+}: DeleteUserDialogProps) {
+    const [inputValue, setInputValue] = useState("");
 
-                {/* Actions */}
+    if (!user) {
+        return null;
+    }
+
+    const isLastApproverWithPermission = remainingApproversAfterDelete === 0 && approvalsEnabledInAccount;
+    const isConfirmed = inputValue === "Delete";
+
+    let dialogTitle = "";
+    let primaryButtonText = "";
+    const bulletPoints: { text: React.ReactNode; show: boolean }[] = [];
+    let showContributorWarning = false;
+
+    // Build bullet points conditionally
+    if (isLastApproverWithPermission) {
+        bulletPoints.push({
+            text: "Approvals will be disabled until you enable it again.",
+            show: true
+        });
+    }
+
+    if (hasPendingApprovals) {
+        bulletPoints.push({
+            text: <>All pending approvals assigned to {user.user.name} will be cancelled.</>,
+            show: true
+        });
+    }
+
+    if (hasPendingApprovals) {
+        bulletPoints.push({
+            text: "The user who submitted the approvals will be notified via email.",
+            show: true
+        });
+    }
+
+    if (isContributor) {
+        showContributorWarning = true;
+    }
+
+    // Always show this bullet
+    bulletPoints.push({
+        text: "This user will lose access to the account.",
+        show: true
+    });
+
+    // Determine title and CTA based on conditions
+    if (isLastApproverWithPermission) {
+        dialogTitle = `Delete ${user.user.name} and disable approvals?`;
+        primaryButtonText = "Delete user and disable approvals";
+    }
+    else if (hasPendingApprovals) {
+        dialogTitle = `Delete ${user.user.name} and cancel approvals?`;
+        primaryButtonText = "Delete user and cancel approvals";
+    }
+    else {
+        dialogTitle = `Delete ${user.user.name}?`;
+        primaryButtonText = "Delete user";
+    }
+
+    const visibleBulletPoints = bulletPoints.filter(bp => bp.show);
+
+    const bodyContent = (
+        <Box>
+            {visibleBulletPoints.length > 0 && (
+                <Box sx={{ mb: "16px" }}>
+                    {visibleBulletPoints.map((bp, idx) => (
+                        <Typography key={idx} variant="body1" sx={{ color: "text.primary", mb: idx < visibleBulletPoints.length - 1 ? "8px" : "0px" }}>
+                            • {bp.text}
+                        </Typography>
+                    ))}
+                </Box>
+            )}
+            {showContributorWarning && (
+                <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
+                    <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                    <Typography variant="body1" sx={{ color: "text.primary" }}>
+                        All videos and analytics will be inaccessible in SundaySky, previously shared links will remain viewable.
+                    </Typography>
+                </Box>
+            )}
+        </Box>
+    );
+
+    const handleConfirm = () => {
+        if (isLastApproverWithPermission) {
+            onConfirm();
+            onDisableApprovals?.();
+        }
+        else {
+            onConfirm();
+        }
+        onClose();
+        setInputValue("");
+    };
+
+    const handleClose = () => {
+        onClose();
+        setInputValue("");
+    };
+
+    return (
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth={false}
+            PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}
+        >
+            <Box sx={dialogBodySx}>
+                <Box sx={dialogTitleRowMb24Sx}>
+                    <Typography variant="h4" sx={textPrimarySx}>
+                        {dialogTitle}
+                    </Typography>
+                    <IconButton size="small" onClick={handleClose} sx={closeIconButtonSx}>
+                        <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                    </IconButton>
+                </Box>
+
+                {bodyContent}
+
+                <OutlinedInput
+                    fullWidth
+                    placeholder='Type "Delete" to confirm'
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    sx={{ height: 40, mb: "24px" }}
+                />
+
                 <Box sx={dialogActionsRowSx}>
-                    <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
+                    <Button onClick={handleClose} sx={textCancelButtonSx}>
+                        Cancel
+                    </Button>
                     <Button
                         variant="contained"
-                        onClick={() => {
-                            onConfirm(); onClose(); 
-                        }}
                         color="error"
+                        onClick={handleConfirm}
+                        disabled={!isConfirmed}
                     >
- Remove approver access
+                        {primaryButtonText}
                     </Button>
                 </Box>
             </Box>
@@ -1186,7 +909,7 @@ function RemoveApproverDialog({ open, onClose, userName, onConfirm }: {
 
 
 // ─── Approvals Section ────────────────────────────────────────────────────────
-function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, pendingApprovalsCount = 0, videoStates = {} }: {
+function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, onUserDeleted, pendingApprovalsCount }: {
  users: AccountUser[]
  approverIds: Set<string>
  enabled: boolean
@@ -1196,44 +919,24 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
  onPermissionsChanged?: (userId: string, createSpace: string, amplifySpace: string) => void
  pendingApprovalsCount?: number
  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
+ onUserDeleted?: (userId: string) => void
 }) {
     const [search, setSearch] = useState("");
     const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false);
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteAsApprover, setInviteAsApprover] = useState(false);
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
-    const [removeApproverOpen, setRemoveApproverOpen] = useState(false);
-    const [approverToRemove, setApproverToRemove] = useState<AccountUser | null>(null);
-    const [approverMenuAnchor, setApproverMenuAnchor] = useState<HTMLElement | null>(null);
-    const [approverMenuUser, setApproverMenuUser] = useState<AccountUser | null>(null);
-    const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false);
-    const [cannotTurnOffWithPendingOpen, setCannotTurnOffWithPendingOpen] = useState(false);
-    const [turnOffPendingVideos, setTurnOffPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([]);
-    const [lastApproverNoPendingDialogOpen, setLastApproverNoPendingDialogOpen] = useState(false);
-    const [lastApproverDialogOpen, setLastApproverDialogOpen] = useState(false);
-    const [_lastApproverPendingVideos, setLastApproverPendingVideos] = useState<{ title: string; sentAt?: string; approverNames: string[] }[]>([]);
-    const [cannotRemoveApproverPendingOpen, setCannotRemoveApproverPendingOpen] = useState(false);
-    const [_approverPendingVideos, setApproverPendingVideos] = useState<{ title: string; sentAt?: string; sentBy: string }[]>([]);
-    const [approverToRemovePending, setApproverToRemovePending] = useState<AccountUser | null>(null);
+    const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+    const [selectedUserForMenu, setSelectedUserForMenu] = useState<AccountUser | null>(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null);
+    const [disableConfirmOpen, setDisableConfirmOpen] = useState(false);
 
-    // Initialize approverIds from users with Approver role when section loads
-    // This ensures approvers show even when the feature is initially disabled
-    React.useEffect(() => {
-        if (approverIds.size === 0) {
-            const usersWithApproverRole = users.filter(u => u.createSpace.includes("Approver")).map(u => u.user.id);
-            if (usersWithApproverRole.length > 0) {
-                onSetApprovers(usersWithApproverRole);
-            }
-        }
-    }, []);
 
-    const approvers = users.filter(u => approverIds.has(u.user.id));
+    const approvers = users.filter(u => u.createSpace.includes("Approver"));
     const filtered = search
         ? approvers.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
         : approvers;
-
-    const editorCount = countEditorSeats(users);
-    const contributorCount = countContributorSeats(users);
 
     const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
     const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
@@ -1245,34 +948,13 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     }
 
     function handleToggle(v: boolean) {
-        if (v) {
-            onToggle(true);
-        }
-        else if (pendingApprovalsCount > 0) {
-            // Collect all pending videos
-            const pendingVideos = Object.entries(videoStates)
-                .map(([title, state]) => {
-                    const sentByUserId = state.sentApprovers?.[0];
-                    const sentByUser = sentByUserId ? users.find(u => u.user.id === sentByUserId) : null;
-                    return {
-                        title,
-                        sentAt: state.sentAt,
-                        sentBy: sentByUser?.user.name || "Unknown"
-                    };
-                });
-            setTurnOffPendingVideos(pendingVideos);
-            setCannotTurnOffWithPendingOpen(true);
-            // Do NOT call onToggle(false) — keep it ON
-        }
-        else if (!v && approverIds.size > 0) {
-            setToggleConfirmOpen(true);
+        if (!v && (pendingApprovalsCount ?? 0) > 0) {
+            setDisableConfirmOpen(true);
         }
         else {
-            onToggle(false);
+            onToggle(v);
         }
     }
-
-    const isLastApprover = enabled && approverIds.size === 1 && approverMenuUser && approverIds.has(approverMenuUser.user.id);
 
     return (
         <Box sx={sectionContainerSx}>
@@ -1284,33 +966,34 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
             <Box sx={approvalToggleContainerSx}>
                 <Box sx={approvalToggleInnerSx}>
                     <SvgIcon sx={approvalStampIconSx}><FontAwesomeIcon icon={faStamp} /></SvgIcon>
-                    <Typography variant="body1" sx={{ color: "text.primary", flex: 1 }}>
- Require approvals from specific users for videos and templates
-                    </Typography>
-                    <Switch
-                        checked={enabled}
-                        onChange={e => handleToggle(e.target.checked)}
-                        sx={switchSx}
-                    />
+                    <Box sx={{ flex: 1 }}>
+                        <Typography variant="body1" sx={{ color: "text.primary" }}>
+                            Only users with approver permission can approve videos
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "text.secondary", mt: "2px" }}>
+                            Set users as approvers by adding an approver permission in the users tab
+                        </Typography>
+                    </Box>
+                    <Tooltip
+                        title={approvers.length === 0 ? "To enable approvals, please add at least one user with approver permission." : ""}
+                        placement="top"
+                        arrow
+                    >
+                        <Box sx={{ display: "flex" }}>
+                            <Switch
+                                checked={enabled}
+                                onChange={e => handleToggle(e.target.checked)}
+                                disabled={approvers.length === 0}
+                                sx={switchSx}
+                            />
+                        </Box>
+                    </Tooltip>
                 </Box>
 
                 {enabled && (
                     <Box sx={{ px: "16px", pb: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                        {/* Add approvers + Search */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <Button
-                                startIcon={<SvgIcon sx={{ fontSize: "14px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
-                                variant={approvers.length > 0 ? "outlined" : "contained"}
-                                onClick={() => setAddApproverDialogOpen(true)}
-                                sx={{
-                                    ...(approvers.length > 0
-                                        ? { color: "primary.main", borderColor: "grey.300", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } }
-                                        : {}
-                                    )
-                                }}
-                            >
- Add approver
-                            </Button>
+                        {/* Search */}
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
                             <Search
                                 placeholder="Search..."
                                 size="small"
@@ -1322,166 +1005,117 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                             />
                         </Box>
 
-                        {/* Approvers table or empty state */}
-                        {approvers.length === 0 ? (
-                            <Box sx={emptyStateBoxSx}>
-                                <Typography variant="body1" sx={textSecondarySx}>
- Add approver to change this permission
-                                </Typography>
-                            </Box>
-                        ) : (
-                            <Box sx={approversTableContainerSx}>
-                                <Table size="small" sx={tableFullWidthSx}>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell sx={{ ...headCellSx, width: 220, position: "sticky", left: 0, zIndex: 4 }}>
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
- User <SvgIcon sx={{ fontSize: 13, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
-                                                </Box>
-                                            </TableCell>
-                                            <TableCell sx={{ ...headCellSx }}>
-                                                <SeatHeader label="Create access" iconTooltip="Access to the Create workspace, including video and template editing, analytics, and AI features." chipTooltip="Number of editors out of the allowed editor seats" used={editorCount} total={10} />
-                                            </TableCell>
-                                            <TableCell sx={{ ...headCellSx }}>
-                                                <SeatHeader label="Amplify access" iconTooltip="Access to published templates and analytics for sent videos. Users with Create editor access don't require a contributor seat." chipTooltip="Number of contributors out of the allowed contributor seats" used={contributorCount} total={10} />
-                                            </TableCell>
-                                            <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: "sticky", right: 0, zIndex: 4 }} />
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {filtered.map(row => {
-                                            const isHovered = hoveredRow === row.user.id;
-                                            return (
-                                                <TableRow
-                                                    key={row.user.id}
-                                                    onMouseEnter={() => setHoveredRow(row.user.id)}
-                                                    onMouseLeave={() => setHoveredRow(null)}
-                                                    sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
-                                                >
-                                                    <TableCell sx={{ ...bodyCellSx, position: "sticky", left: 0, zIndex: 1, bgcolor: isHovered ? "grey.100" : "background.paper" }}>
-                                                        <UserCell row={row} />
-                                                    </TableCell>
-                                                    <TableCell sx={bodyCellSx}>
-                                                        <Typography variant="body1" sx={{ color: row.createSpace === "No access" ? "text.secondary" : "text.primary" }}>
-                                                            {row.createSpace}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell sx={bodyCellSx}>
-                                                        <Typography variant="body1" sx={{ color: row.amplifySpace === "No access" ? "text.secondary" : "text.primary" }}>
-                                                            {row.amplifySpace}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell sx={{ ...bodyCellSx, px: "4px", width: 48, position: "sticky", right: 0, zIndex: 2, bgcolor: isHovered ? "grey.100" : "background.paper" }}>
-                                                        {(isHovered || approverMenuUser?.user.id === row.user.id) && (
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={e => {
-                                                                    setApproverMenuAnchor(e.currentTarget); setApproverMenuUser(row); 
-                                                                }}
-                                                                sx={ellipsisButtonSx}
-                                                            >
-                                                                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsis} /></SvgIcon>
-                                                            </IconButton>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </Box>
-                        )}
-                        {/* Approver options popup */}
-                        <Menu
-                            anchorEl={approverMenuAnchor}
-                            open={!!approverMenuAnchor}
-                            onClose={() => setApproverMenuAnchor(null)}
-                            PaperProps={{ sx: contextMenuPaperSx }}
-                            transformOrigin={{ horizontal: "right", vertical: "top" }}
-                            anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-                        >
-                            {approverMenuUser && [
-                                <Box key="name" sx={menuHeaderSx}>
-                                    <Typography variant="subtitle2" sx={textPrimarySx}>
-                                        {approverMenuUser.user.name}
-                                    </Typography>
-                                </Box>,
-                                <Box key="details" sx={menuDetailsSx}>
-                                    {[
-                                        { label: "Role", value: approverMenuUser.jobRole },
-                                        { label: "Email", value: approverMenuUser.user.email },
-                                        { label: "Created on", value: approverMenuUser.pending ? "—" : approverMenuUser.createdDate },
-                                        ...(approverMenuUser.addedAsApprover ? [{ label: "Approver since", value: approverMenuUser.addedAsApprover }] : [])
-                                    ].map(({ label, value }) => (
-                                        <Box key={label} sx={menuDetailRowSx}>
-                                            <Typography variant="caption" sx={menuDetailLabelSx}>{label}:</Typography>
-                                            <Typography variant="body1" sx={textPrimarySx}>{value}</Typography>
-                                        </Box>
-                                    ))}
-                                </Box>,
-                                <Divider key="divider" sx={dividerSx} />,
-                                <MenuItem
-                                    key="remove"
-                                    onClick={() => {
-                                        setApproverMenuAnchor(null);
-                                        if (!approverMenuUser) {
-                                            return;
-                                        }
-
-                                        // Get videos where this approver has pending approvals
-                                        const pendingVideos = Object.entries(videoStates)
-                                            .filter(([_, state]) => state.sentApprovers?.includes(approverMenuUser.user.id))
-                                            .map(([title, state]) => {
-                                                // Get the user who requested this approval (first approver in the list)
-                                                const sentByUserId = state.sentApprovers?.[0];
-                                                const sentByUser = sentByUserId ? users.find(u => u.user.id === sentByUserId) : null;
-                                                return {
-                                                    title,
-                                                    sentAt: state.sentAt,
-                                                    sentBy: sentByUser?.user.name || "Unknown"
-                                                };
-                                            });
-
-                                        if (isLastApprover) {
-                                            if (pendingVideos.length > 0) {
-                                                // Last approver WITH pending approvals
-                                                const approverNames = (videoStates[Object.keys(videoStates)[0]]?.sentApprovers || [])
-                                                    .map(id => {
-                                                        const approver = users.find(u => u.user.id === id);
-                                                        return approver?.user.name || id;
-                                                    });
-
-                                                setLastApproverPendingVideos(
-                                                    pendingVideos.map(v => ({ ...v, approverNames }))
-                                                );
-                                                setLastApproverDialogOpen(true);
-                                            }
-                                            else {
-                                                // Last approver with NO pending approvals
-                                                setLastApproverNoPendingDialogOpen(true);
-                                            }
-                                        }
-                                        else if (pendingVideos.length > 0) {
-                                            // If has pending approvals (but not last approver), show blocking dialog
-                                            setApproverPendingVideos(pendingVideos);
-                                            setApproverToRemovePending(approverMenuUser);
-                                            setCannotRemoveApproverPendingOpen(true);
-                                        }
-                                        else {
-                                            // No pending approvals — show regular confirmation
-                                            setApproverToRemove(approverMenuUser);
-                                            setRemoveApproverOpen(true);
-                                        }
-                                    }}
-                                    sx={menuItemRemoveSx}
-                                >
-                                    <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
- Remove approver role
-                                </MenuItem>
-                            ]}
-                        </Menu>
+                        {/* Approvers table */}
+                        <Box sx={approversTableContainerSx}>
+                            <Table size="small" sx={tableFullWidthSx}>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell sx={{ ...headCellSx, width: 220, position: "sticky", left: 0, zIndex: 4 }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+                                                    User <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell sx={headCellSx}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>User permission</Typography>
+                                        </TableCell>
+                                        <TableCell sx={headCellSx}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>Job role</Typography>
+                                        </TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 160 }}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>Last login</Typography>
+                                        </TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 160 }}>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>Creation date</Typography>
+                                        </TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 44 }} />
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {filtered.map(row => {
+                                        const isHovered = hoveredRow === row.user.id;
+                                        return (
+                                            <TableRow
+                                                key={row.user.id}
+                                                onMouseEnter={() => setHoveredRow(row.user.id)}
+                                                onMouseLeave={() => setHoveredRow(null)}
+                                                sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
+                                            >
+                                                <TableCell sx={{ ...bodyCellSx, position: "sticky", left: 0, zIndex: 1, bgcolor: isHovered ? "grey.100" : "background.paper" }}>
+                                                    <UserCell row={row} />
+                                                </TableCell>
+                                                <TableCell sx={bodyCellSx}>
+                                                    <Box sx={userTypeCellSx}>
+                                                        {row.isOwner && <Label label="Account owner" color="info" size="small" />}
+                                                        <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                                            <Typography variant="body1" sx={textPrimarySx}>
+                                                                {getUserTypeRoles(row)}
+                                                            </Typography>
+                                                            {row.isOwner && (
+                                                                <Tooltip title="Account owners have full access to the account" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
+                                                                    <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                                                </Tooltip>
+                                                            )}
+                                                        </Box>
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell sx={bodyCellSx}>
+                                                    <Typography variant="body1" sx={textPrimarySx}>{row.jobRole}</Typography>
+                                                </TableCell>
+                                                <TableCell sx={{ ...bodyCellSx, width: 160 }}>
+                                                    <Typography variant="body1" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
+                                                        {row.pending ? "Pending" : row.lastLogin}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell sx={{ ...bodyCellSx, width: 160 }}>
+                                                    <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
+                                                        {row.createdDate}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell sx={{ ...bodyCellSx, width: 44, textAlign: "center" }}>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => {
+                                                            setMenuAnchorEl(e.currentTarget);
+                                                            setSelectedUserForMenu(row);
+                                                        }}
+                                                        sx={{ color: "text.primary" }}
+                                                    >
+                                                        <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsis} /></SvgIcon>
+                                                    </IconButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </Box>
                     </Box>
                 )}
+
+                {/* Menu for approver actions */}
+                <Menu
+                    anchorEl={menuAnchorEl}
+                    open={Boolean(menuAnchorEl)}
+                    onClose={() => {
+                        setMenuAnchorEl(null);
+                        setSelectedUserForMenu(null);
+                    }}
+                >
+                    <MenuItem
+                        onClick={() => {
+                            if (selectedUserForMenu) {
+                                setUserToDelete(selectedUserForMenu);
+                                setDeleteOpen(true);
+                                setMenuAnchorEl(null);
+                                setSelectedUserForMenu(null);
+                            }
+                        }}
+                        sx={{ color: "error.main" }}
+                    >
+                        <SvgIcon sx={{ fontSize: 16, mr: "8px" }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                        Delete
+                    </MenuItem>
+                </Menu>
             </Box>
 
             {/* Add Approver Dialog */}
@@ -1559,248 +1193,65 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                 }}
             />
 
-            {/* Remove Approver Dialog */}
-            <RemoveApproverDialog
-                open={removeApproverOpen}
-                onClose={() => setRemoveApproverOpen(false)}
-                userName={approverToRemove?.user.name || ""}
-                onConfirm={() => {
-                    if (approverToRemove) {
-                        // Never remove pending users from approverIds — keep them as approvers
-                        if (!approverToRemove.pending) {
-                            // Remove from approvers only if not pending
-                            const newApproverIds = [...approverIds].filter(id => id !== approverToRemove.user.id);
-                            onSetApprovers(newApproverIds);
 
-                            // If Approver was the only permission, downgrade to Viewer
-                            if (approverToRemove.createSpace === "Approver") {
-                                onPermissionsChanged?.(approverToRemove.user.id, "Viewer", approverToRemove.amplifySpace);
-                            }
+            {/* Delete User Dialog */}
+            <DeleteUserDialog
+                open={deleteOpen}
+                onClose={() => {
+                    setDeleteOpen(false);
+                    setUserToDelete(null);
+                }}
+                user={userToDelete}
+                remainingApproversAfterDelete={userToDelete ? Array.from(approverIds).filter(id => id !== userToDelete.user.id).length : 0}
+                hasPendingApprovals={!!userToDelete?.addedAsApprover}
+                isContributor={userToDelete?.amplifySpace === "Contributor"}
+                approvalsEnabledInAccount={enabled}
+                onConfirm={() => {
+                    if (userToDelete) {
+                        const newApprovers = Array.from(approverIds).filter(id => id !== userToDelete.user.id);
+                        onSetApprovers(newApprovers);
+                        // Disable approvals if no approvers left
+                        if (newApprovers.length === 0 && enabled) {
+                            onToggle(false);
                         }
-                        setRemoveApproverOpen(false);
+                        onUserDeleted?.(userToDelete.user.id);
                     }
+                }}
+                onDisableApprovals={() => {
+                    onToggle(false);
                 }}
             />
 
-            {/* Cannot Remove Approver with Pending Approvals Dialog */}
+            {/* Disable Approvals Confirmation (when pending approvals exist) */}
             <Dialog
-                open={cannotRemoveApproverPendingOpen}
-                onClose={() => setCannotRemoveApproverPendingOpen(false)}
+                open={disableConfirmOpen}
+                onClose={() => setDisableConfirmOpen(false)}
                 maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb16Sx}>
- Cancel or resolve pending approvals for {approverToRemovePending?.user.name} to remove its approver access
-                    </Typography>
-                    {_approverPendingVideos.length > 0 && (
-                        <Box sx={pendingVideoListSx}>
-                            {_approverPendingVideos.map(v => (
-                                <Box
-                                    key={v.title}
-                                    onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, "_blank")}
-                                    sx={pendingVideoCardSx}
-                                >
-                                    <Box sx={videoThumbnailSx}>
-                                        <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                    </Box>
-                                    <Box sx={flex1MinWidth0Sx}>
-                                        <Typography variant="subtitle2" sx={cardTitleSx}>
-                                            {v.title}
-                                        </Typography>
-                                        {v.sentAt && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- Sent for approval: {v.sentAt}
-                                            </Typography>
-                                        )}
-                                        {v.sentBy && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- Requested by: {v.sentBy}
-                                            </Typography>
-                                        )}
-                                        <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            ))}
-                        </Box>
-                    )}
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setCannotRemoveApproverPendingOpen(false)}
-                    >
- Got it
-                    </Button>
-                </Box>
-            </Dialog>
-
-            {/* Toggle OFF confirmation dialog */}
-            <Dialog
-                open={toggleConfirmOpen}
-                onClose={() => setToggleConfirmOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 460, borderRadius: "12px", p: 0 } }}
+                PaperProps={{ sx: { width: 480, borderRadius: "12px", p: 0 } }}
             >
                 <Box sx={dialogBodySx}>
                     <Typography variant="h4" sx={dialogTitleSx}>
- Disable requiring approvals?
+                        Cancel all pending approvals?
                     </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextSx}>
- If you disable this feature, any editor can approve any video or template
+                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "8px" }}>
+                        You have {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"} in the account. Disabling approvals will cancel all pending approvals.
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px" }}>
+                        The user who submitted the approvals will be notified via email.
                     </Typography>
                     <Box sx={dialogActionsRowSx}>
-                        <Button
-                            variant="outlined"
-                            onClick={() => setToggleConfirmOpen(false)}
-                            sx={cancelButtonSx}
-                        >
- Cancel
+                        <Button onClick={() => setDisableConfirmOpen(false)} sx={textCancelButtonSx}>
+                            Cancel
                         </Button>
                         <Button
                             variant="contained"
+                            color="error"
                             onClick={() => {
-                                onToggle(false); setToggleConfirmOpen(false); 
+                                setDisableConfirmOpen(false);
+                                onToggle(false);
                             }}
                         >
- Disable requiring approvals
-                        </Button>
-                    </Box>
-                </Box>
-            </Dialog>
-
-            {/* Cannot Turn Off Approvals with Pending Approvals Dialog */}
-            <Dialog
-                open={cannotTurnOffWithPendingOpen}
-                onClose={() => setCannotTurnOffWithPendingOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb16Sx}>
- Cancel or resolve pending approvals to disable request approvals
-                    </Typography>
-                    {turnOffPendingVideos.length > 0 && (
-                        <Box sx={pendingVideoListSx}>
-                            {turnOffPendingVideos.map(v => (
-                                <Box
-                                    key={v.title}
-                                    onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, "_blank")}
-                                    sx={pendingVideoCardSx}
-                                >
-                                    <Box sx={videoThumbnailSx}>
-                                        <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                    </Box>
-                                    <Box sx={flex1MinWidth0Sx}>
-                                        <Typography variant="subtitle2" sx={cardTitleSx}>
-                                            {v.title}
-                                        </Typography>
-                                        {v.sentAt && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- Sent for approval: {v.sentAt}
-                                            </Typography>
-                                        )}
-                                        {v.sentBy && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- Requested by: {v.sentBy}
-                                            </Typography>
-                                        )}
-                                        <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            ))}
-                        </Box>
-                    )}
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setCannotTurnOffWithPendingOpen(false)}
-                    >
- Got it
-                    </Button>
-                </Box>
-            </Dialog>
-
-            {/* Last Approver Dialog */}
-            <Dialog
-                open={lastApproverDialogOpen}
-                onClose={() => setLastApproverDialogOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb16Sx}>
- Add another approver and cancel or resolve {approverMenuUser?.user.name} pending approvals to remove
-                    </Typography>
-                    {_lastApproverPendingVideos.length > 0 && (
-                        <Box sx={pendingVideoListSx}>
-                            {_lastApproverPendingVideos.map(v => (
-                                <Box
-                                    key={v.title}
-                                    onClick={() => window.open(`/?videoTitle=${encodeURIComponent(v.title)}`, "_blank")}
-                                    sx={pendingVideoCardSx}
-                                >
-                                    <Box sx={videoThumbnailSx}>
-                                        <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                    </Box>
-                                    <Box sx={flex1MinWidth0Sx}>
-                                        <Typography variant="subtitle2" sx={cardTitleSx}>
-                                            {v.title}
-                                        </Typography>
-                                        {v.sentAt && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- Sent for approval: {v.sentAt}
-                                            </Typography>
-                                        )}
-                                        {v.approverNames.length > 0 && (
-                                            <Typography variant="caption" sx={cardCaptionSx}>
- By: {v.approverNames.join(", ")}
-                                            </Typography>
-                                        )}
-                                        <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            ))}
-                        </Box>
-                    )}
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setLastApproverDialogOpen(false)}
-                    >
- Got it
-                    </Button>
-                </Box>
-            </Dialog>
-
-            {/* Last Approver (No Pending) Dialog */}
-            <Dialog
-                open={lastApproverNoPendingDialogOpen}
-                onClose={() => setLastApproverNoPendingDialogOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 460, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodySx}>
-                    <Typography variant="h4" sx={dialogTitleSx}>
- Add another approver to remove {approverMenuUser?.user.name}
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextSx}>
- Require approvals must have at least 1 user with approver permission.
-                    </Typography>
-                    <Box sx={dialogActionsRowSx}>
-                        <Button
-                            variant="contained"
-                            onClick={() => setLastApproverNoPendingDialogOpen(false)}
-                        >
- Got it
+                            Cancel all pending approvals
                         </Button>
                     </Box>
                 </Box>
@@ -1818,7 +1269,8 @@ function UsersSection({
     onPermissionsChanged,
     approvalsEnabled = false,
     approverIds = new Set(),
-    videoStates = {}
+    onClose,
+    onEnableApprovalsRequested
 }: {
  users: AccountUser[]
  onInviteUser: (rows: InviteRow[]) => void
@@ -1827,6 +1279,8 @@ function UsersSection({
  approvalsEnabled?: boolean
  approverIds?: Set<string>
  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
+ onClose?: () => void
+ onEnableApprovalsRequested?: () => void
 }) {
     const [search, setSearch] = useState("");
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -1834,13 +1288,12 @@ function UsersSection({
     const [editingUser, setEditingUser] = useState<AccountUser | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null);
-    const [cannotRemoveApproverOpen, setCannotRemoveApproverOpen] = useState(false);
-    const [soleApproverWarningOpen, setSoleApproverWarningOpen] = useState(false);
-    const [pendingApprovalDeleteOpen, setPendingApprovalDeleteOpen] = useState(false);
-    const [pendingVideosForUser, setPendingVideosForUser] = useState<{ title: string; sentAt?: string; otherApprovers: string[] }[]>([]);
     const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(null);
     const [userMenuUser, setUserMenuUser] = useState<AccountUser | null>(null);
     const [usersList, setUsersList] = useState<AccountUser[]>(users);
+    const [activeTab, setActiveTab] = useState<"create" | "amplify">("create");
+    const [enableApprovalsDialogOpen, setEnableApprovalsDialogOpen] = useState(false);
+    const [userWithApproverAdded, setUserWithApproverAdded] = useState<AccountUser | null>(null);
 
     const filtered = search
         ? usersList.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
@@ -1860,29 +1313,62 @@ function UsersSection({
     return (
         <Box sx={sectionContainerSx}>
             {/* Title row */}
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "20px", flexShrink: 0 }}>
-                <Typography variant="h3" sx={textPrimarySx}>
- Users ({usersList.length})
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <Button
-                        startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
-                        variant="outlined"
-                        onClick={() => setDialogMode("add")}
-                        sx={{ px: "16px", py: "7px", color: "primary.main", borderColor: "grey.300", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } }}
-                    >
- Add user
-                    </Button>
-                    <Search
-                        placeholder="Search..."
-                        size="small"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        onClear={() => setSearch("")}
-                        numberOfResults={0}
-                        sx={{ width: 220 }}
-                    />
-                </Box>
+            <Box sx={usersTitleRowSx}>
+                <Typography variant="h3" sx={textPrimarySx}>Users</Typography>
+                <IconButton size="small" sx={closeIconButtonSx} onClick={onClose}>
+                    <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                </IconButton>
+            </Box>
+
+            {/* Workspace tabs */}
+            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v as "create" | "amplify")} sx={userTabsSx}>
+                <Tab
+                    value="create"
+                    sx={tabItemSx}
+                    label={
+                        <Box sx={tabLabelBoxSx}>
+                            <Typography variant="subtitle2" component="span">Create</Typography>
+                            <Box sx={tabCountBadgeSx}>
+                                <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                <Typography variant="caption">{editorCount}/5</Typography>
+                            </Box>
+                        </Box>
+                    }
+                />
+                <Tab
+                    value="amplify"
+                    sx={tabItemSx}
+                    label={
+                        <Box sx={tabLabelBoxSx}>
+                            <Typography variant="subtitle2" component="span">Amplify</Typography>
+                            <Box sx={tabCountBadgeSx}>
+                                <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
+                                <Typography variant="caption">{contributorCount}/10</Typography>
+                            </Box>
+                        </Box>
+                    }
+                />
+            </Tabs>
+
+            {/* Toolbar row */}
+            <Box sx={usersToolbarRowSx}>
+                <Button
+                    startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
+                    variant="outlined"
+                    onClick={() => setDialogMode("add")}
+                    sx={addUserBtnSx}
+                >
+                    Add user
+                </Button>
+                <Search
+                    placeholder="Search..."
+                    size="small"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    onClear={() => setSearch("")}
+                    numberOfResults={0}
+                    sx={{ width: 240 }}
+                />
             </Box>
 
             {/* Table */}
@@ -1892,27 +1378,21 @@ function UsersSection({
                         <TableRow>
                             <TableCell sx={{ ...headCellSx, width: 220, position: "sticky", left: 0, zIndex: 4 }}>
                                 <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
- User <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
+                                    User <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
                                 </Box>
                             </TableCell>
-                            <TableCell sx={{ ...headCellSx }}>
-                                <SeatHeader
-                                    label="Create access"
-                                    iconTooltip="Access to the Create workspace, including video and template editing, analytics, and AI features."
-                                    chipTooltip="Number of editors out of the allowed editor seats"
-                                    used={editorCount} total={10}
-                                />
+                            <TableCell sx={headCellSx}>
+                                <Typography variant="subtitle2" sx={textPrimarySx}>User permission</Typography>
                             </TableCell>
-                            <TableCell sx={{ ...headCellSx }}>
-                                <SeatHeader
-                                    label="Amplify access"
-                                    iconTooltip="Access to published templates and analytics for sent videos. Users with Create editor access don't require a contributor seat."
-                                    chipTooltip="Number of contributors out of the allowed contributor seats"
-                                    used={contributorCount} total={10}
-                                />
+                            <TableCell sx={headCellSx}>
+                                <Typography variant="subtitle2" sx={textPrimarySx}>Job role</Typography>
                             </TableCell>
-                            <TableCell sx={{ ...headCellSx, width: 190 }}>Last login</TableCell>
-                            <TableCell sx={{ ...headCellSx, width: 48, p: 0, position: "sticky", right: 0, zIndex: 4 }} />
+                            <TableCell sx={{ ...headCellSx, width: 160 }}>
+                                <Typography variant="subtitle2" sx={textPrimarySx}>Last login</Typography>
+                            </TableCell>
+                            <TableCell sx={{ ...headCellSx, width: 160 }}>
+                                <Typography variant="subtitle2" sx={textPrimarySx}>Creation date</Typography>
+                            </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1929,58 +1409,45 @@ function UsersSection({
                                         <UserCell row={row} />
                                     </TableCell>
                                     <TableCell sx={bodyCellSx}>
-                                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px" }}>
-                                            <Typography variant="body1" sx={{ color: row.createSpace === "No access" ? "text.secondary" : "text.primary", whiteSpace: "pre-line" }}>
-                                                {row.createSpace}
-                                            </Typography>
-                                            <Box sx={editIconContainerSx}>
-                                                {isHovered && !row.isOwner && (
-                                                    <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                                                        <IconButton size="small" onClick={() => {
-                                                            setEditingUser(row); setDialogMode("edit"); 
-                                                        }} sx={editPermissionsButtonSx}>
-                                                            <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faPenToSquare} /></SvgIcon>
-                                                        </IconButton>
+                                        <Box sx={userTypeCellSx}>
+                                            {row.isOwner && <Label label="Account owner" color="info" size="small" />}
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                                <Typography variant="body1" sx={textPrimarySx}>
+                                                    {getUserTypeRoles(row)}
+                                                </Typography>
+                                                {row.isOwner && (
+                                                    <Tooltip title="Account owners have full access to the account" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
+                                                        <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                                                     </Tooltip>
                                                 )}
                                             </Box>
                                         </Box>
                                     </TableCell>
                                     <TableCell sx={bodyCellSx}>
-                                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px" }}>
-                                            <Typography variant="body1" sx={{ color: row.amplifySpace === "No access" ? "text.secondary" : "text.primary" }}>
-                                                {row.amplifySpace}
-                                            </Typography>
-                                            <Box sx={editIconContainerSx}>
-                                                {isHovered && !row.isOwner && (
-                                                    <Tooltip title="Edit permissions" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                                                        <IconButton size="small" onClick={() => {
-                                                            setEditingUser(row); setDialogMode("edit"); 
-                                                        }} sx={editPermissionsButtonSx}>
-                                                            <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faPenToSquare} /></SvgIcon>
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )}
-                                            </Box>
-                                        </Box>
+                                        <Typography variant="body1" sx={textPrimarySx}>{row.jobRole}</Typography>
                                     </TableCell>
-                                    <TableCell sx={{ ...bodyCellSx, width: 190 }}>
+                                    <TableCell sx={{ ...bodyCellSx, width: 160 }}>
                                         <Typography variant="body1" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
                                             {row.pending ? "Pending" : row.lastLogin}
                                         </Typography>
                                     </TableCell>
-                                    <TableCell sx={{ ...bodyCellSx, px: "4px", width: 48, position: "sticky", right: 0, zIndex: 2, bgcolor: isHovered ? "grey.100" : "background.paper" }}>
-                                        {(isHovered || userMenuUser?.user.id === row.user.id) && !row.isOwner && (
-                                            <IconButton
-                                                size="small"
-                                                onClick={e => {
-                                                    setUserMenuAnchor(e.currentTarget); setUserMenuUser(row); 
-                                                }}
-                                                sx={ellipsisButtonSx}
-                                            >
-                                                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsis} /></SvgIcon>
-                                            </IconButton>
-                                        )}
+                                    <TableCell sx={{ ...bodyCellSx, width: 160 }}>
+                                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px" }}>
+                                            <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
+                                                {row.createdDate}
+                                            </Typography>
+                                            {(isHovered || userMenuUser?.user.id === row.user.id) && !row.isOwner && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={e => {
+                                                        setUserMenuAnchor(e.currentTarget); setUserMenuUser(row); 
+                                                    }}
+                                                    sx={ellipsisButtonSx}
+                                                >
+                                                    <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsis} /></SvgIcon>
+                                                </IconButton>
+                                            )}
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             );
@@ -2010,8 +1477,18 @@ function UsersSection({
                 users={usersList}
                 onSave={(createSpace, amplifySpace) => {
                     if (editingUser) {
+                        const hadApprover = editingUser.createSpace.includes("Approver");
+                        const hasApprover = createSpace.includes("Approver");
+                        const becameApprover = !hadApprover && hasApprover;
+
                         setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u));
                         onPermissionsChanged?.(editingUser.user.id, createSpace, amplifySpace);
+
+                        // Show enable approvals dialog if user gained approver permission and approvals are disabled
+                        if (becameApprover && !approvalsEnabled) {
+                            setUserWithApproverAdded(editingUser);
+                            setEnableApprovalsDialogOpen(true);
+                        }
                     }
                 }}
             />
@@ -2019,147 +1496,65 @@ function UsersSection({
             {/* Delete User Dialog */}
             <DeleteUserDialog
                 open={deleteOpen}
-                onClose={() => setDeleteOpen(false)}
-                userName={userToDelete?.user.name || ""}
+                onClose={() => {
+                    setDeleteOpen(false);
+                    setUserToDelete(null);
+                    setUserMenuAnchor(null);
+                }}
+                user={userToDelete}
+                remainingApproversAfterDelete={userToDelete && userToDelete.createSpace.includes("Approver") ? Array.from(approverIds).filter(id => id !== userToDelete.user.id).length : undefined}
+                hasPendingApprovals={!!userToDelete?.addedAsApprover}
+                isContributor={userToDelete?.amplifySpace === "Contributor"}
+                approvalsEnabledInAccount={approvalsEnabled}
                 onConfirm={() => {
                     if (userToDelete) {
                         setUsersList(prev => prev.filter(u => u.user.id !== userToDelete.user.id));
                         onUserDeleted?.(userToDelete.user.id);
+                        setUserMenuAnchor(null);
                     }
                 }}
             />
 
-            {/* Cannot Remove Only Approver Dialog */}
+            {/* Enable Approvals Dialog */}
             <Dialog
-                open={cannotRemoveApproverOpen}
-                onClose={() => setCannotRemoveApproverOpen(false)}
+                open={enableApprovalsDialogOpen}
+                onClose={() => setEnableApprovalsDialogOpen(false)}
                 maxWidth={false}
-                PaperProps={{ sx: { width: 460, borderRadius: "12px", p: 0 } }}
+                PaperProps={{ sx: { width: 480, borderRadius: "12px", p: 0 } }}
             >
                 <Box sx={dialogBodySx}>
                     <Typography variant="h4" sx={dialogTitleSx}>
- Cannot remove this user
+                        Enable approvals for videos?
                     </Typography>
                     <Typography variant="body1" sx={dialogBodyTextSx}>
-                        <strong>{userToDelete?.user.name}</strong> is currently the only approver in your account. To remove this user, you must either:
+                        You added an approver permission to {userWithApproverAdded?.user.name}.
+                        <br />
+                        <br />
+                        In order to be able to submit for approval, you need to enable approvals.
                     </Typography>
-                    <Box sx={infoBoxAltSx}>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            <Typography variant="body1" sx={textPrimarySx}>
- • <strong>Turn off</strong> the "Require approvals from specific users for videos and templates" setting
-                            </Typography>
-                            <Typography variant="body1" sx={textPrimarySx}>
- • <strong>Add another approver</strong> first, then remove this user
-                            </Typography>
-                        </Box>
-                    </Box>
                     <Box sx={dialogActionsRowSx}>
                         <Button
                             variant="outlined"
-                            onClick={() => setCannotRemoveApproverOpen(false)}
+                            onClick={() => setEnableApprovalsDialogOpen(false)}
                             sx={cancelButtonSx}
                         >
- Close
+                            I'll do it later
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                                setEnableApprovalsDialogOpen(false);
+                                onEnableApprovalsRequested?.();
+                            }}
+                        >
+                            Enable approvals
                         </Button>
                     </Box>
                 </Box>
             </Dialog>
 
-            {/* Sole Approver Warning — Cannot Remove */}
-            <Dialog
-                open={soleApproverWarningOpen}
-                onClose={() => setSoleApproverWarningOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb8Sx}>
- Cannot remove this user
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextMb16Sx}>
-                        <strong>{userToDelete?.user.name}</strong> is the only approver on a video currently awaiting approval. To remove this user, first stop the approval process for the following {pendingVideosForUser.filter(v => v.otherApprovers.length === 0).length > 1 ? "videos" : "video"}:
-                    </Typography>
-                    <Box sx={pendingVideoListSx}>
-                        {pendingVideosForUser.filter(v => v.otherApprovers.length === 0).map(v => (
-                            <Box key={v.title} sx={pendingVideoCardStaticSx}>
-                                <Box sx={videoThumbnailSx}>
-                                    <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                </Box>
-                                <Box sx={flex1MinWidth0Sx}>
-                                    <Typography variant="subtitle2" sx={cardTitleSx}>
-                                        {v.title}
-                                    </Typography>
-                                    {v.sentAt && (
-                                        <Typography variant="body1" sx={textSecondarySx}>
- Sent for approval: {v.sentAt}
-                                        </Typography>
-                                    )}
-                                    <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        ))}
-                    </Box>
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setSoleApproverWarningOpen(false)}
-                    >
- Got it
-                    </Button>
-                </Box>
-            </Dialog>
-
-            {/* Pending Approvals Delete Warning */}
-            <Dialog
-                open={pendingApprovalDeleteOpen}
-                onClose={() => setPendingApprovalDeleteOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 500, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodyReducedBottomSx}>
-                    <Typography variant="h4" sx={dialogTitleMb8Sx}>
- Cannot remove this user
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextMb16Sx}>
-                        <strong>{userToDelete?.user.name}</strong> has pending approvals and cannot be removed until the approval process is completed or cancelled for the following {pendingVideosForUser.length > 1 ? "videos" : "video"}:
-                    </Typography>
-                    <Box sx={pendingVideoListSx}>
-                        {pendingVideosForUser.map(v => (
-                            <Box key={v.title} sx={pendingVideoCardStaticSx}>
-                                <Box sx={videoThumbnailSx}>
-                                    <Box component="img" src="/thumb.svg" alt="" sx={thumbCoverSx} />
-                                </Box>
-                                <Box sx={flex1MinWidth0Sx}>
-                                    <Typography variant="subtitle2" sx={cardTitleSx}>
-                                        {v.title}
-                                    </Typography>
-                                    {v.sentAt && (
-                                        <Typography variant="body1" sx={textSecondarySx}>
- Sent for approval: {v.sentAt}
-                                        </Typography>
-                                    )}
-                                    <Typography variant="caption" sx={awaitingApprovalLabelSx}>
- Awaiting approval
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        ))}
-                    </Box>
-                </Box>
-                <Box sx={dialogFooterSx}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setPendingApprovalDeleteOpen(false)}
-                    >
- Got it
-                    </Button>
-                </Box>
-            </Dialog>
-
-            {/* Options popup menu — media-library style */}
+            {/* Options popup menu */}
             <Menu
                 anchorEl={userMenuAnchor}
                 open={!!userMenuAnchor}
@@ -2168,81 +1563,28 @@ function UsersSection({
                 transformOrigin={{ horizontal: "right", vertical: "top" }}
                 anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
             >
-                {/* User info — non-interactive */}
-                {userMenuUser && [
-                    <Box key="name" sx={menuHeaderSx}>
-                        <Typography variant="subtitle2" sx={textPrimarySx}>
-                            {userMenuUser.user.name}
-                        </Typography>
-                    </Box>,
-                    <Box key="details" sx={menuDetailsSx}>
-                        {[
-                            { label: "Role", value: userMenuUser.jobRole },
-                            { label: "Email", value: userMenuUser.user.email },
-                            { label: "Created on", value: userMenuUser.pending ? "—" : userMenuUser.createdDate },
-                            ...(userMenuUser.addedAsApprover ? [{ label: "Approver since", value: userMenuUser.addedAsApprover }] : [])
-                        ].map(({ label, value }) => (
-                            <Box key={label} sx={menuDetailRowSx}>
-                                <Typography variant="caption" sx={menuDetailLabelAltSx}>{label}:</Typography>
-                                <Typography variant="body1" sx={textPrimarySx}>{value}</Typography>
-                            </Box>
-                        ))}
-                    </Box>,
-                    <Divider key="divider" sx={dividerSx} />,
-                    <MenuItem
-                        key="edit"
-                        onClick={() => {
-                            setEditingUser(userMenuUser); setDialogMode("edit"); setUserMenuAnchor(null); 
-                        }}
-                        sx={menuItemEditSx}
-                    >
-                        <SvgIcon sx={{ fontSize: 16, color: "action.active" }}><FontAwesomeIcon icon={faPenToSquare} /></SvgIcon>
- Edit access
-                    </MenuItem>,
-                    <MenuItem
-                        key="remove"
-                        onClick={() => {
-                            if (userMenuUser) {
-                                setUserMenuAnchor(null);
-                                setUserToDelete(userMenuUser);
-
-                                // Get videos where this user is an approver and approval is pending
-                                const pendingVideos = Object.entries(videoStates)
-                                    .filter(([_, state]) => state.sentApprovers?.includes(userMenuUser.user.id))
-                                    .map(([title, state]) => ({
-                                        title,
-                                        sentAt: state.sentAt,
-                                        otherApprovers: (state.sentApprovers || []).filter(id => id !== userMenuUser.user.id)
-                                    }));
-
-                                if (pendingVideos.length > 0) {
-                                    const isSoleOnAny = pendingVideos.some(v => v.otherApprovers.length === 0);
-                                    setPendingVideosForUser(pendingVideos);
-                                    if (isSoleOnAny) {
-                                        setSoleApproverWarningOpen(true);
-                                    }
-                                    else {
-                                        setPendingApprovalDeleteOpen(true);
-                                    }
-                                }
-                                else {
-                                    // No pending approvals — check normal approver rules
-                                    const isOnlyApprover = approvalsEnabled && approverIds.size === 1 && approverIds.has(userMenuUser.user.id);
-                                    if (isOnlyApprover) {
-                                        setCannotRemoveApproverOpen(true);
-                                    }
-                                    else {
-                                        setDeleteOpen(true);
-                                    }
-                                }
-                            }
-                        }}
-                        sx={menuItemRemoveSx}
-                    >
-                        <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
- Remove user
-                    </MenuItem>
-                ]}
+                <MenuItem
+                    onClick={() => {
+                        setEditingUser(userMenuUser); setDialogMode("edit"); setUserMenuAnchor(null); 
+                    }}
+                    sx={menuItemEditSx}
+                >
+                    <SvgIcon sx={{ fontSize: 16, color: "action.active" }}><FontAwesomeIcon icon={faPenToSquare} /></SvgIcon>
+                    Edit
+                </MenuItem>
+                <MenuItem
+                    onClick={() => {
+                        if (userMenuUser) {
+                            setUserMenuAnchor(null);
+                            setUserToDelete(userMenuUser);
+                            setDeleteOpen(true);
+                        }
+                    }}
+                    sx={menuItemRemoveSx}
+                >
+                    <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                    Delete
+                </MenuItem>
             </Menu>
         </Box>
     );
@@ -2275,6 +1617,7 @@ interface AccountSettingsDialogProps {
  onApproversChange?: (approverIds: Set<string>) => void
  onApproversListChange?: (approvers: { value: string; label: string }[]) => void
  onUserDeletionBlocked?: (userId: string, reason: "only-approver" | "pending-approvals") => void
+ onCancelUserApprovals?: (userId: string) => void
  videoStates?: Record<string, VideoStateForApprovals>
  pendingApprovalsCount?: number
  initialTab?: "users" | "permissions" | "approvals" | "access"
@@ -2290,6 +1633,7 @@ export default function AccountSettingsDialog({
     onApproversChange,
     onApproversListChange,
     onUserDeletionBlocked,
+    onCancelUserApprovals,
     videoStates = {},
     pendingApprovalsCount = 0,
     initialTab = "users"
@@ -2298,9 +1642,7 @@ export default function AccountSettingsDialog({
     const [users, setUsers] = useState<AccountUser[]>(INITIAL_USERS);
     const [approverIds, setApproverIds] = useState<Set<string>>(externalApproverIds);
     const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled);
-    const [noApproversConfirmOpen, setNoApproversConfirmOpen] = useState(false);
     const [enableApprovalsPromptOpen, setEnableApprovalsPromptOpen] = useState(false);
-    const [pendingNav, setPendingNav] = useState<NavKey | null>(null);
 
     // Sync nav when initialTab changes
     React.useEffect(() => {
@@ -2370,16 +1712,15 @@ export default function AccountSettingsDialog({
     }
 
     // Whenever the users list or approver IDs change, push the filtered approver list to parent
-    // Include both users with Approver role AND users in the approverIds set to ensure consistency
-    // Also use external approversList as a source for users not in local users list (e.g., invited users)
     React.useEffect(() => {
+        const localUserIds = new Set(users.map(u => u.user.id));
         const usersWithApproverRole = users
             .filter(u => u.createSpace.includes("Approver") || approverIds.has(u.user.id))
             .map(u => ({ value: u.user.id, label: `${u.user.name} (${u.user.email})` }));
 
-        // Add any approvers from external list that aren't already in the local list
+        // Add external approvers not already in local list, but only if they still exist in local users
         const localIds = new Set(usersWithApproverRole.map(u => u.value));
-        const externalApprovers = externalApproversList.filter(u => !localIds.has(u.value));
+        const externalApprovers = externalApproversList.filter(u => !localIds.has(u.value) && localUserIds.has(u.value));
 
         const allApprovers = [...usersWithApproverRole, ...externalApprovers];
         onApproversListChange?.(allApprovers);
@@ -2407,14 +1748,7 @@ export default function AccountSettingsDialog({
             <TruffleDialogTitle
                 HelpCenterIconButtonProps={{ onClick: () => {} }}
                 CloseIconButtonProps={{
-                    onClick: () => {
-                        if (approvalsEnabled && approverIds.size === 0) {
-                            setNoApproversConfirmOpen(true);
-                        }
-                        else {
-                            onClose();
-                        }
-                    }
+                    onClick: onClose
                 }}
             >
  Account settings
@@ -2428,14 +1762,7 @@ export default function AccountSettingsDialog({
                         <Box
                             key={item.key}
                             onClick={() => {
-                                // Check if approvals are enabled but no approvers set when leaving the Approvals tab
-                                if (nav === "approvals" && approvalsEnabled && approverIds.size === 0 && item.key !== "approvals") {
-                                    setPendingNav(item.key);
-                                    setNoApproversConfirmOpen(true);
-                                }
-                                else {
-                                    setNav(item.key);
-                                }
+                                setNav(item.key);
                             }}
                             sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: nav === item.key ? "action.hover" : "action.hover" } }}
                         >
@@ -2462,7 +1789,7 @@ export default function AccountSettingsDialog({
                                 }
                                 setUsers(prev => prev.filter(u => u.user.id !== userId));
                                 setApproverIds(prev => {
-                                    const s = new Set(prev); s.delete(userId); return s; 
+                                    const s = new Set(prev); s.delete(userId); return s;
                                 });
                             }}
                             onPermissionsChanged={(userId, createSpace, amplifySpace) => {
@@ -2490,6 +1817,12 @@ export default function AccountSettingsDialog({
                             approvalsEnabled={approvalsEnabled}
                             approverIds={approverIds}
                             videoStates={videoStates}
+                            onClose={onClose}
+                            onEnableApprovalsRequested={() => {
+                                setNav("approvals");
+                                setApprovalsEnabled(true);
+                                onApprovalsEnabledChange?.(true);
+                            }}
                         />
                     )}
                     {nav === "permissions" && <PlaceholderSection label="Permissions" />}
@@ -2517,6 +1850,10 @@ export default function AccountSettingsDialog({
                                     u.user.id === userId ? { ...u, createSpace, amplifySpace } : u
                                 ));
                             }}
+                            onUserDeleted={(userId) => {
+                                setUsers(prev => prev.filter(u => u.user.id !== userId));
+                                onCancelUserApprovals?.(userId);
+                            }}
                             pendingApprovalsCount={pendingApprovalsCount}
                             videoStates={videoStates}
                         />
@@ -2524,54 +1861,6 @@ export default function AccountSettingsDialog({
                     {nav === "access" && <PlaceholderSection label="Access" />}
                 </Box>
             </Box>
-
-            {/* No Approvers Warning Dialog */}
-            <Dialog
-                open={noApproversConfirmOpen}
-                onClose={() => setNoApproversConfirmOpen(false)}
-                maxWidth={false}
-                PaperProps={{ sx: { width: 480, borderRadius: "12px", p: 0 } }}
-            >
-                <Box sx={dialogBodySx}>
-                    <Typography variant="h4" sx={dialogTitleSx}>
- Approvals feature requires approvers
-                    </Typography>
-                    <Typography variant="body1" sx={dialogBodyTextSx}>
- You've enabled "Require approvals from specific users for videos and templates" but haven't added any approvers yet. You must add at least one approver to keep this feature enabled, or turn it off.
-                    </Typography>
-                    <Box sx={dialogActionsRowSx}>
-                        <Button
-                            variant="outlined"
-                            onClick={() => {
-                                setNoApproversConfirmOpen(false);
-                                // Disable approvals
-                                setApprovalsEnabled(false);
-                                onApprovalsEnabledChange?.(false);
-                                setPendingNav(null);
-                                // Navigate to pending tab if set
-                                if (pendingNav) {
-                                    setNav(pendingNav);
-                                }
-                            }}
-                            sx={cancelButtonSx}
-                        >
- Disable approvals
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={() => {
-                                setNoApproversConfirmOpen(false);
-                                setPendingNav(null);
-                                // Stay on approvals tab and focus the add approver button
-                                setNav("approvals");
-                                // The AddApproverDialog will be opened via ApprovalsSection state
-                            }}
-                        >
- Add approvers
-                        </Button>
-                    </Box>
-                </Box>
-            </Dialog>
 
             {/* Enable Request Approvals Prompt */}
             <Dialog
@@ -2617,15 +1906,6 @@ export default function AccountSettingsDialog({
 // General / shared
 const textPrimarySx: SxProps<Theme> = { color: "text.primary" };
 const textSecondarySx: SxProps<Theme> = { color: "text.secondary" };
-const flex1Sx: SxProps<Theme> = { flex: 1 };
-const flex1MinWidth0Sx: SxProps<Theme> = { flex: 1, minWidth: 0 };
-const displayBlockSx: SxProps<Theme> = { display: "block" };
-const dividerSx: SxProps<Theme> = { my: "4px" };
-const columnGap4Sx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "4px" };
-const menuDetailRowSx: SxProps<Theme> = { display: "flex", gap: "6px" };
-const menuDetailLabelSx: SxProps<Theme> = { color: "text.secondary", minWidth: 90 };
-const menuDetailLabelAltSx: SxProps<Theme> = { color: "text.secondary", minWidth: 80 };
-
 // Buttons
 const cancelButtonSx: SxProps<Theme> = { color: "text.primary", borderColor: "grey.300" };
 const textCancelButtonSx: SxProps<Theme> = { color: "text.primary" };
@@ -2634,32 +1914,12 @@ const textLinkButtonSx: SxProps<Theme> = { color: "primary.main", p: 0, "&:hover
 const contactSalesLinkSx: SxProps<Theme> = { color: "primary.main", cursor: "pointer", textDecoration: "underline" };
 const closeIconButtonSx: SxProps<Theme> = { color: "action.active" };
 const ellipsisButtonSx: SxProps<Theme> = { color: "text.primary", p: "4px", "&:hover": { bgcolor: "grey.100" } };
-const editPermissionsButtonSx: SxProps<Theme> = { color: "primary.main", "&:hover": { bgcolor: "action.hover" }, p: "4px" };
-const editIconContainerSx: SxProps<Theme> = { width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 };
 
 // Icons
 const infoBoxIconSx: SxProps<Theme> = { fontSize: 16, color: "primary.main", mt: "1px", flexShrink: 0 };
 
 // SeatHeader
-const seatHeaderContainerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px" };
-const seatHeaderLabelSx: SxProps<Theme> = { color: "text.primary", cursor: "default" };
-const seatHeaderInfoIconSx: SxProps<Theme> = { fontSize: 14, color: "action.active", cursor: "default" };
-const seatBadgeSx: SxProps<Theme> = { bgcolor: "action.hover", borderRadius: "4px", px: "6px", py: "2px", cursor: "default" };
-const seatBadgeTextSx: SxProps<Theme> = { color: "primary.main" };
-
 // CreateSpaceSelector
-const createSpaceSelectorButtonSx: SxProps<Theme> = {
-    height: 40,
-    border: 1,
-    borderColor: "grey.300",
-    color: "text.primary",
-    bgcolor: "background.paper",
-    textAlign: "left",
-    justifyContent: "flex-start",
-    "&:hover": { bgcolor: "background.paper", borderColor: "grey.300" }
-};
-const createSpaceMenuPaperSx: SxProps<Theme> = { borderRadius: "8px", minWidth: 320 };
-const menuItemDescriptionSx: SxProps<Theme> = { color: "text.secondary", mt: "2px", lineHeight: 1.4 };
 
 // UserCell
 const userCellContainerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "10px", cursor: "default" };
@@ -2670,54 +1930,24 @@ const userCellRoleSx: SxProps<Theme> = { color: "text.secondary", lineHeight: 1.
 
 // Dialogs (shared layout)
 const dialogBodySx: SxProps<Theme> = { px: "24px", py: "20px" };
-const dialogBodyReducedBottomSx: SxProps<Theme> = { px: "24px", pt: "20px", pb: "8px" };
 const dialogTitleRowMb16Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px" };
 const dialogTitleRowMb24Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "24px" };
 const dialogTitleSx: SxProps<Theme> = { color: "text.primary", mb: "12px" };
-const dialogTitleMb16Sx: SxProps<Theme> = { color: "text.primary", mb: "16px" };
-const dialogTitleMb8Sx: SxProps<Theme> = { color: "text.primary", mb: "8px" };
 const dialogBodyTextSx: SxProps<Theme> = { color: "text.secondary", mb: "24px", lineHeight: 1.6 };
-const dialogBodyTextNoLineHeightSx: SxProps<Theme> = { color: "text.secondary", mb: "24px" };
-const dialogBodyTextMb16Sx: SxProps<Theme> = { color: "text.secondary", mb: "16px", lineHeight: 1.6 };
 const dialogActionsRowSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", gap: "12px" };
-const dialogFooterSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", px: "24px", py: "16px", borderTop: 1, borderTopColor: "grey.300" };
 const dialogFlexBodySx: SxProps<Theme> = { display: "flex", flex: 1, overflow: "hidden" };
 
 // Info box
 const infoBoxSx: SxProps<Theme> = { display: "flex", alignItems: "flex-start", gap: "8px", bgcolor: "action.hover", borderRadius: "8px", px: "14px", py: "12px", mb: "20px" };
-const infoBoxAltSx: SxProps<Theme> = { bgcolor: "action.hover", borderRadius: "8px", px: "14px", py: "12px", mb: "24px" };
 const existingEmailInputSx: SxProps<Theme> = { height: 40, mb: "16px", "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" } };
-const formControlMt6Sx: SxProps<Theme> = { mt: "6px" };
-const amplifyMenuItemSx: SxProps<Theme> = { py: "12px" };
 
 // Context menus
 const contextMenuPaperSx: SxProps<Theme> = { borderRadius: "10px", minWidth: 240, boxShadow: "0px 4px 20px rgba(3,25,79,0.15)", py: "8px" };
-const menuHeaderSx: SxProps<Theme> = { px: "16px", pt: "4px", pb: "8px" };
-const menuDetailsSx: SxProps<Theme> = { px: "16px", pb: "8px", display: "flex", flexDirection: "column", gap: "4px" };
 const menuItemEditSx: SxProps<Theme> = { color: "text.primary", px: "16px", py: "8px", gap: "10px" };
 const menuItemRemoveSx: SxProps<Theme> = { color: "error.main", px: "16px", py: "8px", gap: "10px" };
 
-// Pending video cards
-const pendingVideoListSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "12px", mb: "20px" };
-const pendingVideoCardSx: SxProps<Theme> = {
-    display: "flex",
-    gap: "12px",
-    alignItems: "flex-start",
-    bgcolor: "background.default",
-    borderRadius: "8px",
-    p: "12px",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    "&:hover": {
-        bgcolor: "primary.light",
-        boxShadow: "0 2px 8px rgba(0, 83, 229, 0.15)"
-    }
-};
-const pendingVideoCardStaticSx: SxProps<Theme> = { display: "flex", gap: "12px", alignItems: "flex-start", bgcolor: "background.default", borderRadius: "8px", p: "12px" };
-const videoThumbnailSx: SxProps<Theme> = { width: 64, height: 48, borderRadius: "6px", bgcolor: "action.selected", flexShrink: 0, border: 1, borderColor: "grey.300", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" };
+// Card
 const cardTitleSx: SxProps<Theme> = { color: "text.primary", mb: "2px" };
-const cardCaptionSx: SxProps<Theme> = { color: "text.secondary", mb: "4px" };
-const awaitingApprovalLabelSx: SxProps<Theme> = { color: "warning.main", mt: "2px" };
 
 // Tables
 const tableFullWidthSx: SxProps<Theme> = { width: "100%" };
@@ -2730,10 +1960,28 @@ const approvalToggleContainerSx: SxProps<Theme> = { border: 1, borderColor: "gre
 const approvalToggleInnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "14px" };
 const approvalStampIconSx: SxProps<Theme> = { fontSize: 22, color: "primary.main", flexShrink: 0 };
 const switchSx: SxProps<Theme> = { "& .MuiSwitch-switchBase.Mui-checked": { color: "common.white" }, "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "primary.main" } };
-const emptyStateBoxSx: SxProps<Theme> = { bgcolor: "grey.100", borderRadius: "8px", py: "20px", display: "flex", alignItems: "center", justifyContent: "center" };
 
 // Main dialog layout
 const sidebarSx: SxProps<Theme> = { width: 176, flexShrink: 0, borderRight: 1, borderRightColor: "grey.300", py: "12px", px: "8px", display: "flex", flexDirection: "column", gap: "2px", bgcolor: "background.default" };
 const contentAreaSx: SxProps<Theme> = { flex: 1, overflow: "hidden", px: "24px", py: "20px", display: "flex", flexDirection: "column" };
 const placeholderContainerSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" };
-const thumbCoverSx: SxProps<Theme> = { width: "100%", height: "100%", objectFit: "cover" };
+
+// UsersSection
+const usersTitleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px", flexShrink: 0 };
+const userTabsSx: SxProps<Theme> = { mb: "16px", borderBottom: 1, borderBottomColor: "grey.300", minHeight: 42, flexShrink: 0 };
+const tabItemSx: SxProps<Theme> = { textTransform: "none", minHeight: 42, py: 0, px: "12px" };
+const tabLabelBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "8px" };
+const tabCountBadgeSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px", bgcolor: "action.hover", borderRadius: "6px", px: "6px", py: "2px" };
+const tabBadgeIconSx: SxProps<Theme> = { fontSize: 12, color: "action.active" };
+const usersToolbarRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px", flexShrink: 0 };
+const addUserBtnSx: SxProps<Theme> = { color: "primary.main", borderColor: "grey.300", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } };
+const userTypeCellSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" };
+
+// UserTypeSelector
+const userTypeSelectorFieldSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "8px", border: 1, borderColor: "grey.300", borderRadius: "4px", px: "12px", height: 40, cursor: "pointer", "&:hover": { borderColor: "primary.main" } };
+const userTypePopoverPaperSx: SxProps<Theme> = { borderRadius: "8px", width: 360 };
+const userTypeSectionHeaderSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", px: "16px", py: "10px", bgcolor: "background.default" };
+const userTypeOptionSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px", transition: "background 0.1s" };
+
+// Edit/Add user dialog fields
+const editUserFieldLabelSx: SxProps<Theme> = { color: "text.secondary", mb: "6px", display: "block" };
