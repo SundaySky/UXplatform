@@ -1162,7 +1162,7 @@ const videosGridSx: SxProps<Theme> = {
 
 const tableHeadCellSx: SxProps<Theme> = { bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" };
 const tableHeadCellInnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px" };
-const tableSortIconSx: SxProps<Theme> = { fontSize: 12, color: "action.active" };
+const tableSortIconSx: SxProps<Theme> = { fontSize: "12px !important", width: "12px !important", height: "12px !important", color: "action.active" };
 const tableRowSx: SxProps<Theme> = { cursor: "pointer" };
 const tableNameCellSx: SxProps<Theme> = { maxWidth: 360 };
 const tableNameCellInnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1.5 };
@@ -1171,7 +1171,7 @@ const tableVideoTitleSx: SxProps<Theme> = { mb: "2px" };
 const tableLabelSx: SxProps<Theme> = { mt: "2px" };
 const tableActionsCellSx: SxProps<Theme> = { width: 96 };
 const tableActionsBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center" };
-const tableActionIconSx: SxProps<Theme> = { fontSize: 16 };
+const tableActionIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important" };
 
 const folderCardSx: SxProps<Theme> = {
     display: "flex",
@@ -1396,9 +1396,9 @@ const menuTitleSx: SxProps<Theme> = {
 };
 
 const menuFolderIconSx: SxProps<Theme> = {
-    fontSize: 16,
-    width: 16,
-    height: 16,
+    fontSize: "13px !important",
+    width: "13px !important",
+    height: "13px !important",
     color: "text.secondary"
 };
 
@@ -1411,23 +1411,40 @@ const menuDividerSx: SxProps<Theme> = {
     my: "4px"
 };
 
+const menuSecondaryIconSx: SxProps<Theme> = {
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
+    color: "action.active"
+};
+
 const menuItemIconMrSx: SxProps<Theme> = {
-    fontSize: 16,
-    width: 16,
-    height: 16,
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
     color: "action.active",
     mr: 1
 };
 
+const menuItemIconMlSx: SxProps<Theme> = {
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
+    color: "action.active",
+    ml: 1
+};
+
 const menuItemIconDeleteSx: SxProps<Theme> = {
-    fontSize: 16,
-    width: 16,
-    height: 16,
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
     mr: 1
 };
 
 const personalizedLabelIconSx: SxProps<Theme> = {
-    fontSize: 12
+    fontSize: "12px !important",
+    width: "12px !important",
+    height: "12px !important"
 };
 
 const folderCardTextWrapSx: SxProps<Theme> = {

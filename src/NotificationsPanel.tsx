@@ -86,7 +86,7 @@ export default function NotificationsPanel({ anchorEl, onClose, onMarkAllRead, n
                             {/* Icon avatar — no badge */}
                             <Box sx={notifIconWrapSx}>
                                 <Box sx={notifIconBoxSx}>
-                                    <SvgIcon sx={{ fontSize: 18, color: n.iconColor }}><FontAwesomeIcon icon={faThumbsUp} /></SvgIcon>
+                                    <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important", color: n.iconColor }}><FontAwesomeIcon icon={faThumbsUp} /></SvgIcon>
                                 </Box>
                             </Box>
 
@@ -184,5 +184,5 @@ const notifIconBoxSx: SxProps<Theme> = { width: 32, height: 32, bgcolor: "primar
 const notifTextColSx: SxProps<Theme> = { flex: 1, minWidth: 0 };
 const notifBodySx: SxProps<Theme> = { color: "text.primary", whiteSpace: "pre-wrap" };
 const notifDateSx: SxProps<Theme> = { color: "text.disabled", mt: "2px" };
-const bellIconSx: SxProps<Theme> = { fontSize: 22 };
+const bellIconSx: SxProps<Theme> = { fontSize: "22px !important", width: "22px !important", height: "22px !important" };
 const badgeSx: SxProps<Theme> = { "& .MuiBadge-badge": { fontSize: 9, minWidth: 14, height: 14, padding: 0 } };
