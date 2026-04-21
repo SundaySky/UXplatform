@@ -32,6 +32,8 @@ import CancelApprovalDialog from "./CancelApprovalDialog";
 import VideoLibraryPage, { type VideoItem, PermAvatarGroup } from "./VideoLibraryPage";
 import { INITIAL_USERS } from "./AccountSettingsDialog";
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from "./StudioPage";
+import TemplatePage from "./TemplatePage";
+import TemplateLibraryPage from "./TemplateLibraryPage";
 import { type NotificationItem } from "./NotificationsPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import { OWNER_USER, type PermissionUser } from "./ManageAccessDialog";
@@ -1118,7 +1120,7 @@ const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: "draft", sentAppr
 
 export default function App() {
     const theme = useTheme();
-    const [currentPage, setCurrentPage] = useState<"video" | "library" | "studio">("library");
+    const [currentPage, setCurrentPage] = useState<"video" | "library" | "studio" | "template" | "template-library">("library");
     const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
     const [videoStates, setVideoStates] = useState<Record<string, VideoState>>({});
     const [dialogStep, setDialogStep] = useState<"closed" | "form" | "confirmed">("closed");
@@ -1259,6 +1261,7 @@ export default function App() {
                 {currentPage === "library" ? (
                     <VideoLibraryPage
                         onSelectVideo={handleSelectVideo}
+                        onNavigateToTemplate={() => setCurrentPage("template-library")}
                         notifications={notifications}
                         videoStates={videoStates}
                         onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
@@ -1314,6 +1317,18 @@ export default function App() {
                         awaitingApprovers={false}
                         onEditAttempt={videoPhase === 1 ? () => setCancelApprovalDialogOpen(true) : undefined}
                     />
+
+                ) : currentPage === "template-library" ? (
+                /* ── Template library ─────────────────────────────────────────────── */
+                    <TemplateLibraryPage
+                        onNavigateBack={() => setCurrentPage("library")}
+                        onNavigateToTemplate={() => setCurrentPage("template")}
+                        notifications={notifications}
+                    />
+
+                ) : currentPage === "template" ? (
+                /* ── Template page ────────────────────────────────────────────────── */
+                    <TemplatePage onNavigateBack={() => setCurrentPage("template-library")} />
 
                 ) : (
                 /* ── Video page ───────────────────────────────────────────────────── */

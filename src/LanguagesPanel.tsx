@@ -1,14 +1,16 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Divider, Checkbox,
+    Select, MenuItem, FormControl, Checkbox,
     ListSubheader, TextField, InputAdornment
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
-    faTriangleExclamation, faPencil, faTrashCan, faMagnifyingGlass
+    faTriangleExclamation, faPencil, faTrashCan, faMagnifyingGlass,
+    faAngleDown, faArrowsRotate
 } from "@fortawesome/pro-regular-svg-icons";
 import { faPlay, faCircleCheck, faCircleXmark } from "@fortawesome/pro-solid-svg-icons";
 import {
@@ -24,7 +26,7 @@ type PanelState =
     | "removing" | "success_remove";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const PANEL_WIDTH = 260;
+const PANEL_WIDTH = 336;
 export const MAX_LANGUAGES = 15;
 const APPLYING_DELAY_MS = 1500;
 
@@ -85,14 +87,15 @@ export default function LanguagesPanel({
     // Snapshot of what was sent to "apply"
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
 
-    const selectedCount = selectedLangs.length;
+    const filledLangs = selectedLangs.filter(l => l !== "");
+    const selectedCount = filledLangs.length;
     const isEditMode = enabledLangs.length > 0;
     const isRemovingAll = isEditMode && selectedCount === 0;
-    const isRemovingAny = enabledLangs.some(lang => !selectedLangs.includes(lang));
+    const isRemovingAny = enabledLangs.some(lang => !filledLangs.includes(lang));
     const hasChanges =
-        selectedLangs.length !== enabledLangs.length ||
-        selectedLangs.some(lang => !enabledLangs.includes(lang)) ||
-        enabledLangs.some(lang => !selectedLangs.includes(lang));
+        filledLangs.length !== enabledLangs.length ||
+        filledLangs.some(lang => !enabledLangs.includes(lang)) ||
+        enabledLangs.some(lang => !filledLangs.includes(lang));
     const canEnable = isRemovingAll || (hasChanges && selectedCount > 0);
 
     const activeLangsList = enabledLangs;
@@ -106,16 +109,17 @@ export default function LanguagesPanel({
         setSearchQuery("");
     }
 
-    function handleRemoveLang(index: number) {
-        setSelectedLangs(prev => prev.filter((_, i) => i !== index));
-    }
 
     function handleSwapLang(index: number, newLang: string) {
         setSelectedLangs(prev => prev.map((l, i) => i === index ? newLang : l));
     }
 
+    function handleClearLang(index: number) {
+        setSelectedLangs(prev => prev.map((l, i) => i === index ? "" : l));
+    }
+
     function handleEnableTranslation() {
-        const newLangs = [...selectedLangs];
+        const newLangs = filledLangs;
         const isUpdating = isEditMode && newLangs.length > 0;
 
         setPendingLangs(newLangs);
@@ -210,10 +214,10 @@ export default function LanguagesPanel({
                     </Typography>
                     {showCredits && (
                         <Box sx={creditBadgeSx}>
-                            <SvgIcon sx={iconSmSx}>
+                            <SvgIcon color="gradient" sx={iconSmSx}>
                                 <FontAwesomeIcon icon={faCoins} />
                             </SvgIcon>
-                            <Typography variant="caption" sx={{ lineHeight: 1 }}>
+                            <Typography variant="body1" color="info.main" sx={{ lineHeight: 1 }}>
                                 340
                             </Typography>
                         </Box>
@@ -238,7 +242,7 @@ export default function LanguagesPanel({
                                 Narration source language
                             </Typography>
                             <IconButton size="small" sx={{ p: "2px" }}>
-                                <SvgIcon sx={iconSmSx}>
+                                <SvgIcon sx={infoIconSx}>
                                     <FontAwesomeIcon icon={faCircleInfo} />
                                 </SvgIcon>
                             </IconButton>
@@ -249,28 +253,26 @@ export default function LanguagesPanel({
                                 : "Locked for switching once language setup starts"}
                         </Typography>
                         <Box sx={sourceSelectRowSx}>
-                            {panelState === "settled" ? (
-                                <>
-                                    <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
-                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</Typography>
-                                        <Typography variant="body1">English</Typography>
-                                    </Box>
-                                    <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                    </IconButton>
-                                </>
+                            {panelState === "promo" ? (
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    size="medium"
+                                    fullWidth
+                                    startIcon={
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faArrowsRotate} />
+                                        </SvgIcon>
+                                    }
+                                >
+                                    Change narration source language
+                                </Button>
                             ) : (
                                 <>
-                                    <FormControl size="small" sx={{ flex: 1 }}>
-                                        <Select value="en">
-                                            <MenuItem value="en">
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</Typography>
-                                                    <Typography variant="body1">English</Typography>
-                                                </Box>
-                                            </MenuItem>
-                                        </Select>
-                                    </FormControl>
+                                    <Box sx={flagCircleMdSx}>
+                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</Typography>
+                                    </Box>
+                                    <Typography variant="body1" sx={{ flex: 1 }}>English</Typography>
                                     <IconButton size="small" color="primary">
                                         <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                     </IconButton>
@@ -292,37 +294,35 @@ export default function LanguagesPanel({
                                         </Box>
                                     ))}
                                 </Box>
-                                <Typography variant="h5" sx={{ color: "background.paper" }}>
+                                <Typography variant="h3" sx={promoThumbTitleSx}>
                                     Hello &#123;first name&#125;
                                 </Typography>
                             </Box>
 
-                            <Typography variant="h4" sx={{ mt: 2, mb: 1 }}>
+                            <Typography variant="h3" sx={{ textAlign: "center" }}>
                                 Make this video multilingual
                             </Typography>
 
-                            <Box component="ul" sx={{ pl: 2.5, m: 0, mb: 2.5 }}>
+                            <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
                                 {[
                                     "Add languages to generate automatic translations.",
                                     "Review, edit, and preview narration without credits. Credits apply at approval or publishing."
                                 ].map((text, i) => (
                                     <Box component="li" key={i} sx={{ mb: 0.75 }}>
-                                        <Typography variant="body1" color="text.secondary">{text}</Typography>
+                                        <Typography variant="body1">{text}</Typography>
                                     </Box>
                                 ))}
                             </Box>
 
-                            <Button
-                                variant="outlined"
-                                color="primary"
-                                fullWidth
-                                size="medium"
-                                onClick={() => setPanelState("selector")}
-                            >
-                                Add up to {MAX_LANGUAGES} languages
-                            </Button>
-
-                            <Box sx={{ textAlign: "center", mt: 1.5 }}>
+                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, pt: 1 }}>
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    size="small"
+                                    onClick={() => setPanelState("selector")}
+                                >
+                                    Add up to {MAX_LANGUAGES} languages
+                                </Button>
                                 <TruffleLink href="#" underline="hover" color="primary">
                                     Learn more
                                 </TruffleLink>
@@ -340,23 +340,17 @@ export default function LanguagesPanel({
                                 <Box sx={sourceLabelRowSx}>
                                     <Typography variant="h5">Narration source language</Typography>
                                     <IconButton size="small" sx={{ p: "2px" }}>
-                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                        <SvgIcon sx={infoIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                                     </IconButton>
                                 </Box>
                                 <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: "block" }}>
                                     Editable until additional languages are added
                                 </Typography>
                                 <Box sx={sourceSelectRowSx}>
-                                    <FormControl size="small" sx={{ flex: 1 }}>
-                                        <Select value="en" disabled>
-                                            <MenuItem value="en">
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</Typography>
-                                                    <Typography variant="body1">English</Typography>
-                                                </Box>
-                                            </MenuItem>
-                                        </Select>
-                                    </FormControl>
+                                    <Box sx={flagCircleMdSx}>
+                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</Typography>
+                                    </Box>
+                                    <Typography variant="body1" sx={{ flex: 1 }}>English</Typography>
                                     <IconButton size="small" color="primary">
                                         <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                     </IconButton>
@@ -379,23 +373,51 @@ export default function LanguagesPanel({
                                     <FormControl size="small" sx={{ flex: 1, minWidth: 0 }}>
                                         <Select
                                             value={lang}
+                                            displayEmpty
                                             onChange={(e) => handleSwapLang(i, e.target.value as string)}
-                                            renderValue={(val) => (
-                                                <Box sx={slotRenderValueSx}>
-                                                    <Box sx={flagCircleSmSx}>
-                                                        <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
-                                                            {FLAG_BY_NAME[val as string]}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Typography variant="body1" sx={{ flex: 1, minWidth: 0 }} noWrap>
-                                                        {val as string}
-                                                    </Typography>
-                                                </Box>
+                                            IconComponent={() => (
+                                                <SvgIcon sx={selectIconSx}>
+                                                    <FontAwesomeIcon icon={faAngleDown} />
+                                                </SvgIcon>
                                             )}
+                                            renderValue={(val) => {
+                                                if (!val) {
+                                                    return (
+                                                        <Typography variant="body1" color="text.disabled" sx={{ fontStyle: "italic" }}>
+                                                            Choose or type language {i + 1}
+                                                        </Typography>
+                                                    );
+                                                }
+                                                return (
+                                                    <Box sx={slotRenderValueSx}>
+                                                        <Box sx={flagCircleSmSx}>
+                                                            <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
+                                                                {FLAG_BY_NAME[val as string]}
+                                                            </Typography>
+                                                        </Box>
+                                                        <Typography variant="body1" sx={{ flex: 1, minWidth: 0 }} noWrap>
+                                                            {val as string}
+                                                        </Typography>
+                                                        <Box
+                                                            component="span"
+                                                            onMouseDown={(e: React.MouseEvent) => {
+                                                                e.stopPropagation();
+                                                                e.preventDefault();
+                                                                handleClearLang(i);
+                                                            }}
+                                                            sx={clearInsideSelectSx}
+                                                        >
+                                                            <SvgIcon sx={iconSmSx}>
+                                                                <FontAwesomeIcon icon={faXmark} />
+                                                            </SvgIcon>
+                                                        </Box>
+                                                    </Box>
+                                                );
+                                            }}
                                             MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
                                         >
                                             {LANGUAGE_OPTIONS
-                                                .filter(l => l.name === lang || !selectedLangs.includes(l.name))
+                                                .filter(l => l.name === lang || !filledLangs.includes(l.name))
                                                 .map(({ name, flag }) => (
                                                     <MenuItem key={name} value={name}>
                                                         <Box sx={menuItemInnerSx}>
@@ -409,11 +431,12 @@ export default function LanguagesPanel({
                                     </FormControl>
                                     <IconButton
                                         size="small"
-                                        sx={removeLangBtnSx}
-                                        onClick={() => handleRemoveLang(i)}
+                                        color={lang ? "primary" : "default"}
+                                        disabled={!lang}
+                                        sx={{ flexShrink: 0 }}
                                     >
-                                        <SvgIcon sx={iconXsSx}>
-                                            <FontAwesomeIcon icon={faXmark} />
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faPlay} />
                                         </SvgIcon>
                                     </IconButton>
                                 </Box>
@@ -429,6 +452,11 @@ export default function LanguagesPanel({
                                             value={addingValue}
                                             onChange={(e) => setAddingValue(e.target.value as string[])}
                                             onClose={handleAddingClose}
+                                            IconComponent={() => (
+                                                <SvgIcon sx={selectIconSx}>
+                                                    <FontAwesomeIcon icon={faAngleDown} />
+                                                </SvgIcon>
+                                            )}
                                             renderValue={(sel) => {
                                                 const selected = sel as string[];
                                                 if (selected.length === 0) {
@@ -461,8 +489,8 @@ export default function LanguagesPanel({
                                             {/* ── Sticky search field ── */}
                                             <ListSubheader sx={adderSearchSubheaderSx}>
                                                 <TextField
-                                                    size="small"
-                                                    placeholder="Search..."
+                                                    size="medium"
+                                                    placeholder="Search languages"
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
                                                     onKeyDown={(e) => e.stopPropagation()}
@@ -482,7 +510,7 @@ export default function LanguagesPanel({
                                                 />
                                             </ListSubheader>
                                             {LANGUAGE_OPTIONS
-                                                .filter(l => !selectedLangs.includes(l.name))
+                                                .filter(l => !filledLangs.includes(l.name))
                                                 .filter(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()))
                                                 .map(({ name, flag }) => {
                                                     const checked = addingValue.includes(name);
@@ -490,9 +518,9 @@ export default function LanguagesPanel({
                                                     return (
                                                         <MenuItem key={name} value={name} disabled={atMax}>
                                                             <Box sx={adderMenuItemSx}>
-                                                                <Checkbox checked={checked} size="small" sx={{ p: "4px" }} />
-                                                                <Box sx={flagCircleSmSx}>
-                                                                    <Typography sx={{ fontSize: 13, lineHeight: 1 }}>{flag}</Typography>
+                                                                <Checkbox checked={checked} size="medium" sx={{ p: "2px" }} />
+                                                                <Box sx={adderFlagCircleSx}>
+                                                                    <Typography sx={{ fontSize: 14, lineHeight: 1 }}>{flag}</Typography>
                                                                 </Box>
                                                                 <Typography variant="body1">{name}</Typography>
                                                             </Box>
@@ -509,7 +537,7 @@ export default function LanguagesPanel({
                         <Box sx={stickyFooterSx}>
                             <AttentionBox
                                 color="info"
-                                icon={<SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
+                                icon={<SvgIcon sx={infoIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
                                 sx={{ mb: 1.5 }}
                             >
                                 <Typography variant="body1">Credits will apply on video approval</Typography>
@@ -687,9 +715,8 @@ export default function LanguagesPanel({
                             </Button>
                         </Box>
 
-                        {activeLangsList.map((lang, i) => (
+                        {activeLangsList.map((lang) => (
                             <Box key={lang}>
-                                {i > 0 && <Divider />}
                                 <Box sx={langListItemSx}>
                                     <Box sx={flagCircleMdSx}>
                                         <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
@@ -737,12 +764,11 @@ const creditBadgeSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
     gap: "4px",
-    px: "8px",
-    py: "3px",
-    borderRadius: "12px",
-    bgcolor: "action.hover",
-    border: "1px solid",
-    borderColor: "divider"
+    px: "6px",
+    pt: "2px",
+    pb: "3px",
+    borderRadius: "4px",
+    bgcolor: "info.light"
 };
 
 const iconBtnSx: SxProps<Theme> = {
@@ -751,9 +777,9 @@ const iconBtnSx: SxProps<Theme> = {
 };
 
 const iconSmSx: SxProps<Theme> = {
-    fontSize: "18px !important",
-    width: "18px !important",
-    height: "18px !important"
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important"
 };
 
 const iconXsSx: SxProps<Theme> = {
@@ -761,6 +787,24 @@ const iconXsSx: SxProps<Theme> = {
     width: "14px !important",
     height: "14px !important"
 };
+
+const infoIconSx: SxProps<Theme> = {
+    fontSize: "12px !important",
+    width: "12px !important",
+    height: "12px !important",
+    color: "action.active"
+};
+
+const selectIconSx: SxProps<Theme> = {
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
+    color: "primary.main",
+    position: "absolute",
+    right: "8px",
+    pointerEvents: "none"
+};
+
 
 const sourceLanguageSectionSx: SxProps<Theme> = {
     px: 2,
@@ -810,18 +854,27 @@ const stickyFooterSx: SxProps<Theme> = {
 
 const promoCardSx: SxProps<Theme> = {
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
+    gap: 1.5,
+    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+    borderRadius: "10px",
+    p: 2
 };
 
 const promoThumbSx: SxProps<Theme> = {
-    bgcolor: "secondary.main",
+    bgcolor: "secondary.dark",
     borderRadius: "8px",
     p: 2,
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
-    gap: 1,
-    minHeight: 100
+    gap: 1.5,
+    minHeight: 120
+};
+
+const promoThumbTitleSx: SxProps<Theme> = {
+    color: "common.white",
+    fontStyle: "italic"
 };
 
 const promoFlagsRowSx: SxProps<Theme> = {
@@ -964,6 +1017,16 @@ const slotRowSx: SxProps<Theme> = {
     mb: 1.5
 };
 
+const clearInsideSelectSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    color: "text.secondary",
+    flexShrink: 0,
+    lineHeight: 0,
+    cursor: "pointer",
+    "&:hover": { color: "text.primary" }
+};
+
 const slotRenderValueSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
@@ -993,13 +1056,6 @@ const stickyHeadingSx: SxProps<Theme> = {
     pb: 1.5
 };
 
-// ── Slot row buttons ──────────────────────────────────────────────────────────
-
-const removeLangBtnSx: SxProps<Theme> = {
-    color: "text.secondary",
-    p: "4px",
-    flexShrink: 0
-};
 
 // ── Dropdown menu item layouts ────────────────────────────────────────────────
 
@@ -1013,8 +1069,19 @@ const menuItemInnerSx: SxProps<Theme> = {
 const adderMenuItemSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "6px",
     width: "100%"
+};
+
+const adderFlagCircleSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    overflow: "hidden",
+    flexShrink: 0
 };
 
 const adderSearchSubheaderSx: SxProps<Theme> = {
@@ -1022,7 +1089,7 @@ const adderSearchSubheaderSx: SxProps<Theme> = {
     top: 0,
     zIndex: 1,
     bgcolor: "background.paper",
-    px: 1,
+    px: 2,
     pt: 1,
     pb: 0.5,
     lineHeight: "normal"

@@ -4,7 +4,7 @@ import { alpha } from "@mui/material/styles";
 import {
     AppBar, Badge, Box, Breadcrumbs, Button, Card, CardContent, CardMedia, Divider, IconButton, List, ListItemButton,
     ListItemIcon, ListItemText, Menu, Skeleton, SvgIcon, Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, Toolbar, Tooltip, Typography
+    TableHead, TableRow, Toolbar, ToggleButton, ToggleButtonGroup, Tooltip, Typography
 } from "@mui/material";
 import {
     Label, Search, TruffleAvatar, TruffleIconButton, TruffleToggleButtonGroup, ToggleIconButton,
@@ -520,14 +520,25 @@ function FolderCard({ name, count }: { name: string; count: number }) {
 
 // ─── Left sidebar ─────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-    { icon: faFilm, label: "Video Library", selected: true },
-    { icon: faLayerGroup, label: "Template Library", selected: false },
-    { icon: faImages, label: "Media", selected: false },
-    { icon: faLightbulb, label: "Inspiration Gallery", selected: false },
-    { icon: faChartBar, label: "Analytics", selected: false }
+    { icon: faFilm, label: "Video Library" },
+    { icon: faLayerGroup, label: "Template Library" },
+    { icon: faImages, label: "Media" },
+    { icon: faLightbulb, label: "Inspiration Gallery" },
+    { icon: faChartBar, label: "Analytics" }
 ];
 
-function AppSidebar() {
+export function AppSidebar({
+    onTemplateLibraryClick,
+    onVideoLibraryClick,
+    selectedNav = "Video Library"
+}: {
+    onTemplateLibraryClick?: () => void;
+    onVideoLibraryClick?: () => void;
+    selectedNav?: string;
+}) {
+    const [createMenuAnchor, setCreateMenuAnchor] = useState<HTMLElement | null>(null);
+    const [createType, setCreateType] = useState<"video" | "template">("video");
+
     return (
         <Box sx={sidebarSx}>
             {/* Logo area */}
@@ -541,17 +552,81 @@ function AppSidebar() {
                 color="gradient"
                 size="large"
                 sx={createButtonSx}
+                onClick={e => setCreateMenuAnchor(e.currentTarget)}
             >
                 Create
             </Button>
 
+            {/* Create dropdown menu */}
+            <Menu
+                anchorEl={createMenuAnchor}
+                open={Boolean(createMenuAnchor)}
+                onClose={() => setCreateMenuAnchor(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+                transformOrigin={{ vertical: "top", horizontal: "center" }}
+                slotProps={{ paper: { elevation: 11, sx: createMenuPaperSx } }}
+            >
+                <Box sx={createMenuInnerSx}>
+                    <ToggleButtonGroup
+                        value={createType}
+                        exclusive
+                        onChange={(_e, val) => {
+                            if (val) {
+                                setCreateType(val);
+                            } 
+                        }}
+                        fullWidth
+                        sx={createTypeToggleGroupSx}
+                    >
+                        <ToggleButton value="video" sx={createTypeToggleBtnSx}>
+                            <SvgIcon sx={createTypeToggleIconSx}><FontAwesomeIcon icon={faFilm} /></SvgIcon>
+                            Video
+                        </ToggleButton>
+                        <ToggleButton value="template" sx={createTypeToggleBtnSx}>
+                            <SvgIcon sx={createTypeToggleIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
+                            Template
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+
+                    {createType === "video" ? (
+                        <>
+                            <TruffleMenuItem onClick={() => setCreateMenuAnchor(null)}>+ From scratch</TruffleMenuItem>
+                            <TruffleMenuItem onClick={() => setCreateMenuAnchor(null)}>Write a prompt</TruffleMenuItem>
+                            <TruffleMenuItem onClick={() => setCreateMenuAnchor(null)}>Upload a document</TruffleMenuItem>
+                            <TruffleMenuItem
+                                onClick={() => setCreateMenuAnchor(null)}
+                                secondaryAction={<Label label="Coming soon" color="default" size="small" />}
+                            >
+                                Use script
+                            </TruffleMenuItem>
+                            <TruffleMenuItem onClick={() => setCreateMenuAnchor(null)}>Get inspired</TruffleMenuItem>
+                        </>
+                    ) : (
+                        <>
+                            <TruffleMenuItem onClick={() => setCreateMenuAnchor(null)}>+ From scratch</TruffleMenuItem>
+                            <TruffleMenuItem
+                                onClick={() => setCreateMenuAnchor(null)}
+                                secondaryAction={<Label label="Coming soon" color="default" size="small" />}
+                            >
+                                Get inspired
+                            </TruffleMenuItem>
+                        </>
+                    )}
+                </Box>
+            </Menu>
+
             {/* Nav items */}
             <List disablePadding sx={sidebarListSx}>
-                {NAV_ITEMS.map(({ icon, label, selected }) => (
+                {NAV_ITEMS.map(({ icon, label }) => (
                     <ListItemButton
                         key={label}
-                        selected={selected}
+                        selected={label === selectedNav}
                         sx={navItemButtonSx}
+                        onClick={
+                            label === "Template Library" ? onTemplateLibraryClick :
+                                label === "Video Library" ? onVideoLibraryClick :
+                                    undefined
+                        }
                     >
                         <Box sx={navItemContentSx}>
                             <ListItemIcon sx={navItemIconSx}>
@@ -683,6 +758,7 @@ function VideoTableView({ videos, videoStates, onSelect }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VideoLibraryPage({
     onSelectVideo,
+    onNavigateToTemplate,
     notifications,
     videoStates,
     onPermChange,
@@ -700,6 +776,7 @@ export default function VideoLibraryPage({
     onAccountSettingsOpen
 }: {
   onSelectVideo: (v: VideoItem) => void
+  onNavigateToTemplate?: () => void
   notifications?: NotificationItem[]
   videoStates?: Record<string, LiveVideoState>
   onPermChange?: (key: string, s: VideoPermissionSettings) => void
@@ -763,7 +840,7 @@ export default function VideoLibraryPage({
                 onUserDeletionBlocked={handleUserDeletionBlocked}
                 pendingApprovalsCount={pendingApprovalsCount}
             />
-            <AppSidebar />
+            <AppSidebar onTemplateLibraryClick={onNavigateToTemplate} />
 
             <Box sx={mainColumnSx}>
                 {/* AppBar */}
@@ -1469,4 +1546,31 @@ const captionSecondaryColorSx: SxProps<Theme> = {
 const videosSectionHeadingSx: SxProps<Theme> = {
     color: "text.primary",
     mb: 2
+};
+
+const createMenuPaperSx: SxProps<Theme> = {
+    minWidth: 262,
+    borderRadius: "8px"
+};
+
+const createMenuInnerSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column",
+    p: 1
+};
+
+const createTypeToggleGroupSx: SxProps<Theme> = {
+    mb: 1
+};
+
+const createTypeToggleBtnSx: SxProps<Theme> = {
+    gap: "6px",
+    textTransform: "none",
+    flex: 1
+};
+
+const createTypeToggleIconSx: SxProps<Theme> = {
+    fontSize: "14px !important",
+    width: "14px !important",
+    height: "14px !important"
 };
