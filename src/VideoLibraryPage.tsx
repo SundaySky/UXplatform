@@ -188,19 +188,22 @@ export interface VideoItem {
 }
 
 // ─── Permission avatar group ──────────────────────────────────────────────────
-export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?: VideoPermissionSettings; coloredAvatars?: boolean }) {
+export function PermAvatarGroup({ settings, coloredAvatars = true, size = "default" }: { settings?: VideoPermissionSettings; coloredAvatars?: boolean; size?: "default" | "small" }) {
     const s = settings ?? {
         tab: "teams" as const, everyoneRole: "viewer" as const,
         users: [], ownerUsers: [OWNER_USER], noDuplicate: false
     };
     const { tab, everyoneRole, users, ownerUsers } = s;
 
+    const miniAvatarSx = size === "small" ? miniAvatarSmallSx : miniAvatarBaseSx;
+    const iconSz = size === "small" ? { fontSize: 14, width: 14, height: 14 } : everyoneAvatarIconSx;
+
     const miniAvatar = (key: string, content: React.ReactNode, tip: string, bgColor?: string) => (
         <Box
             key={key}
             title={tip}
             sx={{
-                ...miniAvatarBaseSx,
+                ...miniAvatarSx,
                 bgcolor: coloredAvatars && bgColor ? bgColor : "divider",
                 color: coloredAvatars && bgColor ? "common.white" : "text.primary"
             }}
@@ -242,7 +245,7 @@ export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?
             )}
             {everyoneRole !== "restricted" &&
                 miniAvatar("everyone",
-                    <SvgIcon sx={everyoneAvatarIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>,
+                    <SvgIcon sx={iconSz}><FontAwesomeIcon icon={faUsers} /></SvgIcon>,
                     `Everyone in your account — Can ${everyoneRole === "editor" ? "edit" : "view"}`
                 )
             }
@@ -253,7 +256,7 @@ export function PermAvatarGroup({ settings, coloredAvatars = true }: { settings?
 // ─── Video card ───────────────────────────────────────────────────────────────
 function VideoCard({
     video, onClick, liveState, onPermChange, onSubmitForApproval,
-    approversList, approvalsEnabled = false, onApprovalsDisabled
+    approversList, approvalsEnabled = false
 }: {
   video: VideoItem
   onClick?: () => void
@@ -262,7 +265,6 @@ function VideoCard({
   onSubmitForApproval?: (videoKey: string, approvers: string[]) => void
   approversList?: { value: string; label: string }[]
   approvalsEnabled?: boolean
-  onApprovalsDisabled?: () => void
 }) {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
     const [videoPermOpen, setVideoPermOpen] = useState(false);
@@ -381,15 +383,13 @@ function VideoCard({
 
                 <Divider sx={menuDividerSx} />
 
-                <TruffleMenuItem onClick={e => closeMenu(e)}
-                    secondaryAction={<SvgIcon sx={menuSecondaryIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
-                >
+                <TruffleMenuItem onClick={e => closeMenu(e)}>
+                    <SvgIcon sx={menuItemIconMrSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                     Details
                 </TruffleMenuItem>
 
-                <TruffleMenuItem onClick={e => closeMenu(e)}
-                    secondaryAction={<SvgIcon sx={menuSecondaryIconSx}><FontAwesomeIcon icon={faArrowUpRightFromSquare} /></SvgIcon>}
-                >
+                <TruffleMenuItem onClick={e => closeMenu(e)}>
+                    <SvgIcon sx={menuItemIconMrSx}><FontAwesomeIcon icon={faArrowUpRightFromSquare} /></SvgIcon>
                     Video Page
                 </TruffleMenuItem>
 
@@ -400,10 +400,10 @@ function VideoCard({
                         setMenuAnchor(null);
                         setVideoPermOpen(true);
                     }}
-                    secondaryAction={<PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} />}
+                    secondaryAction={<PermAvatarGroup settings={videoPermSettings} coloredAvatars={false} size="small" />}
                 >
-                    Permissions
-                    <SvgIcon sx={menuItemIconMlSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                    <SvgIcon sx={menuItemIconMrSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                    Video access
                 </TruffleMenuItem>
 
                 <Divider sx={menuDividerSx} />
@@ -413,18 +413,15 @@ function VideoCard({
                     Share video
                 </TruffleMenuItem>
 
-                <TruffleMenuItem onClick={e => {
-                    closeMenu(e);
-                    if (approvalsEnabled) {
+                {approvalsEnabled && (
+                    <TruffleMenuItem onClick={e => {
+                        closeMenu(e);
                         setApprovalOpen(true);
-                    }
-                    else {
-                        onApprovalsDisabled?.();
-                    }
-                }}>
-                    <SvgIcon sx={menuItemIconMrSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                    Submit for approval
-                </TruffleMenuItem>
+                    }}>
+                        <SvgIcon sx={menuItemIconMrSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                        Submit for approval
+                    </TruffleMenuItem>
+                )}
 
                 <Divider sx={menuDividerSx} />
 
@@ -688,12 +685,12 @@ export default function VideoLibraryPage({
     onPermChange,
     onSubmitForApproval,
     approvalsEnabled = false,
-    onApprovalsDisabled,
     approverIds = new Set(),
     approversList = [],
     onApprovalsEnabledChange,
     onApproversChange,
     onApproversListChange,
+    onCancelUserApprovals,
     onUserDeletionBlocked: parentOnUserDeletionBlocked,
     accountSettingsOpen: externalAccountSettingsOpen = false,
     accountSettingsInitialTab: externalAccountSettingsInitialTab = "users",
@@ -705,12 +702,12 @@ export default function VideoLibraryPage({
   onPermChange?: (key: string, s: VideoPermissionSettings) => void
   onSubmitForApproval?: (videoKey: string, approvers: string[]) => void
   approvalsEnabled?: boolean
-  onApprovalsDisabled?: () => void
   approverIds?: Set<string>
   approversList?: { value: string; label: string }[]
   onApprovalsEnabledChange?: (enabled: boolean, hasPendingApprovals?: boolean) => void
   onApproversChange?: (ids: Set<string>) => void
   onApproversListChange?: (approvers: { value: string; label: string }[]) => void
+  onCancelUserApprovals?: (userId: string) => void
   onUserDeletionBlocked?: (userId: string, reason: "only-approver" | "pending-approvals") => void
   accountSettingsOpen?: boolean
   accountSettingsInitialTab?: "users" | "permissions" | "approvals" | "access"
@@ -760,6 +757,7 @@ export default function VideoLibraryPage({
                 onApprovalsEnabledChange={handleApprovalsEnabledChange}
                 onApproversChange={handleApproversChange}
                 onApproversListChange={handleApproversListChange}
+                onCancelUserApprovals={onCancelUserApprovals}
                 onUserDeletionBlocked={handleUserDeletionBlocked}
                 pendingApprovalsCount={pendingApprovalsCount}
             />
@@ -848,7 +846,6 @@ export default function VideoLibraryPage({
                                             onSubmitForApproval={onSubmitForApproval}
                                             approversList={approversList}
                                             approvalsEnabled={approvalsEnabled}
-                                            onApprovalsDisabled={onApprovalsDisabled}
                                         />
                                     </Box>
                                 ))}
@@ -906,7 +903,6 @@ export default function VideoLibraryPage({
                                     onSubmitForApproval={onSubmitForApproval}
                                     approversList={approversList}
                                     approvalsEnabled={approvalsEnabled}
-                                    onApprovalsDisabled={onApprovalsDisabled}
                                 />
                             ))}
                         </Box>
@@ -1356,6 +1352,16 @@ const miniAvatarBaseSx: SxProps<Theme> = {
     flexShrink: 0
 };
 
+const miniAvatarSmallSx: SxProps<Theme> = {
+    width: 16,
+    height: 16,
+    borderRadius: "2px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0
+};
+
 const miniAvatarTextSx: SxProps<Theme> = {
     lineHeight: 1,
     fontWeight: 600
@@ -1390,7 +1396,9 @@ const menuTitleSx: SxProps<Theme> = {
 };
 
 const menuFolderIconSx: SxProps<Theme> = {
-    fontSize: 13,
+    fontSize: 16,
+    width: 16,
+    height: 16,
     color: "text.secondary"
 };
 
@@ -1403,25 +1411,18 @@ const menuDividerSx: SxProps<Theme> = {
     my: "4px"
 };
 
-const menuSecondaryIconSx: SxProps<Theme> = {
-    fontSize: 16,
-    color: "action.active"
-};
-
 const menuItemIconMrSx: SxProps<Theme> = {
     fontSize: 16,
+    width: 16,
+    height: 16,
     color: "action.active",
     mr: 1
 };
 
-const menuItemIconMlSx: SxProps<Theme> = {
-    fontSize: 16,
-    color: "action.active",
-    ml: 1
-};
-
 const menuItemIconDeleteSx: SxProps<Theme> = {
     fontSize: 16,
+    width: 16,
+    height: 16,
     mr: 1
 };
 
