@@ -20,7 +20,9 @@
       "mcp__Figma__get_metadata",
       "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__get_metadata",
       "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__use_figma",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__get_libraries",
+      "mcp__cb00d266-0abe-413b-be26-1b053b4c275f__search_design_system"
     ]
   }
 }

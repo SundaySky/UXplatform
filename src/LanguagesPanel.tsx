@@ -1,13 +1,14 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Divider, Checkbox, Tooltip
+    Select, MenuItem, FormControl, Divider, Checkbox,
+    ListSubheader, TextField, InputAdornment
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
-    faTriangleExclamation, faPencil, faTrashCan
+    faTriangleExclamation, faPencil, faTrashCan, faMagnifyingGlass
 } from "@fortawesome/pro-regular-svg-icons";
 import { faPlay, faCircleCheck, faCircleXmark } from "@fortawesome/pro-solid-svg-icons";
 import {
@@ -79,6 +80,8 @@ export default function LanguagesPanel({
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
     // Pending multi-select value for the "add next" adder slot (committed on dropdown close)
     const [addingValue, setAddingValue] = useState<string[]>([]);
+    // Search query inside the adder dropdown
+    const [searchQuery, setSearchQuery] = useState("");
     // Snapshot of what was sent to "apply"
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
 
@@ -100,6 +103,7 @@ export default function LanguagesPanel({
             setSelectedLangs(prev => [...prev, ...addingValue].slice(0, MAX_LANGUAGES));
             setAddingValue([]);
         }
+        setSearchQuery("");
     }
 
     function handleRemoveLang(index: number) {
@@ -386,19 +390,6 @@ export default function LanguagesPanel({
                                                     <Typography variant="body1" sx={{ flex: 1, minWidth: 0 }} noWrap>
                                                         {val as string}
                                                     </Typography>
-                                                    <IconButton
-                                                        size="small"
-                                                        sx={{ p: "2px", flexShrink: 0 }}
-                                                        onMouseDown={(e) => {
-                                                            e.stopPropagation();
-                                                            e.preventDefault();
-                                                            handleRemoveLang(i);
-                                                        }}
-                                                    >
-                                                        <SvgIcon sx={iconXsSx}>
-                                                            <FontAwesomeIcon icon={faXmark} />
-                                                        </SvgIcon>
-                                                    </IconButton>
                                                 </Box>
                                             )}
                                             MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
@@ -407,13 +398,24 @@ export default function LanguagesPanel({
                                                 .filter(l => l.name === lang || !selectedLangs.includes(l.name))
                                                 .map(({ name, flag }) => (
                                                     <MenuItem key={name} value={name}>
-                                                        <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
-                                                        <Typography variant="body1">{name}</Typography>
+                                                        <Box sx={menuItemInnerSx}>
+                                                            <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{flag}</Typography>
+                                                            <Typography variant="body1">{name}</Typography>
+                                                        </Box>
                                                     </MenuItem>
                                                 ))
                                             }
                                         </Select>
                                     </FormControl>
+                                    <IconButton
+                                        size="small"
+                                        sx={removeLangBtnSx}
+                                        onClick={() => handleRemoveLang(i)}
+                                    >
+                                        <SvgIcon sx={iconXsSx}>
+                                            <FontAwesomeIcon icon={faXmark} />
+                                        </SvgIcon>
+                                    </IconButton>
                                 </Box>
                             ))}
 
@@ -451,31 +453,49 @@ export default function LanguagesPanel({
                                                     </Box>
                                                 );
                                             }}
-                                            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+                                            MenuProps={{
+                                                autoFocus: false,
+                                                PaperProps: { sx: { maxHeight: 360 } }
+                                            }}
                                         >
+                                            {/* ── Sticky search field ── */}
+                                            <ListSubheader sx={adderSearchSubheaderSx}>
+                                                <TextField
+                                                    size="small"
+                                                    placeholder="Search..."
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    onKeyDown={(e) => e.stopPropagation()}
+                                                    autoFocus
+                                                    fullWidth
+                                                    slotProps={{
+                                                        input: {
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    <SvgIcon sx={iconXsSx}>
+                                                                        <FontAwesomeIcon icon={faMagnifyingGlass} />
+                                                                    </SvgIcon>
+                                                                </InputAdornment>
+                                                            )
+                                                        }
+                                                    }}
+                                                />
+                                            </ListSubheader>
                                             {LANGUAGE_OPTIONS
                                                 .filter(l => !selectedLangs.includes(l.name))
+                                                .filter(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()))
                                                 .map(({ name, flag }) => {
                                                     const checked = addingValue.includes(name);
                                                     const atMax = (selectedCount + addingValue.length) >= MAX_LANGUAGES && !checked;
                                                     return (
                                                         <MenuItem key={name} value={name} disabled={atMax}>
-                                                            <Tooltip
-                                                                title={atMax ? `Remove a language to add another (max ${MAX_LANGUAGES})` : ""}
-                                                                placement="right"
-                                                                disableInteractive
-                                                            >
-                                                                <Box sx={{
-                                                                    display: "flex",
-                                                                    alignItems: "center",
-                                                                    width: "100%",
-                                                                    pointerEvents: atMax ? "all" : undefined
-                                                                }}>
-                                                                    <Checkbox checked={checked} size="small" sx={{ p: "4px", mr: 0.5 }} />
-                                                                    <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
-                                                                    <Typography variant="body1">{name}</Typography>
+                                                            <Box sx={adderMenuItemSx}>
+                                                                <Checkbox checked={checked} size="small" sx={{ p: "4px" }} />
+                                                                <Box sx={flagCircleSmSx}>
+                                                                    <Typography sx={{ fontSize: 13, lineHeight: 1 }}>{flag}</Typography>
                                                                 </Box>
-                                                            </Tooltip>
+                                                                <Typography variant="body1">{name}</Typography>
+                                                            </Box>
                                                         </MenuItem>
                                                     );
                                                 })}
@@ -971,4 +991,39 @@ const stickyHeadingSx: SxProps<Theme> = {
     bgcolor: "background.paper",
     pt: 1.5,
     pb: 1.5
+};
+
+// ── Slot row buttons ──────────────────────────────────────────────────────────
+
+const removeLangBtnSx: SxProps<Theme> = {
+    color: "text.secondary",
+    p: "4px",
+    flexShrink: 0
+};
+
+// ── Dropdown menu item layouts ────────────────────────────────────────────────
+
+const menuItemInnerSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    width: "100%"
+};
+
+const adderMenuItemSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    width: "100%"
+};
+
+const adderSearchSubheaderSx: SxProps<Theme> = {
+    position: "sticky",
+    top: 0,
+    zIndex: 1,
+    bgcolor: "background.paper",
+    px: 1,
+    pt: 1,
+    pb: 0.5,
+    lineHeight: "normal"
 };
