@@ -1488,13 +1488,6 @@ const menuDividerSx: SxProps<Theme> = {
     my: "4px"
 };
 
-const menuSecondaryIconSx: SxProps<Theme> = {
-    fontSize: "16px !important",
-    width: "16px !important",
-    height: "16px !important",
-    color: "action.active"
-};
-
 const menuItemIconMrSx: SxProps<Theme> = {
     fontSize: "16px !important",
     width: "16px !important",
@@ -1503,13 +1496,6 @@ const menuItemIconMrSx: SxProps<Theme> = {
     mr: 1
 };
 
-const menuItemIconMlSx: SxProps<Theme> = {
-    fontSize: "16px !important",
-    width: "16px !important",
-    height: "16px !important",
-    color: "action.active",
-    ml: 1
-};
 
 const menuItemIconDeleteSx: SxProps<Theme> = {
     fontSize: "16px !important",
