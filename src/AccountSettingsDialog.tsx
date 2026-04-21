@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck } from "@fortawesome/pro-regular-svg-icons";
-import { TruffleDialogTitle, AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, SimpleInputDialog } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./ManageAccessDialog";
 
@@ -170,9 +170,8 @@ function UserTypeSelector({
                 </Box>
                 {CREATE_OPTIONS.map(opt => {
                     const isSelected = createSelected.includes(opt.key);
-                    const isDisabled = (opt.key === "Viewer" && (createSelected.includes("Editor") || createSelected.includes("Approver"))) ||
-                        ((opt.key === "Editor" || opt.key === "Approver") && createSelected.includes("Viewer"));
-                    return (
+                    const isDisabled = opt.key === "Viewer" && (createSelected.includes("Editor") || createSelected.includes("Approver"));
+                    const optionBox = (
                         <Box
                             key={opt.key}
                             onClick={isDisabled ? undefined : () => toggleCreate(opt.key)}
@@ -184,6 +183,13 @@ function UserTypeSelector({
                             </Box>
                             {isSelected && <SvgIcon sx={{ fontSize: 14, color: "primary.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                         </Box>
+                    );
+                    return isDisabled ? (
+                        <Tooltip key={opt.key} title="Viewer and Editor can't be selected together" placement="right" arrow>
+                            {optionBox}
+                        </Tooltip>
+                    ) : (
+                        <React.Fragment key={opt.key}>{optionBox}</React.Fragment>
                     );
                 })}
                 <Divider sx={{ my: "4px" }} />
@@ -857,38 +863,53 @@ function DeleteUserDialog({
     };
 
     return (
-        <SimpleInputDialog
+        <Dialog
             open={open}
-            dialogTitle={dialogTitle}
-            primaryActionButtonText={primaryButtonText}
-            HelpCenterIconButtonProps={{ onClick: () => {} }}
-            CloseIconButtonProps={{ onClick: handleClose }}
-            PrimaryActionButtonProps={{
-                onClick: handleConfirm,
-                disabled: !isConfirmed,
-                color: "error",
-                variant: "contained"
-            }}
-            secondaryActionButtonText="Cancel"
-            SecondaryActionButtonProps={{
-                onClick: handleClose
-            }}
+            onClose={handleClose}
+            maxWidth={false}
+            PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}
         >
-            {bodyContent}
-            <OutlinedInput
-                fullWidth
-                placeholder={"Type \"Delete\" to confirm"}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                sx={{ height: 40 }}
-            />
-        </SimpleInputDialog>
+            <Box sx={dialogBodySx}>
+                <Box sx={dialogTitleRowMb24Sx}>
+                    <Typography variant="h4" sx={textPrimarySx}>
+                        {dialogTitle}
+                    </Typography>
+                    <IconButton size="small" onClick={handleClose} sx={closeIconButtonSx}>
+                        <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                    </IconButton>
+                </Box>
+
+                {bodyContent}
+
+                <OutlinedInput
+                    fullWidth
+                    placeholder='Type "Delete" to confirm'
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    sx={{ height: 40, mb: "24px" }}
+                />
+
+                <Box sx={dialogActionsRowSx}>
+                    <Button onClick={handleClose} sx={textCancelButtonSx}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={handleConfirm}
+                        disabled={!isConfirmed}
+                    >
+                        {primaryButtonText}
+                    </Button>
+                </Box>
+            </Box>
+        </Dialog>
     );
 }
 
 
 // ─── Approvals Section ────────────────────────────────────────────────────────
-function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, onUserDeleted }: {
+function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, onUserDeleted, pendingApprovalsCount }: {
  users: AccountUser[]
  approverIds: Set<string>
  enabled: boolean
@@ -909,6 +930,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     const [selectedUserForMenu, setSelectedUserForMenu] = useState<AccountUser | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null);
+    const [disableConfirmOpen, setDisableConfirmOpen] = useState(false);
 
 
     const approvers = users.filter(u => u.createSpace.includes("Approver"));
@@ -926,7 +948,12 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     }
 
     function handleToggle(v: boolean) {
-        onToggle(v);
+        if (!v && (pendingApprovalsCount ?? 0) > 0) {
+            setDisableConfirmOpen(true);
+        }
+        else {
+            onToggle(v);
+        }
     }
 
     return (
@@ -1194,6 +1221,41 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     onToggle(false);
                 }}
             />
+
+            {/* Disable Approvals Confirmation (when pending approvals exist) */}
+            <Dialog
+                open={disableConfirmOpen}
+                onClose={() => setDisableConfirmOpen(false)}
+                maxWidth={false}
+                PaperProps={{ sx: { width: 480, borderRadius: "12px", p: 0 } }}
+            >
+                <Box sx={dialogBodySx}>
+                    <Typography variant="h4" sx={dialogTitleSx}>
+                        Cancel all pending approvals?
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "8px" }}>
+                        You have {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"} in the account. Disabling approvals will cancel all pending approvals.
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px" }}>
+                        The user who submitted the approvals will be notified via email.
+                    </Typography>
+                    <Box sx={dialogActionsRowSx}>
+                        <Button onClick={() => setDisableConfirmOpen(false)} sx={textCancelButtonSx}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="error"
+                            onClick={() => {
+                                setDisableConfirmOpen(false);
+                                onToggle(false);
+                            }}
+                        >
+                            Cancel all pending approvals
+                        </Button>
+                    </Box>
+                </Box>
+            </Dialog>
 
         </Box>
     );
@@ -1555,6 +1617,7 @@ interface AccountSettingsDialogProps {
  onApproversChange?: (approverIds: Set<string>) => void
  onApproversListChange?: (approvers: { value: string; label: string }[]) => void
  onUserDeletionBlocked?: (userId: string, reason: "only-approver" | "pending-approvals") => void
+ onCancelUserApprovals?: (userId: string) => void
  videoStates?: Record<string, VideoStateForApprovals>
  pendingApprovalsCount?: number
  initialTab?: "users" | "permissions" | "approvals" | "access"
@@ -1570,6 +1633,7 @@ export default function AccountSettingsDialog({
     onApproversChange,
     onApproversListChange,
     onUserDeletionBlocked,
+    onCancelUserApprovals,
     videoStates = {},
     pendingApprovalsCount = 0,
     initialTab = "users"
@@ -1648,16 +1712,15 @@ export default function AccountSettingsDialog({
     }
 
     // Whenever the users list or approver IDs change, push the filtered approver list to parent
-    // Include both users with Approver role AND users in the approverIds set to ensure consistency
-    // Also use external approversList as a source for users not in local users list (e.g., invited users)
     React.useEffect(() => {
+        const localUserIds = new Set(users.map(u => u.user.id));
         const usersWithApproverRole = users
             .filter(u => u.createSpace.includes("Approver") || approverIds.has(u.user.id))
             .map(u => ({ value: u.user.id, label: `${u.user.name} (${u.user.email})` }));
 
-        // Add any approvers from external list that aren't already in the local list
+        // Add external approvers not already in local list, but only if they still exist in local users
         const localIds = new Set(usersWithApproverRole.map(u => u.value));
-        const externalApprovers = externalApproversList.filter(u => !localIds.has(u.value));
+        const externalApprovers = externalApproversList.filter(u => !localIds.has(u.value) && localUserIds.has(u.value));
 
         const allApprovers = [...usersWithApproverRole, ...externalApprovers];
         onApproversListChange?.(allApprovers);
@@ -1789,6 +1852,7 @@ export default function AccountSettingsDialog({
                             }}
                             onUserDeleted={(userId) => {
                                 setUsers(prev => prev.filter(u => u.user.id !== userId));
+                                onCancelUserApprovals?.(userId);
                             }}
                             pendingApprovalsCount={pendingApprovalsCount}
                             videoStates={videoStates}

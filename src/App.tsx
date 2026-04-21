@@ -1265,6 +1265,24 @@ export default function App() {
                         approverIds={approverIds}
                         onApprovalsEnabledChange={(enabled) => {
                             setApprovalsEnabled(enabled);
+                            if (!enabled) {
+                                setVideoStates(prev => Object.fromEntries(
+                                    Object.entries(prev).map(([k, v]) =>
+                                        v.sentApprovers?.length > 0
+                                            ? [k, { ...v, sentApprovers: [], pageState: "draft" as const }]
+                                            : [k, v]
+                                    )
+                                ));
+                            }
+                        }}
+                        onCancelUserApprovals={(userId) => {
+                            setVideoStates(prev => Object.fromEntries(
+                                Object.entries(prev).map(([k, v]) =>
+                                    v.sentApprovers?.includes(userId)
+                                        ? [k, { ...v, sentApprovers: [], pageState: "draft" as const }]
+                                        : [k, v]
+                                )
+                            ));
                         }}
                         approversList={approversList}
                         accountSettingsOpen={accountSettingsOpen}

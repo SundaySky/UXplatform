@@ -690,6 +690,7 @@ export default function VideoLibraryPage({
     onApprovalsEnabledChange,
     onApproversChange,
     onApproversListChange,
+    onCancelUserApprovals,
     onUserDeletionBlocked: parentOnUserDeletionBlocked,
     accountSettingsOpen: externalAccountSettingsOpen = false,
     accountSettingsInitialTab: externalAccountSettingsInitialTab = "users",
@@ -706,6 +707,7 @@ export default function VideoLibraryPage({
   onApprovalsEnabledChange?: (enabled: boolean, hasPendingApprovals?: boolean) => void
   onApproversChange?: (ids: Set<string>) => void
   onApproversListChange?: (approvers: { value: string; label: string }[]) => void
+  onCancelUserApprovals?: (userId: string) => void
   onUserDeletionBlocked?: (userId: string, reason: "only-approver" | "pending-approvals") => void
   accountSettingsOpen?: boolean
   accountSettingsInitialTab?: "users" | "permissions" | "approvals" | "access"
@@ -755,6 +757,7 @@ export default function VideoLibraryPage({
                 onApprovalsEnabledChange={handleApprovalsEnabledChange}
                 onApproversChange={handleApproversChange}
                 onApproversListChange={handleApproversListChange}
+                onCancelUserApprovals={onCancelUserApprovals}
                 onUserDeletionBlocked={handleUserDeletionBlocked}
                 pendingApprovalsCount={pendingApprovalsCount}
             />
