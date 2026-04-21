@@ -1222,7 +1222,7 @@ export default function App() {
     const handleSelectVideo = (video: VideoItem) => {
         setSelectedVideo(video);
         setDialogStep("closed");
-        setCurrentPage("video");
+        setCurrentPage("studio");
         // Initialise video state if it hasn't been set yet
         setVideoStates(prev => {
             if (prev[video.title]) {
@@ -1516,7 +1516,7 @@ const tooltipTextWithMbSx: SxProps<Theme> = { color: "common.white", display: "b
 const tooltipTextBlockSx: SxProps<Theme> = { color: "common.white", display: "block" };
 
 // ── Button start icon ─────────────────────────────────────────────────────────
-const buttonStartIconSx: SxProps<Theme> = { fontSize: "16px !important" };
+const buttonStartIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important" };
 
 // Approved state bg — kept as-is from real-app PublishButton.tsx:232-235 (design team tint)
 const approveSuccessBgSx: SxProps<Theme> = {
@@ -1541,11 +1541,11 @@ const avatarChipIconBoxSx: SxProps<Theme> = {
     display: "inline-flex", alignItems: "center", justifyContent: "center",
     flexShrink: 0, alignSelf: "center"
 };
-const avatarChipRoleIconSx: SxProps<Theme> = { fontSize: 10, color: "text.primary" };
+const avatarChipRoleIconSx: SxProps<Theme> = { fontSize: "10px !important", width: "10px !important", height: "10px !important", color: "text.primary" };
 
 // ── Lock icons ────────────────────────────────────────────────────────────────
-const lockIconSuccessSx: SxProps<Theme> = { fontSize: 19, color: "success.main" };
-const lockIconPrimarySx: SxProps<Theme> = { fontSize: 19, color: "primary.main" };
+const lockIconSuccessSx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "success.main" };
+const lockIconPrimarySx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "primary.main" };
 
 // ── VideoPermissionStrip ──────────────────────────────────────────────────────
 const permStripRowSx: SxProps<Theme> = {
@@ -1563,7 +1563,7 @@ const everyoneIconBoxSx: SxProps<Theme> = {
     display: "inline-flex", alignItems: "center", justifyContent: "center",
     flexShrink: 0, alignSelf: "center"
 };
-const everyoneIconSx: SxProps<Theme> = { fontSize: 11, color: "text.primary" };
+const everyoneIconSx: SxProps<Theme> = { fontSize: "11px !important", width: "11px !important", height: "11px !important", color: "text.primary" };
 
 // ── SundaySkyLogo ─────────────────────────────────────────────────────────────
 const logoBoxSx: SxProps<Theme> = { px: 1, pb: 0.5 };
@@ -1585,7 +1585,7 @@ const sidebarBackNavSx: SxProps<Theme> = {
     px: 2.5, pt: 2, pb: 1, cursor: "pointer", width: "fit-content",
     "&:hover": { opacity: 0.75 }
 };
-const sidebarBackIconSx: SxProps<Theme> = { fontSize: 16, color: "text.secondary" };
+const sidebarBackIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "text.secondary" };
 const sidebarTitleRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "flex-start", justifyContent: "space-between",
     px: 2.5, pr: 1.5
@@ -1595,18 +1595,18 @@ const menuPaperSx: SxProps<Theme> = { minWidth: 256, mt: "4px", py: "4px" };
 const menuHeaderBoxSx: SxProps<Theme> = { px: 2, pt: "10px", pb: 1 };
 const menuHeaderTitleSx: SxProps<Theme> = { color: "text.primary", mb: "4px" };
 const menuHeaderFolderRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px" };
-const menuHeaderFolderIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, color: "text.secondary" };
+const menuHeaderFolderIconSx: SxProps<Theme> = { fontSize: "13px !important", width: "13px !important", height: "13px !important", color: "text.secondary" };
 const menuDividerSx: SxProps<Theme> = { my: "4px" };
-const menuItemIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, color: "action.active", mr: 1 };
-const menuItemDeleteIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, mr: 1 };
+const menuItemIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "action.active", mr: 1 };
+const menuItemDeleteIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", mr: 1 };
 const sidebarStatusChipBoxSx: SxProps<Theme> = { pl: "20px", py: "1px" };
 const sidebarDividerSx: SxProps<Theme> = { borderColor: "divider", mx: 2.5, my: 1 };
 const sidebarNavBoxSx: SxProps<Theme> = { px: 2, py: 1 };
 const sidebarNavListSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px" };
 const navItemRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px", flex: 1 };
 const navItemIconContainerSx: SxProps<Theme> = { minWidth: 24 };
-const navItemIconSx: SxProps<Theme> = { fontSize: 16, width: 16, height: 16, color: "action.active" };
-const navItemUpdatedIconSx: SxProps<Theme> = { fontSize: 14, color: "info.main" };
+const navItemIconSx: SxProps<Theme> = { fontSize: "18px !important", width: "18px !important", height: "18px !important", color: "action.active" };
+const navItemUpdatedIconSx: SxProps<Theme> = { fontSize: "14px !important", width: "14px !important", height: "14px !important", color: "info.main" };
 const sidebarFooterRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, py: 1.5
 };
@@ -1631,7 +1631,7 @@ const previewRightHalfSx: SxProps<Theme> = {
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
     gap: "6px", pointerEvents: "none"
 };
-const previewDragIconSx: SxProps<Theme> = { fontSize: 36, color: "grey.500" };
+const previewDragIconSx: SxProps<Theme> = { fontSize: "36px !important", width: "36px !important", height: "36px !important", color: "grey.500" };
 const previewDragTextSx: SxProps<Theme> = { color: "grey.500" };
 const previewTextOverlaySx: SxProps<Theme> = {
     position: "absolute", left: "4%", top: "20%", width: "43%",
@@ -1658,8 +1658,8 @@ const cardMetaRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", g
 const captionBlockSx: SxProps<Theme> = { color: "text.secondary", display: "block" };
 const captionBlockWithMbSx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "1px" };
 const captionBlockWithMb2Sx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "2px" };
-const dataPersonalizationIconSx: SxProps<Theme> = { fontSize: 19, color: "error.main" };
-const globeIconSx: SxProps<Theme> = { fontSize: 19, color: "action.active" };
+const dataPersonalizationIconSx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "error.main" };
+const globeIconSx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "action.active" };
 const languageChipSx: SxProps<Theme> = {
     display: "inline-flex", alignItems: "baseline", gap: "4px",
     bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
@@ -1678,20 +1678,20 @@ const reviewPanelHeaderRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", gap: "4px", height: 30, minHeight: 30
 };
 const reviewPanelTitleSx: SxProps<Theme> = { color: "text.primary", whiteSpace: "nowrap" };
-const panelInfoIconSx: SxProps<Theme> = { fontSize: 16, color: "action.active", cursor: "pointer" };
+const panelInfoIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "action.active", cursor: "pointer" };
 const reviewListItemButtonSx: SxProps<Theme> = { borderRadius: 1, px: 1, py: "4px" };
 const reviewListItemIconContainerSx: SxProps<Theme> = { minWidth: 28 };
-const panelListIconSx: SxProps<Theme> = { fontSize: 16, color: "action.active" };
+const panelListIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "action.active" };
 const reviewPanelHeader2RowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", justifyContent: "space-between", height: 30, minHeight: 30
 };
 const reviewPanelHeader2InnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px" };
-const updatedIconSx: SxProps<Theme> = { fontSize: 16, color: "info.main" };
+const updatedIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "info.main" };
 const reviewLibraryItemRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", px: 1, py: "4px", gap: 1 };
 const reviewLibraryItemLabelSx: SxProps<Theme> = {
     color: "text.secondary", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
 };
-const truffleLinkIconSx: SxProps<Theme> = { fontSize: 14 };
+const truffleLinkIconSx: SxProps<Theme> = { fontSize: "14px !important", width: "14px !important", height: "14px !important" };
 
 // ── TasksPanel ────────────────────────────────────────────────────────────────
 const tasksPanelContainerSx: SxProps<Theme> = {
@@ -1706,15 +1706,15 @@ const tasksPanelHeaderSx: SxProps<Theme> = {
 };
 const tasksCounterTypographySx: SxProps<Theme> = { color: "text.secondary", mt: "2px" };
 const tasksRestartButtonSx: SxProps<Theme> = { color: "text.secondary" };
-const tasksRestartIconSx: SxProps<Theme> = { fontSize: 18 };
+const tasksRestartIconSx: SxProps<Theme> = { fontSize: "18px !important", width: "18px !important", height: "18px !important" };
 const tasksDoneStateSx: SxProps<Theme> = {
     flex: 1, display: "flex", flexDirection: "column",
     alignItems: "center", justifyContent: "center", gap: 2, px: 2.5
 };
-const tasksDoneIconSx: SxProps<Theme> = { fontSize: 48, color: "success.main" };
+const tasksDoneIconSx: SxProps<Theme> = { fontSize: "48px !important", width: "48px !important", height: "48px !important", color: "success.main" };
 const tasksDoneTitleSx: SxProps<Theme> = { color: "text.primary", textAlign: "center" };
 const tasksDoneSubtitleSx: SxProps<Theme> = { color: "text.secondary", textAlign: "center" };
-const tasksRestartSmallIconSx: SxProps<Theme> = { fontSize: 14 };
+const tasksRestartSmallIconSx: SxProps<Theme> = { fontSize: "14px !important", width: "14px !important", height: "14px !important" };
 const surveyDialogPaperSx: SxProps<Theme> = { p: 1 };
 const surveyDialogTitleSx: SxProps<Theme> = {
     pb: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between"
@@ -1735,7 +1735,7 @@ const tasksScrollableSx: SxProps<Theme> = {
     flex: 1, overflowY: "auto", px: 2, pb: 2, display: "flex", flexDirection: "column"
 };
 const taskDoneIndicatorRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px" };
-const taskDoneIndicatorIconSx: SxProps<Theme> = { fontSize: 16, color: "success.main" };
+const taskDoneIndicatorIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "success.main" };
 const taskDoneLabelSx: SxProps<Theme> = { color: "success.main", letterSpacing: "0.3px" };
 const tasksDotNavRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", justifyContent: "space-between", pt: "2px", mt: "4px"
