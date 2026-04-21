@@ -27,7 +27,8 @@
       "Bash(sed -n '829,860p' \"/Users/Maya.Carmel/Claude code/Workflow/AI-COMPONENT-GUIDE.md\")",
       "Bash(sed -n '541,560p' \"/Users/Maya.Carmel/Claude code/Workflow/AI-COMPONENT-GUIDE.md\")",
       "Bash(xargs cat *)",
-      "Bash(node -e \"const fs=require\\('fs'\\); const src=fs.readFileSync\\('/Users/Maya.Carmel/Claude code/Workflow/node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/Components/ThumbnailActions/ThumbnailActions.js','utf8'\\); console.log\\(src.slice\\(0,4000\\)\\);\")"
+      "Bash(node -e \"const fs=require\\('fs'\\); const src=fs.readFileSync\\('/Users/Maya.Carmel/Claude code/Workflow/node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/Components/ThumbnailActions/ThumbnailActions.js','utf8'\\); console.log\\(src.slice\\(0,4000\\)\\);\")",
+      "Bash(curl -s http://localhost:5173)"
     ]
   }
 }

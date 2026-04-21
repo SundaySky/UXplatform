@@ -1,22 +1,22 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Checkbox,
-    ListSubheader, TextField, InputAdornment
+    Select, MenuItem, FormControl
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
-    faTriangleExclamation, faPencil, faTrashCan, faMagnifyingGlass,
-    faAngleDown, faArrowsRotate
+    faTriangleExclamation, faPencil, faTrashCan,
+    faAngleDown, faArrowsRotate, faLanguage
 } from "@fortawesome/pro-regular-svg-icons";
 import { faPlay, faCircleCheck, faCircleXmark } from "@fortawesome/pro-solid-svg-icons";
 import {
     AttentionBox,
     TruffleLink
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import LanguagePickerDialog from "./LanguagePickerDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PanelState =
@@ -80,12 +80,10 @@ export default function LanguagesPanel({
     const [panelState, setPanelState] = useState<PanelState>("promo");
     // Confirmed selections — one language per row
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
-    // Pending multi-select value for the "add next" adder slot (committed on dropdown close)
-    const [addingValue, setAddingValue] = useState<string[]>([]);
-    // Search query inside the adder dropdown
-    const [searchQuery, setSearchQuery] = useState("");
     // Snapshot of what was sent to "apply"
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
+    // Language picker dialog
+    const [showPicker, setShowPicker] = useState(false);
 
     const filledLangs = selectedLangs.filter(l => l !== "");
     const selectedCount = filledLangs.length;
@@ -100,13 +98,11 @@ export default function LanguagesPanel({
 
     const activeLangsList = enabledLangs;
 
-    // When the adder dropdown closes, commit each selection as its own individual row
-    function handleAddingClose() {
-        if (addingValue.length > 0) {
-            setSelectedLangs(prev => [...prev, ...addingValue].slice(0, MAX_LANGUAGES));
-            setAddingValue([]);
+    function handlePickerConfirm(langs: string[]) {
+        setSelectedLangs(langs.slice(0, MAX_LANGUAGES));
+        if (panelState === "promo") {
+            setPanelState("selector");
         }
-        setSearchQuery("");
     }
 
 
@@ -129,7 +125,6 @@ export default function LanguagesPanel({
             setTimeout(() => {
                 onEnabledLangsChange([]);
                 setSelectedLangs([]);
-                setAddingValue([]);
                 setPanelState("success_remove");
             }, APPLYING_DELAY_MS);
         }
@@ -151,7 +146,6 @@ export default function LanguagesPanel({
 
     function handleCancel() {
         setSelectedLangs([...enabledLangs]);
-        setAddingValue([]);
         setPanelState(enabledLangs.length > 0 ? "settled" : "promo");
     }
 
@@ -161,7 +155,6 @@ export default function LanguagesPanel({
 
     function handleGotItRemove() {
         setSelectedLangs([]);
-        setAddingValue([]);
         setPanelState("promo");
     }
 
@@ -171,7 +164,6 @@ export default function LanguagesPanel({
 
     function handleEdit() {
         setSelectedLangs([...enabledLangs]);
-        setAddingValue([]);
         setPanelState("selector");
     }
 
@@ -319,7 +311,7 @@ export default function LanguagesPanel({
                                     variant="outlined"
                                     color="primary"
                                     size="small"
-                                    onClick={() => setPanelState("selector")}
+                                    onClick={() => setShowPicker(true)}
                                 >
                                     Add up to {MAX_LANGUAGES} languages
                                 </Button>
@@ -442,94 +434,23 @@ export default function LanguagesPanel({
                                 </Box>
                             ))}
 
-                            {/* ── Multi-select adder — on close each selection becomes its own row ── */}
+                            {/* ── Pick / add more languages button ── */}
                             {selectedCount < MAX_LANGUAGES && (
-                                <Box sx={slotRowSx}>
-                                    <FormControl size="small" sx={{ flex: 1, minWidth: 0 }}>
-                                        <Select
-                                            multiple
-                                            displayEmpty
-                                            value={addingValue}
-                                            onChange={(e) => setAddingValue(e.target.value as string[])}
-                                            onClose={handleAddingClose}
-                                            IconComponent={() => (
-                                                <SvgIcon sx={selectIconSx}>
-                                                    <FontAwesomeIcon icon={faAngleDown} />
-                                                </SvgIcon>
-                                            )}
-                                            renderValue={(sel) => {
-                                                const selected = sel as string[];
-                                                if (selected.length === 0) {
-                                                    return (
-                                                        <Typography variant="body1" color="text.disabled" sx={{ fontStyle: "italic" }}>
-                                                            Choose languages
-                                                        </Typography>
-                                                    );
-                                                }
-                                                return (
-                                                    <Box sx={slotRenderValueSx}>
-                                                        <Box sx={flagCircleSmSx}>
-                                                            <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
-                                                                {FLAG_BY_NAME[selected[0]]}
-                                                            </Typography>
-                                                        </Box>
-                                                        <Typography variant="body1" sx={{ flex: 1, minWidth: 0 }} noWrap>
-                                                            {selected.length === 1
-                                                                ? selected[0]
-                                                                : `${selected[0]} +${selected.length - 1}`}
-                                                        </Typography>
-                                                    </Box>
-                                                );
-                                            }}
-                                            MenuProps={{
-                                                autoFocus: false,
-                                                PaperProps: { sx: { maxHeight: 360 } }
-                                            }}
-                                        >
-                                            {/* ── Sticky search field ── */}
-                                            <ListSubheader sx={adderSearchSubheaderSx}>
-                                                <TextField
-                                                    size="medium"
-                                                    placeholder="Search languages"
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    onKeyDown={(e) => e.stopPropagation()}
-                                                    autoFocus
-                                                    fullWidth
-                                                    slotProps={{
-                                                        input: {
-                                                            startAdornment: (
-                                                                <InputAdornment position="start">
-                                                                    <SvgIcon sx={iconXsSx}>
-                                                                        <FontAwesomeIcon icon={faMagnifyingGlass} />
-                                                                    </SvgIcon>
-                                                                </InputAdornment>
-                                                            )
-                                                        }
-                                                    }}
-                                                />
-                                            </ListSubheader>
-                                            {LANGUAGE_OPTIONS
-                                                .filter(l => !filledLangs.includes(l.name))
-                                                .filter(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                                .map(({ name, flag }) => {
-                                                    const checked = addingValue.includes(name);
-                                                    const atMax = (selectedCount + addingValue.length) >= MAX_LANGUAGES && !checked;
-                                                    return (
-                                                        <MenuItem key={name} value={name} disabled={atMax}>
-                                                            <Box sx={adderMenuItemSx}>
-                                                                <Checkbox checked={checked} size="medium" sx={{ p: "2px" }} />
-                                                                <Box sx={adderFlagCircleSx}>
-                                                                    <Typography sx={{ fontSize: 14, lineHeight: 1 }}>{flag}</Typography>
-                                                                </Box>
-                                                                <Typography variant="body1">{name}</Typography>
-                                                            </Box>
-                                                        </MenuItem>
-                                                    );
-                                                })}
-                                        </Select>
-                                    </FormControl>
-                                </Box>
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    size="small"
+                                    fullWidth
+                                    startIcon={
+                                        <SvgIcon sx={iconSmSx}>
+                                            <FontAwesomeIcon icon={faLanguage} />
+                                        </SvgIcon>
+                                    }
+                                    onClick={() => setShowPicker(true)}
+                                    sx={{ mt: 0.5 }}
+                                >
+                                    Pick languages
+                                </Button>
                             )}
                         </Box>
 
@@ -734,6 +655,14 @@ export default function LanguagesPanel({
                 )}
 
             </Box>
+
+            {/* ── Language picker dialog ───────────────────────────────── */}
+            <LanguagePickerDialog
+                open={showPicker}
+                onClose={() => setShowPicker(false)}
+                currentLangs={filledLangs}
+                onConfirm={handlePickerConfirm}
+            />
         </Box>
     );
 }
@@ -1066,31 +995,3 @@ const menuItemInnerSx: SxProps<Theme> = {
     width: "100%"
 };
 
-const adderMenuItemSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    width: "100%"
-};
-
-const adderFlagCircleSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 20,
-    height: 20,
-    borderRadius: "50%",
-    overflow: "hidden",
-    flexShrink: 0
-};
-
-const adderSearchSubheaderSx: SxProps<Theme> = {
-    position: "sticky",
-    top: 0,
-    zIndex: 1,
-    bgcolor: "background.paper",
-    px: 2,
-    pt: 1,
-    pb: 0.5,
-    lineHeight: "normal"
-};
