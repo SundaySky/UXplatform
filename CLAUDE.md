@@ -99,6 +99,60 @@ When the input for a task is a Figma design (a `figma.com/...` URL, a Figma file
 
 Screenshots alone (no Figma URL) follow the same mapping rules — just without MCP retrieval.
 
+### Figma-to-code fidelity checklist
+
+For every component implemented from a Figma design or screenshot, verify **all** of the following before considering the task done. Do not skip any item even if it seems obvious.
+
+| Property | What to check |
+|---|---|
+| **Size** | `size` prop matches Figma (small / medium / large). When unsure, use the DS defaults below. |
+| **Variant** | `variant` prop matches Figma (contained / outlined / text for buttons; filled / outlined / standard for inputs; etc.). |
+| **Color / role** | Color role matches (primary / secondary / error / warning / info / success / inherit). Never infer from hex — map to the nearest semantic role. |
+| **Alignment** | Text and layout alignment matches Figma (left / center / right; flex justification). |
+| **Spacing** | Gap, padding, and margin match Figma spacing tokens (MUI spacing unit = 8 px). |
+| **Icon placement** | Icons appear on the correct side (startIcon / endIcon / standalone). Icon size matches. |
+| **Full-width vs auto** | `fullWidth` applied only when the Figma component stretches to its container edge. |
+| **Disabled / loading state** | Disabled prop set when Figma shows a disabled state. |
+| **Typography variant** | Text uses the correct variant (h1–h6, subtitle1/2, body1/2, caption). |
+
+---
+
+### Design System defaults — apply when Figma input is absent
+
+When building UI that is **not** directly from a Figma design (inferred dialogs, panels, empty states, etc.), apply these established DS conventions:
+
+| Context | Default |
+|---|---|
+| **Dialog primary action button** | `variant="contained"` `size="large"` `fullWidth` |
+| **Dialog secondary / cancel button** | `variant="text"` or `TruffleLink` |
+| **Inline card primary action** | `variant="contained"` `size="medium"` `fullWidth` |
+| **Destructive action button** | `variant="outlined"` `color="error"` |
+| **Icon-only button** | `TruffleIconButton` (never raw `IconButton` with custom sx) |
+| **Form inputs** | `size="medium"` outlined (Truffle theme default) |
+| **Confirmation / alert dialog** | Use `SimpleDialogBase` from Truffle, not a raw `Dialog` |
+| **Section headings in panels** | `Typography variant="h5"` |
+| **Body text in cards/panels** | `Typography variant="body1"` |
+| **Secondary/helper text** | `Typography variant="body1" color="text.secondary"` |
+| **Metadata / timestamps** | `Typography variant="caption"` |
+
+---
+
+### DS conflict alerts — STRICT
+
+If during implementation you discover that what is asked for **conflicts with the design system rules** (e.g. hardcoded color, unsupported size, typography override, component that should not be re-implemented), you MUST surface this before writing code:
+
+> 🔴 **DS CONFLICT:** [describe the conflict and which rule it violates]. Ask the user how to proceed before implementing.
+
+Do not silently work around a DS conflict. Do not implement a workaround without the user's explicit approval.
+
+---
+
+### When uncertain about a component
+
+If you are unsure about the correct size, variant, alignment, or which Truffle/MUI component to use, **ask the user before implementing**. A short clarifying question is always better than implementing the wrong thing and needing a correction. Frame the question specifically:
+
+> "In Figma this looks like a [X] — should I use [option A] or [option B]?"
+
 ---
 
 ## Design System Rules — STRICT

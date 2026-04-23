@@ -13,7 +13,7 @@ import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faWaveformLines, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faArrowsRotate } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
-import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleLink, TruffleMenuPanel } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleMenuPanel } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
 import AvatarLibraryPanel from "./AvatarLibraryPanel";
@@ -1452,20 +1452,6 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                           <Typography variant="body1" color="text.secondary">
                                               Select up to {MAX_LANGUAGES} additional languages to expand your video&apos;s reach
                                           </Typography>
-                                          <Box sx={{ textAlign: "right", mt: 1 }}>
-                                              <TruffleLink
-                                                  href="#"
-                                                  underline="hover"
-                                                  onClick={(e) => {
-                                                      e.preventDefault();
-                                                      setLangMenuAnchor(null);
-                                                      setLangsOpen(true);
-                                                      setActiveNav("Languages");
-                                                  }}
-                                              >
-                                                  Add languages
-                                              </TruffleLink>
-                                          </Box>
                                       </Box>
                                   </Box>
                               </Box>
@@ -2459,7 +2445,9 @@ const studioAppBarRightSx: SxProps<Theme> = {
 const langDropdownPaperSx: SxProps<Theme> = {
     width: 298,
     mt: "4px",
-    boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)"
+    boxShadow: "0px 0px 5px 0px rgba(3,25,79,0.25)",
+    maxHeight: 350,
+    overflowY: "auto"
 };
 
 const langInfoCardSx: SxProps<Theme> = {
