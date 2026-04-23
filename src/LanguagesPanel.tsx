@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl
+    Select, MenuItem, FormControl, Checkbox, Tooltip,
+    Autocomplete, TextField, InputAdornment, Divider
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -9,58 +10,75 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
     faTriangleExclamation, faPencil, faTrashCan,
-    faAngleDown, faArrowsRotate, faLanguage
+    faAngleDown
 } from "@fortawesome/pro-regular-svg-icons";
 import { faPlay, faCircleCheck, faCircleXmark } from "@fortawesome/pro-solid-svg-icons";
 import {
     AttentionBox,
+    Label,
     TruffleLink
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import LanguagePickerDialog from "./LanguagePickerDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PanelState =
-    | "promo" | "selector" | "settled"
+    | "promo" | "selector" | "picker" | "settled"
     | "applying" | "success" | "error"
     | "applying_changes" | "success_changes" | "error_changes"
     | "removing" | "success_remove";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const PANEL_WIDTH = 336;
-export const MAX_LANGUAGES = 15;
+const PANEL_WIDTH = 366;
+export const MAX_LANGUAGES = 14;
 const APPLYING_DELAY_MS = 1500;
 
 export const LANGUAGE_OPTIONS: { name: string; flag: string; code: string }[] = [
-    { name: "Arabic", flag: "🇸🇦", code: "AR" },
+    { name: "Bulgarian", flag: "🇧🇬", code: "BG" },
     { name: "Chinese (Simplified)", flag: "🇨🇳", code: "ZH" },
     { name: "Chinese (Traditional)", flag: "🇹🇼", code: "ZH" },
+    { name: "Croatian", flag: "🇭🇷", code: "HR" },
     { name: "Czech", flag: "🇨🇿", code: "CS" },
     { name: "Danish", flag: "🇩🇰", code: "DA" },
     { name: "Dutch", flag: "🇳🇱", code: "NL" },
+    { name: "Filipino (Tagalog)", flag: "🇵🇭", code: "FIL" },
     { name: "Finnish", flag: "🇫🇮", code: "FI" },
     { name: "French", flag: "🇫🇷", code: "FR" },
+    { name: "French (Canada)", flag: "🇨🇦", code: "FR" },
     { name: "German", flag: "🇩🇪", code: "DE" },
     { name: "Greek", flag: "🇬🇷", code: "EL" },
-    { name: "Hebrew", flag: "🇮🇱", code: "HE" },
     { name: "Hindi", flag: "🇮🇳", code: "HI" },
-    { name: "Hungarian", flag: "🇭🇺", code: "HU" },
     { name: "Indonesian", flag: "🇮🇩", code: "ID" },
     { name: "Italian", flag: "🇮🇹", code: "IT" },
     { name: "Japanese", flag: "🇯🇵", code: "JA" },
     { name: "Korean", flag: "🇰🇷", code: "KO" },
-    { name: "Norwegian", flag: "🇳🇴", code: "NO" },
+    { name: "Malay", flag: "🇲🇾", code: "MS" },
     { name: "Polish", flag: "🇵🇱", code: "PL" },
     { name: "Portuguese (Brazil)", flag: "🇧🇷", code: "PT" },
     { name: "Portuguese (Portugal)", flag: "🇵🇹", code: "PT" },
     { name: "Romanian", flag: "🇷🇴", code: "RO" },
     { name: "Russian", flag: "🇷🇺", code: "RU" },
+    { name: "Slovak", flag: "🇸🇰", code: "SK" },
     { name: "Spanish", flag: "🇪🇸", code: "ES" },
+    { name: "Spanish (Mexico)", flag: "🇲🇽", code: "ES" },
     { name: "Swedish", flag: "🇸🇪", code: "SV" },
-    { name: "Thai", flag: "🇹🇭", code: "TH" },
+    { name: "Tamil", flag: "🇱🇰", code: "TA" },
     { name: "Turkish", flag: "🇹🇷", code: "TR" },
-    { name: "Ukrainian", flag: "🇺🇦", code: "UK" },
-    { name: "Vietnamese", flag: "🇻🇳", code: "VI" }
+    { name: "Ukrainian", flag: "🇺🇦", code: "UK" }
 ];
+
+// ─── Source language options (the original video language) ────────────────────
+export const SOURCE_LANGUAGE_OPTIONS: { name: string; flag: string }[] = [
+    { name: "English (US)", flag: "🇺🇸" },
+    { name: "English (UK)", flag: "🇬🇧" },
+    { name: "French", flag: "🇫🇷" },
+    { name: "German", flag: "🇩🇪" },
+    { name: "Spanish", flag: "🇪🇸" },
+    { name: "Japanese", flag: "🇯🇵" },
+    { name: "Portuguese (Brazil)", flag: "🇧🇷" }
+];
+export const SOURCE_FLAG_BY_NAME: Record<string, string> = Object.fromEntries(
+    SOURCE_LANGUAGE_OPTIONS.map(l => [l.name, l.flag])
+);
 
 export const FLAG_BY_NAME: Record<string, string> = Object.fromEntries(LANGUAGE_OPTIONS.map(l => [l.name, l.flag]));
 export const CODE_BY_NAME: Record<string, string> = Object.fromEntries(LANGUAGE_OPTIONS.map(l => [l.name, l.code]));
@@ -78,6 +96,8 @@ export default function LanguagesPanel({
     onEnabledLangsChange: (langs: string[]) => void;
 }) {
     const [panelState, setPanelState] = useState<PanelState>("promo");
+    // Source language (the original video narration language)
+    const [sourceLanguage, setSourceLanguage] = useState("English (US)");
     // Confirmed selections — one language per row
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
     // Snapshot of what was sent to "apply"
@@ -95,27 +115,23 @@ export default function LanguagesPanel({
         filledLangs.some(lang => !enabledLangs.includes(lang)) ||
         enabledLangs.some(lang => !filledLangs.includes(lang));
     const canEnable = isRemovingAll || (hasChanges && selectedCount > 0);
-
     const activeLangsList = enabledLangs;
 
     function handlePickerConfirm(langs: string[]) {
-        setSelectedLangs(langs.slice(0, MAX_LANGUAGES));
-        if (panelState === "promo") {
-            setPanelState("selector");
-        }
+        const sorted = [...langs].sort((a, b) => a.localeCompare(b));
+        setSelectedLangs(sorted.slice(0, MAX_LANGUAGES));
     }
 
-
-    function handleSwapLang(index: number, newLang: string) {
-        setSelectedLangs(prev => prev.map((l, i) => i === index ? newLang : l));
+    function handleSwapLang(oldLang: string, newLang: string) {
+        setSelectedLangs(prev => prev.map(l => l === oldLang ? newLang : l));
     }
 
-    function handleClearLang(index: number) {
-        setSelectedLangs(prev => prev.map((l, i) => i === index ? "" : l));
+    function handleRemoveLang(name: string) {
+        setSelectedLangs(prev => prev.filter(l => l !== name));
     }
 
     function handleEnableTranslation() {
-        const newLangs = filledLangs;
+        const newLangs = [...filledLangs].sort((a, b) => a.localeCompare(b));
         const isUpdating = isEditMode && newLangs.length > 0;
 
         setPendingLangs(newLangs);
@@ -167,11 +183,11 @@ export default function LanguagesPanel({
         setPanelState("selector");
     }
 
-    // Header and source-language section are hidden during all transient states
-    const isTransient = panelState !== "promo" && panelState !== "selector" && panelState !== "settled";
+    // Header is hidden during transient (applying / success / error / removing) states
+    const isTransient = panelState !== "promo" && panelState !== "selector" && panelState !== "picker" && panelState !== "settled";
     const showCredits = !isTransient;
-    // In selector state, source language scrolls with content (not pinned above scroll area)
-    const showSourceLang = !isTransient && panelState !== "selector";
+    // Source language only shows in promo and settled; selector has it inline, picker hides it
+    const showSourceLang = !isTransient && panelState !== "selector" && panelState !== "picker";
 
     // ── Shared bullet lists ──────────────────────────────────────────────────
     const applyingBullets = [
@@ -244,33 +260,51 @@ export default function LanguagesPanel({
                                 ? "Editable until additional languages are added"
                                 : "Locked for switching once language setup starts"}
                         </Typography>
-                        <Box sx={sourceSelectRowSx}>
-                            {panelState === "promo" ? (
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    size="medium"
-                                    fullWidth
-                                    startIcon={
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faArrowsRotate} />
+                        {panelState === "promo" ? (
+                            <FormControl size="small" fullWidth>
+                                <Select
+                                    value={sourceLanguage}
+                                    onChange={e => setSourceLanguage(e.target.value)}
+                                    IconComponent={() => (
+                                        <SvgIcon sx={selectIconSx}>
+                                            <FontAwesomeIcon icon={faAngleDown} />
                                         </SvgIcon>
-                                    }
+                                    )}
+                                    renderValue={(val) => (
+                                        <Box sx={sourceLangRenderValueSx}>
+                                            <Box sx={flagCircleSmSx}>
+                                                <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
+                                                    {SOURCE_FLAG_BY_NAME[val as string]}
+                                                </Typography>
+                                            </Box>
+                                            <Typography variant="body1" noWrap>{val as string}</Typography>
+                                        </Box>
+                                    )}
+                                    MenuProps={{ PaperProps: { sx: { maxHeight: 280 } } }}
                                 >
-                                    Change narration source language
-                                </Button>
-                            ) : (
-                                <>
-                                    <Box sx={flagCircleMdSx}>
-                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</Typography>
-                                    </Box>
-                                    <Typography variant="body1" sx={{ flex: 1 }}>English</Typography>
-                                    <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                    </IconButton>
-                                </>
-                            )}
-                        </Box>
+                                    {SOURCE_LANGUAGE_OPTIONS.map(({ name, flag }) => (
+                                        <MenuItem key={name} value={name}>
+                                            <Box sx={menuItemInnerSx}>
+                                                <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{flag}</Typography>
+                                                <Typography variant="body1">{name}</Typography>
+                                            </Box>
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        ) : (
+                            <Box sx={sourceSelectRowSx}>
+                                <Box sx={flagCircleMdSx}>
+                                    <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
+                                        {SOURCE_FLAG_BY_NAME[sourceLanguage]}
+                                    </Typography>
+                                </Box>
+                                <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
+                                <IconButton size="small" color="primary">
+                                    <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                </IconButton>
+                            </Box>
+                        )}
                     </Box>
                 )}
 
@@ -306,18 +340,23 @@ export default function LanguagesPanel({
                                 ))}
                             </Box>
 
-                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, pt: 1 }}>
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 1 }}>
                                 <Button
                                     variant="outlined"
                                     color="primary"
-                                    size="small"
-                                    onClick={() => setShowPicker(true)}
+                                    size="large"
+                                    fullWidth
+                                    onClick={() => {
+                                        setPanelState("picker"); setShowPicker(true); 
+                                    }}
                                 >
                                     Add up to {MAX_LANGUAGES} languages
                                 </Button>
-                                <TruffleLink href="#" underline="hover" color="primary">
-                                    Learn more
-                                </TruffleLink>
+                                <Box sx={{ display: "flex", justifyContent: "center", mt: 0.5 }}>
+                                    <TruffleLink href="#" underline="hover" color="primary">
+                                        Learn more
+                                    </TruffleLink>
+                                </Box>
                             </Box>
                         </Box>
                     </Box>
@@ -326,8 +365,9 @@ export default function LanguagesPanel({
                 {/* ── Language selector ────────────────────────────────────── */}
                 {panelState === "selector" && (
                     <>
+                        {/* ── Scrollable area ── */}
                         <Box sx={selectorScrollSx}>
-                            {/* ── Narration source language — scrolls with content ── */}
+                            {/* ── Narration source language ── */}
                             <Box sx={selectorSourceSectionSx}>
                                 <Box sx={sourceLabelRowSx}>
                                     <Typography variant="h5">Narration source language</Typography>
@@ -340,9 +380,11 @@ export default function LanguagesPanel({
                                 </Typography>
                                 <Box sx={sourceSelectRowSx}>
                                     <Box sx={flagCircleMdSx}>
-                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</Typography>
+                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
+                                            {SOURCE_FLAG_BY_NAME[sourceLanguage]}
+                                        </Typography>
                                     </Box>
-                                    <Typography variant="body1" sx={{ flex: 1 }}>English</Typography>
+                                    <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
                                     <IconButton size="small" color="primary">
                                         <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                     </IconButton>
@@ -352,109 +394,142 @@ export default function LanguagesPanel({
                                 </Box>
                             </Box>
 
-                            {/* ── Sticky heading ── */}
-                            <Typography variant="h5" sx={stickyHeadingSx}>
-                                {isEditMode
-                                    ? `Edit up to ${MAX_LANGUAGES} languages`
-                                    : `Select up to ${MAX_LANGUAGES} languages`}
-                            </Typography>
-
-                            {/* ── One row per confirmed language (single-select, swappable) ── */}
-                            {selectedLangs.map((lang, i) => (
-                                <Box key={`confirmed-${i}`} sx={slotRowSx}>
-                                    <FormControl size="small" sx={{ flex: 1, minWidth: 0 }}>
-                                        <Select
-                                            value={lang}
-                                            displayEmpty
-                                            onChange={(e) => handleSwapLang(i, e.target.value as string)}
-                                            IconComponent={() => (
-                                                <SvgIcon sx={selectIconSx}>
-                                                    <FontAwesomeIcon icon={faAngleDown} />
-                                                </SvgIcon>
-                                            )}
-                                            renderValue={(val) => {
-                                                if (!val) {
-                                                    return (
-                                                        <Typography variant="body1" color="text.disabled" sx={{ fontStyle: "italic" }}>
-                                                            Choose or type language {i + 1}
-                                                        </Typography>
-                                                    );
-                                                }
-                                                return (
-                                                    <Box sx={slotRenderValueSx}>
-                                                        <Box sx={flagCircleSmSx}>
-                                                            <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
-                                                                {FLAG_BY_NAME[val as string]}
-                                                            </Typography>
-                                                        </Box>
-                                                        <Typography variant="body1" sx={{ flex: 1, minWidth: 0 }} noWrap>
-                                                            {val as string}
-                                                        </Typography>
-                                                        <Box
-                                                            component="span"
-                                                            onMouseDown={(e: React.MouseEvent) => {
-                                                                e.stopPropagation();
-                                                                e.preventDefault();
-                                                                handleClearLang(i);
-                                                            }}
-                                                            sx={clearInsideSelectSx}
-                                                        >
-                                                            <SvgIcon sx={iconSmSx}>
-                                                                <FontAwesomeIcon icon={faXmark} />
-                                                            </SvgIcon>
-                                                        </Box>
-                                                    </Box>
-                                                );
-                                            }}
-                                            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+                            {/* ── Selector card (heading + rows only) ── */}
+                            <Box sx={selectorCardSx}>
+                                <Box sx={selectorCardHeadingSx}>
+                                    <Typography variant="h5" sx={{ flex: 1 }}>
+                                        {isEditMode
+                                            ? `Edit ${selectedCount} additional language${selectedCount !== 1 ? "s" : ""}`
+                                            : `Select up to ${MAX_LANGUAGES} languages`}
+                                    </Typography>
+                                    {selectedCount > 0 && (
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            color="primary"
+                                            onClick={() => setShowPicker(true)}
+                                            sx={addBtnSx}
                                         >
-                                            {LANGUAGE_OPTIONS
-                                                .filter(l => l.name === lang || !filledLangs.includes(l.name))
-                                                .map(({ name, flag }) => (
-                                                    <MenuItem key={name} value={name}>
+                                            + Add
+                                        </Button>
+                                    )}
+                                </Box>
+
+                                {/* ── Language rows: filled slots + trailing multi-select (non-edit) ── */}
+                                <Box sx={langRowsContainerSx}>
+                                    {filledLangs.map((lang) => (
+                                        <Box key={lang} sx={slotRowSx}>
+                                            <Autocomplete
+                                                value={LANGUAGE_OPTIONS.find(l => l.name === lang) ?? null}
+                                                onChange={(_, newValue) => {
+                                                    if (newValue) {
+                                                        handleSwapLang(lang, newValue.name);
+                                                    }
+                                                    else {
+                                                        handleRemoveLang(lang);
+                                                    }
+                                                }}
+                                                options={LANGUAGE_OPTIONS.filter(l => l.name === lang || !filledLangs.includes(l.name))}
+                                                getOptionLabel={(opt) => opt.name}
+                                                isOptionEqualToValue={(opt, val) => opt.name === val.name}
+                                                popupIcon={<SvgIcon sx={autocompleteChevronSx}><FontAwesomeIcon icon={faAngleDown} /></SvgIcon>}
+                                                renderInput={(params) => (
+                                                    <TextField
+                                                        {...params}
+                                                        size="medium"
+                                                        InputProps={{
+                                                            ...params.InputProps,
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    <Box sx={flagCircleSmSx}>
+                                                                        <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
+                                                                            {FLAG_BY_NAME[lang]}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </InputAdornment>
+                                                            )
+                                                        }}
+                                                    />
+                                                )}
+                                                renderOption={({ key, ...optionProps }, option) => (
+                                                    <MenuItem key={key} {...optionProps}>
                                                         <Box sx={menuItemInnerSx}>
-                                                            <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{flag}</Typography>
-                                                            <Typography variant="body1">{name}</Typography>
+                                                            <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{option.flag}</Typography>
+                                                            <Typography variant="body1">{option.name}</Typography>
                                                         </Box>
                                                     </MenuItem>
-                                                ))
-                                            }
-                                        </Select>
-                                    </FormControl>
-                                    <IconButton
-                                        size="small"
-                                        color={lang ? "primary" : "default"}
-                                        disabled={!lang}
-                                        sx={{ flexShrink: 0 }}
-                                    >
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faPlay} />
-                                        </SvgIcon>
-                                    </IconButton>
-                                </Box>
-                            ))}
+                                                )}
+                                                ListboxProps={{ sx: { maxHeight: 320 } }}
+                                                sx={{ flex: 1, minWidth: 0 }}
+                                            />
+                                            <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
+                                                <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                            </IconButton>
+                                        </Box>
+                                    ))}
 
-                            {/* ── Pick / add more languages button ── */}
-                            {selectedCount < MAX_LANGUAGES && (
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    size="small"
-                                    fullWidth
-                                    startIcon={
-                                        <SvgIcon sx={iconSmSx}>
-                                            <FontAwesomeIcon icon={faLanguage} />
-                                        </SvgIcon>
-                                    }
-                                    onClick={() => setShowPicker(true)}
-                                    sx={{ mt: 0.5 }}
-                                >
-                                    Pick languages
-                                </Button>
-                            )}
+                                    {/* ── Trailing multi-select slot — only in non-edit mode ── */}
+                                    {!isEditMode && filledLangs.length < MAX_LANGUAGES && (
+                                        <Box sx={slotRowSx}>
+                                            <FormControl size="medium" sx={{ flex: 1, minWidth: 0 }}>
+                                                <Select
+                                                    multiple
+                                                    displayEmpty
+                                                    value={filledLangs}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value as string[];
+                                                        setSelectedLangs(val.slice(0, MAX_LANGUAGES));
+                                                    }}
+                                                    IconComponent={() => (
+                                                        <SvgIcon sx={selectIconSx}>
+                                                            <FontAwesomeIcon icon={faAngleDown} />
+                                                        </SvgIcon>
+                                                    )}
+                                                    renderValue={() => (
+                                                        <Typography variant="body1" color="text.disabled" sx={{ fontStyle: "italic" }}>
+                                                            Choose language
+                                                        </Typography>
+                                                    )}
+                                                    MenuProps={{ PaperProps: { sx: { maxHeight: 360 } } }}
+                                                >
+                                                    {LANGUAGE_OPTIONS.map(({ name, flag }) => {
+                                                        const isChecked = filledLangs.includes(name);
+                                                        const isDisabled = !isChecked && filledLangs.length >= MAX_LANGUAGES;
+                                                        return (
+                                                            <Tooltip
+                                                                key={name}
+                                                                title={isDisabled ? `You've reached the limit of ${MAX_LANGUAGES} languages` : ""}
+                                                                placement="right"
+                                                                arrow
+                                                            >
+                                                                <span>
+                                                                    <MenuItem
+                                                                        value={name}
+                                                                        disabled={isDisabled}
+                                                                        sx={multiSelectMenuItemSx}
+                                                                    >
+                                                                        <Checkbox checked={isChecked} size="medium" color="primary" sx={{ p: "2px", mr: 1 }} />
+                                                                        <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
+                                                                        <Typography variant="body1">{name}</Typography>
+                                                                    </MenuItem>
+                                                                </span>
+                                                            </Tooltip>
+                                                        );
+                                                    })}
+                                                </Select>
+                                            </FormControl>
+                                            <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
+                                                <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                            </IconButton>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Box>
+
+                            <Box sx={{ pb: 1 }} />
                         </Box>
 
-                        {/* Sticky footer */}
+                        {/* ── Sticky footer: attention boxes + action button + cancel ── */}
                         <Box sx={stickyFooterSx}>
                             <AttentionBox
                                 color="info"
@@ -464,14 +539,27 @@ export default function LanguagesPanel({
                                 <Typography variant="body1">Credits will apply on video approval</Typography>
                             </AttentionBox>
 
+                            {isRemovingAny && (
+                                <AttentionBox
+                                    color="warning"
+                                    icon={<SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faTriangleExclamation} /></SvgIcon>}
+                                    sx={{ mb: 1.5 }}
+                                >
+                                    <Typography variant="body1">
+                                        Removing a language deletes its generated content, and the AI
+                                        credits used to create it won&apos;t be refunded.
+                                    </Typography>
+                                </AttentionBox>
+                            )}
+
                             <Button
                                 variant="contained"
                                 color="primary"
                                 fullWidth
-                                size="medium"
+                                size={isEditMode && !isRemovingAll ? "large" : "medium"}
                                 disabled={!canEnable}
                                 onClick={handleEnableTranslation}
-                                sx={{ mb: 1.5 }}
+                                sx={isEditMode && !isRemovingAll ? applyChangesBtnSx : undefined}
                             >
                                 {isRemovingAll
                                     ? "Remove languages"
@@ -483,31 +571,212 @@ export default function LanguagesPanel({
                                 )}
                             </Button>
 
-                            <Box sx={{ textAlign: "center", mb: isRemovingAny ? 2 : 0 }}>
+                            <Box sx={{ textAlign: "center", mt: 1.5 }}>
                                 <TruffleLink
                                     href="#"
                                     underline="hover"
                                     onClick={(e) => {
-                                        e.preventDefault();
-                                        handleCancel();
+                                        e.preventDefault(); handleCancel(); 
                                     }}
                                 >
                                     Cancel
                                 </TruffleLink>
                             </Box>
-
-                            {isRemovingAny && (
-                                <AttentionBox
-                                    color="warning"
-                                    icon={<SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faTriangleExclamation} /></SvgIcon>}
-                                >
-                                    <Typography variant="body1">
-                                        Removing a language deletes its generated content, and the AI
-                                        credits used to create it won&apos;t be refunded.
-                                    </Typography>
-                                </AttentionBox>
-                            )}
                         </Box>
+                    </>
+                )}
+
+                {/* ── Picker state (popup flow) ────────────────────────────── */}
+                {panelState === "picker" && (
+                    <>
+                        <Box sx={selectorScrollSx}>
+                            {/* ── Narration source language ── */}
+                            <Box sx={selectorSourceSectionSx}>
+                                <Box sx={sourceLabelRowSx}>
+                                    <Typography variant="h5">Narration source language</Typography>
+                                    <IconButton size="small" sx={{ p: "2px" }}>
+                                        <SvgIcon sx={infoIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                    </IconButton>
+                                </Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: "block" }}>
+                                    {selectedCount === 0
+                                        ? "Editable until additional languages are added"
+                                        : "Locked for switching once language setup starts"}
+                                </Typography>
+                                <Box sx={sourceSelectRowSx}>
+                                    <Box sx={flagCircleMdSx}>
+                                        <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
+                                            {SOURCE_FLAG_BY_NAME[sourceLanguage]}
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
+                                    <IconButton size="small" color="primary">
+                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                    </IconButton>
+                                    {selectedCount === 0 && (
+                                        <IconButton size="small" color="primary">
+                                            <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>
+                                        </IconButton>
+                                    )}
+                                </Box>
+                            </Box>
+
+                            {/* ── Picker card ── */}
+                            <Box sx={pickerCardSx}>
+                                {selectedCount === 0 ? (
+                                    /* ── Empty state: invite to pick ── */
+                                    <>
+                                        <Typography variant="h5" sx={{ textAlign: "center" }}>
+                                            Select up to {MAX_LANGUAGES} additional languages
+                                        </Typography>
+                                        <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center" }}>
+                                            Choose all at once. You can review their voices before enabling them
+                                        </Typography>
+                                        <Button
+                                            variant="contained"
+                                            size="medium"
+                                            color="primary"
+                                            fullWidth
+                                            onClick={() => setShowPicker(true)}
+                                        >
+                                            Pick languages
+                                        </Button>
+                                        <Button
+                                            variant="text"
+                                            size="large"
+                                            color="primary"
+                                            fullWidth
+                                            onClick={handleCancel}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </>
+                                ) : (
+                                    /* ── Has languages: show slots + Add button ── */
+                                    <>
+                                        <Box sx={selectorCardHeadingSx}>
+                                            <Typography variant="h5" sx={{ flex: 1 }}>
+                                                Select up to {MAX_LANGUAGES} languages
+                                            </Typography>
+                                            <Button
+                                                variant="outlined"
+                                                size="small"
+                                                color="primary"
+                                                onClick={() => setShowPicker(true)}
+                                                sx={addBtnSx}
+                                            >
+                                                + Add
+                                            </Button>
+                                        </Box>
+
+                                        <Box sx={langRowsContainerSx}>
+                                            {filledLangs.map((lang) => (
+                                                <Box key={lang} sx={slotRowSx}>
+                                                    <Autocomplete
+                                                        value={LANGUAGE_OPTIONS.find(l => l.name === lang) ?? null}
+                                                        onChange={(_, newValue) => {
+                                                            if (newValue) {
+                                                                handleSwapLang(lang, newValue.name);
+                                                            }
+                                                            else {
+                                                                handleRemoveLang(lang);
+                                                            }
+                                                        }}
+                                                        options={LANGUAGE_OPTIONS.filter(l => l.name === lang || !filledLangs.includes(l.name))}
+                                                        getOptionLabel={(opt) => opt.name}
+                                                        isOptionEqualToValue={(opt, val) => opt.name === val.name}
+                                                        popupIcon={<SvgIcon sx={autocompleteChevronSx}><FontAwesomeIcon icon={faAngleDown} /></SvgIcon>}
+                                                        renderInput={(params) => (
+                                                            <TextField
+                                                                {...params}
+                                                                size="medium"
+                                                                InputProps={{
+                                                                    ...params.InputProps,
+                                                                    startAdornment: (
+                                                                        <InputAdornment position="start">
+                                                                            <Box sx={flagCircleSmSx}>
+                                                                                <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
+                                                                                    {FLAG_BY_NAME[lang]}
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        </InputAdornment>
+                                                                    )
+                                                                }}
+                                                            />
+                                                        )}
+                                                        renderOption={({ key, ...optionProps }, option) => (
+                                                            <MenuItem key={key} {...optionProps}>
+                                                                <Box sx={menuItemInnerSx}>
+                                                                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{option.flag}</Typography>
+                                                                    <Typography variant="body1">{option.name}</Typography>
+                                                                </Box>
+                                                            </MenuItem>
+                                                        )}
+                                                        ListboxProps={{ sx: { maxHeight: 320 } }}
+                                                        sx={{ flex: 1, minWidth: 0 }}
+                                                    />
+                                                    <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
+                                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                                    </IconButton>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    </>
+                                )}
+                            </Box>
+
+                            <Box sx={{ pb: 1 }} />
+                        </Box>
+
+                        {/* ── Footer — only when languages are selected ── */}
+                        {selectedCount > 0 && (
+                            <Box sx={stickyFooterSx}>
+                                <AttentionBox
+                                    color="info"
+                                    icon={<SvgIcon sx={infoIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
+                                    sx={{ mb: 1.5 }}
+                                >
+                                    <Typography variant="body1">Credits will apply on video approval</Typography>
+                                </AttentionBox>
+
+                                {isRemovingAny && (
+                                    <AttentionBox
+                                        color="warning"
+                                        icon={<SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faTriangleExclamation} /></SvgIcon>}
+                                        sx={{ mb: 1.5 }}
+                                    >
+                                        <Typography variant="body1">
+                                            Removing a language deletes its generated content, and the AI
+                                            credits used to create it won&apos;t be refunded.
+                                        </Typography>
+                                    </AttentionBox>
+                                )}
+
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    fullWidth
+                                    size="large"
+                                    onClick={handleEnableTranslation}
+                                    sx={{ mb: 1.5 }}
+                                >
+                                    Enable translation
+                                    <Label label={String(selectedCount)} color="default" size="small" sx={{ ml: 1 }} />
+                                </Button>
+
+                                <Box sx={{ textAlign: "center" }}>
+                                    <TruffleLink
+                                        href="#"
+                                        underline="hover"
+                                        onClick={(e) => {
+                                            e.preventDefault(); handleCancel(); 
+                                        }}
+                                    >
+                                        Cancel
+                                    </TruffleLink>
+                                </Box>
+                            </Box>
+                        )}
                     </>
                 )}
 
@@ -624,7 +893,9 @@ export default function LanguagesPanel({
                 {panelState === "settled" && (
                     <Box sx={bodyScrollSx}>
                         <Box sx={additionalLangsHeaderSx}>
-                            <Typography variant="h5" sx={{ flex: 1 }}>Additional languages</Typography>
+                            <Typography variant="h5" sx={{ flex: 1 }}>
+                                {enabledLangs.length} Additional languages
+                            </Typography>
                             <Button
                                 variant="text"
                                 size="small"
@@ -636,8 +907,9 @@ export default function LanguagesPanel({
                             </Button>
                         </Box>
 
-                        {activeLangsList.map((lang) => (
+                        {activeLangsList.map((lang, index) => (
                             <Box key={lang}>
+                                {index > 0 && <Divider />}
                                 <Box sx={langListItemSx}>
                                     <Box sx={flagCircleMdSx}>
                                         <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
@@ -942,21 +1214,23 @@ const flagCircleSmSx: SxProps<Theme> = {
 const slotRowSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    gap: "4px",
-    mb: 1.5
+    gap: "4px"
 };
 
-const clearInsideSelectSx: SxProps<Theme> = {
-    display: "inline-flex",
-    alignItems: "center",
-    color: "text.secondary",
-    flexShrink: 0,
-    lineHeight: 0,
-    cursor: "pointer",
-    "&:hover": { color: "text.primary" }
+// Container for language rows — 8px gap between each slot
+const langRowsContainerSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 1
 };
 
-const slotRenderValueSx: SxProps<Theme> = {
+// Prevent full-row highlight on checked items in multi-select
+const multiSelectMenuItemSx: SxProps<Theme> = {
+    "&.Mui-selected": { bgcolor: "transparent" },
+    "&.Mui-selected:hover": { bgcolor: "action.hover" }
+};
+
+const sourceLangRenderValueSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
     gap: "6px",
@@ -964,27 +1238,45 @@ const slotRenderValueSx: SxProps<Theme> = {
     minWidth: 0
 };
 
+const autocompleteChevronSx: SxProps<Theme> = {
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
+    color: "primary.main"
+};
 
 // ── Selector-state layout ─────────────────────────────────────────────────────
 
 // Source language section inside the selector scroll area (scrolls with content)
 const selectorSourceSectionSx: SxProps<Theme> = {
     pb: 2,
-    mb: 1,
+    mb: 0,
     borderBottom: "1px solid",
     borderColor: "divider"
 };
 
-// "Select up to X languages" heading — sticks to top of scroll container
-const stickyHeadingSx: SxProps<Theme> = {
-    position: "sticky",
-    top: 0,
-    zIndex: 1,
-    bgcolor: "background.paper",
-    pt: 1.5,
-    pb: 1.5
+// Heading row inside the selector card (h5 + optional "+ Add" button)
+const selectorCardHeadingSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1
 };
 
+const addBtnSx: SxProps<Theme> = {
+    flexShrink: 0
+};
+
+// Card wrapping the heading, language slots, and actions
+const selectorCardSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 1.5,
+    p: 2,
+    mt: 2,
+    border: "1px solid",
+    borderColor: "divider",
+    borderRadius: "10px"
+};
 
 // ── Dropdown menu item layouts ────────────────────────────────────────────────
 
@@ -993,5 +1285,28 @@ const menuItemInnerSx: SxProps<Theme> = {
     alignItems: "center",
     gap: "8px",
     width: "100%"
+};
+
+const applyChangesBtnSx: SxProps<Theme> = (theme) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    background: `linear-gradient(135deg, ${(theme as any).palette.brand.gradientMagentaBlue})`,
+    "&:hover": {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        background: `linear-gradient(135deg, ${(theme as any).palette.brand.gradientMagentaBlue})`,
+        opacity: 0.92
+    }
+});
+
+// ── Picker state ──────────────────────────────────────────────────────────────
+
+const pickerCardSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 1.5,
+    p: 2,
+    mt: 2,
+    border: "1px solid",
+    borderColor: "divider",
+    borderRadius: "10px"
 };
 

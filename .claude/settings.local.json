@@ -28,7 +28,9 @@
       "Bash(sed -n '541,560p' \"/Users/Maya.Carmel/Claude code/Workflow/AI-COMPONENT-GUIDE.md\")",
       "Bash(xargs cat *)",
       "Bash(node -e \"const fs=require\\('fs'\\); const src=fs.readFileSync\\('/Users/Maya.Carmel/Claude code/Workflow/node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/Components/ThumbnailActions/ThumbnailActions.js','utf8'\\); console.log\\(src.slice\\(0,4000\\)\\);\")",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(node -e \"const { palette } = require\\('./node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist/Theme'\\); console.log\\(JSON.stringify\\(palette.brand, null, 2\\)\\);\")",
+      "Bash(node -e \"const lib = require\\('./node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist'\\); console.log\\(Object.keys\\(lib\\).filter\\(k => k.toLowerCase\\(\\).includes\\('palette'\\) || k.toLowerCase\\(\\).includes\\('theme'\\)\\)\\);\")"
     ]
   }
 }
