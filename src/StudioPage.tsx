@@ -12,7 +12,7 @@ import Tooltip from "@mui/material/Tooltip";
 import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faMicrophone, faDatabase, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faArrowsRotate } from "@fortawesome/pro-regular-svg-icons";
-import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
+import { faChevronLeft, faChevronRight, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
 import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleMenuPanel } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
@@ -2254,22 +2254,37 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
 
                   {/* Scene lineup — dims when toolbar is active */}
                   <Box sx={sceneLineupSx}>
-                      {/* Play bar */}
+                      {/* Play button: absolutely straddling the top border */}
                       <Box sx={{
-                          display: "flex", alignItems: "center", justifyContent: "center", mb: 1.5,
+                          ...previewPlayBtnWrapperSx,
                           opacity: isToolbarActive ? 0.38 : 1,
                           pointerEvents: isToolbarActive ? "none" : "auto",
                           transition: "opacity 0.2s"
                       }}>
-                          <Box sx={playBtnCircleSx}>
-                              <SvgIcon sx={{ fontSize: "22px !important", color: "primary.main" }}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                          </Box>
-                          <Typography variant="caption" sx={{
-                              color: "primary.light", letterSpacing: "0.4px", ml: 1.5
-                          }}>
-                Scene {selectedScene + 1} / {SCENE_COUNT}
-                          </Typography>
+                          <Tooltip title="Preview video" placement="top" arrow>
+                              <span>
+                                  <IconButton sx={previewPlayIconSx}>
+                                      <Box sx={previewPlayIconContentSx}>
+                                          <Box component="img" src="/newNavLogoTriangle.svg" alt="play" sx={previewPlayIconImgSx} />
+                                      </Box>
+                                  </IconButton>
+                              </span>
+                          </Tooltip>
                       </Box>
+
+                      {/* Control row: scene count on the right */}
+                      <Box sx={{
+                          display: "flex", flexDirection: "row", alignItems: "center", height: "32px",
+                          opacity: isToolbarActive ? 0.38 : 1,
+                          pointerEvents: isToolbarActive ? "none" : "auto",
+                          transition: "opacity 0.2s"
+                      }}>
+                          <Box sx={{ flex: 1 }} />
+                          <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", color: "text.primary" }}>
+                              <Typography variant="body2">Scene {selectedScene + 1}/{SCENE_COUNT}</Typography>
+                          </Box>
+                      </Box>
+                      <Divider />
 
                       {/* Thumbnails row — disabled + dimmed when a toolbar/panel is active */}
                       <Box sx={thumbnailsRowWrapperSx}>
@@ -3149,15 +3164,63 @@ const sceneLineupSx: SxProps<Theme> = {
     position: "relative"
 };
 
-const playBtnCircleSx: SxProps<Theme> = {
-    width: 40,
-    height: 40,
+const previewPlayBtnWrapperSx: SxProps<Theme> = {
+    position: "absolute",
+    top: "-24px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 1
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const previewPlayIconSx: SxProps<Theme> = (theme: any) => ({
+    width: "48px",
+    height: "48px",
+    color: "other.editorBackground",
+    backgroundColor: "primary.dark",
+    borderColor: "other.editorBackground",
+    borderStyle: "solid",
+    borderWidth: "8px",
     borderRadius: "50%",
-    bgcolor: "other.editorBackground",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer"
+    padding: "8px 15px",
+    mb: "6px",
+    transition: "all .25s ease-out",
+    position: "relative",
+    backgroundClip: "padding-box",
+    "&::before": {
+        content: "''",
+        borderRadius: "32px",
+        position: "absolute",
+        left: 0, right: 0, top: 0, bottom: 0,
+        backgroundImage: `linear-gradient(135deg,${theme.palette.brand.gradientMagentaBlue})`,
+        opacity: 1,
+        transition: "all .25s ease-out"
+    },
+    "&:hover": {
+        backgroundColor: "primary.dark",
+        borderColor: "action.hover",
+        transform: "scale(1.1)",
+        "&::before": {
+            backgroundImage: "none",
+            backgroundColor: "primary.dark"
+        }
+    }
+});
+
+const previewPlayIconContentSx: SxProps<Theme> = {
+    ml: "4px",
+    width: "12px",
+    height: "15px",
+    backgroundColor: "common.white",
+    clipPath: "polygon(0 0, 0 100%, 100% 50%)",
+    transition: "all .25s ease-out"
+};
+
+const previewPlayIconImgSx: SxProps<Theme> = {
+    width: "15px",
+    height: "17px",
+    transform: "rotate(180deg) scale(2) translateX(-6px)",
+    transition: "all .15s .15s ease-out"
 };
 
 const thumbnailsRowWrapperSx: SxProps<Theme> = {

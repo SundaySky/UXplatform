@@ -1,0 +1,28 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 93 95" width="93" height="95">
+	<title>newNavLogo-svg</title>
+	<defs>
+		<clipPath clipPathUnits="userSpaceOnUse" id="cp1">
+			<path d="m-79-80h250.64v254.08h-250.64z"/>
+		</clipPath>
+		<linearGradient id="g1" x1="25.2" y1="48.2" x2="53.4" y2="72" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#e689f1"/>
+			<stop offset=".1" stop-color="#d47fef"/>
+			<stop offset=".3" stop-color="#c175ee"/>
+			<stop offset=".4" stop-color="#ab6dec"/>
+			<stop offset=".6" stop-color="#9365eb"/>
+			<stop offset=".7" stop-color="#775ee9"/>
+			<stop offset=".9" stop-color="#5358e7"/>
+			<stop offset="1" stop-color="#0053e5"/>
+		</linearGradient>
+	</defs>
+	<style>
+		.s0 { fill: url(#g1) } 
+		.s1 { fill: #f8f6f1 } 
+	</style>
+	<g id="Clip-Path" clip-path="url(#cp1)">
+		<g id="Layer">
+			<path id="Layer" class="s0" d="m18.7 47.3l41.8-24.1v48.2z"/>
+			<path id="Layer" class="s1" d="m60.5 71.4v-48.2l11.9-6.9v62z"/>
+		</g>
+	</g>
+</svg>
