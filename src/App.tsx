@@ -34,9 +34,9 @@ import { INITIAL_USERS } from "./AccountSettingsDialog";
 import StudioPage, { TOTAL_COMMENT_COUNT, INITIAL_THREADS } from "./StudioPage";
 import TemplatePage from "./TemplatePage";
 import TemplateLibraryPage from "./TemplateLibraryPage";
+import TemplateStudioPage from "./TemplateStudioPage";
 import { type NotificationItem } from "./NotificationsPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
-import { OWNER_USER, type PermissionUser } from "./ManageAccessDialog";
 
 import { Label, AttentionBox, AttentionBoxTitle, AttentionBoxContent, AttentionBoxActions, TruffleLink, TruffleAvatar, Search, TruffleMenuItem, TypographyWithTooltipOnOverflow } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -44,7 +44,7 @@ import {
     faEllipsisVertical, faArrowLeft, faArrowRight, faPen, faShareNodes, faChartBar,
     faArrowsRotate, faFolder, faCircleInfo, faLock, faCopy, faLayerGroup, faBoxArchive,
     faTrash, faLink, faFileExport, faArrowDown, faPalette, faUsers, faMicrophone,
-    faCircleQuestion, faXmark, faCircleCheck, faCheck, faImages, faKey, faEye, faEdit,
+    faCircleQuestion, faXmark, faCircleCheck, faCheck, faImages,
     faGlobe, faTriangleExclamation
 } from "@fortawesome/pro-regular-svg-icons";
 
@@ -84,119 +84,6 @@ function CircularIconAvatar({ icon }: { icon: React.ReactNode }) {
     return (
         <Box sx={circularIconAvatarSx}>
             {icon}
-        </Box>
-    );
-}
-
-// ─── Video permission strip (video page metadata row) ─────────────────────────
-function VideoPermissionStrip({
-    settings,
-    onManageClick
-}: {
-  settings?: VideoPermissionSettings
-  onManageClick: () => void
-}) {
-    const s = settings ?? {
-        tab: "teams" as const, everyoneRole: "viewer" as const,
-        users: [] as PermissionUser[], ownerUsers: [OWNER_USER], noDuplicate: false
-    };
-    const { tab, everyoneRole, users, ownerUsers } = s;
-    const isPrivate = tab === "private";
-    const showEveryone = tab === "teams" && everyoneRole !== "restricted";
-
-    const navyTipSx = {
-        bgcolor: "secondary.main", borderRadius: "8px", px: 1.5, py: 1,
-        "& .MuiTooltip-arrow": { color: "secondary.main" }
-    };
-
-    // Mini avatar chip — uses role icon instead of initials
-    function AvatarChip({ roleType, label, tip }: { roleType: "owner" | "editor" | "viewer"; label?: string; tip: string }) {
-        const roleIcon = roleType === "owner" ? faKey
-            : roleType === "editor" ? faEdit
-                : faEye;
-        return (
-            <Tooltip title={tip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTipSx } }}>
-                <Box sx={avatarChipOuterSx}>
-                    <Box sx={avatarChipIconBoxSx}>
-                        <SvgIcon sx={avatarChipRoleIconSx}>
-                            <FontAwesomeIcon icon={roleIcon} />
-                        </SvgIcon>
-                    </Box>
-                    {label && (
-                        <Typography variant="body2" sx={textSecondaryColorSx}>
-                            {label}
-                        </Typography>
-                    )}
-                </Box>
-            </Tooltip>
-        );
-    }
-
-    const rowIcon = isPrivate
-        ? <SvgIcon sx={lockIconSuccessSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
-        : <SvgIcon sx={lockIconPrimarySx}><FontAwesomeIcon icon={faLock} /></SvgIcon>;
-
-    return (
-        <Box
-            onClick={onManageClick}
-            sx={permStripRowSx}
-        >
-            <CircularIconAvatar icon={rowIcon} />
-
-            <Box sx={minWidthZeroSx}>
-                {/* Label row */}
-                <Typography variant="caption" sx={permStripLabelSx}>
-                    {isPrivate ? "Video access — Only you can see this video" : "Video access"}
-                </Typography>
-
-                {/* Indicators — all users shown with name, then Everyone at the end */}
-                <Box sx={permStripIndicatorsRowSx}>
-                    {/* Owner(s) — each with key icon + name + "(Owner)" */}
-                    {ownerUsers.slice(0, 3).map((u) => (
-                        <AvatarChip
-                            key={u.id}
-                            roleType="owner"
-                            label={`${u.name} (Owner)`}
-                            tip={`${u.name}${u.id === OWNER_USER.id ? " (You)" : ""} — Can manage access`}
-                        />
-                    ))}
-
-                    {/* Specific users — always show with role icon + name regardless of everyoneRole */}
-                    {tab === "teams" && users.map(pu => (
-                        <AvatarChip
-                            key={pu.user.id}
-                            roleType={pu.role === "editor" ? "editor" : "viewer"}
-                            label={pu.user.name}
-                            tip={`${pu.user.name} — Can ${pu.role === "editor" ? "edit" : "view"}`}
-                        />
-                    ))}
-
-                    {/* Separator before "Everyone" */}
-                    {showEveryone && (
-                        <Box sx={everyoneSeparatorSx} />
-                    )}
-
-                    {/* Everyone indicator — users icon */}
-                    {showEveryone && (
-                        <Tooltip
-                            title={`Everyone in your account — Can ${everyoneRole === "editor" ? "edit" : "view"}`}
-                            placement="top" arrow
-                            componentsProps={{ tooltip: { sx: navyTipSx } }}
-                        >
-                            <Box sx={avatarChipOuterSx}>
-                                <Box sx={everyoneIconBoxSx}>
-                                    <SvgIcon sx={everyoneIconSx}>
-                                        <FontAwesomeIcon icon={faUsers} />
-                                    </SvgIcon>
-                                </Box>
-                                <Typography sx={textSecondaryColorSx}>
-                  Everyone in your account
-                                </Typography>
-                            </Box>
-                        </Tooltip>
-                    )}
-                </Box>
-            </Box>
         </Box>
     );
 }
@@ -422,8 +309,6 @@ function VideoPreviewCard({
     onSentForApproval,
     onEdit,
     onApproveVideo,
-    videoPermSettings,
-    onManageAccess,
     approvalsEnabled = false
 }: {
   videoPhase: number
@@ -436,8 +321,6 @@ function VideoPreviewCard({
   onSentForApproval: () => void
   onEdit: (fromComments?: boolean) => void
   onApproveVideo: () => void
-  videoPermSettings?: VideoPermissionSettings
-  onManageAccess: () => void
   approvalsEnabled?: boolean
 }) {
     function ActionButton() {
@@ -662,25 +545,12 @@ function VideoPreviewCard({
 
             <Divider sx={dividerSx} />
 
-            {/* Video permission strip */}
-            <VideoPermissionStrip
-                settings={videoPermSettings}
-                onManageClick={onManageAccess}
-            />
-
-            <Divider sx={dividerSx} />
-
-            {/* Data & Personalization (personalized video — has a data library) */}
+            {/* Non-personalized */}
             <Box sx={cardMetaRowSx}>
-                <CircularIconAvatar icon={<SvgIcon sx={dataPersonalizationIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>} />
-                <Box>
-                    <Typography variant="caption" sx={captionBlockWithMbSx}>
-            Data &amp; Personalization
-                    </Typography>
-                    <Typography variant="body1" sx={textPrimaryColorSx}>
-            Test library
-                    </Typography>
-                </Box>
+                <CircularIconAvatar icon={<SvgIcon sx={globeIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>} />
+                <Typography variant="body1" sx={textPrimaryColorSx}>
+                    Non-personalized
+                </Typography>
             </Box>
 
             <Divider sx={dividerSx} />
@@ -698,6 +568,21 @@ function VideoPreviewCard({
               English
                         </Typography>
                     </Box>
+                </Box>
+            </Box>
+
+            <Divider sx={dividerSx} />
+
+            {/* In progress version */}
+            <Box sx={cardMetaRowSx}>
+                <CircularIconAvatar icon={<SvgIcon sx={globeIconSx}><FontAwesomeIcon icon={faFileExport} /></SvgIcon>} />
+                <Box>
+                    <Typography variant="body1" sx={textPrimaryColorSx}>
+                        In progress version
+                    </Typography>
+                    <Typography variant="caption" sx={textSecondaryColorSx}>
+                        New draft version
+                    </Typography>
                 </Box>
             </Box>
         </Paper>
@@ -821,7 +706,10 @@ const INITIAL_TASKS: Task[] = [
     { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
     { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
     { id: 7, label: "You're preparing a video for approval, and your boss told you that Michelle Cohen from Legal needs to approve it.", done: false },
-    { id: 8, label: "Jarvis is no longer with the company", done: false }
+    { id: 8, label: "Jarvis is no longer with the company", done: false },
+    { id: 9, label: "You are working on a new video for the new year and would like it to have 12 translations.", done: false },
+    { id: 10, label: "Your boss mentioned to you that you stopped working with Brazil and you would like to remove it from your videos.", done: false },
+    { id: 11, label: "You decided to use the same video for your far east clients.", done: false }
 ];
 
 type SessionState = "idle" | "active" | "survey" | "complete"
@@ -1120,7 +1008,8 @@ const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: "draft", sentAppr
 
 export default function App() {
     const theme = useTheme();
-    const [currentPage, setCurrentPage] = useState<"video" | "library" | "studio" | "template" | "template-library">("library");
+    const [currentPage, setCurrentPage] = useState<"video" | "library" | "studio" | "template" | "template-library" | "template-studio">("library");
+    const [templateStudioName, setTemplateStudioName] = useState("Template name");
     const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
     const [videoStates, setVideoStates] = useState<Record<string, VideoState>>({});
     const [dialogStep, setDialogStep] = useState<"closed" | "form" | "confirmed">("closed");
@@ -1260,6 +1149,9 @@ export default function App() {
                     <VideoLibraryPage
                         onSelectVideo={handleSelectVideo}
                         onNavigateToTemplate={() => setCurrentPage("template-library")}
+                        onCreateTemplateFromScratch={(name) => {
+                            setTemplateStudioName(name); setCurrentPage("template-studio"); 
+                        }}
                         notifications={notifications}
                         videoStates={videoStates}
                         onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
@@ -1328,13 +1220,33 @@ export default function App() {
                 /* ── Template library ─────────────────────────────────────────────── */
                     <TemplateLibraryPage
                         onNavigateBack={() => setCurrentPage("library")}
-                        onNavigateToTemplate={() => setCurrentPage("template")}
+                        onNavigateToTemplate={(name) => {
+                            setTemplateStudioName(name ?? "Template name");
+                            setCurrentPage("template-studio");
+                        }}
+                        onCreateTemplateFromScratch={(name) => {
+                            setTemplateStudioName(name); setCurrentPage("template-studio"); 
+                        }}
                         notifications={notifications}
                     />
 
                 ) : currentPage === "template" ? (
                 /* ── Template page ────────────────────────────────────────────────── */
-                    <TemplatePage onNavigateBack={() => setCurrentPage("template-library")} />
+                    <TemplatePage
+                        onNavigateBack={() => setCurrentPage("template-library")}
+                        onNavigateToStudio={(name) => {
+                            setTemplateStudioName(name ?? "Template name");
+                            setCurrentPage("template-studio");
+                        }}
+                    />
+
+                ) : currentPage === "template-studio" ? (
+                /* ── Template studio ──────────────────────────────────────────────── */
+                    <TemplateStudioPage
+                        templateName={templateStudioName}
+                        onNavigateToTemplatePage={() => setCurrentPage("template")}
+                        onNavigateToLibrary={() => setCurrentPage("library")}
+                    />
 
                 ) : (
                 /* ── Video page ───────────────────────────────────────────────────── */
@@ -1402,8 +1314,6 @@ export default function App() {
                                                     }
                                                 }}
                                                 onApproveVideo={() => setApproveDialogOpen(true)}
-                                                videoPermSettings={videoPermSettings}
-                                                onManageAccess={() => setVideoPermDialogOpen(true)}
                                                 approvalsEnabled={approvalsEnabled}
                                             />
                                         </Box>
@@ -1546,40 +1456,6 @@ const circularIconAvatarSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
 };
 
-// ── AvatarChip (VideoPermissionStrip) ─────────────────────────────────────────
-const avatarChipOuterSx: SxProps<Theme> = {
-    display: "inline-flex", alignItems: "baseline", gap: "5px", flexShrink: 0,
-    bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
-};
-const avatarChipIconBoxSx: SxProps<Theme> = {
-    width: 16, height: 16, borderRadius: "3px", bgcolor: "divider",
-    display: "inline-flex", alignItems: "center", justifyContent: "center",
-    flexShrink: 0, alignSelf: "center"
-};
-const avatarChipRoleIconSx: SxProps<Theme> = { fontSize: "10px !important", width: "10px !important", height: "10px !important", color: "text.primary" };
-
-// ── Lock icons ────────────────────────────────────────────────────────────────
-const lockIconSuccessSx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "success.main" };
-const lockIconPrimarySx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "primary.main" };
-
-// ── VideoPermissionStrip ──────────────────────────────────────────────────────
-const permStripRowSx: SxProps<Theme> = {
-    display: "flex", alignItems: "flex-start", gap: "6px", px: 2, py: 1.5,
-    cursor: "pointer",
-    "&:hover": { bgcolor: "action.hover" }
-};
-const permStripLabelSx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "4px" };
-const permStripIndicatorsRowSx: SxProps<Theme> = {
-    display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px"
-};
-const everyoneSeparatorSx: SxProps<Theme> = { width: "1px", height: 16, bgcolor: "divider", flexShrink: 0 };
-const everyoneIconBoxSx: SxProps<Theme> = {
-    width: 16, height: 16, borderRadius: "3px", bgcolor: "action.selected",
-    display: "inline-flex", alignItems: "center", justifyContent: "center",
-    flexShrink: 0, alignSelf: "center"
-};
-const everyoneIconSx: SxProps<Theme> = { fontSize: "11px !important", width: "11px !important", height: "11px !important", color: "text.primary" };
-
 // ── SundaySkyLogo ─────────────────────────────────────────────────────────────
 const logoBoxSx: SxProps<Theme> = { px: 1, pb: 0.5 };
 const logoTypographySx: SxProps<Theme> = {
@@ -1671,9 +1547,7 @@ const previewFootnoteTypographySx: SxProps<Theme> = {
 };
 const cardMetaRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.5 };
 const captionBlockSx: SxProps<Theme> = { color: "text.secondary", display: "block" };
-const captionBlockWithMbSx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "1px" };
 const captionBlockWithMb2Sx: SxProps<Theme> = { color: "text.secondary", display: "block", mb: "2px" };
-const dataPersonalizationIconSx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "error.main" };
 const globeIconSx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "action.active" };
 const languageChipSx: SxProps<Theme> = {
     display: "inline-flex", alignItems: "baseline", gap: "4px",

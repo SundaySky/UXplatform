@@ -6,8 +6,8 @@ import {
     Button, IconButton, Box, Stack, Alert, Typography, SvgIcon
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faTrash, faTriangleExclamation, faCircleInfo } from "@fortawesome/pro-regular-svg-icons";
-import { TruffleDialogTitle, TruffleDialogActions, TruffleAccordion, TruffleAccordionSummary, TruffleAccordionDetails, AttentionBox, AttentionBoxTitle, AttentionBoxContent } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { faPlus, faTrash } from "@fortawesome/pro-regular-svg-icons";
+import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 const DEFAULT_USERS = [
     { value: "sjohnson", label: "Sarah Johnson (sjohnson@company.com)" },
@@ -81,38 +81,6 @@ export default function ApprovalDialog({ open, onClose, onSend, availableApprove
                     <Alert severity="info">
             Approvers will be notified by email and will need to log in to SundaySky
                     </Alert>
-
-                    {/* Warnings — collapsible, mirrors real-app ApprovalConfirmationDialog */}
-                    <TruffleAccordion divider={false}>
-                        <TruffleAccordionSummary
-                            icon={<SvgIcon><FontAwesomeIcon icon={faTriangleExclamation} /></SvgIcon>}
-                            text={<Typography variant="subtitle2">Warnings</Typography>}
-                        />
-                        <TruffleAccordionDetails padding="small">
-                            <AttentionBox color="warning">
-                                <AttentionBoxTitle>Review before sending</AttentionBoxTitle>
-                                <AttentionBoxContent>
-                                    Approvers will receive the current draft. Any changes you make after sending will not be reflected until you resend.
-                                </AttentionBoxContent>
-                            </AttentionBox>
-                        </TruffleAccordionDetails>
-                    </TruffleAccordion>
-
-                    {/* Next (required) — collapsible */}
-                    <TruffleAccordion divider={false}>
-                        <TruffleAccordionSummary
-                            icon={<SvgIcon><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
-                            text={<Typography variant="subtitle2">Next (required)</Typography>}
-                        />
-                        <TruffleAccordionDetails padding="small">
-                            <AttentionBox color="info">
-                                <AttentionBoxTitle>After approvers respond</AttentionBoxTitle>
-                                <AttentionBoxContent>
-                                    You&apos;ll be notified once each approver has responded. You can view their feedback and approve the video for sharing.
-                                </AttentionBoxContent>
-                            </AttentionBox>
-                        </TruffleAccordionDetails>
-                    </TruffleAccordion>
 
                     {/* ── Comment field
                Figma: label is a Typography node ABOVE the field, not floating.
