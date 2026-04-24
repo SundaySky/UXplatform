@@ -11,7 +11,7 @@ import {
 import Tooltip from "@mui/material/Tooltip";
 import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faCircleUser, faPhotoFilm, faMusic, faMicrophone, faWaveformLines, faDatabase, faInputText, faCropSimple, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faArrowsRotate } from "@fortawesome/pro-regular-svg-icons";
+import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faMicrophone, faDatabase, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faArrowsRotate } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faPlay, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
 import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleMenuPanel } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
@@ -943,52 +943,54 @@ function CommentsPanel({
 // ─── Scene thumbnail ──────────────────────────────────────────────────────────
 function SceneThumbnail({ index, selected, headingText, subheadingText, footnoteText, onClick }: { index: number; selected: boolean; headingText?: string; subheadingText?: string; footnoteText?: string; onClick?: () => void }) {
     return (
-        <ThumbnailActions
-            selected={selected}
-            showActions="onHover"
-            onClick={onClick}
-            label={<Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>}
-            rightActions={
-                <ThumbnailActionsIconButton size="small">
-                    <SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
-                </ThumbnailActionsIconButton>
-            }
-            sx={sceneThumbnailOuterSx}
-            ContentProps={{ sx: sceneThumbnailContentSx }}
-        >
-            <Box component="img" src={IMG_THUMB} alt="" sx={sceneThumbnailImgSx} />
+        <Box sx={sceneThumbnailWrapperSx}>
+            <Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>
+            <ThumbnailActions
+                selected={selected}
+                showActions="onHover"
+                onClick={onClick}
+                rightActions={
+                    <ThumbnailActionsIconButton size="small">
+                        <SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                    </ThumbnailActionsIconButton>
+                }
+                sx={sceneThumbnailOuterSx}
+                ContentProps={{ sx: sceneThumbnailContentSx }}
+            >
+                <Box component="img" src={IMG_THUMB} alt="" sx={sceneThumbnailImgSx} />
 
-            {/* Cover left half of SVG — white bg + pink accent line */}
-            <Box sx={thumbLeftCoverSx}>
-                {/* Prototype-only scene accent — no real-app theme token */}
-                <Box sx={{ height: 3, bgcolor: "#C084FC", width: "100%" }} />
-            </Box>
+                {/* Cover left half of SVG — white bg + pink accent line */}
+                <Box sx={thumbLeftCoverSx}>
+                    {/* Prototype-only scene accent — no real-app theme token */}
+                    <Box sx={{ height: 3, bgcolor: "#C084FC", width: "100%" }} />
+                </Box>
 
-            {/* Right side — drag media */}
-            <Box sx={thumbRightDragAreaSmSx}>
-                <SvgIcon sx={{ fontSize: "22px !important", color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
-                <Typography variant="caption" sx={{ fontSize: 7, color: "action.disabled" }}>
-            Drag media here
-                </Typography>
-            </Box>
+                {/* Right side — drag media */}
+                <Box sx={thumbRightDragAreaSmSx}>
+                    <SvgIcon sx={{ fontSize: "22px !important", color: "action.disabled" }}><FontAwesomeIcon icon={faImage} /></SvgIcon>
+                    <Typography variant="caption" sx={{ fontSize: 7, color: "action.disabled" }}>
+                Drag media here
+                    </Typography>
+                </Box>
 
-            {/* Heading + sub-heading — flowing column */}
-            <Box sx={thumbHeadingColumnSx}>
-                <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw", color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word" }}>
-                    {headingText ?? ""}
-                </Typography>
-                <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw", color: "text.primary", lineHeight: 1.4, wordBreak: "break-word", mt: "5%" }}>
-                    {subheadingText ?? "Sub-heading Placeholder"}
-                </Typography>
-            </Box>
+                {/* Heading + sub-heading — flowing column */}
+                <Box sx={thumbHeadingColumnSx}>
+                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 700, fontSize: "9cqw", color: "secondary.main", lineHeight: 1.2, wordBreak: "break-word" }}>
+                        {headingText ?? ""}
+                    </Typography>
+                    <Typography sx={{ fontFamily: "\"Inter\", sans-serif", fontWeight: 400, fontSize: "4cqw", color: "text.primary", lineHeight: 1.4, wordBreak: "break-word", mt: "5%" }}>
+                        {subheadingText ?? "Sub-heading Placeholder"}
+                    </Typography>
+                </Box>
 
-            {/* Footnote */}
-            <Box sx={thumbFootnoteBoxSx}>
-                <Typography sx={thumbFootnoteTypographySx}>
-                    {footnoteText ?? "Footnote placeholder"}
-                </Typography>
-            </Box>
-        </ThumbnailActions>
+                {/* Footnote */}
+                <Box sx={thumbFootnoteBoxSx}>
+                    <Typography sx={thumbFootnoteTypographySx}>
+                        {footnoteText ?? "Footnote placeholder"}
+                    </Typography>
+                </Box>
+            </ThumbnailActions>
+        </Box>
     );
 }
 
@@ -1027,21 +1029,23 @@ function PlaceholderIcon({ size = 28, color }: { size?: number; color?: string }
 
 function CustomSceneThumbnail({ index, selected, onClick }: { index: number; selected: boolean; onClick?: () => void }) {
     return (
-        <ThumbnailActions
-            selected={selected}
-            showActions="onHover"
-            onClick={onClick}
-            label={<Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>}
-            rightActions={
-                <ThumbnailActionsIconButton size="small">
-                    <SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
-                </ThumbnailActionsIconButton>
-            }
-            sx={sceneThumbnailOuterSx}
-            ContentProps={{ sx: { ...sceneThumbnailContentSx, display: "flex", alignItems: "center", justifyContent: "center" } }}
-        >
-            <PlaceholderIcon size={28} />
-        </ThumbnailActions>
+        <Box sx={sceneThumbnailWrapperSx}>
+            <Typography variant="caption" sx={sceneThumbnailLabelSx}>Scene {index + 1}</Typography>
+            <ThumbnailActions
+                selected={selected}
+                showActions="onHover"
+                onClick={onClick}
+                rightActions={
+                    <ThumbnailActionsIconButton size="small">
+                        <SvgIcon sx={{ fontSize: "14px !important", width: "14px !important", height: "14px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                    </ThumbnailActionsIconButton>
+                }
+                sx={sceneThumbnailOuterSx}
+                ContentProps={{ sx: { ...sceneThumbnailContentSx, display: "flex", alignItems: "center", justifyContent: "center" } }}
+            >
+                <PlaceholderIcon size={28} />
+            </ThumbnailActions>
+        </Box>
     );
 }
 
@@ -1304,12 +1308,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   // Unread = not yet checked or resolved
   const unreadCount = threads.reduce((n, t) => n + t.comments.filter(c => !c.checkedNow && !c.resolved).length, 0);
 
+  const navImg = (name: string, sel: boolean) => (
+      <Box component="img" src={`/icons/${name}-${sel ? "selected" : "idle"}.svg`} sx={{ width: 16, height: 16, display: "block" }} />
+  );
+
   const NAV_SECTIONS = [
       {
           section: "STYLE",
           items: [
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faPalette} /></SvgIcon>, label: "Brand" },
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faPaintbrush} /></SvgIcon>, label: "Theme" },
+              { icon: navImg("brand", false), iconSelected: navImg("brand", true), label: "Brand" },
+              { icon: navImg("theme", false), iconSelected: navImg("theme", true), label: "Theme" },
               {
                   icon: (
                       <Badge
@@ -1317,7 +1325,16 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           color="error"
                           sx={navBadgeSx}
                       >
-                          <SvgIcon fontSize="small"><FontAwesomeIcon icon={faCircleUser} /></SvgIcon>
+                          {navImg("avatar", false)}
+                      </Badge>
+                  ),
+                  iconSelected: (
+                      <Badge
+                          badgeContent={avatarReqCount > 0 ? avatarReqCount : undefined}
+                          color="error"
+                          sx={navBadgeSx}
+                      >
+                          {navImg("avatar", true)}
                       </Badge>
                   ),
                   label: "Avatar"
@@ -1327,19 +1344,20 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
       {
           section: "LIBRARIES",
           items: [
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faPhotoFilm} /></SvgIcon>, label: "Media" },
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faMusic} /></SvgIcon>, label: "Music" },
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faWaveformLines} /></SvgIcon>, label: "Voice" },
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faDatabase} /></SvgIcon>, label: "Data" },
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faInputText} /></SvgIcon>, label: "Input fields" }
+              { icon: navImg("media", false), iconSelected: navImg("media", true), label: "Media" },
+              { icon: navImg("music", false), iconSelected: navImg("music", true), label: "Music" },
+              { icon: navImg("voice", false), iconSelected: navImg("voice", true), label: "Voice" },
+              { icon: navImg("data", false), iconSelected: navImg("data", true), label: "Data" },
+              { icon: navImg("input-fields", false), iconSelected: navImg("input-fields", true), label: "Input fields" }
           ]
       },
       {
           section: "SETTINGS",
           items: [
-              { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faCropSimple} /></SvgIcon>, label: "Aspect ratio" },
+              { icon: navImg("aspect-ratio", false), iconSelected: navImg("aspect-ratio", true), label: "Aspect ratio" },
               {
-                  icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faLanguage} /></SvgIcon>,
+                  icon: navImg("languages", false),
+                  iconSelected: navImg("languages", true),
                   label: "Languages",
                   onClickOverride: () => {
                       if (activeNav === "Languages" && langsOpen) {
@@ -1531,7 +1549,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <ListSubheader disableSticky sx={navSubheaderSx}>
                               {section}
                           </ListSubheader>
-                          {items.map(({ icon, label, onClickOverride }: { icon: React.ReactNode; label: string; onClickOverride?: () => void }) => (
+                          {items.map(({ icon, iconSelected, label, onClickOverride }: { icon: React.ReactNode; iconSelected?: React.ReactNode; label: string; onClickOverride?: () => void }) => (
                               <ListItemButton
                                   key={label}
                                   dense
@@ -1570,7 +1588,9 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                                       }
                                   }}
                               >
-                                  <ListItemIcon sx={navItemIconSx}>{icon}</ListItemIcon>
+                                  <ListItemIcon sx={navItemIconSx}>
+                                      {(activeNav === label && iconSelected) ? iconSelected : icon}
+                                  </ListItemIcon>
                                   <ListItemText
                                       primary={label}
                                       sx={studioNavItemTextSx}
@@ -2271,13 +2291,15 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               )}
                               {/* Add scene */}
                               <Box sx={addSceneOuterSx}>
-                                  <Box
-                                      onClick={() => {
-                                          setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedElId(null);
-                                      }}
-                                      sx={addSceneBtnSx}>
-                                      <SvgIcon sx={{ fontSize: "18px !important", color: "primary.main" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
-                                  </Box>
+                                  <Tooltip title="Add Scene" placement="top" arrow>
+                                      <Box
+                                          onClick={() => {
+                                              setSceneLibOpen(true); setPlaceholderMenuOpen(false); setSelectedElId(null);
+                                          }}
+                                          sx={addSceneBtnSx}>
+                                          <Box component="img" src="/icons/plus.svg" sx={{ width: 20, height: 20 }} />
+                                      </Box>
+                                  </Tooltip>
                               </Box>
                           </Box>
                       </Box>
@@ -2509,32 +2531,23 @@ const studioVideoPageBtnSx: SxProps<Theme> = {
 
 // Layout-only overrides for TruffleMenuPanel — appearance handled by the component
 const studioLeftNavSx: SxProps<Theme> = {
-    width: 136,
     flexShrink: 0,
     overflowY: "auto",
-    pl: 0, // TruffleMenuPanel outlined default is 20px — too wide for 136px nav
     pt: 0,
-    pb: 0,
-    // Height fills the content area
+    pb: 2,
+    px: 2,
     alignSelf: "stretch"
 };
 
-// Theme already applies: uppercase, caption variant, padding "0 12px 8px 12px"
 const navSubheaderSx: SxProps<Theme> = {
     color: "text.secondary",
-    pt: 2 // extra top gap for visual section grouping
+    pt: 2
 };
 
-// navItemButtonSx removed — TruffleMenuPanel + Truffle theme handle borderRadius,
-// padding, and right-edge squaring correctly via generalSxProps
-
-const navItemIconSx: SxProps<Theme> = {
-    minWidth: "auto" // let the theme gap handle spacing; MUI default 56px is too wide
-};
+const navItemIconSx: SxProps<Theme> = {};
 
 const studioNavItemTextSx: SxProps<Theme> = {
-    my: 0,
-    "& .MuiListItemText-primary": { whiteSpace: "normal", wordBreak: "break-word" }
+    my: 0
 };
 
 const narrationBarSx: SxProps<Theme> = {
@@ -2827,7 +2840,16 @@ const commentCheckboxSx: SxProps<Theme> = {
 
 // ─── SceneThumbnail / CustomSceneThumbnail ────────────────────────────────────
 
-const sceneThumbnailOuterSx: SxProps<Theme> = { width: 156, minWidth: 156, flexShrink: 0 };
+const sceneThumbnailWrapperSx: SxProps<Theme> = {
+    width: 156,
+    minWidth: 156,
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start"
+};
+
+const sceneThumbnailOuterSx: SxProps<Theme> = { width: "100%" };
 
 const sceneThumbnailContentSx: SxProps<Theme> = {
     width: "100%", aspectRatio: "16/9",
@@ -2837,7 +2859,9 @@ const sceneThumbnailContentSx: SxProps<Theme> = {
 
 const sceneThumbnailLabelSx: SxProps<Theme> = {
     color: "text.secondary",
-    letterSpacing: "0.4px"
+    letterSpacing: "0.4px",
+    mb: "4px",
+    px: "2px"
 };
 
 const sceneThumbnailImgSx: SxProps<Theme> = {
@@ -3141,24 +3165,26 @@ const thumbnailsRowWrapperSx: SxProps<Theme> = {
 };
 
 const addSceneOuterSx: SxProps<Theme> = {
-    width: 56,
-    flexShrink: 0,
+    position: "sticky",
+    right: 0,
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center"
+    bgcolor: "common.white",
+    zIndex: 20,
+    ml: "2px",
+    mt: "2px",
+    flexShrink: 0
 };
 
 const addSceneBtnSx: SxProps<Theme> = {
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    bgcolor: "other.editorBackground",
+    px: "14px",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    borderWidth: "1.5px",
-    borderStyle: "dashed",
-    borderColor: "primary.main",
+    height: "92px",
+    mt: "22px",
+    border: "none",
+    background: "transparent",
     cursor: "pointer",
     "&:hover": { bgcolor: "action.hover" }
 };
