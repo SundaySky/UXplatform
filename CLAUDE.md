@@ -394,45 +394,38 @@ Several people may be working on this codebase simultaneously. Keep the followin
 
 ## Git Workflow
 
+This repo is used by non-developers as well as developers. Three scripts in `scripts/` (and matching skills under `.claude/skills/`) automate the entire start → work → ship cycle. **Use them — do not run raw `git checkout`/`commit`/`push`/`gh pr ...` commands by hand.**
+
+| Skill | Script | What it does |
+|---|---|---|
+| `start-task` | `./scripts/start-task.sh "<short description>"` | Pulls the latest `main`, then creates and switches to a new branch named after the description. |
+| `end-task` | `./scripts/end-task.sh "<commit and PR title>"` | Stages all changes, commits, pushes, opens a PR, merges it (deletes the remote branch), then switches to `main` and pulls. |
+| `abandon-task` | `./scripts/abandon-task.sh "<optional reason>"` | Commits any pending work, renames the branch to `abandoned-<original>-<timestamp>`, pushes that name to the remote (so the work is recoverable), then returns to a clean `main`. |
+
 ### Branching Rules — STRICT
 
-- **Never work directly on `main`.** All work must happen on a local user branch.
-- **Starting a new task:** always create a new branch from the latest remote `main`:
+- **Never work directly on `main`.** All work happens on a user branch created by `start-task`.
+- **Before making any code change while on `main`,** Claude MUST invoke the `start-task` skill first — no exceptions. Ask the user for a short task description, then run the script.
+- **When the user signals they are done** ("I'm done", "ship it", "merge it", "/end-task", etc.), Claude invokes the `end-task` skill — do not run the individual git/gh commands manually.
+- **When the user wants to drop the current work** without merging it ("abandon", "scrap this", "set aside", "/abandon-task"), Claude invokes the `abandon-task` skill.
+- **Branch naming uses dashes only — never `/`.** The `start-task` script enforces this when it slugifies the description. Manual branch creation is forbidden.
 
-```bash
-git fetch origin
-git checkout -b <branch-name> origin/main
-```
+### Commit message style
 
-- **Merging back to main:** when the user is ready to merge, follow these steps in order:
-  1. Confirm the current branch is a user branch (not `main`)
-  2. Commit all changes and push the branch to GitHub
-  3. Open a Pull Request (via `gh pr create`)
-  4. Merge the PR into `main` (via `gh pr merge`)
-
-```bash
-git add <specific files>
-git commit -m "Short description of change"
-git push -u origin <branch-name>
-gh pr create --title "..." --body "..."
-gh pr merge --merge
-```
-
-### General
-
-```bash
-git fetch origin              # always start here
-git checkout -b <branch> origin/main   # new branch from latest main
-# ... make changes ...
-git add <specific files>      # prefer explicit file staging over git add .
-git commit -m "Short description of change"
-git push -u origin <branch-name>
-```
-
-Commit message style (match existing history):
+`end-task` uses the title you give it as both the commit message subject and the PR title. Match existing history:
 - Imperative mood: `Add`, `Fix`, `Update`, `Remove`
 - Sentence case, no trailing period
 - Reference the feature area: `Approval dialog: …`, `VideoLibrary: …`
+
+### Manual git is allowed only for:
+
+- Read-only inspection (`git status`, `git log`, `git diff`, `git branch`, `gh pr view`, etc.).
+- Recovering an abandoned branch (`git fetch origin && git checkout abandoned-<name>-<timestamp>`).
+- Resolving merge conflicts that the scripts cannot resolve themselves.
+
+For everything else (creating a branch, committing, pushing, opening/merging PRs), use the scripts.
+
+### Gitignore
 
 `.env`, `.env.local`, `dist/`, `node_modules/`, and `.claude/preview/` are gitignored — never commit these.
 

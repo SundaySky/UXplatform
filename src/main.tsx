@@ -4,6 +4,7 @@ import { StyledEngineProvider } from "@mui/material";
 import { TruffleThemeProvider, TruffleGradientDefinitions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import App from "./App";
 import "./index.css";
+import "@fortawesome/fontawesome-pro/css/all.css";
 
 const ThemeProvider = TruffleThemeProvider as FC<PropsWithChildren>;
 
