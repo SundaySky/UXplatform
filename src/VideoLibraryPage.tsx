@@ -20,6 +20,7 @@ import ConfirmationDialog from "./ConfirmationDialog";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import { TOTAL_COMMENT_COUNT } from "./StudioPage";
 import { OWNER_USER } from "./ManageAccessDialog";
+import CreateTemplateDialog from "./CreateTemplateDialog";
 
 // ─── Figma asset image — split template (HEADING PLACEHOLDER left + media right)
 const IMG_THUMB = "/thumb.svg";
@@ -527,14 +528,17 @@ const NAV_ITEMS = [
 export function AppSidebar({
     onTemplateLibraryClick,
     onVideoLibraryClick,
+    onTemplateCreated,
     selectedNav = "Video Library"
 }: {
     onTemplateLibraryClick?: () => void;
     onVideoLibraryClick?: () => void;
+    onTemplateCreated?: (name: string) => void;
     selectedNav?: string;
 }) {
     const [createMenuAnchor, setCreateMenuAnchor] = useState<HTMLElement | null>(null);
     const [createType, setCreateType] = useState<"video" | "template">("video");
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
     return (
         <Box sx={sidebarSx}>
@@ -600,7 +604,9 @@ export function AppSidebar({
                         </>
                     ) : (
                         <>
-                            <TruffleMenuItem onClick={() => setCreateMenuAnchor(null)}>+ From scratch</TruffleMenuItem>
+                            <TruffleMenuItem onClick={() => {
+                                setCreateMenuAnchor(null); setCreateDialogOpen(true); 
+                            }}>+ From scratch</TruffleMenuItem>
                             <TruffleMenuItem
                                 onClick={() => setCreateMenuAnchor(null)}
                                 secondaryAction={<Label label="Coming soon" color="default" size="small" />}
@@ -611,6 +617,16 @@ export function AppSidebar({
                     )}
                 </Box>
             </Menu>
+
+            <CreateTemplateDialog
+                open={createDialogOpen}
+                onClose={() => setCreateDialogOpen(false)}
+                mode="create"
+                onSubmit={(data) => {
+                    setCreateDialogOpen(false);
+                    onTemplateCreated?.(data.name || "New template");
+                }}
+            />
 
             {/* Nav items */}
             <List disablePadding sx={sidebarListSx}>
@@ -756,6 +772,7 @@ function VideoTableView({ videos, videoStates, onSelect }: {
 export default function VideoLibraryPage({
     onSelectVideo,
     onNavigateToTemplate,
+    onCreateTemplateFromScratch,
     notifications,
     videoStates,
     onPermChange,
@@ -774,6 +791,7 @@ export default function VideoLibraryPage({
 }: {
   onSelectVideo: (v: VideoItem) => void
   onNavigateToTemplate?: () => void
+  onCreateTemplateFromScratch?: (name: string) => void
   notifications?: NotificationItem[]
   videoStates?: Record<string, LiveVideoState>
   onPermChange?: (key: string, s: VideoPermissionSettings) => void
@@ -838,7 +856,7 @@ export default function VideoLibraryPage({
                 onUserDeletionBlocked={handleUserDeletionBlocked}
                 pendingApprovalsCount={pendingApprovalsCount}
             />
-            <AppSidebar onTemplateLibraryClick={onNavigateToTemplate} />
+            <AppSidebar onTemplateLibraryClick={onNavigateToTemplate} onTemplateCreated={onCreateTemplateFromScratch} />
 
             <Box sx={mainColumnSx}>
                 {/* AppBar */}

@@ -12,8 +12,8 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faPlay, faPen, faEllipsisVertical, faBars, faFolder,
-    faCopy, faCircleInfo, faLayerGroup, faArrowsRotate,
-    faFilm, faUsers, faTriangleExclamation
+    faCircleInfo, faArrowsRotate,
+    faFilm, faUsers, faTriangleExclamation, faPaste
 } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faGrip, faArrowUpArrowDown } from "@fortawesome/pro-solid-svg-icons";
 import { AppSidebar } from "./VideoLibraryPage";
@@ -28,23 +28,24 @@ interface TemplateItem {
     status: "Published" | "Draft";
     personalized?: boolean;
     hasNewDraft?: boolean;
+    purposeLabels: string[];
 }
 
 // ─── Sample data ──────────────────────────────────────────────────────────────
 const RECENT_TEMPLATES: TemplateItem[] = [
-    { title: "Motivation", editedBy: "Edited on Jan 21 by you", status: "Published", personalized: true },
-    { title: "Nice to see you!", editedBy: "Edited on Jan 15 by you", status: "Published", hasNewDraft: true },
-    { title: "Welcome to SundaySky", editedBy: "Edited on Jan 10 by you", status: "Draft", personalized: true },
-    { title: "Live Fully in Vietnam", editedBy: "Edited on Dec 30 by you", status: "Published" },
-    { title: "Looking forward to talking to you", editedBy: "Edited on Dec 20 by you", status: "Draft" }
+    { title: "Motivation", editedBy: "Edited on Jan 21 by you", status: "Published", personalized: true, purposeLabels: ["Engagement"] },
+    { title: "Nice to see you!", editedBy: "Edited on Jan 15 by you", status: "Published", hasNewDraft: true, purposeLabels: ["Onboarding", "Retention"] },
+    { title: "Welcome to SundaySky", editedBy: "Edited on Jan 10 by you", status: "Draft", personalized: true, purposeLabels: ["Onboarding"] },
+    { title: "Live Fully in Vietnam", editedBy: "Edited on Dec 30 by you", status: "Published", purposeLabels: ["Marketing", "Awareness"] },
+    { title: "Looking forward to talking to you", editedBy: "Edited on Dec 20 by you", status: "Draft", purposeLabels: ["Sales"] }
 ];
 
 const ALL_TEMPLATES: TemplateItem[] = [
-    { title: "Motivation", editedBy: "Edited on Jan 21 by you", status: "Published", personalized: true },
-    { title: "Nice to see you!", editedBy: "Edited on Jan 15 by you", status: "Published", hasNewDraft: true },
-    { title: "Welcome to SundaySky", editedBy: "Edited on Jan 10 by you", status: "Draft", personalized: true },
-    { title: "Live Fully in Vietnam", editedBy: "Edited on Dec 30 by you", status: "Published" },
-    { title: "Looking forward to talking to you", editedBy: "Edited on Dec 20 by you", status: "Draft" }
+    { title: "Motivation", editedBy: "Edited on Jan 21 by you", status: "Published", personalized: true, purposeLabels: ["Engagement"] },
+    { title: "Nice to see you!", editedBy: "Edited on Jan 15 by you", status: "Published", hasNewDraft: true, purposeLabels: ["Onboarding", "Retention"] },
+    { title: "Welcome to SundaySky", editedBy: "Edited on Jan 10 by you", status: "Draft", personalized: true, purposeLabels: ["Onboarding"] },
+    { title: "Live Fully in Vietnam", editedBy: "Edited on Dec 30 by you", status: "Published", purposeLabels: ["Marketing", "Awareness"] },
+    { title: "Looking forward to talking to you", editedBy: "Edited on Dec 20 by you", status: "Draft", purposeLabels: ["Sales"] }
 ];
 
 // ─── Dashed label (DS gap: Truffle Label has no dashed-border variant) ─────────
@@ -57,7 +58,7 @@ function DashedLabel({ label }: { label: string }) {
 }
 
 // ─── Template card ────────────────────────────────────────────────────────────
-function TemplateCard({ template, onClick }: { template: TemplateItem; onClick?: () => void }) {
+function TemplateCard({ template, onClick }: { template: TemplateItem; onClick?: (name: string) => void }) {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
     const openMenu = (e: React.MouseEvent<HTMLElement>) => {
@@ -92,7 +93,7 @@ function TemplateCard({ template, onClick }: { template: TemplateItem; onClick?:
                         </Button>
                     </Box>
                 }
-                onClick={onClick}
+                onClick={() => onClick?.(template.title)}
                 sx={thumbnailActionsSx}
             >
                 <Box component="img" src={IMG_THUMB} alt="" sx={thumbImgSx} />
@@ -163,9 +164,9 @@ function TemplateCard({ template, onClick }: { template: TemplateItem; onClick?:
                 <Box sx={menuHeaderSx} onClick={(e) => e.stopPropagation()}>
                     <Typography variant="h5" sx={menuTitleSx}>{template.title}</Typography>
                     <Box sx={menuTagsRowSx}>
-                        <Label label="Purpose" color="info" size="small" />
-                        <Label label="Long purpose label" color="default" size="small" />
-                        <Label label="+2" color="default" size="small" />
+                        {template.purposeLabels.map((label) => (
+                            <Label key={label} label={label} color="info" size="small" />
+                        ))}
                     </Box>
                     <Box sx={menuLocationSx}>
                         <SvgIcon sx={menuFolderIconSx}>
@@ -177,19 +178,15 @@ function TemplateCard({ template, onClick }: { template: TemplateItem; onClick?:
                     </Box>
                 </Box>
                 <Divider sx={menuDividerSx} />
-                <TruffleMenuItem onClick={() => setMenuAnchor(null)}>
+                <TruffleMenuItem onClick={() => {
+                    setMenuAnchor(null); onClick?.(template.title);
+                }}>
                     <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                     Details
                 </TruffleMenuItem>
-                <TruffleMenuItem onClick={() => {
-                    setMenuAnchor(null); onClick?.(); 
-                }}>
-                    <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
-                    Template Page
-                </TruffleMenuItem>
                 <TruffleMenuItem onClick={() => setMenuAnchor(null)}>
-                    <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faCopy} /></SvgIcon>
-                    Duplicate
+                    <SvgIcon sx={menuItemIconSx}><FontAwesomeIcon icon={faPaste} /></SvgIcon>
+                    Duplicate template
                 </TruffleMenuItem>
             </Menu>
         </Box>
@@ -200,10 +197,12 @@ function TemplateCard({ template, onClick }: { template: TemplateItem; onClick?:
 export default function TemplateLibraryPage({
     onNavigateBack,
     onNavigateToTemplate,
+    onCreateTemplateFromScratch,
     notifications
 }: {
     onNavigateBack?: () => void;
-    onNavigateToTemplate?: () => void;
+    onNavigateToTemplate?: (name?: string) => void;
+    onCreateTemplateFromScratch?: (name: string) => void;
     notifications?: NotificationItem[];
 }) {
     const [searchQuery, setSearchQuery] = useState("");
@@ -215,6 +214,7 @@ export default function TemplateLibraryPage({
             <AppSidebar
                 selectedNav="Template Library"
                 onVideoLibraryClick={onNavigateBack}
+                onTemplateCreated={onCreateTemplateFromScratch ?? (onNavigateToTemplate as ((name: string) => void) | undefined)}
             />
 
             <Box sx={mainColumnSx}>
@@ -255,16 +255,25 @@ export default function TemplateLibraryPage({
                                 Amplify Template Library
                             </Typography>
                         </Breadcrumbs>
-                        <TruffleLink
-                            href="#"
-                            startIcon={
-                                <SvgIcon sx={howToIconSx}>
-                                    <FontAwesomeIcon icon={faTriangleExclamation} />
-                                </SvgIcon>
-                            }
-                        >
-                            How to create a template
-                        </TruffleLink>
+                        <Box sx={titleRowRightSx}>
+                            <TruffleLink
+                                href="#"
+                                startIcon={
+                                    <SvgIcon sx={howToIconSx}>
+                                        <FontAwesomeIcon icon={faTriangleExclamation} />
+                                    </SvgIcon>
+                                }
+                            >
+                                How to create a template
+                            </TruffleLink>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => onNavigateToTemplate?.("New template")}
+                            >
+                                Create new template
+                            </Button>
+                        </Box>
                     </Box>
 
                     {/* ── Recent ── */}
@@ -274,7 +283,7 @@ export default function TemplateLibraryPage({
                             <Box sx={recentScrollContainerSx}>
                                 {RECENT_TEMPLATES.map((t, i) => (
                                     <Box key={t.title + i} sx={recentCardSlotSx}>
-                                        <TemplateCard template={t} onClick={onNavigateToTemplate} />
+                                        <TemplateCard template={t} onClick={(name) => onNavigateToTemplate?.(name)} />
                                     </Box>
                                 ))}
                             </Box>
@@ -335,6 +344,7 @@ export default function TemplateLibraryPage({
                     </Box>
                 </Box>
             </Box>
+
         </Box>
     );
 }
@@ -412,6 +422,12 @@ const titleRowSx: SxProps<Theme> = {
     justifyContent: "space-between",
     pt: 4,
     mb: 3
+};
+
+const titleRowRightSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 2
 };
 
 const howToIconSx: SxProps<Theme> = {
