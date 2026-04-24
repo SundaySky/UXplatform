@@ -67,7 +67,7 @@ node capture.mjs \
 
 ```bash
 node capture.mjs \
-  --url "http://localhost:8080/account/$ACCOUNT_ID/videos" \
+  --url "http://localhost:8080/accounts/$ACCOUNT_ID/videos" \
   --name real-app \
   --out-dir .../iteration-1 \
   --click-sequence '[

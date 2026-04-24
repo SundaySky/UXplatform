@@ -11,6 +11,7 @@ import {
     TruffleMenuItem, TypographyWithTooltipOnOverflow
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { faPlay, faPen, faEllipsisVertical, faBars, faFolderPlus, faFolder, faCopy, faShare, faCircleInfo, faLock, faLayerGroup, faBoxArchive, faTrash, faUsers, faComment, faArrowUpRightFromSquare, faFilm, faArrowDown, faPhotoFilm, faLightbulbOn, faAnalytics } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faGrip } from "@fortawesome/pro-solid-svg-icons";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
@@ -519,7 +520,7 @@ function FolderCard({ name, count }: { name: string; count: number }) {
 }
 
 // ─── Left sidebar ─────────────────────────────────────────────────────────────
-type NavIcon = { kind: "fa"; icon: typeof faFilm } | { kind: "img"; src: string };
+type NavIcon = { kind: "fa"; icon: IconDefinition } | { kind: "img"; src: string };
 const NAV_ITEMS: { icon: NavIcon; label: string }[] = [
     { icon: { kind: "img", src: IMG_NAV_VIDEOS }, label: "Video Library" },
     { icon: { kind: "img", src: IMG_NAV_TEMPLATE }, label: "Template Library" },
@@ -632,7 +633,7 @@ export function AppSidebar({
             />
 
             {/* Nav items */}
-            <List sx={sidebarListSx}>
+            <List disablePadding sx={sidebarListSx}>
                 {NAV_ITEMS.map(({ icon, label }) => (
                     <ListItemButton
                         key={label}
@@ -889,7 +890,7 @@ export default function VideoLibraryPage({
                                 sx={userMenuTriggerSx}
                             >
                                 <Typography variant="body2" color="text.secondary" sx={userMenuAccountNameSx}>
-                                    SkyCare Insurance
+                                    Acme Corp
                                 </Typography>
                                 <Badge
                                     variant="dot"

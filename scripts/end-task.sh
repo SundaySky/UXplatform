@@ -39,6 +39,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 fi
 
 # Refuse to push an empty branch (no commits ahead of main).
+git fetch origin main --quiet
 AHEAD=$(git rev-list --count "origin/main..HEAD" 2>/dev/null || echo 0)
 if [ "$AHEAD" = "0" ]; then
   echo "ERROR: Branch '$BRANCH' has no new commits compared to main. Nothing to merge."
