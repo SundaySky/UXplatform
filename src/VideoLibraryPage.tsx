@@ -889,7 +889,7 @@ export default function VideoLibraryPage({
                                 sx={userMenuTriggerSx}
                             >
                                 <Typography variant="body2" color="text.secondary" sx={userMenuAccountNameSx}>
-                                    Trinity Health - Li...
+                                    SkyCare Insurance
                                 </Typography>
                                 <Badge
                                     variant="dot"

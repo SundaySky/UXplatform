@@ -31,6 +31,9 @@ git add -A
 if git diff --cached --quiet; then
   echo "==> No pending changes to commit."
 else
+  echo "==> Staged changes:"
+  git status --short
+  echo ""
   git commit -m "WIP: abandoned task ($REASON)
 
 Co-Authored-By: Claude <noreply@anthropic.com>"

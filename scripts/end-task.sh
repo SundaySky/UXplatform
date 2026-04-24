@@ -30,6 +30,9 @@ git add -A
 if git diff --cached --quiet; then
   echo "==> Nothing new to commit (working tree is clean)."
 else
+  echo "==> Staged changes:"
+  git status --short
+  echo ""
   git commit -m "$TITLE
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
