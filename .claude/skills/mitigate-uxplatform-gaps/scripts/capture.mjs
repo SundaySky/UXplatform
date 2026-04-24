@@ -121,8 +121,9 @@ try {
   if (selector) {
     html = await page.$eval(selector, (el) => el.outerHTML).catch(() => null);
     if (html === null) {
-      // Selector did not match — fall back to full document and record warning.
-      meta.error = `selector did not match: ${selector}; falling back to full document`;
+      // Selector did not match — fall back to full document and record as a warning, not a fatal error.
+      if (!Array.isArray(meta.warnings)) meta.warnings = [];
+      meta.warnings.push(`selector did not match: ${selector}; falling back to full document`);
       html = await page.content();
     }
   } else {

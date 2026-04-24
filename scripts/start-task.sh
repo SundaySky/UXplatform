@@ -43,9 +43,11 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
-# Untracked files would also be lost on checkout — warn but don't block.
+# Untracked files usually remain in your working tree across checkouts, but they can
+# block checkout if they would conflict with tracked files in the target branch.
 if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-  echo "WARNING: You have untracked files. They will follow you to the new branch."
+  echo "WARNING: You have untracked files. They will usually follow you to the new branch,"
+  echo "but checkout can fail if any would conflict with tracked files in the branch being checked out."
   git ls-files --others --exclude-standard
   echo ""
 fi
