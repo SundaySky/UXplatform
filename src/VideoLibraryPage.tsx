@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import type { SxProps, Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import {
-    AppBar, Badge, Box, Breadcrumbs, Button, Card, CardContent, CardMedia, Divider, IconButton, List, ListItemButton,
+    AppBar, Badge, Box, Button, Card, CardContent, CardMedia, Divider, IconButton, List, ListItemButton,
     ListItemIcon, ListItemText, Menu, Skeleton, SvgIcon, Table, TableBody, TableCell, TableContainer,
     TableHead, TableRow, Toolbar, ToggleButton, ToggleButtonGroup, Tooltip, Typography
 } from "@mui/material";
@@ -11,7 +11,7 @@ import {
     TruffleMenuItem, TypographyWithTooltipOnOverflow
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlay, faPen, faEllipsisVertical, faBars, faFolderPlus, faFolder, faImages, faLightbulb, faChartBar, faCopy, faShare, faCircleInfo, faLock, faLayerGroup, faBoxArchive, faTrash, faUsers, faComment, faArrowUpRightFromSquare, faFilm, faArrowDown } from "@fortawesome/pro-regular-svg-icons";
+import { faPlay, faPen, faEllipsisVertical, faBars, faFolderPlus, faFolder, faCopy, faShare, faCircleInfo, faLock, faLayerGroup, faBoxArchive, faTrash, faUsers, faComment, faArrowUpRightFromSquare, faFilm, faArrowDown, faPhotoFilm, faLightbulbOn, faAnalytics } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faGrip } from "@fortawesome/pro-solid-svg-icons";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./VideoPermissionDialog";
 import AccountSettingsDialog from "./AccountSettingsDialog";
@@ -23,7 +23,9 @@ import { OWNER_USER } from "./ManageAccessDialog";
 
 // ─── Figma asset image — split template (HEADING PLACEHOLDER left + media right)
 const IMG_THUMB = "/thumb.svg";
-const IMG_LOGO = "/sundaysky-logo.svg";
+const IMG_LOGO = "/newNavLogo.svg";
+const IMG_NAV_VIDEOS = "/videos-nav.svg";
+const IMG_NAV_TEMPLATE = "/left-panel-template.svg";
 
 // ─── Per-video live state (mirrored from App) ─────────────────────────────────
 export interface LiveVideoState {
@@ -516,12 +518,13 @@ function FolderCard({ name, count }: { name: string; count: number }) {
 }
 
 // ─── Left sidebar ─────────────────────────────────────────────────────────────
-const NAV_ITEMS = [
-    { icon: faFilm, label: "Video Library" },
-    { icon: faLayerGroup, label: "Template Library" },
-    { icon: faImages, label: "Media" },
-    { icon: faLightbulb, label: "Inspiration Gallery" },
-    { icon: faChartBar, label: "Analytics" }
+type NavIcon = { kind: "fa"; icon: typeof faFilm } | { kind: "img"; src: string };
+const NAV_ITEMS: { icon: NavIcon; label: string }[] = [
+    { icon: { kind: "img", src: IMG_NAV_VIDEOS }, label: "Video Library" },
+    { icon: { kind: "img", src: IMG_NAV_TEMPLATE }, label: "Template Library" },
+    { icon: { kind: "fa", icon: faPhotoFilm }, label: "Media" },
+    { icon: { kind: "fa", icon: faLightbulbOn }, label: "Inspiration Gallery" },
+    { icon: { kind: "fa", icon: faAnalytics }, label: "Analytics" }
 ];
 
 export function AppSidebar({
@@ -613,7 +616,7 @@ export function AppSidebar({
             </Menu>
 
             {/* Nav items */}
-            <List disablePadding sx={sidebarListSx}>
+            <List sx={sidebarListSx}>
                 {NAV_ITEMS.map(({ icon, label }) => (
                     <ListItemButton
                         key={label}
@@ -627,9 +630,12 @@ export function AppSidebar({
                     >
                         <Box sx={navItemContentSx}>
                             <ListItemIcon sx={navItemIconSx}>
-                                <SvgIcon sx={navItemIconSvgSx}>
-                                    <FontAwesomeIcon icon={icon} />
-                                </SvgIcon>
+                                {icon.kind === "img"
+                                    ? <Box component="img" src={icon.src} alt="" sx={navItemImgSx} />
+                                    : <SvgIcon sx={navItemIconSvgSx}>
+                                        <FontAwesomeIcon icon={icon.icon} />
+                                    </SvgIcon>
+                                }
                             </ListItemIcon>
                             <ListItemText
                                 primary={label}
@@ -864,13 +870,16 @@ export default function VideoLibraryPage({
                                 }}
                                 sx={userMenuTriggerSx}
                             >
+                                <Typography variant="body2" color="text.secondary" sx={userMenuAccountNameSx}>
+                                    Trinity Health - Li...
+                                </Typography>
                                 <Badge
                                     variant="dot"
                                     color="error"
                                     overlap="circular"
                                     anchorOrigin={{ vertical: "top", horizontal: "right" }}
                                 >
-                                    <TruffleAvatar text="MC" size="medium" />
+                                    <TruffleAvatar text="MC" size="medium" sx={userAvatarSx} />
                                 </Badge>
                             </Box>
                         </Box>
@@ -879,13 +888,11 @@ export default function VideoLibraryPage({
 
                 {/* Page content */}
                 <Box sx={pageContentSx}>
-                    {/* Breadcrumb bar with page title */}
+                    {/* Page title */}
                     <Box sx={breadcrumbBarSx}>
-                        <Breadcrumbs maxItems={4} itemsBeforeCollapse={1} itemsAfterCollapse={2}>
-                            <Typography variant="h1" sx={breadcrumbTitleSx}>
-                                Your Videos
-                            </Typography>
-                        </Breadcrumbs>
+                        <Typography variant="h1" sx={breadcrumbTitleSx}>
+                            Video Library
+                        </Typography>
                     </Box>
                     {/* View toggle row */}
                     <Box sx={pageTitleRowSx}>
@@ -1030,7 +1037,7 @@ const sidebarLogoBoxSx: SxProps<Theme> = {
 };
 
 const sidebarLogoImgSx: SxProps<Theme> = {
-    width: 62,
+    width: "auto",
     height: 62,
     display: "block"
 };
@@ -1129,11 +1136,24 @@ const userMenuTriggerSx: SxProps<Theme> = {
     "&:hover": { bgcolor: "action.hover" }
 };
 
+const userMenuAccountNameSx: SxProps<Theme> = {
+    flex: 1,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    mx: "4px",
+    whiteSpace: "nowrap"
+};
+
+const userAvatarSx: SxProps<Theme> = {
+    bgcolor: "secondary.main",
+    color: "common.white"
+};
+
 const pageContentSx: SxProps<Theme> = {
     flex: 1,
     overflow: "auto",
     px: 4,
-    py: 3
+    pb: 3
 };
 
 const breadcrumbBarSx: SxProps<Theme> = {
@@ -1141,9 +1161,9 @@ const breadcrumbBarSx: SxProps<Theme> = {
     flexDirection: "column",
     gap: 2,
     pt: 4,
-    pl: 0,
-    mb: 2
+    pl: 0
 };
+
 
 const breadcrumbTitleSx: SxProps<Theme> = {
     color: "secondary.main"
@@ -1153,7 +1173,7 @@ const pageTitleRowSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end",
-    mb: 3
+    mb: 0
 };
 
 const viewToggleBoxSx: SxProps<Theme> = {
@@ -1167,7 +1187,6 @@ const sectionBoxSx: SxProps<Theme> = {
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    pl: 1,
     mb: 4
 };
 
@@ -1523,6 +1542,12 @@ const folderCardNameSx: SxProps<Theme> = {
 const navItemIconSvgSx: SxProps<Theme> = {
     fontSize: 24,
     color: "inherit"
+};
+
+const navItemImgSx: SxProps<Theme> = {
+    width: 24,
+    height: 24,
+    display: "block"
 };
 
 

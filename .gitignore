@@ -30,6 +30,11 @@ npm-debug.log*
 .claude/preview/
 /.claude/worktrees/
 
+# Generated artifacts and deps for the mitigate-uxplatform-gaps skill
+.claude/uxplatform-gaps/
+.claude/skills/mitigate-uxplatform-gaps/scripts/node_modules/
+.claude/skills/mitigate-uxplatform-gaps/scripts/package-lock.json
+
 # Local-only reference material (not shared with the UX team)
 real_app/
 REAL-APP-REFERENCE.md
