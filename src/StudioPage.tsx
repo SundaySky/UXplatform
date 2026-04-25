@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import type { SxProps, Theme } from "@mui/material";
 import {
@@ -13,7 +13,7 @@ import { alpha } from "@mui/material/styles";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowTurnLeft, faArrowTurnRight, faLock, faPalette, faMicrophone, faDatabase, faLanguage, faComment, faPen, faEye, faAlignLeft, faCopy, faPaintbrush, faAlarmClock, faTrash, faEllipsisH, faCircleInfo, faTableLayout, faEllipsisVertical, faPlus, faT, faEraser, faCircleQuestion, faListUl, faTableColumns, faXmark, faImage, faChevronDown, faCheck, faArrowsRotate } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faCloudCheck } from "@fortawesome/pro-solid-svg-icons";
-import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleMenuPanel } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { TruffleAvatar, TruffleDialogTitle, TruffleDialogActions, ThumbnailActions, ThumbnailActionsIconButton, TruffleMenuPanel, combineSxProps } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell, type NotificationItem } from "./NotificationsPanel";
 import MediaLibraryPanel from "./MediaLibraryPanel";
 import AvatarLibraryPanel from "./AvatarLibraryPanel";
@@ -1232,6 +1232,47 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const sceneBoxRef = useRef<HTMLDivElement | null>(null);
   const selectedElRef = useRef<HTMLDivElement | null>(null);
+
+  // Live preview grid responsive sizing — mirrors real app's MainWorkSpaceContainer logic
+  const livePreviewGridRef = useRef<HTMLDivElement | null>(null);
+  const [isContainerArLarger, setIsContainerArLarger] = useState(true);
+  const [livePreviewWidth, setLivePreviewWidth] = useState(0);
+
+  useLayoutEffect(() => {
+      const el = livePreviewGridRef.current;
+      if (!el) {
+          return;
+      }
+      const rect = el.getBoundingClientRect();
+      if (rect.height > 0) {
+          setIsContainerArLarger(rect.width / rect.height > 16 / 9);
+      }
+      const observer = new ResizeObserver((entries) => {
+          const entry = entries[0];
+          if (!entry) {
+              return;
+          }
+          const { width, height } = entry.contentRect;
+          setIsContainerArLarger(height > 0 && width / height > 16 / 9);
+      });
+      observer.observe(el);
+      return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+      const el = canvasRef.current;
+      if (!el) {
+          return;
+      }
+      const observer = new ResizeObserver((entries) => {
+          const entry = entries[0];
+          if (entry) {
+              setLivePreviewWidth(entry.contentRect.width);
+          }
+      });
+      observer.observe(el);
+      return () => observer.disconnect();
+  }, []);
   const dragInfo = useRef<{
     startMX: number; startMY: number; startX: number; startY: number
     moved: boolean; updatePos: (x: number, y: number) => void
@@ -1406,11 +1447,11 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                   <Box sx={studioAppBarLeftSx}>
                       {/* Logo — click to go to library */}
                       <Box onClick={onNavigateToLibrary} sx={studioLogoSx}>
-                          <Box component="img" src="" alt="sundaysky-logo" sx={studioLogoImgSx} />
+                          <Box component="img" src="/newNavLogo.svg" alt="sundaysky-logo" sx={studioLogoImgSx} />
                       </Box>
                       {/* Save indicator */}
-                      <SvgIcon sx={(theme) => ({ fontSize: "14px !important", width: "14px !important", height: "14px !important", color: alpha(theme.palette.common.white, 0.4) })}>
-                          <FontAwesomeIcon icon={faCloudCheck} />
+                      <SvgIcon sx={{ color: "primary.light" }}>
+                          <FontAwesomeIcon icon={faCloudCheck} fontSize="16px" />
                       </SvgIcon>
                       {/* Video name */}
                       <Typography variant="h4" noWrap sx={{ color: "inherit" }}>
@@ -1517,7 +1558,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                       <Divider orientation="vertical" flexItem sx={studioDividerSx} />
                       {/* Manage permissions button */}
                       <Tooltip title="Manage permission" placement="bottom" arrow slotProps={{ tooltip: { sx: studioTooltipSx } }}>
-                          <IconButton size="medium" onClick={() => setVideoPermOpen(true)} sx={studioPermBtnSx}>
+                          <IconButton size="medium" color="inherit" onClick={() => setVideoPermOpen(true)} sx={studioPermBtnSx}>
                               <SvgIcon fontSize="small"><FontAwesomeIcon icon={faLock} /></SvgIcon>
                           </IconButton>
                       </Tooltip>
@@ -1641,9 +1682,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               {/* Stage */}
               <Box sx={stageContainerSx}>
 
-                  {/* Live preview area */}
-                  <Box sx={livePreviewAreaSx}>
-
+                  {/* Live preview area — CSS grid mirroring real app's MainWorkSpaceContainer */}
+                  <Box ref={livePreviewGridRef} sx={combineSxProps(livePreviewAreaSx, isContainerArLarger ? containerLargerSx : containerSmallerSx)}>
 
                       {/* Prev arrow */}
                       <IconButton
@@ -1651,7 +1691,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           onClick={() => goToScene(selectedScene - 1)}
                           size="medium"
                           color="primary"
-                          sx={{ flexShrink: 0, mx: "4px" }}
+                          sx={prevArrowSx}
                       >
                           <SvgIcon><FontAwesomeIcon icon={faChevronLeft} /></SvgIcon>
                       </IconButton>
@@ -1761,13 +1801,14 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           <Box
                               ref={canvasRef}
                               onClick={() => {
-                                  setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setSelectedElId(null); setEditingElId(null); 
+                                  setHeadingSelected(false); setSubheadingSelected(false); setFootnoteSelected(false); setPlaceholderMenuOpen(false); setSelectedElId(null); setEditingElId(null);
                               }}
                               onMouseMove={onCanvasMouseMove}
                               onMouseUp={onCanvasMouseUp}
                               onMouseLeave={onCanvasMouseUp}
                               sx={(theme) => ({
-                                  flex: 1, position: "relative",
+                                  width: "100%", height: "100%",
+                                  position: "relative",
                                   borderRadius: "8px", overflow: "visible",
                                   border: `1px solid ${headingSelected || subheadingSelected || footnoteSelected ? theme.palette.primary.main : theme.palette.divider}`,
                                   boxShadow: headingSelected || subheadingSelected || footnoteSelected
@@ -2165,91 +2206,88 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                               )}
                           </Box>
 
-                          {/* Right column: scene action toolbar + next arrow — sibling of canvas in stretch group */}
-                          <Box sx={rightColumnSx}>
+                      </Box>{/* end canvas group */}
 
-                              {/* Scene action toolbar — white pill card, top-aligned */}
-                              <Box sx={sceneActionToolbarPillSx}>
-                                  {/* 1. Layout / grid */}
-                                  <Tooltip title="Layout" placement="left" arrow>
-                                      <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faTableLayout} /></SvgIcon>
-                                      </IconButton>
-                                  </Tooltip>
-
-                                  {/* 2. Theme / palette */}
-                                  <Tooltip title="Theme" placement="left" arrow>
-                                      <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faPalette} /></SvgIcon>
-                                      </IconButton>
-                                  </Tooltip>
-
-                                  {/* 3. Add placeholder — active only on custom scenes */}
-                                  <Tooltip title={sceneTypes[selectedScene] === "custom" ? "Add placeholder" : ""} placement="left" arrow>
-                                      <Box component="span">
-                                          <IconButton
-                                              size="small"
-                                              disabled={sceneTypes[selectedScene] !== "custom"}
-                                              onClick={e => {
-                                                  e.stopPropagation(); setPlaceholderMenuOpen(p => !p); 
-                                              }}
-                                              sx={{
-                                                  p: "3px", borderRadius: "6px",
-                                                  bgcolor: placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "primary.main" : "transparent",
-                                                  color:   placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "common.white" : undefined,
-                                                  "&:hover": { bgcolor: "action.hover" },
-                                                  "&.Mui-disabled": { opacity: 0.3 }
-                                              }}
-                                          >
-                                              <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? theme.palette.common.white : undefined} />
-                                          </IconButton>
-                                      </Box>
-                                  </Tooltip>
-
-                                  {/* 4. Info */}
-                                  <Tooltip title="Info" placement="left" arrow>
-                                      <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
-                                      </IconButton>
-                                  </Tooltip>
-
-                                  {/* 5. More */}
-                                  <Tooltip title="More" placement="left" arrow>
-                                      <IconButton size="small" onClick={e => e.stopPropagation()}
-                                          sx={sceneActionIconBtnSx}>
-                                          <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
-                                      </IconButton>
-                                  </Tooltip>
-                              </Box>
-
-                              {/* Next arrow — pushed to bottom by justify-content: space-between */}
-                              <IconButton
-                                  disabled={selectedScene === SCENE_COUNT - 1 || isToolbarActive}
-                                  onClick={() => goToScene(selectedScene + 1)}
-                                  size="medium"
-                                  color="primary"
-                              >
-                                  <SvgIcon><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
+                      {/* Scene action toolbar — direct grid child in col 3 row 2, top-aligned */}
+                      <Box sx={combineSxProps(sceneActionToolbarPillSx, sceneActionToolbarGridSx)}>
+                          {/* 1. Layout / grid */}
+                          <Tooltip title="Layout" placement="left" arrow>
+                              <IconButton size="small" onClick={e => e.stopPropagation()}
+                                  sx={sceneActionIconBtnSx}>
+                                  <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faTableLayout} /></SvgIcon>
                               </IconButton>
-                          </Box>
+                          </Tooltip>
 
-                      </Box>{/* end canvas + toolbar group */}
-                  </Box>
+                          {/* 2. Theme / palette */}
+                          <Tooltip title="Theme" placement="left" arrow>
+                              <IconButton size="small" onClick={e => e.stopPropagation()}
+                                  sx={sceneActionIconBtnSx}>
+                                  <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faPalette} /></SvgIcon>
+                              </IconButton>
+                          </Tooltip>
 
-                  {/* Narration bar */}
-                  <Box sx={narrationBarSx}>
-                      <Box sx={narrationAvatarSx}>
-                          <SvgIcon sx={{ fontSize: "15px !important", color: "text.secondary" }}><FontAwesomeIcon icon={faMicrophone} /></SvgIcon>
+                          {/* 3. Add placeholder — active only on custom scenes */}
+                          <Tooltip title={sceneTypes[selectedScene] === "custom" ? "Add placeholder" : ""} placement="left" arrow>
+                              <Box component="span">
+                                  <IconButton
+                                      size="small"
+                                      disabled={sceneTypes[selectedScene] !== "custom"}
+                                      onClick={e => {
+                                          e.stopPropagation(); setPlaceholderMenuOpen(p => !p);
+                                      }}
+                                      sx={{
+                                          p: "3px", borderRadius: "6px",
+                                          bgcolor: placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "primary.main" : "transparent",
+                                          color:   placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? "common.white" : undefined,
+                                          "&:hover": { bgcolor: "action.hover" },
+                                          "&.Mui-disabled": { opacity: 0.3 }
+                                      }}
+                                  >
+                                      <PlaceholderIcon size={18} color={placeholderMenuOpen && sceneTypes[selectedScene] === "custom" ? theme.palette.common.white : undefined} />
+                                  </IconButton>
+                              </Box>
+                          </Tooltip>
+
+                          {/* 4. Info */}
+                          <Tooltip title="Info" placement="left" arrow>
+                              <IconButton size="small" onClick={e => e.stopPropagation()}
+                                  sx={sceneActionIconBtnSx}>
+                                  <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                              </IconButton>
+                          </Tooltip>
+
+                          {/* 5. More */}
+                          <Tooltip title="More" placement="left" arrow>
+                              <IconButton size="small" onClick={e => e.stopPropagation()}
+                                  sx={sceneActionIconBtnSx}>
+                                  <SvgIcon sx={{ fontSize: "18px !important", width: "18px !important", height: "18px !important" }}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                              </IconButton>
+                          </Tooltip>
                       </Box>
-                      <Typography variant="body1" sx={{ color: "text.secondary", flex: 1 }}>
-                          Add narration…
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: "text.secondary", letterSpacing: "0.4px" }}>
-                          ~0:12
-                      </Typography>
+
+                      {/* Next arrow — vertical center of canvas row */}
+                      <IconButton
+                          disabled={selectedScene === SCENE_COUNT - 1 || isToolbarActive}
+                          onClick={() => goToScene(selectedScene + 1)}
+                          size="medium"
+                          color="primary"
+                          sx={nextArrowSx}
+                      >
+                          <SvgIcon><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
+                      </IconButton>
+
+                      {/* Narration bar — spans all 3 cols, justifySelf: center, width tracks canvas */}
+                      <Box sx={combineSxProps(narrationBarSx, narrationGridSx, { width: livePreviewWidth ? `min(${livePreviewWidth + 80}px, 100%)` : "100%" })}>
+                          <Box sx={narrationAvatarSx}>
+                              <SvgIcon sx={{ fontSize: "16px !important", color: "text.secondary" }}><FontAwesomeIcon icon={faMicrophone} /></SvgIcon>
+                          </Box>
+                          <Typography variant="body1" sx={{ color: "text.primary", flex: 1, textAlign: "start" }} noWrap>
+                              Add narration…
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: "text.secondary", whiteSpace: "nowrap" }}>
+                              ~0:12
+                          </Typography>
+                      </Box>
                   </Box>
 
                   {/* Scene lineup — dims when toolbar is active */}
@@ -2430,7 +2468,8 @@ const studioAppBarSx: SxProps<Theme> = {
 
 const studioToolbarSx: SxProps<Theme> = {
     height: 56,
-    px: 0,
+    pl: "24px",
+    pr: "32px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between"
@@ -2439,22 +2478,19 @@ const studioToolbarSx: SxProps<Theme> = {
 const studioAppBarLeftSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    gap: 2
+    gap: "16px",
+    minWidth: 0
 };
 
 const studioLogoSx: SxProps<Theme> = {
-    width: 56,
-    height: 56,
     flexShrink: 0,
     display: "flex",
-    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
     cursor: "pointer",
     "&:hover": { opacity: 0.75 }
 };
 
-const studioLogoImgSx: SxProps<Theme> = { width: 40, height: 40, objectFit: "contain" };
+const studioLogoImgSx: SxProps<Theme> = { width: 32, height: 32, objectFit: "contain" };
 const menuIconImgSx: SxProps<Theme> = { width: 22, height: 22, objectFit: "contain" };
 const canvasElIconImgSx: SxProps<Theme> = { width: 18, height: 18, objectFit: "contain" };
 
@@ -2532,6 +2568,7 @@ const studioTooltipSx: SxProps<Theme> = {
 };
 
 const studioPermBtnSx: SxProps<Theme> = {
+    color: "common.white",
     bgcolor: (theme) => alpha(theme.palette.common.white, 0.1),
     borderRadius: 1,
     p: "5px",
@@ -2566,25 +2603,25 @@ const studioNavItemTextSx: SxProps<Theme> = {
 };
 
 const narrationBarSx: SxProps<Theme> = {
-    mx: 3,
-    mb: 1.5,
-    height: 40,
+    minHeight: 40,
     bgcolor: "background.paper",
     border: "1px solid",
     borderColor: "divider",
     borderRadius: "20px",
     display: "flex",
     alignItems: "center",
-    px: 2,
-    gap: 1.5,
+    pl: "4px",
+    pr: "16px",
+    gap: "4px",
     flexShrink: 0
 };
 
 const narrationAvatarSx: SxProps<Theme> = {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: "50%",
-    bgcolor: "other.editorBackground",
+    bgcolor: "primary.light",
+    color: "text.secondary",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -2950,23 +2987,67 @@ const stageContainerSx: SxProps<Theme> = {
 
 const livePreviewAreaSx: SxProps<Theme> = {
     flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    px: 2,
-    py: 3,
-    overflow: "visible",
-    position: "relative"
+    minHeight: 0,
+    display: "grid",
+    columnGap: "8px",
+    rowGap: "16px",
+    px: "32px",
+    py: "8px",
+    overflow: "auto",
+    position: "relative",
+    isolation: "isolate"
+};
+
+// Container is wider than 16:9 — canvas takes max-content (sized by aspect-ratio + row 1fr height),
+// rows 1 & 4 collapse to 0
+const containerLargerSx: SxProps<Theme> = {
+    gridTemplateColumns: "1fr max-content 1fr",
+    gridTemplateRows: "0 minmax(250px, 1fr) max-content 0"
+};
+
+// Container is taller relative to 16:9 — canvas takes 1fr (full width), height auto from aspect-ratio,
+// rows 1 & 4 are 1fr spacers that center canvas vertically
+const containerSmallerSx: SxProps<Theme> = {
+    gridTemplateColumns: "max-content 1fr max-content",
+    gridTemplateRows: "1fr minmax(250px, max-content) max-content 1fr"
 };
 
 const canvasAndToolbarGroupSx: SxProps<Theme> = {
-    flex: 1,
-    maxWidth: 720,
-    display: "flex",
-    alignItems: "stretch",
-    gap: "8px",
+    gridColumn: "2",
+    gridRow: "2",
+    aspectRatio: "16/9",
     position: "relative",
     overflow: "visible"
+};
+
+const prevArrowSx: SxProps<Theme> = {
+    gridColumn: "1",
+    gridRow: "2",
+    alignSelf: "center",
+    justifySelf: "end",
+    flexShrink: 0
+};
+
+const nextArrowSx: SxProps<Theme> = {
+    gridColumn: "3",
+    gridRow: "2",
+    alignSelf: "center",
+    justifySelf: "start",
+    flexShrink: 0
+};
+
+const sceneActionToolbarGridSx: SxProps<Theme> = {
+    gridColumn: "3",
+    gridRow: "2",
+    alignSelf: "flex-start",
+    justifySelf: "start",
+    height: "fit-content"
+};
+
+const narrationGridSx: SxProps<Theme> = {
+    gridColumn: "1 / 4",
+    gridRow: "3",
+    justifySelf: "center"
 };
 
 // ─── Placeholder picker panel ─────────────────────────────────────────────────
@@ -3030,7 +3111,8 @@ const customSceneBackgroundSx: SxProps<Theme> = {
     overflow: "hidden",
     borderRadius: "8px",
     position: "relative",
-    aspectRatio: "16/9",
+    width: "100%",
+    height: "100%",
     bgcolor: "background.paper"
 };
 
@@ -3091,15 +3173,6 @@ const regularSceneHeadingColumnSx: SxProps<Theme> = {
 };
 
 // ─── Scene action toolbar + lineup ────────────────────────────────────────────
-
-const rightColumnSx: SxProps<Theme> = {
-    width: 32,
-    flexShrink: 0,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "space-between"
-};
 
 const sceneActionToolbarPillSx: SxProps<Theme> = {
     width: 32,
