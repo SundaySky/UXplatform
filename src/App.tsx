@@ -22,7 +22,8 @@ import {
     AppBar,
     Toolbar,
     Link,
-    useTheme
+    useTheme,
+    alpha
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import ApprovalDialog from "./ApprovalDialog";
@@ -88,16 +89,6 @@ function CircularIconAvatar({ icon }: { icon: React.ReactNode }) {
     );
 }
 
-// ─── Wordmark ─────────────────────────────────────────────────────────────────
-function SundaySkyLogo() {
-    return (
-        <Box sx={logoBoxSx}>
-            <Typography variant="caption" sx={logoTypographySx}>
-        SUNDAY<Box component="span" sx={logoSkySx}>SKY</Box>
-            </Typography>
-        </Box>
-    );
-}
 
 // ─── Left Sidebar (video page) ────────────────────────────────────────────────
 function Sidebar({
@@ -124,7 +115,7 @@ function Sidebar({
                 onClick={onNavigateToLibrary}
                 sx={sidebarLogoClickSx}
             >
-                <SundaySkyLogo />
+                <Box component="img" src="/sundaysky.svg" alt="sundaysky-logo" sx={sidebarLogoImgSx} />
             </Box>
 
             {/* Back to Video Library */}
@@ -142,7 +133,7 @@ function Sidebar({
 
             {/* Video name + options */}
             <Box sx={sidebarTitleRowSx}>
-                <TypographyWithTooltipOnOverflow variant="h3" sx={{ color: "text.primary", flex: 1 }}>
+                <TypographyWithTooltipOnOverflow variant="h3" multiline={true} sx={sidebarTitleTextSx}>
                     {videoTitle}
                 </TypographyWithTooltipOnOverflow>
                 <IconButton size="medium" onClick={e => setMenuAnchor(e.currentTarget)} sx={sidebarMenuIconButtonSx}>
@@ -230,23 +221,16 @@ function Sidebar({
                 />
             </Box>
 
-            <Divider sx={sidebarDividerSx} />
-
             {/* Nav items */}
             <Box sx={sidebarNavBoxSx}>
                 <List disablePadding sx={sidebarNavListSx}>
-                    <ListItemButton selected={selectedNav === "edit"} onClick={() => onNavChange?.("edit")} sx={{ justifyContent: "space-between" }}>
-                        <Box sx={navItemRowSx}>
-                            <ListItemIcon sx={navItemIconContainerSx}>
-                                <SvgIcon sx={navItemIconSx}>
-                                    <FontAwesomeIcon icon={faPen} />
-                                </SvgIcon>
-                            </ListItemIcon>
-                            <ListItemText primary="Edit" primaryTypographyProps={{ variant: "body2", sx: textPrimaryColorSx }} />
-                        </Box>
-                        <SvgIcon sx={navItemUpdatedIconSx}>
-                            <FontAwesomeIcon icon={faArrowsRotate} />
-                        </SvgIcon>
+                    <ListItemButton selected={selectedNav === "edit"} onClick={() => onNavChange?.("edit")}>
+                        <ListItemIcon sx={navItemIconContainerSx}>
+                            <SvgIcon sx={navItemIconSx}>
+                                <FontAwesomeIcon icon={faPen} />
+                            </SvgIcon>
+                        </ListItemIcon>
+                        <ListItemText primary="Edit" primaryTypographyProps={{ variant: "body2", sx: textPrimaryColorSx }} />
                     </ListItemButton>
 
                     <ListItemButton selected={selectedNav === "share"} onClick={() => onNavChange?.("share")}>
@@ -1263,16 +1247,18 @@ export default function App() {
 
                         <Box sx={videoPageContentColumnSx}>
                             {/* AppBar */}
-                            <AppBar position="sticky" color="primary" elevation={4}>
-                                <Toolbar variant="dense">
+                            <AppBar position="static" color="transparent" elevation={0} sx={videoPageAppBarSx}>
+                                <Toolbar sx={videoPageToolbarSx}>
+                                    <Typography variant="h2" color="text.primary">Video Page</Typography>
                                     <Box sx={flexOneSx} />
                                     <Search
+                                        size="small"
                                         value=""
                                         onChange={() => {}}
                                         onClear={() => {}}
                                         numberOfResults={0}
-                                        placeholder="Search Video Library"
-                                        sx={{ width: 240 }}
+                                        placeholder="Search libraries"
+                                        sx={videoPageSearchSx}
                                     />
                                 </Toolbar>
                             </AppBar>
@@ -1456,20 +1442,18 @@ const circularIconAvatarSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
 };
 
-// ── SundaySkyLogo ─────────────────────────────────────────────────────────────
-const logoBoxSx: SxProps<Theme> = { px: 1, pb: 0.5 };
-const logoTypographySx: SxProps<Theme> = {
-    letterSpacing: "0.25em", color: "text.primary", textTransform: "uppercase", lineHeight: 1
-};
-const logoSkySx: SxProps<Theme> = { color: "primary.main" };
-
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 const sidebarContainerSx: SxProps<Theme> = {
     width: 270, flexShrink: 0, display: "flex", flexDirection: "column",
-    height: "100%", bgcolor: "background.paper", borderRight: 1, borderColor: "divider"
+    height: "100%", bgcolor: "background.paper", borderRight: 1, borderColor: "divider",
+    pt: 3
 };
 const sidebarLogoClickSx: SxProps<Theme> = {
-    px: 2.5, pt: 2, pb: 0, cursor: "pointer", "&:hover": { opacity: 0.75 }
+    display: "flex", justifyContent: "center", alignItems: "center",
+    pt: 0, pb: 1, cursor: "pointer", "&:hover": { opacity: 0.75 }
+};
+const sidebarLogoImgSx: SxProps<Theme> = {
+    width: 130, height: "auto", display: "block"
 };
 const sidebarBackNavSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", gap: 0.5,
@@ -1491,13 +1475,11 @@ const menuDividerSx: SxProps<Theme> = { my: "4px" };
 const menuItemIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "action.active", mr: 1 };
 const menuItemDeleteIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", mr: 1 };
 const sidebarStatusChipBoxSx: SxProps<Theme> = { pl: "20px", py: "1px" };
-const sidebarDividerSx: SxProps<Theme> = { borderColor: "divider", mx: 2.5, my: 1 };
 const sidebarNavBoxSx: SxProps<Theme> = { px: 2, py: 1 };
 const sidebarNavListSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px" };
-const navItemRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "6px", flex: 1 };
 const navItemIconContainerSx: SxProps<Theme> = { minWidth: 24 };
 const navItemIconSx: SxProps<Theme> = { fontSize: "18px !important", width: "18px !important", height: "18px !important", color: "action.active" };
-const navItemUpdatedIconSx: SxProps<Theme> = { fontSize: "14px !important", width: "14px !important", height: "14px !important", color: "info.main" };
+const sidebarTitleTextSx: SxProps<Theme> = { color: "text.primary", flex: 1, wordBreak: "break-word" };
 const sidebarFooterRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, py: 1.5
 };
@@ -1635,9 +1617,26 @@ const tasksDotsSx: SxProps<Theme> = { display: "flex", gap: "5px" };
 const appRootSx: SxProps<Theme> = { display: "flex", height: "100vh", overflow: "hidden" };
 const appMainAreaSx: SxProps<Theme> = { flex: 1, display: "flex", overflow: "hidden" };
 const videoPageLayoutSx: SxProps<Theme> = {
-    display: "flex", width: "100%", height: "100%", bgcolor: "background.default", overflow: "hidden"
+    display: "flex", width: "100%", height: "100%", bgcolor: "primary.light", overflow: "hidden"
 };
 const videoPageContentColumnSx: SxProps<Theme> = { display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" };
+const videoPageAppBarSx: SxProps<Theme> = {
+    bgcolor: "primary.light",
+    height: "56px",
+    borderBottom: 1,
+    borderBottomColor: "transparent"
+};
+const videoPageToolbarSx: SxProps<Theme> = {
+    minHeight: "56px !important",
+    height: "56px",
+    px: 3,
+    gap: 1
+};
+const videoPageSearchSx: SxProps<Theme> = {
+    width: 268,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    backgroundColor: (theme: any) => alpha(theme.palette.white.main, 0.75)
+};
 const videoPageScrollSx: SxProps<Theme> = { flex: 1, overflow: "auto" };
 const videoPageInnerSx: SxProps<Theme> = {
     maxWidth: 900, mx: "auto",
