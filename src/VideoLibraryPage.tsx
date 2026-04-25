@@ -259,11 +259,12 @@ export function PermAvatarGroup({ settings, coloredAvatars = true, size = "defau
 
 // ─── Video card ───────────────────────────────────────────────────────────────
 function VideoCard({
-    video, onClick, liveState, onPermChange, onSubmitForApproval,
+    video, onClick, onEdit, liveState, onPermChange, onSubmitForApproval,
     approversList, approvalsEnabled = false
 }: {
   video: VideoItem
   onClick?: () => void
+  onEdit?: () => void
   liveState?: LiveVideoState
   onPermChange?: (key: string, s: VideoPermissionSettings) => void
   onSubmitForApproval?: (videoKey: string, approvers: string[]) => void
@@ -320,6 +321,10 @@ function VideoCard({
                         color="white"
                         size="small"
                         startIcon={<FontAwesomeIcon icon={faPen} />}
+                        onClick={e => {
+                            e.stopPropagation();
+                            (onEdit ?? onClick)?.();
+                        }}
                     >
                         Edit
                     </Button>
@@ -702,10 +707,11 @@ const FOLDERS = [
 // ─── Video table view ─────────────────────────────────────────────────────────
 const TABLE_COLUMNS = ["Name", "Last Approved", "Last Edited", "Creation Date", "Actions"] as const;
 
-function VideoTableView({ videos, videoStates, onSelect }: {
+function VideoTableView({ videos, videoStates, onSelect, onEdit }: {
     videos: VideoItem[];
     videoStates?: Record<string, LiveVideoState>;
     onSelect: (v: VideoItem) => void;
+    onEdit: (v: VideoItem) => void;
 }) {
     return (
         <TableContainer>
@@ -757,7 +763,7 @@ function VideoTableView({ videos, videoStates, onSelect }: {
                                 <TableCell sx={tableActionsCellSx}>
                                     <Box sx={tableActionsBoxSx}>
                                         <IconButton size="medium" onClick={e => {
-                                            e.stopPropagation(); onSelect(v); 
+                                            e.stopPropagation(); onEdit(v);
                                         }}>
                                             <SvgIcon sx={tableActionIconSx}><FontAwesomeIcon icon={faPen} /></SvgIcon>
                                         </IconButton>
@@ -778,6 +784,7 @@ function VideoTableView({ videos, videoStates, onSelect }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VideoLibraryPage({
     onSelectVideo,
+    onEditVideo,
     onNavigateToTemplate,
     onCreateTemplateFromScratch,
     notifications,
@@ -797,6 +804,7 @@ export default function VideoLibraryPage({
     onAccountSettingsOpen
 }: {
   onSelectVideo: (v: VideoItem) => void
+  onEditVideo?: (v: VideoItem) => void
   onNavigateToTemplate?: () => void
   onCreateTemplateFromScratch?: (name: string) => void
   notifications?: NotificationItem[]
@@ -945,6 +953,7 @@ export default function VideoLibraryPage({
                                             video={{ ...v, statuses: resolveStatuses(v, videoStates) }}
                                             liveState={videoStates?.[v.title]}
                                             onClick={() => onSelectVideo(v)}
+                                            onEdit={() => (onEditVideo ?? onSelectVideo)(v)}
                                             onPermChange={onPermChange}
                                             onSubmitForApproval={onSubmitForApproval}
                                             approversList={approversList}
@@ -993,6 +1002,7 @@ export default function VideoLibraryPage({
                             videos={ALL_VIDEOS}
                             videoStates={videoStates}
                             onSelect={onSelectVideo}
+                            onEdit={onEditVideo ?? onSelectVideo}
                         />
                     ) : (
                         <Box sx={videosGridSx}>
@@ -1002,6 +1012,7 @@ export default function VideoLibraryPage({
                                     video={{ ...v, statuses: resolveStatuses(v, videoStates) }}
                                     liveState={videoStates?.[v.title]}
                                     onClick={() => onSelectVideo(v)}
+                                    onEdit={() => (onEditVideo ?? onSelectVideo)(v)}
                                     onPermChange={onPermChange}
                                     onSubmitForApproval={onSubmitForApproval}
                                     approversList={approversList}

@@ -1094,10 +1094,10 @@ export default function App() {
         });
     }
 
-    const handleSelectVideo = (video: VideoItem) => {
+    const navigateToVideoFor = (video: VideoItem, page: "video" | "studio") => {
         setSelectedVideo(video);
         setDialogStep("closed");
-        setCurrentPage("studio");
+        setCurrentPage(page);
         // Initialise video state if it hasn't been set yet
         setVideoStates(prev => {
             if (prev[video.title]) {
@@ -1109,6 +1109,8 @@ export default function App() {
             };
         });
     };
+    const handleSelectVideo = (video: VideoItem) => navigateToVideoFor(video, "video");
+    const handleEditVideo = (video: VideoItem) => navigateToVideoFor(video, "studio");
 
     const handleApprovalSend = (approvers: string[]) => {
         updateVideoState(currentKey, { sentApprovers: approvers, pageState: "pending", sentAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) });
@@ -1132,6 +1134,7 @@ export default function App() {
                 {currentPage === "library" ? (
                     <VideoLibraryPage
                         onSelectVideo={handleSelectVideo}
+                        onEditVideo={handleEditVideo}
                         onNavigateToTemplate={() => setCurrentPage("template-library")}
                         onCreateTemplateFromScratch={(name) => {
                             setTemplateStudioName(name); setCurrentPage("template-studio"); 
