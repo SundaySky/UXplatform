@@ -9,7 +9,7 @@ import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass } from "@fortawesome/pro-regular-svg-icons";
 import { TruffleDialogTitle, Label } from "@sundaysky/smartvideo-hub-truffle-component-library";
-import { LANGUAGE_OPTIONS, MAX_LANGUAGES } from "./LanguagesPanel";
+import { LANGUAGE_OPTIONS, MAX_LANGUAGES } from "../panels/LanguagesPanel";
 
 // ─── Extended language metadata ───────────────────────────────────────────────
 

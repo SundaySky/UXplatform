@@ -20,7 +20,7 @@ import ManageAccessDialog, {
     type PermissionSettings,
     type User,
     OWNER_USER
-} from "./ManageAccessDialog";
+} from "../dialogs/ManageAccessDialog";
 
 // ─── Local display type (not exported by ManageAccessDialog anymore) ──────────
 type ViewPermission = "everyone" | "editors" | "specific" | "private"

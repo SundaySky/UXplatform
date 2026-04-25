@@ -20,11 +20,11 @@ import { faChevronRight as faChevronRightSolid, faPlay } from "@fortawesome/pro-
 import {
     TruffleAvatar, TruffleMenuPanel, combineSxProps
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
-import { NotificationBell } from "./NotificationsPanel";
-import { OWNER_USER } from "./ManageAccessDialog";
-import MediaLibraryPanel from "./MediaLibraryPanel";
-import AvatarLibraryPanel from "./AvatarLibraryPanel";
-import LanguagesPanel, { FLAG_BY_NAME, CODE_BY_NAME, MAX_LANGUAGES } from "./LanguagesPanel";
+import { NotificationBell } from "../../panels/NotificationsPanel";
+import { OWNER_USER } from "../../dialogs/ManageAccessDialog";
+import MediaLibraryPanel from "../../panels/MediaLibraryPanel";
+import AvatarLibraryPanel from "../../panels/AvatarLibraryPanel";
+import LanguagesPanel, { FLAG_BY_NAME, CODE_BY_NAME, MAX_LANGUAGES } from "../../panels/LanguagesPanel";
 
 
 // ─── Fake scenes ──────────────────────────────────────────────────────────────

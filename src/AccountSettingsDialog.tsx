@@ -12,7 +12,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck } from "@fortawesome/pro-regular-svg-icons";
 import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
-import { ALL_USERS, OWNER_USER } from "./ManageAccessDialog";
+import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
 
 
 // ─── Types & mock data ────────────────────────────────────────────────────────
