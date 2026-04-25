@@ -18,7 +18,7 @@ import {
     Label,
     TruffleLink
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
-import LanguagePickerDialog from "./LanguagePickerDialog";
+import LanguagePickerDialog from "../dialogs/LanguagePickerDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PanelState =

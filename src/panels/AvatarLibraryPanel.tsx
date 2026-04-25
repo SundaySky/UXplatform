@@ -10,8 +10,8 @@ import { faPerson, faHexagon, faTrash, faCircleInfo, faLock, faArrowsLeftRight, 
 import AvatarPermissionDialog, {
     type AvatarPermissionSettings,
     type AccessRequest
-} from "./AvatarPermissionDialog";
-import { OWNER_USER } from "./ManageAccessDialog";
+} from "../dialogs/AvatarPermissionDialog";
+import { OWNER_USER } from "../dialogs/ManageAccessDialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PANEL_WIDTH = 280;

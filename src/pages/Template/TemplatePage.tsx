@@ -15,13 +15,13 @@ import {
 import {
     TruffleLink, TruffleAvatar, Label
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
-import ApprovalDialog from "./ApprovalDialog";
-import ConfirmationDialog from "./ConfirmationDialog";
-import ApproveVideoDialog from "./ApproveVideoDialog";
-import CancelApprovalDialog from "./CancelApprovalDialog";
-import PublishTemplateDialog from "./PublishTemplateDialog";
-import CreateTemplateDialog from "./CreateTemplateDialog";
-import { TOTAL_COMMENT_COUNT } from "./StudioPage";
+import ApprovalDialog from "../../dialogs/ApprovalDialog";
+import ConfirmationDialog from "../../dialogs/ConfirmationDialog";
+import ApproveVideoDialog from "../../dialogs/ApproveVideoDialog";
+import CancelApprovalDialog from "../../dialogs/CancelApprovalDialog";
+import PublishTemplateDialog from "../../dialogs/PublishTemplateDialog";
+import CreateTemplateDialog from "../../dialogs/CreateTemplateDialog";
+import { TOTAL_COMMENT_COUNT } from "../Studio/CommentsPanel";
 
 const TEMPLATE_TITLE = "Digital Account Engagement Stylised video";
 

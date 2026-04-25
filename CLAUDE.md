@@ -50,22 +50,88 @@ npm run dev       # dev server at http://localhost:5173
 
 ```
 src/
-  main.tsx                  # React entry point (TruffleThemeProvider wraps app)
-  App.tsx                   # Root component, routing, and global state
-  StudioPage.tsx            # Editing / studio view
-  VideoLibraryPage.tsx      # Video library listing
-  ApprovalDialog.tsx        # Approval workflow dialog
-  ApproveVideoDialog.tsx    # Confirm-approve confirmation
-  CancelApprovalDialog.tsx  # Cancel-approval confirmation
-  ConfirmationDialog.tsx    # Generic reusable confirmation dialog
-  NotificationsPanel.tsx    # Notifications drawer/panel
-  theme.ts                  # MUI theme + design tokens (sourced from Figma)
+  main.tsx                       # React entry point (TruffleThemeProvider wraps app)
+  App.tsx                        # Root component, routing, and global state
+  AccountSettingsDialog.tsx      # See "AccountSettingsDialog carve-out" below
+  theme.ts                       # MUI theme + design tokens (sourced from Figma)
+  pages/
+    VideoLibrary/                # Main page (videos list + folders)
+      VideoLibraryPage.tsx
+      VideoCard.tsx
+      FolderCard.tsx
+      VideoTableView.tsx
+      StatusLabel.tsx
+      types.ts                   # VideoItem, LiveVideoState, StatusKey, resolveStatuses
+    VideoOverview/               # Per-video overview / details page
+      VideoOverviewPage.tsx
+      OverviewSidebar.tsx
+      VideoPreviewCard.tsx
+      ReviewOptionsPanel.tsx
+    Studio/                      # Video editor
+      StudioPage.tsx
+      CommentsPanel.tsx
+      EditHeadingDialog.tsx
+      EditBulletDialog.tsx
+      PlaceholderToolbar.tsx
+      ButtonPlaceholderToolbar.tsx
+      BulletPlaceholderToolbar.tsx
+      placeholderToolbarStyles.ts
+      SceneThumbnails.tsx
+    TemplateLibrary/
+      TemplateLibraryPage.tsx
+      TemplateCard.tsx
+    Template/
+      TemplatePage.tsx
+    TemplateStudio/
+      TemplateStudioPage.tsx
+  dialogs/                       # Modal dialogs
+    ApprovalDialog.tsx
+    ApproveVideoDialog.tsx
+    CancelApprovalDialog.tsx
+    ConfirmationDialog.tsx
+    AddApproverDialog.tsx
+    ManageAccessDialog.tsx
+    VideoPermissionDialog.tsx
+    AvatarPermissionDialog.tsx
+    SceneLibraryDialog.tsx
+    LanguagePickerDialog.tsx
+    CreateTemplateDialog.tsx
+    PublishTemplateDialog.tsx
+    WorkflowApprovalStepper.tsx
+  panels/                        # Floating / docked side panels
+    NotificationsPanel.tsx
+    MediaLibraryPanel.tsx
+    AvatarLibraryPanel.tsx
+    LanguagesPanel.tsx
+  components/                    # Cross-area reusable components
+    AppSidebar.tsx
+    PermAvatarGroup.tsx
+    TasksPanel.tsx
 public/
-  thumb.svg                 # Placeholder video thumbnail
+  thumb.svg                      # Placeholder video thumbnail
 .claude/
-  launch.json               # Dev server config for Claude Code preview
-  settings.local.json       # Claude Code permission allowlist (local, not committed)
+  launch.json                    # Dev server config for Claude Code preview
+  settings.local.json            # Claude Code permission allowlist (local, not committed)
 ```
+
+### File-organization rules — STRICT
+
+When creating new files or moving existing ones, follow these rules:
+
+1. **One component per file.** Each `.tsx` file owns one default-exported React component. The filename matches the component name (PascalCase).
+2. **Small inner helpers stay in the parent file.** A helper component or function under ~30 lines that is used in only one place can be defined inline in its parent. Do not create a new file just to extract it. Examples that should stay inline: a `Pill` used only in a toolbar, a `DashedLabel` used only in a card, a `statusLabel()` formatter helper, a `sceneContentFor()` lookup function.
+3. **Where new files go:**
+   - **`pages/<Area>/`** — files used only inside one area of the app (Video Library, Video Overview, Studio, Template Library, Template, Template Studio). Sample data, area-scoped types, and area-scoped helpers also live here.
+   - **`dialogs/`** — modal dialogs (anything that opens with `<Dialog>` from MUI or `SimpleDialogBase` from Truffle). Confirmation dialogs, permission dialogs, picker dialogs.
+   - **`panels/`** — floating or docked side panels (Notifications, Media library, Avatar library, Languages picker panel). Anything `CommentsPanel`-like that floats over the editor lives in its area's `pages/<Area>/` folder, not here, because it is editor-scoped.
+   - **`components/`** — cross-area reusable components imported by 2+ pages or by `App.tsx`. Examples currently here: `AppSidebar`, `PermAvatarGroup`, `TasksPanel`. Do **not** put an area-only component here just because it might be reusable later — wait until a second consumer actually appears.
+4. **Styles co-located with the component.** Define `SxProps<Theme>` constants at the bottom of the same file (per the Styling Pattern section below). Only extract styles into a sibling `.ts` file when the same constants are imported by 2+ files in the same folder (e.g. `pages/Studio/placeholderToolbarStyles.ts`).
+5. **Types go in the file that owns them, unless 2+ files need them.** When two or more files in the same area need the same type or helper, put it in a sibling `types.ts` (or a more specific name if the file isn't only types). Example: `pages/VideoLibrary/types.ts` defines `VideoItem`, `LiveVideoState`, `StatusKey`, and `resolveStatuses` because `VideoLibraryPage`, `VideoCard`, and `VideoTableView` all import from it.
+6. **Index files (`index.ts` re-exports) are NOT used.** Always import from the specific file path.
+
+### AccountSettingsDialog carve-out — TEMPORARY
+
+`src/AccountSettingsDialog.tsx` lives at the `src/` root, not under `dialogs/`. It is excluded from the structure above on purpose because work on this file is happening on a parallel branch and a `git mv` would produce conflicts when those branches merge. **Do not move `AccountSettingsDialog.tsx` until the parallel work has merged into `main`.** Once that merges, move it to `src/dialogs/AccountSettingsDialog.tsx` and update the imports in `App.tsx` and `pages/VideoLibrary/VideoLibraryPage.tsx`.
 
 ---
 
