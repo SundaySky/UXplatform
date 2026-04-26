@@ -70,9 +70,9 @@ type NavKey = "users" | "permissions" | "approvals" | "groups"
     | "access-voice" | "access-brand" | "access-media"
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
-    { key: "users", label: "Users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
+    { key: "users", label: "All users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
     { key: "groups", label: "Groups", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon> },
-    { key: "permissions", label: "Permissions", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
+    { key: "permissions", label: "AI permissions", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
     { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> }
 ];
 
