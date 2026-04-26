@@ -4,13 +4,13 @@ import {
     Box, Typography, Dialog, IconButton, SvgIcon,
     Button, OutlinedInput, Tabs, Tab, Popover,
     Table, TableBody, TableCell, TableHead, TableRow,
-    Tooltip, Switch, Divider, Chip,
+    Tooltip, Switch, Divider, Chip, Select,
     MenuItem, Menu,
     Autocomplete, TextField
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup } from "@fortawesome/pro-regular-svg-icons";
-import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle, NoOutlineSelect } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
 
@@ -67,8 +67,8 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
 ];
 
 const PERMISSIONS_SUBNAV: { key: NavKey; label: string }[] = [
-    { key: "permissions-ai", label: "AI features" },
-    { key: "permissions-view-edit", label: "Viewing and editing" }
+    { key: "permissions-view-edit", label: "Viewing and editing" },
+    { key: "permissions-ai", label: "AI features" }
 ];
 
 const isPermissionsNav = (n: NavKey) => n.startsWith("permissions-");
@@ -2107,14 +2107,15 @@ function PermRow({ label, subtitle, value, options, onChange }: {
                 <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
                 {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
             </Box>
-            <NoOutlineSelect
+            <Select
                 value={value}
                 onChange={e => onChange(e.target.value as string)}
                 size="small"
+                variant="outlined"
                 sx={permSelectSx}
             >
                 {options.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-            </NoOutlineSelect>
+            </Select>
         </Box>
     );
 }
@@ -2131,13 +2132,60 @@ function PermInfoRow({ label, subtitle, value }: { label: string; subtitle?: str
     );
 }
 
+function PermRowWithUsers({ label, fixedValue, fixedOptions, users, onUsersChange }: {
+    label: string;
+    fixedValue: string;
+    fixedOptions: readonly string[] | string[];
+    users: typeof ALL_USERS[number][];
+    onUsersChange: (val: typeof ALL_USERS[number][]) => void;
+}) {
+    return (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Box sx={permRowSx}>
+                <Box sx={permLabelBoxSx}>
+                    <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+                </Box>
+                <Select
+                    value={fixedValue}
+                    onChange={() => {}}
+                    size="small"
+                    variant="outlined"
+                    sx={permSelectSx}
+                    disabled
+                >
+                    {fixedOptions.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                </Select>
+            </Box>
+            <Box sx={{ px: "16px", pb: "8px" }}>
+                <Autocomplete<typeof ALL_USERS[number], true>
+                    multiple
+                    options={ALL_USERS}
+                    value={users}
+                    onChange={(_e, val) => onUsersChange(val)}
+                    getOptionLabel={u => u.name || u.email}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    size="small"
+                    renderTags={(val, getTagProps) =>
+                        val.map((u, i) => (
+                            <Chip label={u.name || u.email} size="small" {...getTagProps({ index: i })} />
+                        ))
+                    }
+                    renderInput={params => (
+                        <TextField {...params} size="small" placeholder="Select users..." />
+                    )}
+                />
+            </Box>
+        </Box>
+    );
+}
+
 function ViewEditPermissionsSection() {
     const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
     const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
     const [avatarCanEdit, setAvatarCanEdit] = React.useState("Users with editor permission");
-    const [avatarCanUse, setAvatarCanUse] = React.useState("Everyone in your account");
+    const [avatarCanUseUsers, setAvatarCanUseUsers] = React.useState<typeof ALL_USERS[number][]>([]);
     const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
-    const [voiceCanUse, setVoiceCanUse] = React.useState("Everyone in your account");
+    const [voiceCanUseUsers, setVoiceCanUseUsers] = React.useState<typeof ALL_USERS[number][]>([]);
     const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
 
     return (
@@ -2181,11 +2229,12 @@ function ViewEditPermissionsSection() {
                         options={["Users with editor permission", "Account owner only"]}
                         onChange={setAvatarCanEdit}
                     />
-                    <PermRow
+                    <PermRowWithUsers
                         label="Can use custom avatar"
-                        value={avatarCanUse}
-                        options={["Everyone in your account", "Users with editor permission"]}
-                        onChange={setAvatarCanUse}
+                        fixedValue="Everyone in your account"
+                        fixedOptions={["Everyone in your account", "Users with editor permission"]}
+                        users={avatarCanUseUsers}
+                        onUsersChange={setAvatarCanUseUsers}
                     />
                 </PermGroup>
 
@@ -2197,11 +2246,12 @@ function ViewEditPermissionsSection() {
                         options={["Users with editor permission", "Account owner only"]}
                         onChange={setVoiceCanEdit}
                     />
-                    <PermRow
+                    <PermRowWithUsers
                         label="Can use custom voice"
-                        value={voiceCanUse}
-                        options={["Everyone in your account", "Users with editor permission"]}
-                        onChange={setVoiceCanUse}
+                        fixedValue="Everyone in your account"
+                        fixedOptions={["Everyone in your account", "Users with editor permission"]}
+                        users={voiceCanUseUsers}
+                        onUsersChange={setVoiceCanUseUsers}
                     />
                 </PermGroup>
 
