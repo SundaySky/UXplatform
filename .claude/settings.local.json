@@ -33,7 +33,9 @@
       "Bash(node -e \"const lib = require\\('./node_modules/@sundaysky/smartvideo-hub-truffle-component-library/dist'\\); console.log\\(Object.keys\\(lib\\).filter\\(k => k.toLowerCase\\(\\).includes\\('palette'\\) || k.toLowerCase\\(\\).includes\\('theme'\\)\\)\\);\")",
       "Bash(git fetch *)",
       "Bash(git checkout *)",
-      "Bash(./scripts/end-task.sh \"Account settings: simplify groups dialog and add access sub-navigation\")"
+      "Bash(./scripts/end-task.sh \"Account settings: simplify groups dialog and add access sub-navigation\")",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Update Videos and templates permissions copy *)"
     ]
   }
 }
