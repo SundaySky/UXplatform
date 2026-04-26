@@ -2143,7 +2143,7 @@ function PermRowWithUsers({
     const fixedOptions: PermOption[] = fixedLabels.map(l => ({ kind: "fixed", label: l }));
     const allOptions: PermOption[] = [...fixedOptions, ...EDITOR_USER_OPTIONS];
 
-    const [value, setValue] = React.useState<PermOption[]>([]);
+    const [value, setValue] = React.useState<PermOption[]>([{ kind: "fixed", label: fixedLabels[0] }]);
 
     const handleChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
         const lastAdded = newValue[newValue.length - 1];
