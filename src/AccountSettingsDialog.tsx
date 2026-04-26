@@ -2140,49 +2140,96 @@ function PermRowWithUsers({
     label: string;
     fixedLabels?: string[];
 }) {
-    const fixedOptions: PermOption[] = fixedLabels.map(l => ({ kind: "fixed", label: l }));
-    const allOptions: PermOption[] = [...fixedOptions, ...EDITOR_USER_OPTIONS];
+    const fixedPermOptions: PermOption[] = fixedLabels.map(l => ({ kind: "fixed", label: l }));
+    const allOptions: PermOption[] = [...fixedPermOptions, ...EDITOR_USER_OPTIONS];
 
-    // Default to the "Users with editor permission" label (whichever label mentions "editor"),
-    // falling back to the last fixed label.
     const defaultLabel =
         fixedLabels.find(l => l.toLowerCase().includes("editor")) ??
         fixedLabels[fixedLabels.length - 1];
-    const [value, setValue] = React.useState<PermOption[]>([{ kind: "fixed", label: defaultLabel }]);
-    const [open, setOpen] = React.useState(false);
 
-    const hasFixedSelected = value.some(v => v.kind === "fixed");
+    // fixedValue: which fixed label is active (when no users are chosen)
+    const [fixedValue, setFixedValue] = React.useState(defaultLabel);
+    // selectedUsers: individual users picked via the Autocomplete
+    const [selectedUsers, setSelectedUsers] = React.useState<typeof ALL_USERS[number][]>([]);
+    // isEditing: true while the Autocomplete is focused / open
+    const [isEditing, setIsEditing] = React.useState(false);
 
-    const handleChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
-        const lastAdded = newValue[newValue.length - 1];
-        if (!lastAdded) {
-            setValue([]);
+    const hasUsers = selectedUsers.length > 0;
+    // Show plain Select when a fixed permission is active and the user has not focused the field
+    const showAsSelect = !isEditing && !hasUsers;
+
+    // The value array fed to the Autocomplete
+    const autocompleteValue: PermOption[] = hasUsers
+        ? selectedUsers.map(u => ({ kind: "user" as const, user: u }))
+        : [{ kind: "fixed" as const, label: fixedValue }];
+
+    const handleAutocompleteChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
+        const last = newValue[newValue.length - 1];
+        if (!last) {
+            // Cleared — reset to default, back to Select mode
+            setFixedValue(defaultLabel);
+            setSelectedUsers([]);
+            setIsEditing(false);
             return;
         }
-        if (lastAdded.kind === "fixed") {
-            // Fixed option is exclusive — replace everything with just this one, close dropdown
-            setValue([lastAdded]);
-            setOpen(false);
+        if (last.kind === "fixed") {
+            // Fixed option chosen exclusively → back to Select mode
+            setFixedValue(last.label);
+            setSelectedUsers([]);
+            setIsEditing(false);
         }
         else {
-            // User selected — remove any fixed options, keep users only
-            setValue(newValue.filter(v => v.kind === "user"));
+            // User chip added — clear any fixed label, stay in Autocomplete mode
+            setFixedValue("");
+            setSelectedUsers(
+                newValue
+                    .filter((v): v is { kind: "user"; user: typeof ALL_USERS[number] } => v.kind === "user")
+                    .map(v => v.user)
+            );
         }
     };
 
+    const labelCol = (
+        <Box sx={permLabelBoxSx}>
+            <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+        </Box>
+    );
+
+    if (showAsSelect) {
+        return (
+            <Box sx={permRowSx}>
+                {labelCol}
+                {/* open={false} prevents the Select's own dropdown; onOpen switches to Autocomplete */}
+                <Select
+                    value={fixedValue}
+                    open={false}
+                    onOpen={() => setIsEditing(true)}
+                    size="small"
+                    variant="outlined"
+                    sx={permAutocompleteSx}
+                >
+                    {fixedLabels.map(l => <MenuItem key={l} value={l}>{l}</MenuItem>)}
+                </Select>
+            </Box>
+        );
+    }
+
     return (
         <Box sx={permRowSx}>
-            <Box sx={permLabelBoxSx}>
-                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
-            </Box>
+            {labelCol}
             <Autocomplete<PermOption, true>
                 multiple
-                open={open}
-                onOpen={() => setOpen(true)}
-                onClose={() => setOpen(false)}
+                open={isEditing}
+                onOpen={() => setIsEditing(true)}
+                onClose={() => {
+                    // Return to Select mode only when no user chips remain
+                    if (selectedUsers.length === 0) {
+                        setIsEditing(false);
+                    }
+                }}
                 options={allOptions}
-                value={value}
-                onChange={handleChange}
+                value={autocompleteValue}
+                onChange={handleAutocompleteChange}
                 getOptionLabel={getPermOptionLabel}
                 isOptionEqualToValue={(a, b) => {
                     if (a.kind !== b.kind) {
@@ -2227,13 +2274,8 @@ function PermRowWithUsers({
                 renderTags={(vals, getTagProps) =>
                     vals.map((opt, i) => {
                         if (opt.kind === "fixed") {
-                            // Fixed option: show as plain text inside the field, no chip
                             return (
-                                <Typography
-                                    key={i}
-                                    variant="body1"
-                                    sx={permFixedSelectionTextSx}
-                                >
+                                <Typography key={i} variant="body1" sx={permFixedSelectionTextSx}>
                                     {getPermOptionLabel(opt)}
                                 </Typography>
                             );
@@ -2252,15 +2294,8 @@ function PermRowWithUsers({
                     <TextField
                         {...params}
                         size="small"
-                        placeholder={value.length === 0 ? "Select permission or users…" : ""}
-                        inputProps={{
-                            ...params.inputProps,
-                            // Collapse the cursor when a fixed label is showing so the
-                            // field reads like a Select rather than an editable input.
-                            style: hasFixedSelected
-                                ? { width: 0, minWidth: 0, padding: 0 }
-                                : undefined
-                        }}
+                        autoFocus={!hasUsers}
+                        placeholder={hasUsers ? "" : "Select permission or users…"}
                     />
                 )}
                 sx={permAutocompleteSx}
