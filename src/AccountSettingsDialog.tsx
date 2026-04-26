@@ -2120,36 +2120,29 @@ function PermRow({ label, subtitle, value, options, onChange }: {
     );
 }
 
-function PermInfoRow({ label, subtitle, value }: { label: string; subtitle?: string; value: string }) {
-    return (
-        <Box sx={permRowSx}>
-            <Box sx={permLabelBoxSx}>
-                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
-                {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
-            </Box>
-            <Typography variant="body1" sx={textSecondarySx}>{value}</Typography>
-        </Box>
-    );
-}
 
 type PermOption =
     | { kind: "fixed"; label: string }
     | { kind: "user"; user: typeof ALL_USERS[number] };
 
-const FIXED_USE_OPTIONS: PermOption[] = [
-    { kind: "fixed", label: "None" },
-    { kind: "fixed", label: "Users with editor permission" }
-];
-
 const EDITOR_USER_OPTIONS: PermOption[] = ALL_USERS.map(u => ({ kind: "user" as const, user: u }));
 
-const ALL_PERM_OPTIONS: PermOption[] = [...FIXED_USE_OPTIONS, ...EDITOR_USER_OPTIONS];
+const DEFAULT_FIXED_LABELS = ["None", "Users with editor permission"];
 
 function getPermOptionLabel(opt: PermOption): string {
     return opt.kind === "fixed" ? opt.label : (opt.user.name || opt.user.email);
 }
 
-function PermRowWithUsers({ label }: { label: string }) {
+function PermRowWithUsers({
+    label,
+    fixedLabels = DEFAULT_FIXED_LABELS
+}: {
+    label: string;
+    fixedLabels?: string[];
+}) {
+    const fixedOptions: PermOption[] = fixedLabels.map(l => ({ kind: "fixed", label: l }));
+    const allOptions: PermOption[] = [...fixedOptions, ...EDITOR_USER_OPTIONS];
+
     const [value, setValue] = React.useState<PermOption[]>([]);
 
     const handleChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
@@ -2175,7 +2168,7 @@ function PermRowWithUsers({ label }: { label: string }) {
             </Box>
             <Autocomplete<PermOption, true>
                 multiple
-                options={ALL_PERM_OPTIONS}
+                options={allOptions}
                 value={value}
                 onChange={handleChange}
                 getOptionLabel={getPermOptionLabel}
@@ -2220,13 +2213,27 @@ function PermRowWithUsers({ label }: { label: string }) {
                     </MenuItem>
                 )}
                 renderTags={(vals, getTagProps) =>
-                    vals.map((opt, i) => (
-                        <Chip
-                            label={getPermOptionLabel(opt)}
-                            size="small"
-                            {...getTagProps({ index: i })}
-                        />
-                    ))
+                    vals.map((opt, i) => {
+                        if (opt.kind === "fixed") {
+                            // Fixed option: show as plain text inside the field, no chip
+                            return (
+                                <Typography
+                                    key={i}
+                                    variant="body1"
+                                    sx={permFixedSelectionTextSx}
+                                >
+                                    {getPermOptionLabel(opt)}
+                                </Typography>
+                            );
+                        }
+                        return (
+                            <Chip
+                                label={getPermOptionLabel(opt)}
+                                size="small"
+                                {...getTagProps({ index: i })}
+                            />
+                        );
+                    })
                 }
                 size="small"
                 renderInput={params => (
@@ -2236,7 +2243,7 @@ function PermRowWithUsers({ label }: { label: string }) {
                         placeholder={value.length === 0 ? "Select permission or users…" : ""}
                     />
                 )}
-                sx={permSelectSx}
+                sx={permAutocompleteSx}
             />
         </Box>
     );
@@ -2290,7 +2297,10 @@ function ViewEditPermissionsSection() {
                         options={["Users with editor permission", "Account owner only"]}
                         onChange={setAvatarCanEdit}
                     />
-                    <PermRowWithUsers label="Can use custom avatar" />
+                    <PermRowWithUsers
+                        label="Can use custom avatar"
+                        fixedLabels={["Users can ask owners to use", "Users with editor permission"]}
+                    />
                 </PermGroup>
 
                 {/* Custom voice */}
@@ -2312,7 +2322,7 @@ function ViewEditPermissionsSection() {
                         options={["Everyone in the account", "None"]}
                         onChange={setBrandOwner}
                     />
-                    <PermInfoRow label="Can use" value="Everyone in the account" />
+                    <PermRowWithUsers label="Can use" />
                 </PermGroup>
             </Box>
 
@@ -2778,4 +2788,6 @@ const permGroupsScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", display
 const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "flex-start", px: "16px", py: "10px", gap: "16px" };
 const permLabelBoxSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px", width: 260, flexShrink: 0 };
 const permSelectSx: SxProps<Theme> = { minWidth: 180, "& .MuiSelect-select": { py: "4px" } };
+const permAutocompleteSx: SxProps<Theme> = { flex: 1 };
 const permAutocompleteGroupListSx: SxProps<Theme> = { p: 0, m: 0, listStyle: "none" };
+const permFixedSelectionTextSx: SxProps<Theme> = { color: "text.primary", px: 0.5, lineHeight: 1 };
