@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import {
     Dialog, DialogContent,
     Box, Typography, Button, IconButton, SvgIcon,
-    Alert, Divider, Menu,
-    ToggleButton, ToggleButtonGroup, Checkbox, Tooltip,
+    Alert, Divider, Menu, MenuItem,
+    ToggleButton, Checkbox, Tooltip,
     Autocomplete, TextField, Chip,
     InputAdornment
 } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers, faUserPlus, faChevronDown, faCircleInfo, faLock, faGear, faUserSlash, faArrowLeft } from "@fortawesome/pro-regular-svg-icons";
-import { TruffleDialogTitle, TruffleDialogActions, TruffleMenuItem } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { TruffleDialogTitle, TruffleDialogActions, TruffleMenuItem, TruffleToggleButtonGroup, NoOutlineSelect } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import type { SxProps, Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -153,20 +153,20 @@ export function VideoAccessBar({
     );
 }
 
-// ─── RoleButton — outlined style matching design system ───────────────────────
+// ─── RoleButton ───────────────────────────────────────────────────────────────
 function RoleButton({ label, onClick }: { label: string; onClick: (e: React.MouseEvent<HTMLElement>) => void }) {
     return (
-        <Button
+        <NoOutlineSelect
             size="small"
-            variant="outlined"
-            endIcon={<SvgIcon sx={roleButtonChevronSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
-            onClick={e => {
-                e.stopPropagation(); onClick(e); 
-            }}
+            value={label}
+            open={false}
+            onOpen={(e) => onClick(e as unknown as React.MouseEvent<HTMLElement>)}
+            renderValue={() => label}
+            onChange={() => {}}
             sx={roleButtonSx}
         >
-            {label}
-        </Button>
+            <MenuItem value={label}>{label}</MenuItem>
+        </NoOutlineSelect>
     );
 }
 
@@ -499,27 +499,22 @@ export default function VideoPermissionDialog({
                 {/* ── Content ────────────────────────────────────────────────────────── */}
                 {!showAddDialog ? (
                     <DialogContent sx={mainDialogContentSx}>
-                        {/* Tab selector — full-width bordered segmented control */}
-                        <ToggleButtonGroup
-                            value={tab}
+                        {/* Tab selector */}
+                        <TruffleToggleButtonGroup
+                            variant="outlined"
                             exclusive
-                            onChange={(_, v) => {
-                                if (v !== null) {
-                                    setTab(v as PermissionTab);
-                                }
-                            }}
-                            fullWidth
+                            value={tab}
                             sx={toggleButtonGroupSx}
                         >
-                            {(["teams", "private"] as const).map(v => (
-                                <ToggleButton key={v} value={v} sx={toggleButtonSx}>
-                                    {v === "teams"
-                                        ? <SvgIcon sx={toggleButtonIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                                        : <SvgIcon sx={toggleButtonIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>}
-                                    {v === "teams" ? "Teams and people" : "Only me"}
-                                </ToggleButton>
-                            ))}
-                        </ToggleButtonGroup>
+                            <ToggleButton value="teams" color="primary" selected={tab === "teams"} onClick={() => setTab("teams")} sx={toggleButtonSx}>
+                                <SvgIcon sx={toggleButtonIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                Teams and people
+                            </ToggleButton>
+                            <ToggleButton value="private" color="primary" selected={tab === "private"} onClick={() => setTab("private")} sx={toggleButtonSx}>
+                                <SvgIcon sx={toggleButtonIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                                Only me
+                            </ToggleButton>
+                        </TruffleToggleButtonGroup>
 
                         {/* Access list */}
                         <Box sx={accessListSx}>
@@ -850,11 +845,18 @@ const manageAccessButtonSx: SxProps<Theme> = {
 };
 
 const roleButtonChevronSx: SxProps<Theme> = {
-    fontSize: 14, ml: "-6px"
+    fontSize: "12px !important"
 };
 
 const roleButtonSx: SxProps<Theme> = {
-    minWidth: 0, whiteSpace: "nowrap", flexShrink: 0
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+    "& .MuiInputBase-root": {
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+        "&:hover": { borderColor: "text.secondary" }
+    }
 };
 
 const personRowSx: SxProps<Theme> = {
@@ -981,37 +983,20 @@ const mainDialogContentSx: SxProps<Theme> = {
     p: "24px 28px", display: "flex", flexDirection: "column", gap: "20px"
 };
 
-const toggleButtonGroupSx: SxProps<Theme> = {
-    border: 1,
-    borderColor: "primary.light",
-    borderRadius: "8px",
-    overflow: "hidden",
-    "& .MuiToggleButtonGroup-grouped": {
-        border: "none !important",
-        borderRadius: "0 !important",
-        m: 0
-    },
-    "& .MuiToggleButtonGroup-grouped:not(:last-of-type)": {
-        borderRight: "1px solid !important",
-        borderRightColor: "primary.light !important"
+const toggleButtonGroupSx: SxProps<Theme> = (theme) => ({
+    width: "100%",
+    "& .MuiToggleButton-root.Mui-selected": {
+        backgroundColor: alpha(theme.palette.primary.main, theme.palette.action.selectedOpacity),
+        color: theme.palette.primary.main
     }
-};
+});
 
 const toggleButtonSx: SxProps<Theme> = {
-    py: 1, gap: "6px",
-    color: "text.primary",
-    bgcolor: "background.paper",
-    "&.Mui-selected": {
-        bgcolor: "action.hover",
-        color: "text.primary",
-        fontWeight: 600,
-        "&:hover": { bgcolor: "divider" }
-    },
-    "&:hover": { bgcolor: "action.hover" }
+    flex: 1, gap: "6px"
 };
 
 const toggleButtonIconSx: SxProps<Theme> = {
-    fontSize: 18
+    fontSize: 14
 };
 
 const accessListSx: SxProps<Theme> = {

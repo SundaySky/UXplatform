@@ -4,6 +4,7 @@ import {
     Box, Typography, IconButton, Button, Tooltip, SvgIcon,
     Popover, Divider, Badge
 } from "@mui/material";
+import { TruffleIconButton } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPerson, faHexagon, faTrash, faCircleInfo, faLock, faArrowsLeftRight, faPlus, faUpRightAndDownLeftFromCenter, faEllipsisVertical, faXmark, faCircleQuestion } from "@fortawesome/pro-regular-svg-icons";
 
@@ -173,6 +174,7 @@ function AvatarCard({
                         {/* + Add / Replace */}
                         <Button
                             variant="contained"
+                            color="white"
                             size="small"
                             startIcon={
                                 anyActive
@@ -182,7 +184,6 @@ function AvatarCard({
                             onClick={e => {
                                 e.stopPropagation(); onAdd(avatar.id);
                             }}
-                            sx={addReplaceBtnSx}
                         >
                             {btnLabel}
                         </Button>
@@ -194,26 +195,34 @@ function AvatarCard({
                         <Tooltip title="Preview" placement="top" arrow
                             componentsProps={{ tooltip: { sx: navyTooltipSx } }}
                         >
-                            <IconButton
+                            <TruffleIconButton
+                                variant="contained"
+                                color="white"
                                 size="small"
                                 onClick={e => e.stopPropagation()}
-                                sx={overlayIconBtnSx}
+                                placeholder={undefined}
+                                onPointerEnterCapture={undefined}
+                                onPointerLeaveCapture={undefined}
                             >
                                 <SvgIcon sx={overlaySmallIconSx}><FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} /></SvgIcon>
-                            </IconButton>
+                            </TruffleIconButton>
                         </Tooltip>
 
                         {/* Three-dot options (custom avatars only) */}
                         {avatar.isCustom && onOpenMenu && (
-                            <IconButton
+                            <TruffleIconButton
+                                variant="contained"
+                                color="white"
                                 size="small"
                                 onClick={e => {
                                     e.stopPropagation(); onOpenMenu(e, avatar.id);
                                 }}
-                                sx={overlayIconBtnSx}
+                                placeholder={undefined}
+                                onPointerEnterCapture={undefined}
+                                onPointerLeaveCapture={undefined}
                             >
                                 <SvgIcon sx={overlaySmallIconSx}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
-                            </IconButton>
+                            </TruffleIconButton>
                         )}
                     </Box>
                 )}
@@ -570,7 +579,7 @@ export default function AvatarLibraryPanel({
                         >
                             <SvgIcon sx={managePermIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
                             <Typography variant="caption" sx={managePermLabelSx}>
-                Manage permissions
+                Manage usage permission
                             </Typography>
                             {/* User chips — approvers + requesters */}
                             <Box sx={chipsRowSx}>
@@ -682,32 +691,8 @@ const overlayBtnIconSx: SxProps<Theme> = {
     fontSize: "14px !important"
 };
 
-const addReplaceBtnSx: SxProps<Theme> = {
-    borderRadius: "6px",
-    py: "3px",
-    px: "8px",
-    minWidth: 0,
-    bgcolor: "background.paper",
-    color: "secondary.main",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
-    "&:hover": {
-        bgcolor: "primary.light",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.18)"
-    }
-};
-
 const spacerSx: SxProps<Theme> = {
     flex: 1
-};
-
-const overlayIconBtnSx: SxProps<Theme> = {
-    bgcolor: "background.paper",
-    color: "primary.main",
-    borderRadius: "6px",
-    width: 24, height: 24,
-    p: "4px",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
-    "&:hover": { bgcolor: "primary.light" }
 };
 
 const overlaySmallIconSx: SxProps<Theme> = {

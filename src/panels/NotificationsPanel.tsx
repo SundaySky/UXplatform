@@ -58,12 +58,13 @@ export default function NotificationsPanel({ anchorEl, onClose, onMarkAllRead, n
                         onChange={(_, v) => {
                             if (v !== null) {
                                 setTab(v as "all" | "unread");
-                            } 
+                            }
                         }}
                         size="small"
+                        sx={notifToggleGroupSx}
                     >
-                        <ToggleButton value="all">All</ToggleButton>
-                        <ToggleButton value="unread">Unread ({unreadCount})</ToggleButton>
+                        <ToggleButton value="all" color="primary" selected={tab === "all"} onClick={() => setTab("all")}>All</ToggleButton>
+                        <ToggleButton value="unread" color="primary" selected={tab === "unread"} onClick={() => setTab("unread")}>Unread ({unreadCount})</ToggleButton>
                     </TruffleToggleButtonGroup>
                     <Button variant="text" size="small" onClick={onMarkAllRead}>
                         Mark all as read
@@ -175,6 +176,13 @@ const popoverPaperSx: SxProps<Theme> = (theme) => ({
 const panelBodySx: SxProps<Theme> = { pt: 1, pb: 2, px: 2 };
 const titleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", minHeight: 40, pb: 1 };
 const tabRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between" };
+
+const notifToggleGroupSx: SxProps<Theme> = (theme) => ({
+    "& .MuiToggleButton-root.Mui-selected": {
+        backgroundColor: alpha(theme.palette.primary.main, theme.palette.action.selectedOpacity),
+        color: theme.palette.primary.main
+    }
+});
 const dividerSx: SxProps<Theme> = { my: "12px", borderColor: "divider" };
 const listSx: SxProps<Theme> = { display: "flex", flexDirection: "column" };
 const emptyTextSx: SxProps<Theme> = { color: "text.secondary", textAlign: "center", py: 2 };

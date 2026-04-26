@@ -5,6 +5,7 @@ import {
     Box, ToggleButton, Chip, Autocomplete
     , Button } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import {
     TruffleDialogTitle, TruffleDialogActions, TruffleToggleButtonGroup
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
@@ -110,7 +111,6 @@ export default function CreateTemplateDialog({
                     <TruffleToggleButtonGroup
                         value={aspectRatio}
                         exclusive
-                        color="standard"
                         onChange={(_e, val) => {
                             if (val) {
                                 setAspectRatio(val);
@@ -119,9 +119,9 @@ export default function CreateTemplateDialog({
                         variant="outlined"
                         sx={toggleGroupSx}
                     >
-                        <ToggleButton value="16:9" sx={toggleBtnSx}>16:9</ToggleButton>
-                        <ToggleButton value="9:16" sx={toggleBtnSx}>9:16</ToggleButton>
-                        <ToggleButton value="4:5" sx={toggleBtnSx}>4:5</ToggleButton>
+                        <ToggleButton value="16:9" color="primary" selected={aspectRatio === "16:9"} onClick={() => setAspectRatio("16:9")} sx={toggleBtnSx}>16:9</ToggleButton>
+                        <ToggleButton value="9:16" color="primary" selected={aspectRatio === "9:16"} onClick={() => setAspectRatio("9:16")} sx={toggleBtnSx}>9:16</ToggleButton>
+                        <ToggleButton value="4:5" color="primary" selected={aspectRatio === "4:5"} onClick={() => setAspectRatio("4:5")} sx={toggleBtnSx}>4:5</ToggleButton>
                     </TruffleToggleButtonGroup>
                 </Box>
 
@@ -226,9 +226,13 @@ const fieldGroupSx: SxProps<Theme> = {
     gap: 1
 };
 
-const toggleGroupSx: SxProps<Theme> = {
-    width: "100%"
-};
+const toggleGroupSx: SxProps<Theme> = (theme) => ({
+    width: "100%",
+    "& .MuiToggleButton-root.Mui-selected": {
+        backgroundColor: alpha(theme.palette.primary.main, theme.palette.action.selectedOpacity),
+        color: theme.palette.primary.main
+    }
+});
 
 const toggleBtnSx: SxProps<Theme> = {
     flex: 1
