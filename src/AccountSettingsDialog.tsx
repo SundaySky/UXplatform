@@ -2143,7 +2143,15 @@ function PermRowWithUsers({
     const fixedOptions: PermOption[] = fixedLabels.map(l => ({ kind: "fixed", label: l }));
     const allOptions: PermOption[] = [...fixedOptions, ...EDITOR_USER_OPTIONS];
 
-    const [value, setValue] = React.useState<PermOption[]>([{ kind: "fixed", label: fixedLabels[0] }]);
+    // Default to the "Users with editor permission" label (whichever label mentions "editor"),
+    // falling back to the last fixed label.
+    const defaultLabel =
+        fixedLabels.find(l => l.toLowerCase().includes("editor")) ??
+        fixedLabels[fixedLabels.length - 1];
+    const [value, setValue] = React.useState<PermOption[]>([{ kind: "fixed", label: defaultLabel }]);
+    const [open, setOpen] = React.useState(false);
+
+    const hasFixedSelected = value.some(v => v.kind === "fixed");
 
     const handleChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
         const lastAdded = newValue[newValue.length - 1];
@@ -2152,8 +2160,9 @@ function PermRowWithUsers({
             return;
         }
         if (lastAdded.kind === "fixed") {
-            // Fixed option is exclusive — replace everything with just this one
+            // Fixed option is exclusive — replace everything with just this one, close dropdown
             setValue([lastAdded]);
+            setOpen(false);
         }
         else {
             // User selected — remove any fixed options, keep users only
@@ -2168,6 +2177,9 @@ function PermRowWithUsers({
             </Box>
             <Autocomplete<PermOption, true>
                 multiple
+                open={open}
+                onOpen={() => setOpen(true)}
+                onClose={() => setOpen(false)}
                 options={allOptions}
                 value={value}
                 onChange={handleChange}
@@ -2241,6 +2253,14 @@ function PermRowWithUsers({
                         {...params}
                         size="small"
                         placeholder={value.length === 0 ? "Select permission or users…" : ""}
+                        inputProps={{
+                            ...params.inputProps,
+                            // Collapse the cursor when a fixed label is showing so the
+                            // field reads like a Select rather than an editable input.
+                            style: hasFixedSelected
+                                ? { width: 0, minWidth: 0, padding: 0 }
+                                : undefined
+                        }}
                     />
                 )}
                 sx={permAutocompleteSx}
