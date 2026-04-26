@@ -2219,13 +2219,18 @@ function PermRowWithUsers({
             {labelCol}
             <Autocomplete<PermOption, true>
                 multiple
+                disableCloseOnSelect
                 open={isEditing}
                 onOpen={() => setIsEditing(true)}
                 onClose={() => {
-                    // Return to Select mode only when no user chips remain
-                    if (selectedUsers.length === 0) {
-                        setIsEditing(false);
-                    }
+                    // Return to Select mode only when no user chips remain.
+                    // Use functional update to read current selectedUsers, avoiding stale closure.
+                    setSelectedUsers(prev => {
+                        if (prev.length === 0) {
+                            setIsEditing(false);
+                        }
+                        return prev;
+                    });
                 }}
                 options={allOptions}
                 value={autocompleteValue}
@@ -2295,7 +2300,6 @@ function PermRowWithUsers({
                         {...params}
                         size="small"
                         autoFocus={!hasUsers}
-                        placeholder={hasUsers ? "" : "Select permission or users…"}
                     />
                 )}
                 sx={permAutocompleteSx}
@@ -2381,10 +2385,6 @@ function ViewEditPermissionsSection() {
                 </PermGroup>
             </Box>
 
-            {/* Save */}
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: "8px", flexShrink: 0 }}>
-                <Button variant="contained" size="large">Save</Button>
-            </Box>
         </Box>
     );
 }
@@ -2665,7 +2665,10 @@ export default function AccountSettingsDialog({
                         />
                     )}
                     {nav === "permissions-ai" && <PlaceholderSection label="AI features" />}
-                    {nav === "permissions-view-edit" && <ViewEditPermissionsSection />}
+                    {/* Keep mounted so state survives tab switches */}
+                    <Box sx={{ display: nav === "permissions-view-edit" ? "contents" : "none" }}>
+                        <ViewEditPermissionsSection />
+                    </Box>
                     {nav === "approvals" && (
                         <ApprovalsSection
                             users={users}
