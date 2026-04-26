@@ -9,18 +9,10 @@ import {
     Autocomplete, TextField
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup, faPen } from "@fortawesome/pro-regular-svg-icons";
-import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup, faEye } from "@fortawesome/pro-regular-svg-icons";
+import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle, NoOutlineSelect } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
-import { ALL_VIDEOS } from "./pages/VideoLibrary/VideoLibraryPage";
-import type { VideoItem } from "./pages/VideoLibrary/types";
-import { ALL_TEMPLATES } from "./pages/TemplateLibrary/TemplateLibraryPage";
-import type { TemplateItem } from "./pages/TemplateLibrary/TemplateCard";
-import { CUSTOM_AVATARS, MOCK_REQUESTS } from "./panels/AvatarLibraryPanel";
-import type { AvatarItem } from "./panels/AvatarLibraryPanel";
-import VideoPermissionDialog, { type VideoPermissionSettings } from "./dialogs/VideoPermissionDialog";
-import AvatarPermissionDialog, { type AvatarPermissionSettings, type AvatarUsagePermission, type AccessRequest } from "./dialogs/AvatarPermissionDialog";
 
 
 // ─── Types & mock data ────────────────────────────────────────────────────────
@@ -65,7 +57,7 @@ function findAccountUser(userId: string, accountUsers: AccountUser[]): AccountUs
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 const navIconSx: SxProps<Theme> = { fontSize: 18 };
-type NavKey = "users" | "permissions" | "approvals" | "groups"
+type NavKey = "users" | "permissions" | "approvals" | "groups" | "view-edit-permissions"
     | "access-videos" | "access-templates" | "access-avatar"
     | "access-voice" | "access-brand" | "access-media"
 
@@ -73,45 +65,11 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
     { key: "users", label: "All users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
     { key: "groups", label: "Groups", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon> },
     { key: "permissions", label: "AI permissions", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
+    { key: "view-edit-permissions", label: "Viewing and editing", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faEye} /></SvgIcon> },
     { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> }
 ];
 
-const ACCESS_SUBNAV: { key: NavKey; label: string; comingSoon?: boolean }[] = [
-    { key: "access-videos", label: "Videos" },
-    { key: "access-templates", label: "Templates" },
-    { key: "access-avatar", label: "Custom avatar" },
-    { key: "access-voice", label: "Custom voice", comingSoon: true },
-    { key: "access-brand", label: "Brand", comingSoon: true },
-    { key: "access-media", label: "Media Lib", comingSoon: true }
-];
 
-const isAccessNav = (n: NavKey) => n.startsWith("access-");
-
-// ─── Access section defaults ──────────────────────────────────────────────────
-const DEFAULT_TEMPLATE_AUDIENCE: string[] = [];
-
-// Default VideoPermissionSettings for a newly-seen video
-const DEFAULT_VIDEO_SETTINGS: VideoPermissionSettings = {
-    tab: "teams", everyoneRole: "viewer", users: [], ownerUsers: [OWNER_USER], noDuplicate: false
-};
-
-// Default AvatarPermissionSettings
-const DEFAULT_AVATAR_SETTINGS: AvatarPermissionSettings = {
-    usagePermission: "everyone" as AvatarUsagePermission,
-    specificUsers: [], approverUsers: [OWNER_USER], everyoneRole: "viewer"
-};
-
-// Mock folder mapping for videos (VideoItem has no folder field)
-const VIDEO_FOLDER_MAP: Record<string, string> = {
-    "Prepare for Winter Fun!":        "Announcements",
-    "Stay Safe During Missile Threats": "Sales",
-    "Doc-to-vid test":                "Copilot drafts",
-    "Testing recording what will happen when the video name is really really long": "Old campaigns",
-    "Recording":                      "Archive",
-    "Template editor":                "Copilot drafts",
-    "Editor template test":           "Old campaigns",
-    "Onboarding Steps":               "Onboarding videos Se..."
-};
 
 
 // ─── Shared user avatar cell ──────────────────────────────────────────────────
@@ -2112,318 +2070,126 @@ function PlaceholderSection({ label }: { label: string }) {
     );
 }
 
-// ─── Edit Template Audience dialog ────────────────────────────────────────────
-const AUDIENCES = ["All contributors", "Marketing team", "Sales team", "Customer Success", "HR team", "Finance team"];
+// ─── Viewing & Editing Permissions section ────────────────────────────────────
 
-function EditTemplateAudienceDialog({ open, onClose, template, currentAudience, onSave }: {
-    open: boolean; onClose: () => void;
-    template: TemplateItem | null; currentAudience: string[];
-    onSave: (audience: string[]) => void;
+const MOCK_BRANDS = ["Default brand", "Summer campaign", "Enterprise theme", "Minimal"];
+
+// Small reusable helpers (only used in this section)
+function PermGroup({ title, children }: { title: string; children: React.ReactNode }) {
+    const childArray = React.Children.toArray(children);
+    return (
+        <Box sx={permGroupSx}>
+            <Typography variant="h5" sx={permGroupTitleSx}>{title}</Typography>
+            <Box sx={permGroupCardSx}>
+                {childArray.map((child, i) => (
+                    <React.Fragment key={i}>
+                        {i > 0 && <Divider />}
+                        {child}
+                    </React.Fragment>
+                ))}
+            </Box>
+        </Box>
+    );
+}
+
+function PermRow({ label, value, options, onChange }: {
+    label: string; value: string;
+    options: readonly string[] | string[];
+    onChange: (val: string) => void;
 }) {
-    const [audience, setAudience] = useState<string[]>(currentAudience);
-    React.useEffect(() => {
-        if (open) {
-            setAudience(currentAudience); 
-        } 
-    }, [open, currentAudience]);
     return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}>
-            <Box sx={dialogBodySx}>
-                <Box sx={dialogTitleRowMb24Sx}>
-                    <Typography variant="h4" sx={textPrimarySx}>Edit template audience</Typography>
-                    <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                </Box>
-                <Typography variant="subtitle2" sx={{ color: "text.primary", mb: "16px" }}>{template?.title}</Typography>
-                <Autocomplete
-                    multiple freeSolo options={AUDIENCES} value={audience}
-                    onChange={(_, val: string[]) => setAudience(val)}
-                    renderTags={(tagValue, getTagProps) => (
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                            {tagValue.map((val, index) => <Chip label={val} size="small" {...getTagProps({ index })} />)}
-                        </Box>
-                    )}
-                    renderInput={params => (
-                        <TextField {...params} label="Template target audience" placeholder={audience.length === 0 ? "Select or type to add" : ""} />
-                    )}
-                />
-                <Box sx={{ ...dialogActionsRowSx, mt: "24px" }}>
-                    <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                    <Button variant="contained" onClick={() => {
-                        onSave(audience); onClose(); 
-                    }}>Save</Button>
-                </Box>
-            </Box>
-        </Dialog>
-    );
-}
-
-// ─── Access: Videos section ───────────────────────────────────────────────────
-function videoPermLabel(s: VideoPermissionSettings): string {
-    if (s.tab === "private") {
-        return "Only me";
-    }
-    if (s.everyoneRole === "editor") {
-        return "Everyone can edit";
-    }
-    if (s.everyoneRole === "restricted") {
-        return "Restricted";
-    }
-    return "Everyone can view";
-}
-
-function AccessVideosSection() {
-    const [videoSettings, setVideoSettings] = useState<Record<string, VideoPermissionSettings>>(
-        () => Object.fromEntries(ALL_VIDEOS.map(v => [v.title, { ...DEFAULT_VIDEO_SETTINGS }]))
-    );
-    const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
-    const [hoveredRow, setHoveredRow] = useState<string | null>(null);
-
-    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
-    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
-
-    return (
-        <Box sx={sectionContainerSx}>
-            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>Videos</Typography>
-            <Box sx={usersTableContainerSx}>
-                <Table size="small" sx={tableFullWidthSx}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={headCellSx}><Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon></Box></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Folder</Typography></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Edited by</Typography></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Status</Typography></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Access permission</Typography></TableCell>
-                            <TableCell sx={{ ...headCellSx, width: 44 }} />
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {ALL_VIDEOS.map(video => {
-                            const isHovered = hoveredRow === video.title;
-                            const settings = videoSettings[video.title] ?? DEFAULT_VIDEO_SETTINGS;
-                            const folder = VIDEO_FOLDER_MAP[video.title];
-                            return (
-                                <TableRow key={video.title}
-                                    onMouseEnter={() => setHoveredRow(video.title)}
-                                    onMouseLeave={() => setHoveredRow(null)}
-                                    sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
-                                >
-                                    <TableCell sx={bodyCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>{video.title}</Typography></TableCell>
-                                    <TableCell sx={bodyCellSx}>
-                                        <Typography variant="body1" sx={folder ? textPrimarySx : textSecondarySx}>
-                                            {folder ?? "—"}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textSecondarySx}>{video.editedBy}</Typography></TableCell>
-                                    <TableCell sx={bodyCellSx}>
-                                        {video.statuses.map(s => <Label key={s} label={s} size="small" sx={{ mr: "4px" }} />)}
-                                    </TableCell>
-                                    <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{videoPermLabel(settings)}</Typography></TableCell>
-                                    <TableCell sx={{ ...bodyCellSx, width: 44 }}>
-                                        {isHovered && (
-                                            <IconButton size="small" onClick={() => setEditingVideo(video)} sx={ellipsisButtonSx}>
-                                                <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faPen} /></SvgIcon>
-                                            </IconButton>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </Box>
-
-            <VideoPermissionDialog
-                open={Boolean(editingVideo)}
-                onClose={() => setEditingVideo(null)}
-                initialSettings={editingVideo ? videoSettings[editingVideo.title] : undefined}
-                onSave={(settings) => {
-                    if (editingVideo) {
-                        setVideoSettings(prev => ({ ...prev, [editingVideo.title]: settings }));
-                        setEditingVideo(null);
-                    }
-                }}
-            />
+        <Box sx={permRowSx}>
+            <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+            <NoOutlineSelect
+                value={value}
+                onChange={e => onChange(e.target.value as string)}
+                size="small"
+                sx={permSelectSx}
+            >
+                {options.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+            </NoOutlineSelect>
         </Box>
     );
 }
 
-// ─── Access: Templates section ────────────────────────────────────────────────
-function AccessTemplatesSection() {
-    // Per-template audience state, keyed by title
-    const [audiences, setAudiences] = useState<Record<string, string[]>>(
-        () => Object.fromEntries(ALL_TEMPLATES.map(t => [t.title, [...DEFAULT_TEMPLATE_AUDIENCE]]))
-    );
-    const [editingTemplate, setEditingTemplate] = useState<TemplateItem | null>(null);
-    const [hoveredRow, setHoveredRow] = useState<string | null>(null);
-
-    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
-    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
-
+function PermInfoRow({ label, value }: { label: string; value: string }) {
     return (
-        <Box sx={sectionContainerSx}>
-            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>Templates</Typography>
-            <Box sx={usersTableContainerSx}>
-                <Table size="small" sx={tableFullWidthSx}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={headCellSx}><Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon></Box></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Status</Typography></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Last edited by</Typography></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Published to</Typography></TableCell>
-                            <TableCell sx={{ ...headCellSx, width: 44 }} />
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {ALL_TEMPLATES.map(template => {
-                            const isHovered = hoveredRow === template.title;
-                            const audience = audiences[template.title] ?? [];
-                            return (
-                                <TableRow key={template.title}
-                                    onMouseEnter={() => setHoveredRow(template.title)}
-                                    onMouseLeave={() => setHoveredRow(null)}
-                                    sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
-                                >
-                                    <TableCell sx={bodyCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>{template.title}</Typography></TableCell>
-                                    <TableCell sx={bodyCellSx}>
-                                        <Label label={template.status} color={template.status === "Published" ? "success" : "default"} size="small" />
-                                    </TableCell>
-                                    <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textSecondarySx}>{template.editedBy}</Typography></TableCell>
-                                    <TableCell sx={bodyCellSx}>
-                                        {audience.length > 0 ? (
-                                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                                                {audience.map(a => <Chip key={a} label={a} size="small" />)}
-                                            </Box>
-                                        ) : (
-                                            <Typography variant="body1" sx={textSecondarySx}>—</Typography>
-                                        )}
-                                    </TableCell>
-                                    <TableCell sx={{ ...bodyCellSx, width: 44 }}>
-                                        {isHovered && (
-                                            <IconButton size="small" onClick={() => setEditingTemplate(template)} sx={ellipsisButtonSx}>
-                                                <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faPen} /></SvgIcon>
-                                            </IconButton>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </Box>
-
-            <EditTemplateAudienceDialog
-                open={Boolean(editingTemplate)}
-                onClose={() => setEditingTemplate(null)}
-                template={editingTemplate}
-                currentAudience={(editingTemplate ? audiences[editingTemplate.title] : []) ?? []}
-                onSave={(audience) => {
-                    if (editingTemplate) {
-                        setAudiences(prev => ({ ...prev, [editingTemplate.title]: audience }));
-                    }
-                }}
-            />
+        <Box sx={permRowSx}>
+            <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+            <Typography variant="body1" sx={textSecondarySx}>{value}</Typography>
         </Box>
     );
 }
 
-// ─── Access: Custom avatar section ────────────────────────────────────────────
-function avatarUsageLabel(perm: AvatarUsagePermission): string {
-    if (perm === "private") {
-        return "Only me";
-    }
-    if (perm === "specific") {
-        return "Specific users";
-    }
-    return "Everyone";
-}
-
-function AccessAvatarSection() {
-    const [avatarSettings, setAvatarSettings] = useState<Record<string, AvatarPermissionSettings>>(
-        () => Object.fromEntries(CUSTOM_AVATARS.map(a => [a.id, { ...DEFAULT_AVATAR_SETTINGS }]))
-    );
-    const [pendingRequests, setPendingRequests] = useState<Record<string, AccessRequest[]>>(
-        () => ({ ...MOCK_REQUESTS })
-    );
-    const [editingAvatar, setEditingAvatar] = useState<AvatarItem | null>(null);
-    const [hoveredRow, setHoveredRow] = useState<string | null>(null);
-
-    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
-    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+function ViewEditPermissionsSection() {
+    const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
+    const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
+    const [avatarOwner, setAvatarOwner] = React.useState("All editors");
+    const [avatarCanUse, setAvatarCanUse] = React.useState("All editors");
+    const [voiceOwner, setVoiceOwner] = React.useState("All editors");
+    const [voiceCanUse, setVoiceCanUse] = React.useState("All editors");
+    const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
+    const [defaultBrand, setDefaultBrand] = React.useState("Default brand");
 
     return (
         <Box sx={sectionContainerSx}>
-            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>Custom avatar</Typography>
-            <Box sx={usersTableContainerSx}>
-                <Table size="small" sx={tableFullWidthSx}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={headCellSx}><Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon></Box></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Created on</Typography></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Usage permission</Typography></TableCell>
-                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Pending requests</Typography></TableCell>
-                            <TableCell sx={{ ...headCellSx, width: 44 }} />
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {CUSTOM_AVATARS.map(avatar => {
-                            const requests = pendingRequests[avatar.id] ?? [];
-                            const hasPending = requests.length > 0;
-                            const settings = avatarSettings[avatar.id] ?? DEFAULT_AVATAR_SETTINGS;
-                            const isHovered = hoveredRow === avatar.id;
-                            return (
-                                <TableRow key={avatar.id}
-                                    onMouseEnter={() => setHoveredRow(avatar.id)}
-                                    onMouseLeave={() => setHoveredRow(null)}
-                                    sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
-                                >
-                                    <TableCell sx={bodyCellSx}>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                            {avatar.img && (
-                                                <Box component="img" src={avatar.img} alt={avatar.name}
-                                                    sx={{ width: 32, height: 32, borderRadius: "8px", objectFit: "cover", flexShrink: 0 }} />
-                                            )}
-                                            <Typography variant="subtitle2" sx={textPrimarySx}>{avatar.name}</Typography>
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{avatar.createdDate ?? "—"}</Typography></TableCell>
-                                    <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{avatarUsageLabel(settings.usagePermission)}</Typography></TableCell>
-                                    <TableCell sx={bodyCellSx}>
-                                        {hasPending ? (
-                                            <Button size="small" variant="outlined" color="warning" onClick={() => setEditingAvatar(avatar)}>
-                                                {requests.length} pending {requests.length === 1 ? "request" : "requests"}
-                                            </Button>
-                                        ) : (
-                                            <Typography variant="body1" sx={textSecondarySx}>—</Typography>
-                                        )}
-                                    </TableCell>
-                                    <TableCell sx={{ ...bodyCellSx, width: 44 }}>
-                                        {isHovered && (
-                                            <IconButton size="small" onClick={() => setEditingAvatar(avatar)} sx={ellipsisButtonSx}>
-                                                <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faPen} /></SvgIcon>
-                                            </IconButton>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </Box>
+            <Typography variant="h3" sx={{ color: "text.primary", mb: "12px", flexShrink: 0 }}>
+                Viewing and editing permissions
+            </Typography>
 
-            {editingAvatar && (
-                <AvatarPermissionDialog
-                    open={Boolean(editingAvatar)}
-                    onClose={() => setEditingAvatar(null)}
-                    avatarName={editingAvatar.name}
-                    initialSettings={avatarSettings[editingAvatar.id]}
-                    initialRequests={pendingRequests[editingAvatar.id] ?? []}
-                    onSave={(settings, remainingRequests) => {
-                        setAvatarSettings(prev => ({ ...prev, [editingAvatar.id]: settings }));
-                        setPendingRequests(prev => ({ ...prev, [editingAvatar.id]: remainingRequests }));
-                        setEditingAvatar(null);
-                    }}
-                />
-            )}
+            {/* Explanation */}
+            <AttentionBox sx={{ mb: "4px" }}>
+                <AttentionBoxContent>
+                    These are the default permissions you set as the account owner.
+                    Individual owners can still change permissions on their own content.
+                </AttentionBoxContent>
+            </AttentionBox>
+
+            {/* Videos and templates */}
+            <PermGroup title="Videos and templates">
+                <PermRow label="Can edit" value={videoCanEdit}
+                    options={["Video owner", "All editors"]}
+                    onChange={setVideoCanEdit} />
+                <PermRow label="Can view" value={videoCanView}
+                    options={["Everyone in the account", "None"]}
+                    onChange={setVideoCanView} />
+            </PermGroup>
+
+            {/* Custom avatars */}
+            <PermGroup title="Custom avatars">
+                <PermRow label="Owner" value={avatarOwner}
+                    options={["All editors", "Specific users", "Account owner only"]}
+                    onChange={setAvatarOwner} />
+                <PermRow label="Can use" value={avatarCanUse}
+                    options={["All editors", "Specific users"]}
+                    onChange={setAvatarCanUse} />
+            </PermGroup>
+
+            {/* Custom voice */}
+            <PermGroup title="Custom voice">
+                <PermRow label="Owner" value={voiceOwner}
+                    options={["All editors", "Specific users", "Account owner only"]}
+                    onChange={setVoiceOwner} />
+                <PermRow label="Can use" value={voiceCanUse}
+                    options={["All editors", "Specific users"]}
+                    onChange={setVoiceCanUse} />
+            </PermGroup>
+
+            {/* Brand */}
+            <PermGroup title="Brand">
+                <PermRow label="Owner" value={brandOwner}
+                    options={["Everyone in the account", "None"]}
+                    onChange={setBrandOwner} />
+                <PermRow label="Default brand" value={defaultBrand}
+                    options={MOCK_BRANDS}
+                    onChange={setDefaultBrand} />
+                <PermInfoRow label="Can use" value="Everyone in the account" />
+            </PermGroup>
+
+            {/* Save */}
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: "8px", flexShrink: 0 }}>
+                <Button variant="contained" size="large">Save</Button>
+            </Box>
         </Box>
     );
 }
@@ -2466,7 +2232,7 @@ export default function AccountSettingsDialog({
     initialTab = "users"
 }: AccountSettingsDialogProps) {
     const resolveInitialTab = (t: string): NavKey =>
-        t === "access" ? "access-videos" : (t as NavKey);
+        t === "access" ? "view-edit-permissions" : (t as NavKey);
     const [nav, setNav] = useState<NavKey>(resolveInitialTab(initialTab));
     const [users, setUsers] = useState<AccountUser[]>(INITIAL_USERS);
     const [approverIds, setApproverIds] = useState<Set<string>>(externalApproverIds);
@@ -2601,39 +2367,6 @@ export default function AccountSettingsDialog({
                         </Box>
                     ))}
 
-                    {/* Access — expandable with chevron */}
-                    <Box
-                        onClick={() => setNav("access-videos")}
-                        sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: isAccessNav(nav) ? "action.hover" : "transparent", color: isAccessNav(nav) ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
-                    >
-                        <Box sx={{ color: isAccessNav(nav) ? "primary.main" : "action.active", display: "flex", flexShrink: 0 }}>
-                            <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUserLock} /></SvgIcon>
-                        </Box>
-                        <Typography variant="body1" sx={{ fontWeight: isAccessNav(nav) ? 600 : 400, color: "inherit", flex: 1 }}>
-                            Access
-                        </Typography>
-                        <SvgIcon sx={{ fontSize: "14px !important", color: "action.active", transition: "transform 0.2s", transform: isAccessNav(nav) ? "rotate(0deg)" : "rotate(-90deg)" }}>
-                            <FontAwesomeIcon icon={faChevronDown} />
-                        </SvgIcon>
-                    </Box>
-
-                    {/* Access sub-nav items */}
-                    {isAccessNav(nav) && ACCESS_SUBNAV.map(sub => (
-                        <Box
-                            key={sub.key}
-                            onClick={() => !sub.comingSoon && setNav(sub.key)}
-                            sx={{ display: "flex", alignItems: "center", gap: "8px", pl: "36px", pr: "12px", py: "6px", borderRadius: "8px", cursor: sub.comingSoon ? "default" : "pointer", bgcolor: nav === sub.key ? "action.selected" : "transparent", color: nav === sub.key ? "primary.main" : sub.comingSoon ? "text.disabled" : "text.primary", "&:hover": { bgcolor: sub.comingSoon ? "transparent" : "action.hover" } }}
-                        >
-                            <Typography variant="body1" sx={{ fontWeight: nav === sub.key ? 600 : 400, color: "inherit", flex: 1, fontSize: "13px" }}>
-                                {sub.label}
-                            </Typography>
-                            {sub.comingSoon && (
-                                <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "10px", whiteSpace: "nowrap" }}>
-                                    Soon
-                                </Typography>
-                            )}
-                        </Box>
-                    ))}
                 </Box>
 
                 {/* Content */}
@@ -2694,14 +2427,8 @@ export default function AccountSettingsDialog({
                             onGroupsChange={setGroups}
                         />
                     )}
-                    {nav === "permissions" && <PlaceholderSection label="Permissions" />}
-                    {nav === "access-videos" && <AccessVideosSection />}
-
-                    {nav === "access-templates" && <AccessTemplatesSection />}
-                    {nav === "access-avatar" && <AccessAvatarSection />}
-                    {nav === "access-voice" && <PlaceholderSection label="Custom voice (Coming soon)" />}
-                    {nav === "access-brand" && <PlaceholderSection label="Brand (Coming soon)" />}
-                    {nav === "access-media" && <PlaceholderSection label="Media Lib (Coming soon)" />}
+                    {nav === "permissions" && <PlaceholderSection label="AI permissions" />}
+                    {nav === "view-edit-permissions" && <ViewEditPermissionsSection />}
                     {nav === "approvals" && (
                         <ApprovalsSection
                             users={users}
@@ -2870,3 +2597,10 @@ const removeGroupActionsRowSx: SxProps<Theme> = { display: "flex", justifyConten
 const groupEmptyStateSx: SxProps<Theme> = { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", py: 4 };
 const groupEmptyIconWrapSx: SxProps<Theme> = { width: 64, height: 64, borderRadius: "16px", bgcolor: "primary.light", display: "flex", alignItems: "center", justifyContent: "center", mb: "4px" };
 const groupEmptyIconSx: SxProps<Theme> = { fontSize: "28px !important", width: "28px !important", height: "28px !important", color: "primary.main" };
+
+// ViewEditPermissionsSection
+const permGroupSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0 };
+const permGroupTitleSx: SxProps<Theme> = { color: "text.primary" };
+const permGroupCardSx: SxProps<Theme> = { border: 1, borderColor: "divider", borderRadius: "10px", overflow: "hidden", bgcolor: "background.paper" };
+const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", px: "16px", py: "10px", gap: "16px" };
+const permSelectSx: SxProps<Theme> = { minWidth: 220, "& .MuiSelect-select": { py: "4px" } };
