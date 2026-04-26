@@ -9,10 +9,10 @@ import {
     Autocomplete, TextField
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup, faEye } from "@fortawesome/pro-regular-svg-icons";
+import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup } from "@fortawesome/pro-regular-svg-icons";
 import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle, NoOutlineSelect } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
-import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
+import { ALL_USERS, OWNER_USER, type User } from "./dialogs/ManageAccessDialog";
 
 
 // ─── Types & mock data ────────────────────────────────────────────────────────
@@ -57,17 +57,21 @@ function findAccountUser(userId: string, accountUsers: AccountUser[]): AccountUs
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 const navIconSx: SxProps<Theme> = { fontSize: 18 };
-type NavKey = "users" | "permissions" | "approvals" | "groups" | "view-edit-permissions"
-    | "access-videos" | "access-templates" | "access-avatar"
-    | "access-voice" | "access-brand" | "access-media"
+type NavKey = "users" | "approvals" | "groups"
+    | "permissions-ai" | "permissions-view-edit"
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
     { key: "users", label: "All users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
     { key: "groups", label: "Groups", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon> },
-    { key: "permissions", label: "AI permissions", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
-    { key: "view-edit-permissions", label: "Viewing and editing", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faEye} /></SvgIcon> },
     { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> }
 ];
+
+const PERMISSIONS_SUBNAV: { key: NavKey; label: string }[] = [
+    { key: "permissions-ai", label: "AI features" },
+    { key: "permissions-view-edit", label: "Viewing and editing" }
+];
+
+const isPermissionsNav = (n: NavKey) => n.startsWith("permissions-");
 
 
 
@@ -2092,14 +2096,19 @@ function PermGroup({ title, children }: { title: string; children: React.ReactNo
     );
 }
 
-function PermRow({ label, value, options, onChange }: {
-    label: string; value: string;
+function PermRow({ label, subtitle, value, options, onChange }: {
+    label: string;
+    subtitle?: string;
+    value: string;
     options: readonly string[] | string[];
     onChange: (val: string) => void;
 }) {
     return (
         <Box sx={permRowSx}>
-            <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+            <Box sx={permLabelBoxSx}>
+                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+                {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
+            </Box>
             <NoOutlineSelect
                 value={value}
                 onChange={e => onChange(e.target.value as string)}
@@ -2112,11 +2121,47 @@ function PermRow({ label, value, options, onChange }: {
     );
 }
 
-function PermInfoRow({ label, value }: { label: string; value: string }) {
+function PermInfoRow({ label, subtitle, value }: { label: string; subtitle?: string; value: string }) {
     return (
         <Box sx={permRowSx}>
-            <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+            <Box sx={permLabelBoxSx}>
+                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+                {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
+            </Box>
             <Typography variant="body1" sx={textSecondarySx}>{value}</Typography>
+        </Box>
+    );
+}
+
+function PermRowUsers({ label, subtitle, value, onChange }: {
+    label: string;
+    subtitle?: string;
+    value: User[];
+    onChange: (val: User[]) => void;
+}) {
+    return (
+        <Box sx={permRowSx}>
+            <Box sx={permLabelBoxSx}>
+                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+                {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
+            </Box>
+            <Autocomplete<User, true>
+                multiple
+                options={ALL_USERS}
+                value={value}
+                onChange={(_e, val) => onChange(val)}
+                getOptionLabel={u => u.name || u.email}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                renderTags={(val, getTagProps) =>
+                    val.map((u, i) => (
+                        <Chip label={u.name || u.email} size="small" {...getTagProps({ index: i })} />
+                    ))
+                }
+                renderInput={params => (
+                    <TextField {...params} size="small" placeholder="Search users..." />
+                )}
+                sx={permUserAutocompleteSx}
+            />
         </Box>
     );
 }
@@ -2124,10 +2169,10 @@ function PermInfoRow({ label, value }: { label: string; value: string }) {
 function ViewEditPermissionsSection() {
     const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
     const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
-    const [avatarOwner, setAvatarOwner] = React.useState("All editors");
-    const [avatarCanUse, setAvatarCanUse] = React.useState("All editors");
-    const [voiceOwner, setVoiceOwner] = React.useState("All editors");
-    const [voiceCanUse, setVoiceCanUse] = React.useState("All editors");
+    const [avatarCanEdit, setAvatarCanEdit] = React.useState<User[]>([]);
+    const [avatarCanUse, setAvatarCanUse] = React.useState<User[]>([]);
+    const [voiceCanEdit, setVoiceCanEdit] = React.useState<User[]>([]);
+    const [voiceCanUse, setVoiceCanUse] = React.useState<User[]>([]);
     const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
     const [defaultBrand, setDefaultBrand] = React.useState("Default brand");
 
@@ -2138,53 +2183,82 @@ function ViewEditPermissionsSection() {
             </Typography>
 
             {/* Explanation */}
-            <AttentionBox sx={{ mb: "4px" }}>
+            <AttentionBox sx={{ mb: "16px", flexShrink: 0 }}>
                 <AttentionBoxContent>
                     These are the default permissions you set as the account owner.
                     Individual owners can still change permissions on their own content.
                 </AttentionBoxContent>
             </AttentionBox>
 
-            {/* Videos and templates */}
-            <PermGroup title="Videos and templates">
-                <PermRow label="Can edit" value={videoCanEdit}
-                    options={["Video owner", "All editors"]}
-                    onChange={setVideoCanEdit} />
-                <PermRow label="Can view" value={videoCanView}
-                    options={["Everyone in the account", "None"]}
-                    onChange={setVideoCanView} />
-            </PermGroup>
+            {/* Scrollable perm groups */}
+            <Box sx={permGroupsScrollSx}>
+                {/* Videos and templates */}
+                <PermGroup title="Videos and templates">
+                    <PermRow
+                        label="Can edit"
+                        subtitle="can edit and share and publish templates and videos"
+                        value={videoCanEdit}
+                        options={["Video owner", "All editors"]}
+                        onChange={setVideoCanEdit}
+                    />
+                    <PermRow
+                        label="Can view"
+                        subtitle="can view others videos"
+                        value={videoCanView}
+                        options={["Everyone in the account", "None"]}
+                        onChange={setVideoCanView}
+                    />
+                </PermGroup>
 
-            {/* Custom avatars */}
-            <PermGroup title="Custom avatars">
-                <PermRow label="Owner" value={avatarOwner}
-                    options={["All editors", "Specific users", "Account owner only"]}
-                    onChange={setAvatarOwner} />
-                <PermRow label="Can use" value={avatarCanUse}
-                    options={["All editors", "Specific users"]}
-                    onChange={setAvatarCanUse} />
-            </PermGroup>
+                {/* Custom avatars */}
+                <PermGroup title="Custom avatars">
+                    <PermRowUsers
+                        label="Can edit"
+                        subtitle="can create, delete and manage access to custom avatars"
+                        value={avatarCanEdit}
+                        onChange={setAvatarCanEdit}
+                    />
+                    <PermRowUsers
+                        label="Can use"
+                        subtitle="can use custom avatar"
+                        value={avatarCanUse}
+                        onChange={setAvatarCanUse}
+                    />
+                </PermGroup>
 
-            {/* Custom voice */}
-            <PermGroup title="Custom voice">
-                <PermRow label="Owner" value={voiceOwner}
-                    options={["All editors", "Specific users", "Account owner only"]}
-                    onChange={setVoiceOwner} />
-                <PermRow label="Can use" value={voiceCanUse}
-                    options={["All editors", "Specific users"]}
-                    onChange={setVoiceCanUse} />
-            </PermGroup>
+                {/* Custom voice */}
+                <PermGroup title="Custom voice">
+                    <PermRowUsers
+                        label="Can edit"
+                        subtitle="can create, delete and manage access to custom voice"
+                        value={voiceCanEdit}
+                        onChange={setVoiceCanEdit}
+                    />
+                    <PermRowUsers
+                        label="Can use"
+                        subtitle="can use custom voice"
+                        value={voiceCanUse}
+                        onChange={setVoiceCanUse}
+                    />
+                </PermGroup>
 
-            {/* Brand */}
-            <PermGroup title="Brand">
-                <PermRow label="Owner" value={brandOwner}
-                    options={["Everyone in the account", "None"]}
-                    onChange={setBrandOwner} />
-                <PermRow label="Default brand" value={defaultBrand}
-                    options={MOCK_BRANDS}
-                    onChange={setDefaultBrand} />
-                <PermInfoRow label="Can use" value="Everyone in the account" />
-            </PermGroup>
+                {/* Brand */}
+                <PermGroup title="Brand">
+                    <PermRow
+                        label="Owner"
+                        value={brandOwner}
+                        options={["Everyone in the account", "None"]}
+                        onChange={setBrandOwner}
+                    />
+                    <PermRow
+                        label="Default brand"
+                        value={defaultBrand}
+                        options={MOCK_BRANDS}
+                        onChange={setDefaultBrand}
+                    />
+                    <PermInfoRow label="Can use" value="Everyone in the account" />
+                </PermGroup>
+            </Box>
 
             {/* Save */}
             <Box sx={{ display: "flex", justifyContent: "flex-end", mt: "8px", flexShrink: 0 }}>
@@ -2231,9 +2305,17 @@ export default function AccountSettingsDialog({
     pendingApprovalsCount = 0,
     initialTab = "users"
 }: AccountSettingsDialogProps) {
-    const resolveInitialTab = (t: string): NavKey =>
-        t === "access" ? "view-edit-permissions" : (t as NavKey);
+    const resolveInitialTab = (t: string): NavKey => {
+        if (t === "access" || t === "view-edit-permissions") {
+            return "permissions-view-edit";
+        }
+        if (t === "permissions") {
+            return "permissions-ai";
+        }
+        return t as NavKey;
+    };
     const [nav, setNav] = useState<NavKey>(resolveInitialTab(initialTab));
+    const [permissionsExpanded, setPermissionsExpanded] = useState(() => isPermissionsNav(resolveInitialTab(initialTab)));
     const [users, setUsers] = useState<AccountUser[]>(INITIAL_USERS);
     const [approverIds, setApproverIds] = useState<Set<string>>(externalApproverIds);
     const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled);
@@ -2367,6 +2449,40 @@ export default function AccountSettingsDialog({
                         </Box>
                     ))}
 
+                    {/* Permissions expandable parent */}
+                    <Box
+                        onClick={() => {
+                            const willExpand = !permissionsExpanded;
+                            setPermissionsExpanded(willExpand);
+                            if (willExpand && !isPermissionsNav(nav)) {
+                                setNav("permissions-ai");
+                            }
+                        }}
+                        sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: isPermissionsNav(nav) ? "action.hover" : "transparent", color: isPermissionsNav(nav) ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
+                    >
+                        <Box sx={{ color: isPermissionsNav(nav) ? "primary.main" : "action.active", display: "flex", flexShrink: 0 }}>
+                            <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
+                        </Box>
+                        <Typography variant="body1" sx={{ fontWeight: isPermissionsNav(nav) ? 600 : 400, color: "inherit", flex: 1 }}>
+                            Permissions
+                        </Typography>
+                        <SvgIcon sx={{ fontSize: "14px !important", transition: "transform 0.2s", transform: permissionsExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+                            <FontAwesomeIcon icon={faChevronDown} />
+                        </SvgIcon>
+                    </Box>
+
+                    {/* Permissions sub-nav */}
+                    {permissionsExpanded && PERMISSIONS_SUBNAV.map(item => (
+                        <Box
+                            key={item.key}
+                            onClick={() => setNav(item.key)}
+                            sx={{ display: "flex", alignItems: "center", pl: "36px", pr: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
+                        >
+                            <Typography variant="body1" sx={{ fontWeight: nav === item.key ? 600 : 400, color: "inherit" }}>
+                                {item.label}
+                            </Typography>
+                        </Box>
+                    ))}
                 </Box>
 
                 {/* Content */}
@@ -2427,8 +2543,8 @@ export default function AccountSettingsDialog({
                             onGroupsChange={setGroups}
                         />
                     )}
-                    {nav === "permissions" && <PlaceholderSection label="AI permissions" />}
-                    {nav === "view-edit-permissions" && <ViewEditPermissionsSection />}
+                    {nav === "permissions-ai" && <PlaceholderSection label="AI features" />}
+                    {nav === "permissions-view-edit" && <ViewEditPermissionsSection />}
                     {nav === "approvals" && (
                         <ApprovalsSection
                             users={users}
@@ -2602,5 +2718,8 @@ const groupEmptyIconSx: SxProps<Theme> = { fontSize: "28px !important", width: "
 const permGroupSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0 };
 const permGroupTitleSx: SxProps<Theme> = { color: "text.primary" };
 const permGroupCardSx: SxProps<Theme> = { border: 1, borderColor: "divider", borderRadius: "10px", overflow: "hidden", bgcolor: "background.paper" };
-const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", px: "16px", py: "10px", gap: "16px" };
-const permSelectSx: SxProps<Theme> = { minWidth: 220, "& .MuiSelect-select": { py: "4px" } };
+const permGroupsScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "32px", pb: "8px" };
+const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "flex-start", px: "16px", py: "10px", gap: "16px" };
+const permLabelBoxSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px", width: 260, flexShrink: 0 };
+const permSelectSx: SxProps<Theme> = { minWidth: 180, "& .MuiSelect-select": { py: "4px" } };
+const permUserAutocompleteSx: SxProps<Theme> = { minWidth: 240, flex: 1 };
