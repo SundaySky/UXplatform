@@ -2076,8 +2076,6 @@ function PlaceholderSection({ label }: { label: string }) {
 
 // ─── Viewing & Editing Permissions section ────────────────────────────────────
 
-const MOCK_BRANDS = ["Default brand", "Summer campaign", "Enterprise theme", "Minimal"];
-
 // Small reusable helpers (only used in this section)
 function PermGroup({ title, children }: { title: string; children: React.ReactNode }) {
     const childArray = React.Children.toArray(children);
@@ -2141,7 +2139,6 @@ function ViewEditPermissionsSection() {
     const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
     const [voiceCanUse, setVoiceCanUse] = React.useState("Everyone in your account");
     const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
-    const [defaultBrand, setDefaultBrand] = React.useState("Default brand");
 
     return (
         <Box sx={sectionContainerSx}>
@@ -2211,16 +2208,10 @@ function ViewEditPermissionsSection() {
                 {/* Brand */}
                 <PermGroup title="Brand">
                     <PermRow
-                        label="Owner"
+                        label="Can create, delete and manage brand permission"
                         value={brandOwner}
                         options={["Everyone in the account", "None"]}
                         onChange={setBrandOwner}
-                    />
-                    <PermRow
-                        label="Default brand"
-                        value={defaultBrand}
-                        options={MOCK_BRANDS}
-                        onChange={setDefaultBrand}
                     />
                     <PermInfoRow label="Can use" value="Everyone in the account" />
                 </PermGroup>
