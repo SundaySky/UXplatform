@@ -23,7 +23,7 @@ const RECENT_TEMPLATES: TemplateItem[] = [
     { title: "Looking forward to talking to you", editedBy: "Edited on Dec 20 by you", status: "Draft", purposeLabels: ["Sales"] }
 ];
 
-const ALL_TEMPLATES: TemplateItem[] = [
+export const ALL_TEMPLATES: TemplateItem[] = [
     { title: "Motivation", editedBy: "Edited on Jan 21 by you", status: "Published", personalized: true, purposeLabels: ["Engagement"] },
     { title: "Nice to see you!", editedBy: "Edited on Jan 15 by you", status: "Published", hasNewDraft: true, purposeLabels: ["Onboarding", "Retention"] },
     { title: "Welcome to SundaySky", editedBy: "Edited on Jan 10 by you", status: "Draft", personalized: true, purposeLabels: ["Onboarding"] },

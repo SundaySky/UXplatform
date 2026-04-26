@@ -26,7 +26,7 @@ const RECENT_VIDEOS: VideoItem[] = [
     { title: "Discover Tel Aviv's Scenic Parks", subtitle: "Urban Oasis Awaits", editedBy: "Edited in the past month by you", statuses: ["Approved for sharing"], personalized: true }
 ];
 
-const ALL_VIDEOS: VideoItem[] = [
+export const ALL_VIDEOS: VideoItem[] = [
     { title: "Prepare for Winter Fun!", subtitle: "Family Bonding through Home Prep", editedBy: "Edited in the past month", statuses: ["Approved for sharing"], personalized: true },
     { title: "Stay Safe During Missile Threats", subtitle: "Essential Safety Protocols", editedBy: "Edited on Nov 4, 2025", statuses: ["Downloaded for Sharing"], personalized: false },
     { title: "Doc-to-vid test", subtitle: undefined, editedBy: "Edited on Jan 12", statuses: ["Downloaded"], personalized: true },
