@@ -2132,49 +2132,112 @@ function PermInfoRow({ label, subtitle, value }: { label: string; subtitle?: str
     );
 }
 
-function PermRowWithUsers({ label, fixedValue, fixedOptions, users, onUsersChange }: {
-    label: string;
-    fixedValue: string;
-    fixedOptions: readonly string[] | string[];
-    users: typeof ALL_USERS[number][];
-    onUsersChange: (val: typeof ALL_USERS[number][]) => void;
-}) {
+type PermOption =
+    | { kind: "fixed"; label: string }
+    | { kind: "user"; user: typeof ALL_USERS[number] };
+
+const FIXED_USE_OPTIONS: PermOption[] = [
+    { kind: "fixed", label: "None" },
+    { kind: "fixed", label: "Users with editor permission" }
+];
+
+const EDITOR_USER_OPTIONS: PermOption[] = ALL_USERS.map(u => ({ kind: "user" as const, user: u }));
+
+const ALL_PERM_OPTIONS: PermOption[] = [...FIXED_USE_OPTIONS, ...EDITOR_USER_OPTIONS];
+
+function getPermOptionLabel(opt: PermOption): string {
+    return opt.kind === "fixed" ? opt.label : (opt.user.name || opt.user.email);
+}
+
+function PermRowWithUsers({ label }: { label: string }) {
+    const [value, setValue] = React.useState<PermOption[]>([]);
+
+    const handleChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
+        const lastAdded = newValue[newValue.length - 1];
+        if (!lastAdded) {
+            setValue([]);
+            return;
+        }
+        if (lastAdded.kind === "fixed") {
+            // Fixed option is exclusive — replace everything with just this one
+            setValue([lastAdded]);
+        }
+        else {
+            // User selected — remove any fixed options, keep users only
+            setValue(newValue.filter(v => v.kind === "user"));
+        }
+    };
+
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <Box sx={permRowSx}>
-                <Box sx={permLabelBoxSx}>
-                    <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
-                </Box>
-                <Select
-                    value={fixedValue}
-                    onChange={() => {}}
-                    size="small"
-                    variant="outlined"
-                    sx={permSelectSx}
-                    disabled
-                >
-                    {fixedOptions.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                </Select>
+        <Box sx={permRowSx}>
+            <Box sx={permLabelBoxSx}>
+                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
             </Box>
-            <Box sx={{ px: "16px", pb: "8px" }}>
-                <Autocomplete<typeof ALL_USERS[number], true>
-                    multiple
-                    options={ALL_USERS}
-                    value={users}
-                    onChange={(_e, val) => onUsersChange(val)}
-                    getOptionLabel={u => u.name || u.email}
-                    isOptionEqualToValue={(a, b) => a.id === b.id}
-                    size="small"
-                    renderTags={(val, getTagProps) =>
-                        val.map((u, i) => (
-                            <Chip label={u.name || u.email} size="small" {...getTagProps({ index: i })} />
-                        ))
+            <Autocomplete<PermOption, true>
+                multiple
+                options={ALL_PERM_OPTIONS}
+                value={value}
+                onChange={handleChange}
+                getOptionLabel={getPermOptionLabel}
+                isOptionEqualToValue={(a, b) => {
+                    if (a.kind !== b.kind) {
+                        return false;
                     }
-                    renderInput={params => (
-                        <TextField {...params} size="small" placeholder="Select users..." />
-                    )}
-                />
-            </Box>
+                    if (a.kind === "fixed" && b.kind === "fixed") {
+                        return a.label === b.label;
+                    }
+                    if (a.kind === "user" && b.kind === "user") {
+                        return a.user.id === b.user.id;
+                    }
+                    return false;
+                }}
+                groupBy={(opt) => opt.kind}
+                filterOptions={(options, state) => {
+                    const input = state.inputValue.toLowerCase();
+                    if (!input) {
+                        return options;
+                    }
+                    const fixed = options.filter(o => o.kind === "fixed");
+                    const users = options.filter(o =>
+                        o.kind === "user" && (
+                            (o.user.name || "").toLowerCase().includes(input) ||
+                            o.user.email.toLowerCase().includes(input)
+                        )
+                    );
+                    return [...fixed, ...users];
+                }}
+                renderGroup={(params) => (
+                    <React.Fragment key={params.key}>
+                        {params.group === "user" && <Divider />}
+                        <Box component="ul" sx={permAutocompleteGroupListSx}>
+                            {params.children}
+                        </Box>
+                    </React.Fragment>
+                )}
+                renderOption={(props, opt) => (
+                    <MenuItem {...props} key={getPermOptionLabel(opt)}>
+                        {getPermOptionLabel(opt)}
+                    </MenuItem>
+                )}
+                renderTags={(vals, getTagProps) =>
+                    vals.map((opt, i) => (
+                        <Chip
+                            label={getPermOptionLabel(opt)}
+                            size="small"
+                            {...getTagProps({ index: i })}
+                        />
+                    ))
+                }
+                size="small"
+                renderInput={params => (
+                    <TextField
+                        {...params}
+                        size="small"
+                        placeholder={value.length === 0 ? "Select permission or users…" : ""}
+                    />
+                )}
+                sx={permSelectSx}
+            />
         </Box>
     );
 }
@@ -2183,9 +2246,7 @@ function ViewEditPermissionsSection() {
     const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
     const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
     const [avatarCanEdit, setAvatarCanEdit] = React.useState("Users with editor permission");
-    const [avatarCanUseUsers, setAvatarCanUseUsers] = React.useState<typeof ALL_USERS[number][]>([]);
     const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
-    const [voiceCanUseUsers, setVoiceCanUseUsers] = React.useState<typeof ALL_USERS[number][]>([]);
     const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
 
     return (
@@ -2229,13 +2290,7 @@ function ViewEditPermissionsSection() {
                         options={["Users with editor permission", "Account owner only"]}
                         onChange={setAvatarCanEdit}
                     />
-                    <PermRowWithUsers
-                        label="Can use custom avatar"
-                        fixedValue="Everyone in your account"
-                        fixedOptions={["Everyone in your account", "Users with editor permission"]}
-                        users={avatarCanUseUsers}
-                        onUsersChange={setAvatarCanUseUsers}
-                    />
+                    <PermRowWithUsers label="Can use custom avatar" />
                 </PermGroup>
 
                 {/* Custom voice */}
@@ -2246,13 +2301,7 @@ function ViewEditPermissionsSection() {
                         options={["Users with editor permission", "Account owner only"]}
                         onChange={setVoiceCanEdit}
                     />
-                    <PermRowWithUsers
-                        label="Can use custom voice"
-                        fixedValue="Everyone in your account"
-                        fixedOptions={["Everyone in your account", "Users with editor permission"]}
-                        users={voiceCanUseUsers}
-                        onUsersChange={setVoiceCanUseUsers}
-                    />
+                    <PermRowWithUsers label="Can use custom voice" />
                 </PermGroup>
 
                 {/* Brand */}
@@ -2729,3 +2778,4 @@ const permGroupsScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", display
 const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "flex-start", px: "16px", py: "10px", gap: "16px" };
 const permLabelBoxSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px", width: 260, flexShrink: 0 };
 const permSelectSx: SxProps<Theme> = { minWidth: 180, "& .MuiSelect-select": { py: "4px" } };
+const permAutocompleteGroupListSx: SxProps<Theme> = { p: 0, m: 0, listStyle: "none" };
