@@ -2305,6 +2305,7 @@ function PermRowWithUsers({
 
 function ViewEditPermissionsSection() {
     const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
+    const [videoCanEditPerms, setVideoCanEditPerms] = React.useState("Video owner");
     const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
     const [avatarCanEdit, setAvatarCanEdit] = React.useState("Users with editor permission");
     const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
@@ -2329,10 +2330,16 @@ function ViewEditPermissionsSection() {
                 {/* Videos and templates */}
                 <PermGroup title="Videos and templates">
                     <PermRow
-                        label="Edit and manage permissions"
+                        label="Edit"
                         value={videoCanEdit}
                         options={["Video owner", "All users with editor permissions only"]}
                         onChange={setVideoCanEdit}
+                    />
+                    <PermRow
+                        label="Edit permissions"
+                        value={videoCanEditPerms}
+                        options={["Video owner", "All users with editor permissions only"]}
+                        onChange={setVideoCanEditPerms}
                     />
                     <PermRow
                         label="Can view"
