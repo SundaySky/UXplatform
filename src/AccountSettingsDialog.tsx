@@ -2223,14 +2223,9 @@ function PermRowWithUsers({
                 open={isEditing}
                 onOpen={() => setIsEditing(true)}
                 onClose={() => {
-                    // Return to Select mode only when no user chips remain.
-                    // Use functional update to read current selectedUsers, avoiding stale closure.
-                    setSelectedUsers(prev => {
-                        if (prev.length === 0) {
-                            setIsEditing(false);
-                        }
-                        return prev;
-                    });
+                    // Always collapse the dropdown on outside click / Escape.
+                    // showAsSelect handles whether to render Select or closed Autocomplete-with-chips.
+                    setIsEditing(false);
                 }}
                 options={allOptions}
                 value={autocompleteValue}
