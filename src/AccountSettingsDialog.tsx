@@ -12,7 +12,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup } from "@fortawesome/pro-regular-svg-icons";
 import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle, NoOutlineSelect } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
-import { ALL_USERS, OWNER_USER, type User } from "./dialogs/ManageAccessDialog";
+import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
 
 
 // ─── Types & mock data ────────────────────────────────────────────────────────
@@ -2133,46 +2133,13 @@ function PermInfoRow({ label, subtitle, value }: { label: string; subtitle?: str
     );
 }
 
-function PermRowUsers({ label, subtitle, value, onChange }: {
-    label: string;
-    subtitle?: string;
-    value: User[];
-    onChange: (val: User[]) => void;
-}) {
-    return (
-        <Box sx={permRowSx}>
-            <Box sx={permLabelBoxSx}>
-                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
-                {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
-            </Box>
-            <Autocomplete<User, true>
-                multiple
-                options={ALL_USERS}
-                value={value}
-                onChange={(_e, val) => onChange(val)}
-                getOptionLabel={u => u.name || u.email}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
-                renderTags={(val, getTagProps) =>
-                    val.map((u, i) => (
-                        <Chip label={u.name || u.email} size="small" {...getTagProps({ index: i })} />
-                    ))
-                }
-                renderInput={params => (
-                    <TextField {...params} size="small" placeholder="Search users..." />
-                )}
-                sx={permUserAutocompleteSx}
-            />
-        </Box>
-    );
-}
-
 function ViewEditPermissionsSection() {
     const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
     const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
-    const [avatarCanEdit, setAvatarCanEdit] = React.useState<User[]>([]);
-    const [avatarCanUse, setAvatarCanUse] = React.useState<User[]>([]);
-    const [voiceCanEdit, setVoiceCanEdit] = React.useState<User[]>([]);
-    const [voiceCanUse, setVoiceCanUse] = React.useState<User[]>([]);
+    const [avatarCanEdit, setAvatarCanEdit] = React.useState("Users with editor permission");
+    const [avatarCanUse, setAvatarCanUse] = React.useState("Everyone in your account");
+    const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
+    const [voiceCanUse, setVoiceCanUse] = React.useState("Everyone in your account");
     const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
     const [defaultBrand, setDefaultBrand] = React.useState("Default brand");
 
@@ -2211,32 +2178,32 @@ function ViewEditPermissionsSection() {
 
                 {/* Custom avatars */}
                 <PermGroup title="Custom avatars">
-                    <PermRowUsers
-                        label="Can edit"
-                        subtitle="can create, delete and manage access to custom avatars"
+                    <PermRow
+                        label="Create, delete and manage access to custom avatars"
                         value={avatarCanEdit}
+                        options={["Users with editor permission", "Account owner only"]}
                         onChange={setAvatarCanEdit}
                     />
-                    <PermRowUsers
-                        label="Can use"
-                        subtitle="can use custom avatar"
+                    <PermRow
+                        label="Can use custom avatar"
                         value={avatarCanUse}
+                        options={["Everyone in your account", "Users with editor permission"]}
                         onChange={setAvatarCanUse}
                     />
                 </PermGroup>
 
                 {/* Custom voice */}
                 <PermGroup title="Custom voice">
-                    <PermRowUsers
-                        label="Can edit"
-                        subtitle="can create, delete and manage access to custom voice"
+                    <PermRow
+                        label="Create, delete and manage access to custom voice"
                         value={voiceCanEdit}
+                        options={["Users with editor permission", "Account owner only"]}
                         onChange={setVoiceCanEdit}
                     />
-                    <PermRowUsers
-                        label="Can use"
-                        subtitle="can use custom voice"
+                    <PermRow
+                        label="Can use custom voice"
                         value={voiceCanUse}
+                        options={["Everyone in your account", "Users with editor permission"]}
                         onChange={setVoiceCanUse}
                     />
                 </PermGroup>
@@ -2721,4 +2688,3 @@ const permGroupsScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", display
 const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "flex-start", px: "16px", py: "10px", gap: "16px" };
 const permLabelBoxSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px", width: 260, flexShrink: 0 };
 const permSelectSx: SxProps<Theme> = { minWidth: 180, "& .MuiSelect-select": { py: "4px" } };
-const permUserAutocompleteSx: SxProps<Theme> = { minWidth: 240, flex: 1 };
