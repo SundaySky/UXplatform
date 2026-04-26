@@ -31,7 +31,7 @@ const navyTooltipSx = {
 
 
 // ─── Mock data ─────────────────────────────────────────────────────────────────
-interface AvatarItem {
+export interface AvatarItem {
   id: string
   name: string
   img: string | null
@@ -41,7 +41,7 @@ interface AvatarItem {
 }
 
 // Requests only on taylor
-const MOCK_REQUESTS: Record<string, AccessRequest[]> = {
+export const MOCK_REQUESTS: Record<string, AccessRequest[]> = {
     taylor: [
         { id: "eb", initials: "EB", color: "#7B1FA2", name: "Eli Bogan", email: "bogane@Sundaysky.com" },
         { id: "ke", initials: "KE", color: "#0288D1", name: "Kenton Emard", email: "emardk@Sundaysky.com" },
@@ -50,7 +50,7 @@ const MOCK_REQUESTS: Record<string, AccessRequest[]> = {
     ]
 };
 
-const CUSTOM_AVATARS: AvatarItem[] = [
+export const CUSTOM_AVATARS: AvatarItem[] = [
     { id: "adam", name: "Adam", img: "https://randomuser.me/api/portraits/men/32.jpg", isCustom: true, createdDate: "Dec 29, 2025", createdBy: "You" },
     { id: "chris", name: "Chris (CEO)", img: "https://randomuser.me/api/portraits/men/75.jpg", isCustom: true, createdDate: "Jan 5, 2026", createdBy: "You" },
     { id: "taylor", name: "Taylor", img: "https://randomuser.me/api/portraits/women/44.jpg", isCustom: true, createdDate: "Feb 12, 2026", createdBy: "You" },
