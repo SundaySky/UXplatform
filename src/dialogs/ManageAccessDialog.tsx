@@ -510,8 +510,8 @@ export default function ManageAccessDialog({
                                 variant="outlined"
                                 sx={tabGroupSx}
                             >
-                                <ToggleButton value="teams">Teams and people</ToggleButton>
-                                <ToggleButton value="private">Only me</ToggleButton>
+                                <ToggleButton value="teams" color="primary" selected={tab === "teams"} onClick={() => setTab("teams")}>Teams and people</ToggleButton>
+                                <ToggleButton value="private" color="primary" selected={tab === "private"} onClick={() => setTab("private")}>Only me</ToggleButton>
                             </TruffleToggleButtonGroup>
 
                             {/* Who can access */}
@@ -845,7 +845,13 @@ const panelSx: SxProps<Theme> = {
     gap: "20px"
 };
 
-const tabGroupSx: SxProps<Theme> = { alignSelf: "flex-start" };
+const tabGroupSx: SxProps<Theme> = (theme) => ({
+    alignSelf: "flex-start",
+    "& .MuiToggleButton-root.Mui-selected": {
+        backgroundColor: alpha(theme.palette.primary.main, theme.palette.action.selectedOpacity),
+        color: theme.palette.primary.main
+    }
+});
 
 const sectionTitleSx: SxProps<Theme> = { color: "text.primary", mb: "12px", display: "block" };
 

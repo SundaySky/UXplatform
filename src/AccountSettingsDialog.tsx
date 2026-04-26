@@ -4,12 +4,12 @@ import {
     Box, Typography, Dialog, IconButton, SvgIcon,
     Button, OutlinedInput, Tabs, Tab, Popover,
     Table, TableBody, TableCell, TableHead, TableRow,
-    Tooltip, Switch, Divider,
+    Tooltip, Switch, Divider, Chip,
     MenuItem, Menu,
     Autocomplete, TextField
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck } from "@fortawesome/pro-regular-svg-icons";
+import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faUserLock, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup } from "@fortawesome/pro-regular-svg-icons";
 import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
@@ -37,14 +37,81 @@ export const INITIAL_USERS: AccountUser[] = [
     { user: ALL_USERS[5], createSpace: "Editor", amplifySpace: "Contributor", jobRole: "Marketing", lastLogin: "Sep 8, 2022, 10:23 am", createdDate: "Sep 8, 2022, 10:23 am" }
 ];
 
+// ─── Group types & data ───────────────────────────────────────────────────────
+type CreatePermission = "Editor" | "Approver" | "Editor and Approver" | "Viewer" | "";
+type AmplifyPermission = "Contributor" | "";
+
+interface UserGroup {
+    id: string;
+    name: string;
+    userIds: string[];
+    createPermission: CreatePermission;
+    amplifyPermission: AmplifyPermission;
+    createdAt: string;
+}
+
+
+function findAccountUser(userId: string, accountUsers: AccountUser[]): AccountUser | undefined {
+    return accountUsers.find(u => u.user.id === userId);
+}
+
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 const navIconSx: SxProps<Theme> = { fontSize: 18 };
-type NavKey = "users" | "permissions" | "approvals" | "access"
+type NavKey = "users" | "permissions" | "approvals" | "groups"
+    | "access-videos" | "access-folders" | "access-templates" | "access-avatar"
+    | "access-voice" | "access-brand" | "access-media"
+
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
     { key: "users", label: "Users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
+    { key: "groups", label: "Groups", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon> },
     { key: "permissions", label: "Permissions", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
-    { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> },
-    { key: "access", label: "Access", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUserLock} /></SvgIcon> }
+    { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> }
+];
+
+const ACCESS_SUBNAV: { key: NavKey; label: string; comingSoon?: boolean }[] = [
+    { key: "access-videos", label: "Videos" },
+    { key: "access-folders", label: "Folders" },
+    { key: "access-templates", label: "Templates" },
+    { key: "access-avatar", label: "Custom avatar" },
+    { key: "access-voice", label: "Custom voice", comingSoon: true },
+    { key: "access-brand", label: "Brand", comingSoon: true },
+    { key: "access-media", label: "Media Lib", comingSoon: true }
+];
+
+const isAccessNav = (n: NavKey) => n.startsWith("access-");
+
+// ─── Access section sample data ───────────────────────────────────────────────
+interface VideoAccess { id: string; name: string; editedAt: string; status: string; permission: string }
+const SAMPLE_VIDEO_ACCESS: VideoAccess[] = [
+    { id: "v1", name: "Q1 Campaign Video", editedAt: "Apr 20, 2026", status: "Draft", permission: "Can view" },
+    { id: "v2", name: "Product Demo", editedAt: "Apr 15, 2026", status: "In review", permission: "Can edit" },
+    { id: "v3", name: "Onboarding Flow", editedAt: "Apr 10, 2026", status: "Approved", permission: "Restricted" },
+    { id: "v4", name: "Sales Enablement", editedAt: "Apr 5, 2026", status: "Draft", permission: "Can view" },
+    { id: "v5", name: "Customer Success Story", editedAt: "Mar 30, 2026", status: "Approved", permission: "Can view" }
+];
+
+interface FolderAccess { id: string; name: string; editedAt: string; approvedAt: string; status: string; permission: string }
+const SAMPLE_FOLDER_ACCESS: FolderAccess[] = [
+    { id: "f1", name: "Marketing Assets", editedAt: "Apr 22, 2026", approvedAt: "Apr 23, 2026", status: "Approved", permission: "Can view" },
+    { id: "f2", name: "Sales Collateral", editedAt: "Apr 18, 2026", approvedAt: "—", status: "In review", permission: "Can edit" },
+    { id: "f3", name: "Onboarding Content", editedAt: "Apr 12, 2026", approvedAt: "Apr 14, 2026", status: "Approved", permission: "Restricted" },
+    { id: "f4", name: "HR Resources", editedAt: "Apr 8, 2026", approvedAt: "—", status: "Draft", permission: "Can view" }
+];
+
+interface TemplateAccess { id: string; name: string; lastPublished: string; publishedTo: string[] }
+const SAMPLE_TEMPLATE_ACCESS: TemplateAccess[] = [
+    { id: "t1", name: "Q1 Video Template", lastPublished: "Apr 20, 2026", publishedTo: ["Marketing team", "Sales team"] },
+    { id: "t2", name: "Onboarding Template", lastPublished: "Apr 10, 2026", publishedTo: ["HR team", "All contributors"] },
+    { id: "t3", name: "Product Showcase", lastPublished: "Mar 28, 2026", publishedTo: ["Sales team"] },
+    { id: "t4", name: "Customer Success", lastPublished: "Mar 15, 2026", publishedTo: ["Customer Success"] }
+];
+
+interface AvatarAccess { id: string; name: string; createdAt: string; usagePermission: string; pendingRequest: boolean }
+const SAMPLE_AVATAR_ACCESS: AvatarAccess[] = [
+    { id: "a1", name: "Alex Marketing", createdAt: "Jan 10, 2026", usagePermission: "All contributors", pendingRequest: false },
+    { id: "a2", name: "Jamie Sales", createdAt: "Feb 4, 2026", usagePermission: "Sales team", pendingRequest: true },
+    { id: "a3", name: "Taylor HR", createdAt: "Mar 1, 2026", usagePermission: "HR team", pendingRequest: false },
+    { id: "a4", name: "Jordan Support", createdAt: "Mar 22, 2026", usagePermission: "Customer Success", pendingRequest: true }
 ];
 
 
@@ -1590,6 +1657,451 @@ function UsersSection({
     );
 }
 
+// ─── GroupDialog (create / edit) ──────────────────────────────────────────────
+function GroupDialog({ open, onClose, onSave, mode, group, accountUsers, existingGroups }: {
+    open: boolean;
+    onClose: () => void;
+    onSave: (data: Omit<UserGroup, "id" | "createdAt">) => void;
+    mode: "create" | "edit";
+    group?: UserGroup;
+    accountUsers: AccountUser[];
+    existingGroups: UserGroup[];
+}) {
+    const [name, setName] = useState(group?.name ?? "");
+    const [selectedUsers, setSelectedUsers] = useState<typeof ALL_USERS[number][]>([]);
+
+    React.useEffect(() => {
+        if (open) {
+            setName(group?.name ?? "");
+            if (group) {
+                const known = ALL_USERS.filter(u => group.userIds.includes(u.id));
+                setSelectedUsers(known);
+            }
+            else {
+                setSelectedUsers([]);
+            }
+        }
+    }, [open, group]);
+
+    const trimmedName = name.trim();
+    const isDuplicateName = trimmedName.length > 0 && existingGroups.some(
+        g => g.name.toLowerCase() === trimmedName.toLowerCase() && g.id !== group?.id
+    );
+    const canSave = trimmedName.length > 0 && !isDuplicateName;
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth={false}
+            PaperProps={{ sx: { width: 540, borderRadius: "12px", p: 0, maxHeight: "90vh", display: "flex", flexDirection: "column" } }}>
+            <Box sx={groupDialogScrollSx}>
+                {/* Title */}
+                <Box sx={dialogTitleRowMb24Sx}>
+                    <Typography variant="h4" sx={textPrimarySx}>
+                        {mode === "create" ? "Create group" : "Edit group"}
+                    </Typography>
+                    <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}>
+                        <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                    </IconButton>
+                </Box>
+
+                {/* Name */}
+                <Box sx={groupFieldWrapSx}>
+                    <TextField
+                        label="Group name"
+                        fullWidth
+                        placeholder="e.g. Marketing team"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        error={isDuplicateName}
+                        helperText={isDuplicateName ? "A group with this name already exists." : ""}
+                    />
+                </Box>
+
+                {/* Users — existing account users only, no new email invites */}
+                <Box sx={groupFieldWrapSx}>
+                    <Autocomplete<typeof ALL_USERS[number], true>
+                        multiple
+                        options={ALL_USERS}
+                        value={selectedUsers}
+                        onChange={(_, val) => setSelectedUsers(val)}
+                        getOptionLabel={u => u.name}
+                        isOptionEqualToValue={(a, b) => a.id === b.id}
+                        disableCloseOnSelect
+                        popupIcon={null}
+                        renderTags={(tagValue, getTagProps) => (
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                {tagValue.map((user, index) => (
+                                    <Chip
+                                        {...getTagProps({ index })}
+                                        key={user.id}
+                                        label={user.name}
+                                        size="small"
+                                    />
+                                ))}
+                            </Box>
+                        )}
+                        renderInput={params => (
+                            <TextField
+                                {...params}
+                                label="Users"
+                                placeholder={selectedUsers.length === 0 ? "Search by name…" : ""}
+                            />
+                        )}
+                        renderOption={(props, option) => {
+                            const au = findAccountUser(option.id, accountUsers);
+                            return (
+                                <Box component="li" {...props} key={option.id}
+                                    sx={{ display: "flex", alignItems: "center", gap: "10px", px: "12px", py: "8px" }}>
+                                    <TruffleAvatar text={option.initials} size="small" sx={{ flexShrink: 0 }} />
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={textPrimarySx}>{option.name}</Typography>
+                                        <Typography variant="caption" sx={textSecondarySx}>
+                                            {option.email}{au ? ` · ${au.createSpace}` : ""}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            );
+                        }}
+                    />
+                </Box>
+
+                {/* Actions */}
+                <Box sx={dialogActionsRowSx}>
+                    <Button variant="outlined" onClick={onClose} sx={cancelButtonSx}>Cancel</Button>
+                    <Button
+                        variant="contained"
+                        disabled={!canSave}
+                        onClick={() => {
+                            onSave({
+                                name: name.trim(),
+                                userIds: selectedUsers.map(u => u.id),
+                                createPermission: "",
+                                amplifyPermission: ""
+                            });
+                            onClose();
+                        }}
+                    >
+                        {mode === "create" ? "Create group" : "Save changes"}
+                    </Button>
+                </Box>
+            </Box>
+        </Dialog>
+    );
+}
+
+// ─── RemoveGroupDialog ────────────────────────────────────────────────────────
+function RemoveGroupDialog({ open, onClose, group, onConfirm }: {
+    open: boolean;
+    onClose: () => void;
+    group: UserGroup | null;
+    onConfirm: (removeUsers: boolean) => void;
+}) {
+    if (!group) {
+        return null;
+    }
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth={false}
+            PaperProps={{ sx: { width: 480, borderRadius: "12px", p: 0 } }}>
+            <Box sx={dialogBodySx}>
+                <Box sx={dialogTitleRowMb16Sx}>
+                    <Typography variant="h4" sx={textPrimarySx}>
+                        Remove &ldquo;{group.name}&rdquo;?
+                    </Typography>
+                    <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}>
+                        <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                    </IconButton>
+                </Box>
+                <Typography variant="body1" sx={{ color: "text.primary", mb: "8px", lineHeight: 1.6 }}>
+                    This will remove the <strong>{group.name}</strong> group
+                    ({group.userIds.length} {group.userIds.length === 1 ? "user" : "users"}).
+                </Typography>
+                <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px", lineHeight: 1.6 }}>
+                    Do you also want to remove the permissions that were assigned to users through this group?
+                    If you keep them, users will retain the group&rsquo;s permission individually.
+                </Typography>
+                <Box sx={removeGroupActionsRowSx}>
+                    <Button variant="outlined" onClick={onClose} sx={cancelButtonSx}>Cancel</Button>
+                    <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => {
+                            onConfirm(false); onClose(); 
+                        }}
+                    >
+                        Keep user permissions
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => {
+                            onConfirm(true); onClose(); 
+                        }}
+                    >
+                        Remove group &amp; permissions
+                    </Button>
+                </Box>
+            </Box>
+        </Dialog>
+    );
+}
+
+// ─── GroupsSection ────────────────────────────────────────────────────────────
+function GroupsSection({ accountUsers, groups, onGroupsChange }: {
+    accountUsers: AccountUser[];
+    groups: UserGroup[];
+    onGroupsChange: React.Dispatch<React.SetStateAction<UserGroup[]>>;
+}) {
+    const [dialogMode, setDialogMode] = useState<"closed" | "create" | "edit">("closed");
+    const [editingGroup, setEditingGroup] = useState<UserGroup | null>(null);
+    const [removeOpen, setRemoveOpen] = useState(false);
+    const [groupToRemove, setGroupToRemove] = useState<UserGroup | null>(null);
+    const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+    const [rowMenuAnchor, setRowMenuAnchor] = useState<HTMLElement | null>(null);
+    const [rowMenuGroup, setRowMenuGroup] = useState<UserGroup | null>(null);
+    const [search, setSearch] = useState("");
+
+    const isEmpty = groups.length === 0;
+
+    const filteredGroups = search
+        ? groups.filter(g => g.name.toLowerCase().includes(search.toLowerCase()))
+        : groups;
+
+    function resolveUserName(id: string): string {
+        const known = ALL_USERS.find(u => u.id === id);
+        return known ? known.name : id; // fall back to email string for new users
+    }
+
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+
+    function openCreate() {
+        setEditingGroup(null);
+        setDialogMode("create");
+    }
+
+    function handleSave(data: Omit<UserGroup, "id" | "createdAt">) {
+        const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        if (dialogMode === "create") {
+            onGroupsChange(prev => [...prev, { ...data, id: `group-${Date.now()}`, createdAt: today }]);
+        }
+        else if (editingGroup) {
+            onGroupsChange(prev => prev.map(g => g.id === editingGroup.id ? { ...g, ...data } : g));
+        }
+    }
+
+    return (
+        <Box sx={sectionContainerSx}>
+            {/* Title row */}
+            <Box sx={usersTitleRowSx}>
+                <Typography variant="h3" sx={textPrimarySx}>
+                    Groups{groups.length > 0 ? ` (${groups.length})` : ""}
+                </Typography>
+            </Box>
+
+            {/* Toolbar — only when there are groups */}
+            {!isEmpty && (
+                <Box sx={usersToolbarRowSx}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
+                        onClick={openCreate}
+                        sx={addUserBtnSx}
+                    >
+                        Create group
+                    </Button>
+                    <Search
+                        placeholder="Search groups…"
+                        size="small"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        onClear={() => setSearch("")}
+                        numberOfResults={0}
+                        sx={{ width: 240 }}
+                    />
+                </Box>
+            )}
+
+            {isEmpty ? (
+                /* ── Empty state ── */
+                <Box sx={groupEmptyStateSx}>
+                    <Box sx={groupEmptyIconWrapSx}>
+                        <SvgIcon sx={groupEmptyIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: "text.primary", textAlign: "center" }}>
+                        No groups yet
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", maxWidth: 380, lineHeight: 1.7 }}>
+                        Groups let you publish templates for specific users, build approval teams, and control who gets mentioned when creating videos.
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        size="large"
+                        startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
+                        onClick={openCreate}
+                    >
+                        Create your first group
+                    </Button>
+                </Box>
+            ) : (
+                /* ── Groups table ── */
+                <Box sx={usersTableContainerSx}>
+                    <Table size="small" sx={tableFullWidthSx}>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={headCellSx}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+                                        Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
+                                    </Box>
+                                </TableCell>
+                                <TableCell sx={headCellSx}>
+                                    <Typography variant="subtitle2" sx={textPrimarySx}>Users</Typography>
+                                </TableCell>
+                                <TableCell sx={{ ...headCellSx, width: 160 }}>
+                                    <Typography variant="subtitle2" sx={textPrimarySx}>Created on</Typography>
+                                </TableCell>
+                                <TableCell sx={{ ...headCellSx, width: 44 }} />
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredGroups.map(group => {
+                                const isHovered = hoveredRow === group.id;
+                                const isMenuOpen = rowMenuGroup?.id === group.id && Boolean(rowMenuAnchor);
+                                const userListTooltip = group.userIds.length > 0 ? (
+                                    <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                        {group.userIds.map(id => (
+                                            <Typography key={id} variant="caption" sx={{ color: "common.white" }}>
+                                                {resolveUserName(id)}
+                                            </Typography>
+                                        ))}
+                                    </Box>
+                                ) : "";
+                                return (
+                                    <TableRow
+                                        key={group.id}
+                                        onMouseEnter={() => setHoveredRow(group.id)}
+                                        onMouseLeave={() => setHoveredRow(null)}
+                                        sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
+                                    >
+                                        <TableCell sx={bodyCellSx}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                <SvgIcon sx={{ fontSize: 16, color: "action.active", flexShrink: 0 }}>
+                                                    <FontAwesomeIcon icon={faPeopleGroup} />
+                                                </SvgIcon>
+                                                <Typography variant="subtitle2" sx={textPrimarySx}>{group.name}</Typography>
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell sx={bodyCellSx}>
+                                            {(() => {
+                                                const names = group.userIds.map(id => resolveUserName(id));
+                                                const shown = names.slice(0, 2);
+                                                const remaining = names.length - shown.length;
+                                                const displayText = shown.length > 0
+                                                    ? shown.join(", ") + (remaining > 0 ? ` +${remaining}` : "")
+                                                    : <Box component="span" sx={textSecondarySx}>No users</Box>;
+                                                return (
+                                                    <Tooltip
+                                                        title={userListTooltip}
+                                                        placement="top"
+                                                        arrow
+                                                        componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main", "& .MuiTooltip-arrow": { color: "secondary.main" } } } }}
+                                                    >
+                                                        <Typography variant="body1" sx={{ ...textPrimarySx, display: "inline" }}>
+                                                            {displayText}
+                                                        </Typography>
+                                                    </Tooltip>
+                                                );
+                                            })()}
+                                        </TableCell>
+                                        <TableCell sx={{ ...bodyCellSx, width: 160 }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px" }}>
+                                                <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
+                                                    {group.createdAt}
+                                                </Typography>
+                                                {(isHovered || isMenuOpen) && (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={e => {
+                                                            setRowMenuAnchor(e.currentTarget); setRowMenuGroup(group); 
+                                                        }}
+                                                        sx={ellipsisButtonSx}
+                                                    >
+                                                        <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsis} /></SvgIcon>
+                                                    </IconButton>
+                                                )}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell sx={{ ...bodyCellSx, width: 44 }} />
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </Box>
+            )}
+
+            {/* Row context menu */}
+            <Menu
+                anchorEl={rowMenuAnchor}
+                open={Boolean(rowMenuAnchor)}
+                onClose={() => {
+                    setRowMenuAnchor(null); setRowMenuGroup(null); 
+                }}
+                PaperProps={{ sx: contextMenuPaperSx }}
+                transformOrigin={{ horizontal: "right", vertical: "top" }}
+                anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+            >
+                <MenuItem
+                    onClick={() => {
+                        setEditingGroup(rowMenuGroup);
+                        setDialogMode("edit");
+                        setRowMenuAnchor(null);
+                        setRowMenuGroup(null);
+                    }}
+                    sx={menuItemEditSx}
+                >
+                    <SvgIcon sx={{ fontSize: 16, color: "action.active" }}><FontAwesomeIcon icon={faPenToSquare} /></SvgIcon>
+                    Edit
+                </MenuItem>
+                <MenuItem
+                    onClick={() => {
+                        setGroupToRemove(rowMenuGroup);
+                        setRemoveOpen(true);
+                        setRowMenuAnchor(null);
+                        setRowMenuGroup(null);
+                    }}
+                    sx={menuItemRemoveSx}
+                >
+                    <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                    Remove
+                </MenuItem>
+            </Menu>
+
+            {/* Create / Edit dialog */}
+            <GroupDialog
+                open={dialogMode !== "closed"}
+                onClose={() => setDialogMode("closed")}
+                mode={dialogMode === "edit" ? "edit" : "create"}
+                group={editingGroup ?? undefined}
+                accountUsers={accountUsers}
+                existingGroups={groups}
+                onSave={handleSave}
+            />
+
+            {/* Remove confirmation */}
+            <RemoveGroupDialog
+                open={removeOpen}
+                onClose={() => setRemoveOpen(false)}
+                group={groupToRemove}
+                onConfirm={(removeUsers) => {
+                    if (groupToRemove) {
+                        onGroupsChange(prev => prev.filter(g => g.id !== groupToRemove.id));
+                        void removeUsers;
+                    }
+                }}
+            />
+        </Box>
+    );
+}
+
 // ─── Placeholder ──────────────────────────────────────────────────────────────
 function PlaceholderSection({ label }: { label: string }) {
     return (
@@ -1597,6 +2109,149 @@ function PlaceholderSection({ label }: { label: string }) {
             <Typography variant="body1" sx={textSecondarySx}>
                 {label} settings coming soon
             </Typography>
+        </Box>
+    );
+}
+
+// ─── Access: Videos section ───────────────────────────────────────────────────
+function AccessVideosSection() {
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+    return (
+        <Box sx={sectionContainerSx}>
+            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>Videos</Typography>
+            <Box sx={usersTableContainerSx}>
+                <Table size="small" sx={tableFullWidthSx}>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell sx={headCellSx}><Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon></Box></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Edited</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Status</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Access permission</Typography></TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {SAMPLE_VIDEO_ACCESS.map(row => (
+                            <TableRow key={row.id}>
+                                <TableCell sx={bodyCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>{row.name}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.editedAt}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.status}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.permission}</Typography></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Box>
+        </Box>
+    );
+}
+
+// ─── Access: Folders section ──────────────────────────────────────────────────
+function AccessFoldersSection() {
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+    return (
+        <Box sx={sectionContainerSx}>
+            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>Folders</Typography>
+            <Box sx={usersTableContainerSx}>
+                <Table size="small" sx={tableFullWidthSx}>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell sx={headCellSx}><Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon></Box></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Edited</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Approved on</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Status</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Access permission</Typography></TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {SAMPLE_FOLDER_ACCESS.map(row => (
+                            <TableRow key={row.id}>
+                                <TableCell sx={bodyCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>{row.name}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.editedAt}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.approvedAt}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.status}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.permission}</Typography></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Box>
+        </Box>
+    );
+}
+
+// ─── Access: Templates section ────────────────────────────────────────────────
+function AccessTemplatesSection() {
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+    return (
+        <Box sx={sectionContainerSx}>
+            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>Templates</Typography>
+            <Box sx={usersTableContainerSx}>
+                <Table size="small" sx={tableFullWidthSx}>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell sx={headCellSx}><Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon></Box></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Last published</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Published to</Typography></TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {SAMPLE_TEMPLATE_ACCESS.map(row => (
+                            <TableRow key={row.id}>
+                                <TableCell sx={bodyCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>{row.name}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.lastPublished}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}>
+                                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                        {row.publishedTo.map(audience => (
+                                            <Chip key={audience} label={audience} size="small" />
+                                        ))}
+                                    </Box>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Box>
+        </Box>
+    );
+}
+
+// ─── Access: Custom avatar section ────────────────────────────────────────────
+function AccessAvatarSection() {
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+    return (
+        <Box sx={sectionContainerSx}>
+            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>Custom avatar</Typography>
+            <Box sx={usersTableContainerSx}>
+                <Table size="small" sx={tableFullWidthSx}>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell sx={headCellSx}><Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon></Box></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Created on</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Usage permission</Typography></TableCell>
+                            <TableCell sx={headCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>Pending request</Typography></TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {SAMPLE_AVATAR_ACCESS.map(row => (
+                            <TableRow key={row.id}>
+                                <TableCell sx={bodyCellSx}><Typography variant="subtitle2" sx={textPrimarySx}>{row.name}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.createdAt}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}><Typography variant="body1" sx={textPrimarySx}>{row.usagePermission}</Typography></TableCell>
+                                <TableCell sx={bodyCellSx}>
+                                    {row.pendingRequest
+                                        ? <Label label="Pending" color="warning" size="small" />
+                                        : <Typography variant="body1" sx={textSecondarySx}>—</Typography>
+                                    }
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Box>
         </Box>
     );
 }
@@ -1620,7 +2275,7 @@ interface AccountSettingsDialogProps {
  onCancelUserApprovals?: (userId: string) => void
  videoStates?: Record<string, VideoStateForApprovals>
  pendingApprovalsCount?: number
- initialTab?: "users" | "permissions" | "approvals" | "access"
+ initialTab?: "users" | "permissions" | "approvals" | "access" | "groups" | NavKey
 }
 
 export default function AccountSettingsDialog({
@@ -1638,15 +2293,18 @@ export default function AccountSettingsDialog({
     pendingApprovalsCount = 0,
     initialTab = "users"
 }: AccountSettingsDialogProps) {
-    const [nav, setNav] = useState<NavKey>(initialTab);
+    const resolveInitialTab = (t: string): NavKey =>
+        t === "access" ? "access-videos" : (t as NavKey);
+    const [nav, setNav] = useState<NavKey>(resolveInitialTab(initialTab));
     const [users, setUsers] = useState<AccountUser[]>(INITIAL_USERS);
     const [approverIds, setApproverIds] = useState<Set<string>>(externalApproverIds);
     const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled);
     const [enableApprovalsPromptOpen, setEnableApprovalsPromptOpen] = useState(false);
+    const [groups, setGroups] = useState<UserGroup[]>([]);
 
     // Sync nav when initialTab changes
     React.useEffect(() => {
-        setNav(initialTab);
+        setNav(resolveInitialTab(initialTab));
     }, [initialTab]);
 
     // Sync external approvals state
@@ -1761,15 +2419,47 @@ export default function AccountSettingsDialog({
                     {NAV.map(item => (
                         <Box
                             key={item.key}
-                            onClick={() => {
-                                setNav(item.key);
-                            }}
-                            sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: nav === item.key ? "action.hover" : "action.hover" } }}
+                            onClick={() => setNav(item.key)}
+                            sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
                         >
                             <Box sx={{ color: nav === item.key ? "primary.main" : "action.active", display: "flex", flexShrink: 0 }}>{item.icon}</Box>
                             <Typography variant="body1" sx={{ fontWeight: nav === item.key ? 600 : 400, color: "inherit" }}>
                                 {item.label}
                             </Typography>
+                        </Box>
+                    ))}
+
+                    {/* Access — expandable with chevron */}
+                    <Box
+                        onClick={() => setNav("access-videos")}
+                        sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: isAccessNav(nav) ? "action.hover" : "transparent", color: isAccessNav(nav) ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
+                    >
+                        <Box sx={{ color: isAccessNav(nav) ? "primary.main" : "action.active", display: "flex", flexShrink: 0 }}>
+                            <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUserLock} /></SvgIcon>
+                        </Box>
+                        <Typography variant="body1" sx={{ fontWeight: isAccessNav(nav) ? 600 : 400, color: "inherit", flex: 1 }}>
+                            Access
+                        </Typography>
+                        <SvgIcon sx={{ fontSize: "12px !important", color: "action.active", transition: "transform 0.2s", transform: isAccessNav(nav) ? "rotate(0deg)" : "rotate(-90deg)" }}>
+                            <FontAwesomeIcon icon={faChevronDown} />
+                        </SvgIcon>
+                    </Box>
+
+                    {/* Access sub-nav items */}
+                    {isAccessNav(nav) && ACCESS_SUBNAV.map(sub => (
+                        <Box
+                            key={sub.key}
+                            onClick={() => !sub.comingSoon && setNav(sub.key)}
+                            sx={{ display: "flex", alignItems: "center", gap: "8px", pl: "36px", pr: "12px", py: "6px", borderRadius: "8px", cursor: sub.comingSoon ? "default" : "pointer", bgcolor: nav === sub.key ? "action.selected" : "transparent", color: nav === sub.key ? "primary.main" : sub.comingSoon ? "text.disabled" : "text.primary", "&:hover": { bgcolor: sub.comingSoon ? "transparent" : "action.hover" } }}
+                        >
+                            <Typography variant="body1" sx={{ fontWeight: nav === sub.key ? 600 : 400, color: "inherit", flex: 1, fontSize: "13px" }}>
+                                {sub.label}
+                            </Typography>
+                            {sub.comingSoon && (
+                                <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "10px", whiteSpace: "nowrap" }}>
+                                    Soon
+                                </Typography>
+                            )}
                         </Box>
                     ))}
                 </Box>
@@ -1825,7 +2515,21 @@ export default function AccountSettingsDialog({
                             }}
                         />
                     )}
+                    {nav === "groups" && (
+                        <GroupsSection
+                            accountUsers={users}
+                            groups={groups}
+                            onGroupsChange={setGroups}
+                        />
+                    )}
                     {nav === "permissions" && <PlaceholderSection label="Permissions" />}
+                    {nav === "access-videos" && <AccessVideosSection />}
+                    {nav === "access-folders" && <AccessFoldersSection />}
+                    {nav === "access-templates" && <AccessTemplatesSection />}
+                    {nav === "access-avatar" && <AccessAvatarSection />}
+                    {nav === "access-voice" && <PlaceholderSection label="Custom voice (Coming soon)" />}
+                    {nav === "access-brand" && <PlaceholderSection label="Brand (Coming soon)" />}
+                    {nav === "access-media" && <PlaceholderSection label="Media Lib (Coming soon)" />}
                     {nav === "approvals" && (
                         <ApprovalsSection
                             users={users}
@@ -1858,7 +2562,6 @@ export default function AccountSettingsDialog({
                             videoStates={videoStates}
                         />
                     )}
-                    {nav === "access" && <PlaceholderSection label="Access" />}
                 </Box>
             </Box>
 
@@ -1985,3 +2688,13 @@ const userTypeOptionSx: SxProps<Theme> = { display: "flex", alignItems: "center"
 
 // Edit/Add user dialog fields
 const editUserFieldLabelSx: SxProps<Theme> = { color: "text.secondary", mb: "6px", display: "block" };
+
+// GroupDialog
+const groupDialogScrollSx: SxProps<Theme> = { px: "24px", py: "20px", overflowY: "auto", flex: 1 };
+const groupFieldWrapSx: SxProps<Theme> = { mb: "20px" };
+const removeGroupActionsRowSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", gap: "8px", flexWrap: "wrap" };
+
+// GroupsSection — empty state
+const groupEmptyStateSx: SxProps<Theme> = { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", py: 4 };
+const groupEmptyIconWrapSx: SxProps<Theme> = { width: 64, height: 64, borderRadius: "16px", bgcolor: "primary.light", display: "flex", alignItems: "center", justifyContent: "center", mb: "4px" };
+const groupEmptyIconSx: SxProps<Theme> = { fontSize: "28px !important", width: "28px !important", height: "28px !important", color: "primary.main" };

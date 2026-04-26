@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { SxProps, Theme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import {
     Box, Typography, IconButton, Button, Dialog,
     DialogContent, SvgIcon,
@@ -94,13 +95,11 @@ function PersonRow({
 
 // ─── Inline Add Avatar Users Autocomplete ────────────────────────────────
 function InlineAddAvatarUsers({
-    value, onChange, excludeIds, onCancel, onAdd
+    value, onChange, excludeIds
 }: {
   value: User[]
   onChange: (v: User[]) => void
   excludeIds: string[]
-  onCancel: () => void
-  onAdd: () => void
 }) {
     const options = ALL_USERS.filter(u => !excludeIds.includes(u.id));
     return (
@@ -158,15 +157,6 @@ function InlineAddAvatarUsers({
                 slotProps={{ paper: { sx: autocompleteDropdownPaperSx } }}
             />
 
-            <Box sx={addUsersActionsRowSx}>
-                <Button size="small" onClick={onCancel}
-                    sx={cancelButtonSx}>
-          Cancel
-                </Button>
-                <Button size="small" variant="contained" disabled={value.length === 0} onClick={onAdd}>
-          Add
-                </Button>
-            </Box>
         </Box>
     );
 }
@@ -335,7 +325,7 @@ export default function AvatarPermissionDialog({
                         HelpCenterIconButtonProps={{ onClick: () => {} }}
                         CloseIconButtonProps={{ onClick: handleClose }}
                     >
-                        {`Manage "${avatarName}" avatar permissions`}
+                        {`Manage "${avatarName}" avatar usage permissions`}
                     </TruffleDialogTitle>
                 )}
 
@@ -347,8 +337,6 @@ export default function AvatarPermissionDialog({
                             value={addUsers}
                             onChange={setAddUsers}
                             excludeIds={[OWNER_USER.id, ...users.map(pu => pu.user.id)]}
-                            onCancel={() => setShowAddDialog(false)}
-                            onAdd={handleAddAvatarUsers}
                         />
                     ) : (
                         <>
@@ -359,13 +347,13 @@ export default function AvatarPermissionDialog({
                                 onChange={(_, v) => {
                                     if (v !== null) {
                                         setTab(v as PermissionTab);
-                                    } 
+                                    }
                                 }}
                                 variant="outlined"
                                 sx={tabGroupSx}
                             >
-                                <ToggleButton value="teams">Teams and people</ToggleButton>
-                                <ToggleButton value="private">Only me</ToggleButton>
+                                <ToggleButton value="teams" color="primary" selected={tab === "teams"} onClick={() => setTab("teams")} sx={toggleButtonSx}>Teams and people</ToggleButton>
+                                <ToggleButton value="private" color="primary" selected={tab === "private"} onClick={() => setTab("private")} sx={toggleButtonSx}>Only me</ToggleButton>
                             </TruffleToggleButtonGroup>
 
                             {/* Who can access */}
@@ -378,7 +366,7 @@ export default function AvatarPermissionDialog({
                                     {/* Owner row */}
                                     <PersonRow
                                         avatar={
-                                            <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: OWNER_USER.color, flexShrink: 0 }}>
+                                            <Avatar variant="rounded" sx={personAvatarSx}>
                                                 {OWNER_USER.initials}
                                             </Avatar>
                                         }
@@ -394,7 +382,7 @@ export default function AvatarPermissionDialog({
                                             <Divider />
                                             <PersonRow
                                                 avatar={
-                                                    <Avatar variant="rounded" sx={{ width: 36, height: 36, bgcolor: pu.user.color, flexShrink: 0 }}>
+                                                    <Avatar variant="rounded" sx={personAvatarSx}>
                                                         {pu.user.initials}
                                                     </Avatar>
                                                 }
@@ -469,7 +457,7 @@ export default function AvatarPermissionDialog({
                                         <Box sx={requestsListBoxSx}>
                                             {requests.map((req, idx) => (
                                                 <Box key={req.id} sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.25, borderBottom: idx < requests.length - 1 ? 1 : 0, borderBottomColor: "divider", bgcolor: "background.paper" }}>
-                                                    <Avatar sx={{ width: 32, height: 32, bgcolor: req.color, flexShrink: 0 }}>
+                                                    <Avatar sx={requestAvatarSx}>
                                                         {req.initials}
                                                     </Avatar>
                                                     <Box sx={personRowInnerSx}>
@@ -506,7 +494,16 @@ export default function AvatarPermissionDialog({
                     )}
                 </DialogContent>
 
-                {!showAddDialog && (
+                {showAddDialog ? (
+                    <TruffleDialogActions>
+                        <Button variant="outlined" color="primary" size="large" onClick={() => setShowAddDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="contained" color="primary" size="large" disabled={addUsers.length === 0} onClick={handleAddAvatarUsers}>
+                            Add
+                        </Button>
+                    </TruffleDialogActions>
+                ) : (
                     <TruffleDialogActions>
                         <Button variant="outlined" color="primary" size="large" onClick={handleClose}>
                             Cancel
@@ -622,6 +619,14 @@ const personRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px"
 };
 
+const personAvatarSx: SxProps<Theme> = {
+    width: 36, height: 36, bgcolor: "primary.light", color: "text.primary", flexShrink: 0
+};
+
+const requestAvatarSx: SxProps<Theme> = {
+    width: 32, height: 32, bgcolor: "primary.light", color: "text.primary", flexShrink: 0
+};
+
 const personRowInnerSx: SxProps<Theme> = {
     flex: 1, minWidth: 0
 };
@@ -676,13 +681,6 @@ const autocompleteDropdownPaperSx: SxProps<Theme> = {
     borderRadius: "8px", boxShadow: "0px 0px 10px rgba(3,25,79,0.18)", mt: "4px"
 };
 
-const addUsersActionsRowSx: SxProps<Theme> = {
-    display: "flex", gap: "8px", justifyContent: "flex-end", mt: "20px"
-};
-
-const cancelButtonSx: SxProps<Theme> = {
-    color: "text.secondary"
-};
 
 const dialogPaperSx: SxProps<Theme> = {
     width: 560, maxWidth: "98vw", borderRadius: "12px"
@@ -704,8 +702,16 @@ const dialogContentSx: SxProps<Theme> = {
     p: "24px 28px", display: "flex", flexDirection: "column", gap: "20px"
 };
 
-const tabGroupSx: SxProps<Theme> = {
-    alignSelf: "flex-start"
+const tabGroupSx: SxProps<Theme> = (theme) => ({
+    width: "100%",
+    "& .MuiToggleButton-root.Mui-selected": {
+        backgroundColor: alpha(theme.palette.primary.main, theme.palette.action.selectedOpacity),
+        color: theme.palette.primary.main
+    }
+});
+
+const toggleButtonSx: SxProps<Theme> = {
+    flex: 1
 };
 
 const sectionHeadingSx: SxProps<Theme> = {
