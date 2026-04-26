@@ -10,13 +10,16 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faXmark, faCircleInfo, faCircleQuestion, faCoins, faCheck,
     faTriangleExclamation, faPencil, faTrashCan,
-    faAngleDown
+    faAngleDown, faSparkles
 } from "@fortawesome/pro-regular-svg-icons";
 import { faPlay, faCircleCheck, faCircleXmark } from "@fortawesome/pro-solid-svg-icons";
 import {
     AttentionBox,
     Label,
-    TruffleLink
+    ToggleIconButton,
+    TruffleAlert,
+    TruffleLink,
+    combineSxProps
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import LanguagePickerDialog from "../dialogs/LanguagePickerDialog";
 
@@ -104,6 +107,10 @@ export default function LanguagesPanel({
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
     // Language picker dialog
     const [showPicker, setShowPicker] = useState(false);
+    // Which slot's autocomplete dropdown is forced open (after clearing the X inside it)
+    const [openSlotIdx, setOpenSlotIdx] = useState<number | null>(null);
+    // Count for the success TruffleAlert shown briefly after languages are applied; null = hidden
+    const [successAlertCount, setSuccessAlertCount] = useState<number | null>(null);
 
     const filledLangs = selectedLangs.filter(l => l !== "");
     const selectedCount = filledLangs.length;
@@ -122,12 +129,12 @@ export default function LanguagesPanel({
         setSelectedLangs(sorted.slice(0, MAX_LANGUAGES));
     }
 
-    function handleSwapLang(oldLang: string, newLang: string) {
-        setSelectedLangs(prev => prev.map(l => l === oldLang ? newLang : l));
+    function handleSetLangAt(idx: number, lang: string) {
+        setSelectedLangs(prev => prev.map((l, i) => i === idx ? lang : l));
     }
 
-    function handleRemoveLang(name: string) {
-        setSelectedLangs(prev => prev.filter(l => l !== name));
+    function handleRemoveAt(idx: number) {
+        setSelectedLangs(prev => prev.filter((_, i) => i !== idx));
     }
 
     function handleEnableTranslation() {
@@ -156,6 +163,8 @@ export default function LanguagesPanel({
             setTimeout(() => {
                 onEnabledLangsChange(newLangs);
                 setPanelState("success");
+                setSuccessAlertCount(newLangs.length);
+                setTimeout(() => setSuccessAlertCount(null), 6000);
             }, APPLYING_DELAY_MS);
         }
     }
@@ -186,8 +195,8 @@ export default function LanguagesPanel({
     // Header is hidden during transient (applying / success / error / removing) states
     const isTransient = panelState !== "promo" && panelState !== "selector" && panelState !== "picker" && panelState !== "settled";
     const showCredits = !isTransient;
-    // Source language only shows in promo and settled; selector has it inline, picker hides it
-    const showSourceLang = !isTransient && panelState !== "selector" && panelState !== "picker";
+    // Source language only shows in promo (settled has it inline so it can scroll with content)
+    const showSourceLang = !isTransient && panelState === "promo";
 
     // ── Shared bullet lists ──────────────────────────────────────────────────
     const applyingBullets = [
@@ -344,10 +353,10 @@ export default function LanguagesPanel({
                                 <Button
                                     variant="outlined"
                                     color="primary"
-                                    size="large"
+                                    size="medium"
                                     fullWidth
                                     onClick={() => {
-                                        setPanelState("picker"); setShowPicker(true); 
+                                        setPanelState("picker"); setShowPicker(true);
                                     }}
                                 >
                                     Add up to {MAX_LANGUAGES} languages
@@ -410,25 +419,24 @@ export default function LanguagesPanel({
                                             onClick={() => setShowPicker(true)}
                                             sx={addBtnSx}
                                         >
-                                            + Add
+                                            {selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
                                         </Button>
                                     )}
                                 </Box>
 
                                 {/* ── Language rows: filled slots + trailing multi-select (non-edit) ── */}
                                 <Box sx={langRowsContainerSx}>
-                                    {filledLangs.map((lang) => (
-                                        <Box key={lang} sx={slotRowSx}>
+                                    {selectedLangs.map((lang, idx) => (
+                                        <Box key={idx} sx={slotRowSx}>
                                             <Autocomplete
-                                                value={LANGUAGE_OPTIONS.find(l => l.name === lang) ?? null}
+                                                value={lang ? LANGUAGE_OPTIONS.find(l => l.name === lang) ?? null : null}
                                                 onChange={(_, newValue) => {
-                                                    if (newValue) {
-                                                        handleSwapLang(lang, newValue.name);
-                                                    }
-                                                    else {
-                                                        handleRemoveLang(lang);
-                                                    }
+                                                    handleSetLangAt(idx, newValue?.name ?? "");
+                                                    setOpenSlotIdx(newValue ? null : idx);
                                                 }}
+                                                open={openSlotIdx === idx}
+                                                onOpen={() => setOpenSlotIdx(idx)}
+                                                onClose={() => setOpenSlotIdx(null)}
                                                 options={LANGUAGE_OPTIONS.filter(l => l.name === lang || !filledLangs.includes(l.name))}
                                                 getOptionLabel={(opt) => opt.name}
                                                 isOptionEqualToValue={(opt, val) => opt.name === val.name}
@@ -437,9 +445,10 @@ export default function LanguagesPanel({
                                                     <TextField
                                                         {...params}
                                                         size="medium"
+                                                        placeholder={lang ? undefined : "Choose or type language"}
                                                         InputProps={{
                                                             ...params.InputProps,
-                                                            startAdornment: (
+                                                            startAdornment: lang ? (
                                                                 <InputAdornment position="start">
                                                                     <Box sx={flagCircleSmSx}>
                                                                         <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
@@ -447,7 +456,7 @@ export default function LanguagesPanel({
                                                                         </Typography>
                                                                     </Box>
                                                                 </InputAdornment>
-                                                            )
+                                                            ) : null
                                                         }}
                                                     />
                                                 )}
@@ -465,6 +474,13 @@ export default function LanguagesPanel({
                                             <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
                                                 <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                             </IconButton>
+                                            <ToggleIconButton
+                                                size="small"
+                                                color="error"
+                                                value="remove"
+                                                onClick={() => handleRemoveAt(idx)}
+                                                icon={<FontAwesomeIcon icon={faTrashCan} />}
+                                            />
                                         </Box>
                                     ))}
 
@@ -559,13 +575,18 @@ export default function LanguagesPanel({
                                 size={isEditMode && !isRemovingAll ? "large" : "medium"}
                                 disabled={!canEnable}
                                 onClick={handleEnableTranslation}
-                                sx={isEditMode && !isRemovingAll ? applyChangesBtnSx : undefined}
+                                sx={!isRemovingAll ? gradientBtnSx : undefined}
+                                startIcon={
+                                    !isEditMode && !isRemovingAll
+                                        ? <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faSparkles} /></SvgIcon>
+                                        : undefined
+                                }
                             >
                                 {isRemovingAll
                                     ? "Remove languages"
                                     : isEditMode
                                         ? "Apply changes"
-                                        : "Enable translation"}
+                                        : "Enable translations"}
                                 {!isRemovingAll && selectedCount > 0 && (
                                     <Box component="span" sx={countBadgeSx}>{selectedCount}</Box>
                                 )}
@@ -623,33 +644,35 @@ export default function LanguagesPanel({
 
                             {/* ── Picker card ── */}
                             <Box sx={pickerCardSx}>
-                                {selectedCount === 0 ? (
+                                {selectedLangs.length === 0 ? (
                                     /* ── Empty state: invite to pick ── */
                                     <>
                                         <Typography variant="h5" sx={{ textAlign: "center" }}>
                                             Select up to {MAX_LANGUAGES} additional languages
                                         </Typography>
                                         <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center" }}>
-                                            Choose all at once. You can review their voices before enabling them
+                                            Choose multiple languages at once. You can review voice options before applying them.
                                         </Typography>
                                         <Button
                                             variant="contained"
-                                            size="medium"
+                                            size="large"
                                             color="primary"
                                             fullWidth
                                             onClick={() => setShowPicker(true)}
                                         >
-                                            Pick languages
+                                            Select languages
                                         </Button>
-                                        <Button
-                                            variant="text"
-                                            size="large"
-                                            color="primary"
-                                            fullWidth
-                                            onClick={handleCancel}
-                                        >
-                                            Cancel
-                                        </Button>
+                                        <Box sx={{ textAlign: "center", mt: 1.5 }}>
+                                            <TruffleLink
+                                                href="#"
+                                                underline="hover"
+                                                onClick={(e) => {
+                                                    e.preventDefault(); handleCancel();
+                                                }}
+                                            >
+                                                Cancel
+                                            </TruffleLink>
+                                        </Box>
                                     </>
                                 ) : (
                                     /* ── Has languages: show slots + Add button ── */
@@ -665,23 +688,22 @@ export default function LanguagesPanel({
                                                 onClick={() => setShowPicker(true)}
                                                 sx={addBtnSx}
                                             >
-                                                + Add
+                                                {selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
                                             </Button>
                                         </Box>
 
                                         <Box sx={langRowsContainerSx}>
-                                            {filledLangs.map((lang) => (
-                                                <Box key={lang} sx={slotRowSx}>
+                                            {selectedLangs.map((lang, idx) => (
+                                                <Box key={idx} sx={slotRowSx}>
                                                     <Autocomplete
-                                                        value={LANGUAGE_OPTIONS.find(l => l.name === lang) ?? null}
+                                                        value={lang ? LANGUAGE_OPTIONS.find(l => l.name === lang) ?? null : null}
                                                         onChange={(_, newValue) => {
-                                                            if (newValue) {
-                                                                handleSwapLang(lang, newValue.name);
-                                                            }
-                                                            else {
-                                                                handleRemoveLang(lang);
-                                                            }
+                                                            handleSetLangAt(idx, newValue?.name ?? "");
+                                                            setOpenSlotIdx(newValue ? null : idx);
                                                         }}
+                                                        open={openSlotIdx === idx}
+                                                        onOpen={() => setOpenSlotIdx(idx)}
+                                                        onClose={() => setOpenSlotIdx(null)}
                                                         options={LANGUAGE_OPTIONS.filter(l => l.name === lang || !filledLangs.includes(l.name))}
                                                         getOptionLabel={(opt) => opt.name}
                                                         isOptionEqualToValue={(opt, val) => opt.name === val.name}
@@ -690,9 +712,10 @@ export default function LanguagesPanel({
                                                             <TextField
                                                                 {...params}
                                                                 size="medium"
+                                                                placeholder={lang ? undefined : "Choose or type language"}
                                                                 InputProps={{
                                                                     ...params.InputProps,
-                                                                    startAdornment: (
+                                                                    startAdornment: lang ? (
                                                                         <InputAdornment position="start">
                                                                             <Box sx={flagCircleSmSx}>
                                                                                 <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
@@ -700,7 +723,7 @@ export default function LanguagesPanel({
                                                                                 </Typography>
                                                                             </Box>
                                                                         </InputAdornment>
-                                                                    )
+                                                                    ) : null
                                                                 }}
                                                             />
                                                         )}
@@ -718,6 +741,13 @@ export default function LanguagesPanel({
                                                     <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
                                                         <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
                                                     </IconButton>
+                                                    <ToggleIconButton
+                                                        size="small"
+                                                        color="error"
+                                                        value="remove"
+                                                        onClick={() => handleRemoveAt(idx)}
+                                                        icon={<FontAwesomeIcon icon={faTrashCan} />}
+                                                    />
                                                 </Box>
                                             ))}
                                         </Box>
@@ -758,9 +788,10 @@ export default function LanguagesPanel({
                                     fullWidth
                                     size="large"
                                     onClick={handleEnableTranslation}
-                                    sx={{ mb: 1.5 }}
+                                    sx={combineSxProps(gradientBtnSx, { mb: 1.5 })}
+                                    startIcon={<SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faSparkles} /></SvgIcon>}
                                 >
-                                    Enable translation
+                                    Enable translations
                                     <Label label={String(selectedCount)} color="default" size="small" sx={{ ml: 1 }} />
                                 </Button>
 
@@ -892,16 +923,41 @@ export default function LanguagesPanel({
                 {/* ── Settled (language list) ──────────────────────────────── */}
                 {panelState === "settled" && (
                     <Box sx={bodyScrollSx}>
+                        {/* ── Narration source language (scrolls with content) ── */}
+                        <Box sx={selectorSourceSectionSx}>
+                            <Box sx={sourceLabelRowSx}>
+                                <Typography variant="h5">Narration source language</Typography>
+                                <IconButton size="small" sx={{ p: "2px" }}>
+                                    <SvgIcon sx={infoIconSx}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                </IconButton>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: "block" }}>
+                                Locked for switching once language setup starts
+                            </Typography>
+                            <Box sx={sourceSelectRowSx}>
+                                <Box sx={flagCircleMdSx}>
+                                    <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
+                                        {SOURCE_FLAG_BY_NAME[sourceLanguage]}
+                                    </Typography>
+                                </Box>
+                                <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
+                                <IconButton size="small" color="primary">
+                                    <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                </IconButton>
+                            </Box>
+                        </Box>
+
                         <Box sx={additionalLangsHeaderSx}>
                             <Typography variant="h5" sx={{ flex: 1 }}>
-                                {enabledLangs.length} Additional languages
+                                {enabledLangs.length} additional languages
                             </Typography>
                             <Button
-                                variant="text"
+                                variant="outlined"
                                 size="small"
+                                color="primary"
                                 startIcon={<SvgIcon sx={iconXsSx}><FontAwesomeIcon icon={faPencil} /></SvgIcon>}
                                 onClick={handleEdit}
-                                sx={editBtnSx}
+                                sx={addBtnSx}
                             >
                                 Edit
                             </Button>
@@ -935,6 +991,20 @@ export default function LanguagesPanel({
                 currentLangs={filledLangs}
                 onConfirm={handlePickerConfirm}
             />
+
+            {/* ── Success toast (fixed at bottom of viewport) ───────────── */}
+            {successAlertCount !== null && (
+                <Box sx={successToastWrapperSx}>
+                    {/* @ts-expect-error TruffleAlert's typed Pick<HTMLAttributes> incorrectly requires React 18 placeholder/onPointer props; remove when the library switches to Omit (cf. AttentionBox.d.ts which works). */}
+                    <TruffleAlert
+                        severity="success"
+                        variant="filled"
+                        CloseIconButtonProps={{ onClick: () => setSuccessAlertCount(null) }}
+                    >
+                        {successAlertCount} language{successAlertCount !== 1 ? "s" : ""} successfully applied.
+                    </TruffleAlert>
+                </Box>
+            )}
         </Box>
     );
 }
@@ -1168,14 +1238,8 @@ const trashIconCircleSx: SxProps<Theme> = {
 const additionalLangsHeaderSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
+    mt: 4,
     mb: 1
-};
-
-const editBtnSx: SxProps<Theme> = {
-    p: 0,
-    minWidth: 0,
-    fontWeight: 400,
-    "& .MuiButton-startIcon": { mr: "4px" }
 };
 
 const langListItemSx: SxProps<Theme> = {
@@ -1287,13 +1351,18 @@ const menuItemInnerSx: SxProps<Theme> = {
     width: "100%"
 };
 
-const applyChangesBtnSx: SxProps<Theme> = (theme) => ({
+const gradientBtnSx: SxProps<Theme> = (theme) => ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     background: `linear-gradient(135deg, ${(theme as any).palette.brand.gradientMagentaBlue})`,
+    color: theme.palette.common.white,
     "&:hover": {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         background: `linear-gradient(135deg, ${(theme as any).palette.brand.gradientMagentaBlue})`,
         opacity: 0.92
+    },
+    "&.Mui-disabled": {
+        background: theme.palette.action.disabledBackground,
+        color: theme.palette.action.disabled
     }
 });
 
@@ -1308,5 +1377,14 @@ const pickerCardSx: SxProps<Theme> = {
     border: "1px solid",
     borderColor: "divider",
     borderRadius: "10px"
+};
+
+// ── Success toast (fixed bottom-center of viewport) ───────────────────────────
+const successToastWrapperSx: SxProps<Theme> = {
+    position: "fixed",
+    bottom: 24,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: (theme) => theme.zIndex.snackbar
 };
 

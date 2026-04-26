@@ -221,6 +221,34 @@ If you are unsure about the correct size, variant, alignment, or which Truffle/M
 
 ---
 
+## UI change preflight — STRICT
+
+Before any `Edit` or `Write` tool call that adds or modifies UI, Claude MUST first state, in the response, a short component plan. This applies to **every** UI change — whether the input is a Figma design, a screenshot, or a plain-language description from the user. The plan goes in the response **before** the tool calls, not after.
+
+### Preflight format
+
+For each visual element being added or changed, list:
+
+1. **What it is** — one phrase (e.g. "count badge next to button label").
+2. **Component used** — the Truffle or MUI component name and key props (e.g. `Label color="default" size="small"`).
+3. **Citation or new** — either a file:line reference where this same pattern is already used in the codebase, OR an explicit "**new pattern**" flag.
+
+Example:
+
+> **UI preflight for this change:**
+> - Count badge inside button → `Label label={String(count)} color="default" size="small"` — matches `LanguagesPanel.tsx:788`
+> - Description below dialog title → `Typography variant="body1" color="text.secondary"` — **new pattern** for this dialog; flagging.
+
+### Hard stops
+
+- **Never write inline JSX text for a recurring visual element** (count, status, pill, badge, alert, banner, etc.) without first searching the codebase for the existing component. Counts and status text in this codebase use `Label` — not template strings inside a Button or Typography.
+- **If the preflight reveals a new pattern**, ask the user before writing the code: "I don't see this pattern in the codebase — should I use [X] or [Y], or is there a Figma reference?"
+- **If the input is a Figma URL**, the preflight must reference the Figma file/node and the variables pulled via the Figma MCP tools — not just a guess from the screenshot.
+
+The goal of the preflight is to expose component decisions BEFORE they're encoded, so the user can correct them in seconds instead of after a screenshot round-trip.
+
+---
+
 ## Design System Rules — STRICT
 
 The following rules are non-negotiable. Every piece of UI code must comply.

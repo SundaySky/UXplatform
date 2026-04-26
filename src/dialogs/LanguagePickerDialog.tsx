@@ -52,7 +52,7 @@ const LANGUAGE_DETAILS: Record<string, { nativeName: string; country: string }> 
 export interface LanguagePickerDialogProps {
     open: boolean;
     onClose: () => void;
-    /** Languages already confirmed/applied (shown pre-checked, not counted as "new") */
+    /** Languages already selected (shown pre-checked) */
     currentLangs: string[];
     /** Called with the full new selection when "Select N" is clicked */
     onConfirm: (langs: string[]) => void;
@@ -93,20 +93,8 @@ export default function LanguagePickerDialog({
         });
     }, [search]);
 
-    // Re-order so items fill column by column (top-down in col 1, then col 2, then col 3)
-    const displayedLangs = useMemo(() => {
-        const rows = Math.ceil(filtered.length / GRID_COLS);
-        const out: typeof filtered = [];
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < GRID_COLS; col++) {
-                const idx = col * rows + row;
-                if (idx < filtered.length) {
-                    out.push(filtered[idx]);
-                }
-            }
-        }
-        return out;
-    }, [filtered]);
+    // Fill column-by-column: with 31 items across 3 cols, this gives 11 / 11 / 9
+    const rowsPerCol = Math.max(1, Math.ceil(filtered.length / GRID_COLS));
 
     const selectedCount = pending.length;
     const atMax = selectedCount >= maxLanguages;
@@ -174,40 +162,41 @@ export default function LanguagePickerDialog({
                 />
 
                 {/* ── Language grid ── */}
-                <Box sx={gridSx}>
-                    {displayedLangs.map(({ name, flag }) => {
+                <Box sx={gridSx(rowsPerCol)}>
+                    {filtered.map(({ name, flag }) => {
                         const checked = pending.includes(name);
-                        const alreadyConfirmed = currentLangs.includes(name);
                         const atMaxDisabled = !checked && atMax;
-                        const disabled = alreadyConfirmed || atMaxDisabled;
+                        // Row click only ADDS — to remove a language the user must click
+                        // the checkbox itself. This prevents accidental unchecks while browsing.
+                        const handleRowClick = () => {
+                            if (!atMaxDisabled && !checked) {
+                                handleToggle(name);
+                            }
+                        };
                         return (
                             <Tooltip
                                 key={name}
-                                title={atMaxDisabled ? `You've reached the limit of ${maxLanguages} languages. Deselect one to swap it.` : ""}
+                                title={atMaxDisabled ? `You've reached the limit of ${maxLanguages} languages. Deselect one to add another.` : ""}
                                 placement="top"
                                 arrow
+                                enterDelay={0}
+                                leaveDelay={200}
                             >
                                 <Box
-                                    sx={disabled ? disabledRowSx : rowSx}
-                                    onClick={() => !disabled && handleToggle(name)}
+                                    sx={atMaxDisabled ? disabledRowSx : rowSx}
+                                    onClick={handleRowClick}
                                 >
-                                    <Tooltip
-                                        title={alreadyConfirmed ? "To remove this language, use the X in the dropdown selector" : ""}
-                                        placement="top"
-                                        arrow
-                                    >
-                                        <Box component="span" sx={{ flexShrink: 0, display: "inline-flex" }}>
-                                            <Checkbox
-                                                checked={checked}
-                                                size="medium"
-                                                color="primary"
-                                                disabled={disabled}
-                                                sx={{ p: "2px" }}
-                                                onChange={() => handleToggle(name)}
-                                                onClick={e => e.stopPropagation()}
-                                            />
-                                        </Box>
-                                    </Tooltip>
+                                    <Box component="span" sx={{ flexShrink: 0, display: "inline-flex" }}>
+                                        <Checkbox
+                                            checked={checked}
+                                            size="medium"
+                                            color="primary"
+                                            disabled={atMaxDisabled}
+                                            sx={{ p: "2px" }}
+                                            onChange={() => handleToggle(name)}
+                                            onClick={e => e.stopPropagation()}
+                                        />
+                                    </Box>
                                     <Box sx={flagCircleSx}>
                                         <Typography sx={{ fontSize: 16, lineHeight: 1 }}>
                                             {flag}
@@ -233,9 +222,10 @@ export default function LanguagePickerDialog({
                     disabled={selectedCount === 0}
                     onClick={handleConfirm}
                 >
-                    {selectedCount > 0
-                        ? `Select ${selectedCount} additional language${selectedCount !== 1 ? "s" : ""}`
-                        : "Select additional languages"}
+                    Select languages
+                    {selectedCount > 0 && (
+                        <Label label={String(selectedCount)} color="default" size="small" sx={{ ml: 1 }} />
+                    )}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -272,12 +262,14 @@ const searchIconSx: SxProps<Theme> = {
     color: "action.active"
 };
 
-const gridSx: SxProps<Theme> = {
+const gridSx = (rowsPerCol: number): SxProps<Theme> => ({
     display: "grid",
     gridTemplateColumns: "1fr 1fr 1fr",
+    gridTemplateRows: `repeat(${rowsPerCol}, auto)`,
+    gridAutoFlow: "column",
     columnGap: 1,
     rowGap: "4px"
-};
+});
 
 const rowSx: SxProps<Theme> = {
     display: "flex",
