@@ -2197,7 +2197,7 @@ function ViewEditPermissionsSection() {
                     <PermRow
                         label="Edit and manage permissions"
                         value={videoCanEdit}
-                        options={["Video owner", "All users with editor permission"]}
+                        options={["Video owner", "All users with editor permissions only"]}
                         onChange={setVideoCanEdit}
                     />
                     <PermRow
