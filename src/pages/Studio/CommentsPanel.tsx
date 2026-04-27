@@ -43,10 +43,12 @@ export default function CommentsPanel({
     const dragging = useRef(false);
     const dragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 });
 
-    // Position on open
+    // Position on open — sits on the LEFT side of the screen, just to the right of
+    // the studio's left nav menu, so it doesn't cover the input form on the right.
+    // The user can still drag it elsewhere; this is just the initial placement.
     useEffect(() => {
         if (open) {
-            setPos({ x: Math.max(0, window.innerWidth - 330 - 266), y: 80 });
+            setPos({ x: 240, y: 80 });
         }
     }, [open]);
 
@@ -79,7 +81,6 @@ export default function CommentsPanel({
 
     const handleRequestApproval = () => {
         onRequestApproval();
-        onClose();
     };
 
     if (!open) {

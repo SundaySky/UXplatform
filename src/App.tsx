@@ -560,33 +560,43 @@ export default function App() {
 
                 ) : (
                 /* ── Video page ───────────────────────────────────────────────────── */
-                    <VideoOverviewPage
-                        effectiveStatus={effectiveStatus}
-                        videoTitle={selectedVideo?.title ?? "Video"}
-                        videoPhase={videoPhase}
-                        isPending={effectiveStatus === "pending" && videoPhase !== 2}
-                        approvers={sentApprovers.length > 0 ? sentApprovers : ["sjohnson", "erodriguez"]}
-                        pendingTooltip={pendingTooltip}
-                        headingText={currentVState.headingText}
-                        subheadingText={currentVState.subheadingText}
-                        videoNavTab={videoNavTab}
-                        onNavChange={setVideoNavTab}
-                        onNavigateToLibrary={() => setCurrentPage("library")}
-                        onManageAccess={() => setVideoPermDialogOpen(true)}
-                        onSentForApproval={() => setDialogStep("form")}
-                        onEdit={(fromComments?: boolean) => {
-                            if (isPending && videoPhase !== 2 && !fromComments) {
-                                setCancelApprovalDialogOpen(true);
-                            }
-                            else {
-                                setOpenCommentsOnStudio(fromComments ?? false);
-                                setCurrentPage("studio");
-                            }
-                        }}
-                        onApproveVideo={() => setApproveDialogOpen(true)}
-                        approvalsEnabled={approvalsEnabled}
-                        videoPermSettings={videoPermSettings}
-                    />
+                    /* Task 1 (Languages) hides every approval-flow element on the
+                       video page: the page renders as a clean draft with the standalone
+                       "Approve" button (the variant shown when approvalsEnabled=false).
+                       Edit behaves as it always does — opens the studio without the
+                       cancel-approval gate. */
+                    (() => {
+                        const isLanguagesTask = currentTaskIdx === 0;
+                        return (
+                            <VideoOverviewPage
+                                effectiveStatus={isLanguagesTask ? "draft" : effectiveStatus}
+                                videoTitle={selectedVideo?.title ?? "Video"}
+                                videoPhase={isLanguagesTask ? 0 : videoPhase}
+                                isPending={isLanguagesTask ? false : effectiveStatus === "pending" && videoPhase !== 2}
+                                approvers={isLanguagesTask ? [] : sentApprovers.length > 0 ? sentApprovers : ["sjohnson", "erodriguez"]}
+                                pendingTooltip={pendingTooltip}
+                                headingText={currentVState.headingText}
+                                subheadingText={currentVState.subheadingText}
+                                videoNavTab={videoNavTab}
+                                onNavChange={setVideoNavTab}
+                                onNavigateToLibrary={() => setCurrentPage("library")}
+                                onManageAccess={() => setVideoPermDialogOpen(true)}
+                                onSentForApproval={() => setDialogStep("form")}
+                                onEdit={(fromComments?: boolean) => {
+                                    if (!isLanguagesTask && isPending && videoPhase !== 2 && !fromComments) {
+                                        setCancelApprovalDialogOpen(true);
+                                    }
+                                    else {
+                                        setOpenCommentsOnStudio(fromComments ?? false);
+                                        setCurrentPage("studio");
+                                    }
+                                }}
+                                onApproveVideo={() => setApproveDialogOpen(true)}
+                                approvalsEnabled={isLanguagesTask ? false : approvalsEnabled}
+                                videoPermSettings={videoPermSettings}
+                            />
+                        );
+                    })()
                 )}
             </Box>
 
