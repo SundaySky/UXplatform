@@ -17,6 +17,7 @@ import AccountSettingsDialog from "../../AccountSettingsDialog";
 import AppSidebar from "../../components/AppSidebar";
 import type { NewTemplateData } from "../../components/AppSidebar";
 import { NotificationBell, type NotificationItem } from "../../panels/NotificationsPanel";
+import type { UserRole } from "../../components/TasksPanel";
 import { type VideoPermissionSettings } from "../../dialogs/VideoPermissionDialog";
 import VideoCard from "./VideoCard";
 import FolderCard from "./FolderCard";
@@ -71,7 +72,8 @@ export default function VideoLibraryPage({
     onUserDeletionBlocked: parentOnUserDeletionBlocked,
     accountSettingsOpen: externalAccountSettingsOpen = false,
     accountSettingsInitialTab: externalAccountSettingsInitialTab = "users",
-    onAccountSettingsOpen
+    onAccountSettingsOpen,
+    userRole
 }: {
   onSelectVideo: (v: VideoItem) => void
   onEditVideo?: (v: VideoItem) => void
@@ -93,6 +95,7 @@ export default function VideoLibraryPage({
   accountSettingsOpen?: boolean
   accountSettingsInitialTab?: "users" | "permissions" | "approvals" | "access"
   onAccountSettingsOpen?: (open: boolean) => void
+  userRole?: UserRole
 }) {
     const [_accountSettingsOpen, setAccountSettingsOpen] = useState(false);
     const [_accountSettingsInitialTab, setAccountSettingsInitialTab] = useState<"users" | "permissions" | "approvals" | "access">("users");
@@ -142,6 +145,7 @@ export default function VideoLibraryPage({
                 onCancelUserApprovals={onCancelUserApprovals}
                 onUserDeletionBlocked={handleUserDeletionBlocked}
                 pendingApprovalsCount={pendingApprovalsCount}
+                userRole={userRole}
             />
             <AppSidebar onTemplateLibraryClick={onNavigateToTemplate} onTemplateCreated={onCreateTemplateFromScratch} onTemplateAdded={onTemplateAdded} />
 
