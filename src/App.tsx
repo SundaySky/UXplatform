@@ -560,13 +560,13 @@ export default function App() {
 
                 ) : (
                 /* ── Video page ───────────────────────────────────────────────────── */
-                    /* Task 1 (Languages) hides every approval-flow element on the
-                       video page: the page renders as a clean draft with the standalone
-                       "Approve" button (the variant shown when approvalsEnabled=false).
-                       Edit behaves as it always does — opens the studio without the
-                       cancel-approval gate. */
+                    /* Tasks 1 and 2 (translations / Brazil-removal) hide every
+                       approval-flow element on the video page: the page renders as a
+                       clean draft with the standalone "Approve" button (the variant
+                       shown when approvalsEnabled=false). Edit behaves as it always
+                       does — opens the studio without the cancel-approval gate. */
                     (() => {
-                        const isLanguagesTask = currentTaskIdx === 0;
+                        const isLanguagesTask = currentTaskIdx === 0 || currentTaskIdx === 1;
                         return (
                             <VideoOverviewPage
                                 effectiveStatus={isLanguagesTask ? "draft" : effectiveStatus}
