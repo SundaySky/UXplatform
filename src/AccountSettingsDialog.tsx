@@ -128,9 +128,9 @@ function countPrivilegedCreateSpaceSeats(users: AccountUser[]): number {
 
 // ─── User Type Selector ────────────────────────────────────────────────────────
 const CREATE_OPTIONS = [
-    { key: "Editor", label: "Editor (Require a seat)", description: "Can edit videos and templates" },
-    { key: "Approver", label: "Approver (Require a seat)", description: "Can approve videos and leave feedback" },
-    { key: "Viewer", label: "Viewer", description: "Have access to videos and template content with no option to share or edit" }
+    { key: "Editor", label: "Editor", description: "Can edit videos and templates. Uses a seat." },
+    { key: "Approver", label: "Approver", description: "Can approve videos and leave feedback. Uses a seat." },
+    { key: "Viewer", label: "Viewer", description: "Can view videos and templates." }
 ];
 
 function UserTypeSelector({
@@ -188,7 +188,7 @@ function UserTypeSelector({
                     <Typography variant="subtitle2" sx={textPrimarySx}>Create</Typography>
                     <Box sx={tabCountBadgeSx}>
                         <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                        <Typography variant="caption">{editorCount}/5</Typography>
+                        <Typography variant="caption">{editorCount}/5 seats</Typography>
                     </Box>
                 </Box>
                 {CREATE_OPTIONS.map(opt => {
@@ -333,7 +333,7 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
                             {emailError && <Typography variant="caption" sx={{ color: "error.light", mt: "4px", display: "block" }}>{emailError}</Typography>}
                         </Box>
                         <Box sx={{ mb: "24px" }}>
-                            <Typography variant="body2" sx={editUserFieldLabelSx}>User permission</Typography>
+                            <Typography variant="body2" sx={editUserFieldLabelSx}>Permission</Typography>
                             <UserTypeSelector createSelected={createSelected} amplifyContributor={amplifyContributor} onCreateChange={setCreateSelected} onAmplifyChange={setAmplifyContributor} editorCount={editorCount} contributorCount={contributorCount} />
                         </Box>
                         <Box sx={dialogActionsRowSx}>
@@ -798,50 +798,50 @@ function DeleteUserDialog({
     const bulletPoints: { text: React.ReactNode; show: boolean }[] = [];
     let showContributorWarning = false;
 
-    // Build bullet points conditionally
-    if (isLastApproverWithPermission) {
-        bulletPoints.push({
-            text: "Approvals will be disabled until you enable it again.",
-            show: true
-        });
-    }
-
-    if (hasPendingApprovals) {
-        bulletPoints.push({
-            text: <>All pending approvals assigned to {user.user.name} will be cancelled.</>,
-            show: true
-        });
-    }
-
-    if (hasPendingApprovals) {
-        bulletPoints.push({
-            text: "The user who submitted the approvals will be notified via email.",
-            show: true
-        });
-    }
-
-    if (isContributor) {
-        showContributorWarning = true;
-    }
-
-    // Always show this bullet
-    bulletPoints.push({
-        text: "This user will lose access to the account.",
-        show: true
-    });
-
-    // Determine title and CTA based on conditions
-    if (isLastApproverWithPermission) {
+    // Determine dialog based on 4 scenarios
+    // Scenario 3: Last approver with pending approvals
+    if (isLastApproverWithPermission && hasPendingApprovals) {
         dialogTitle = `Delete ${user.user.name} and disable approvals?`;
         primaryButtonText = "Delete user and disable approvals";
+        bulletPoints.push({
+            text: "Approvals will be disabled until you enable them again.",
+            show: true
+        });
+        bulletPoints.push({
+            text: "This user will lose access to this account.",
+            show: true
+        });
     }
+    // Scenario 2: Has pending approvals (but not last approver)
     else if (hasPendingApprovals) {
         dialogTitle = `Delete ${user.user.name} and cancel approvals?`;
-        primaryButtonText = "Delete user and cancel approvals";
+        primaryButtonText = "Cancel all pending approvals";
+        bulletPoints.push({
+            text: "All pending approvals assigned to this user will be canceled.",
+            show: true
+        });
+        bulletPoints.push({
+            text: "The user who submitted these approvals will be notified by email.",
+            show: true
+        });
+        bulletPoints.push({
+            text: "This user will lose access to this account.",
+            show: true
+        });
     }
+    // Scenario 1: Simple deletion (no pending approvals, not last approver)
     else {
         dialogTitle = `Delete ${user.user.name}?`;
         primaryButtonText = "Delete user";
+        bulletPoints.push({
+            text: "This user will lose access to this account.",
+            show: true
+        });
+    }
+
+    // Scenario 4: Contributor warning
+    if (isContributor) {
+        showContributorWarning = true;
     }
 
     const visibleBulletPoints = bulletPoints.filter(bp => bp.show);
@@ -861,7 +861,7 @@ function DeleteUserDialog({
                 <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
                     <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                     <Typography variant="body1" sx={{ color: "text.primary" }}>
-                        All videos and analytics will be inaccessible in SundaySky, previously shared links will remain viewable.
+                        Deleting this user will also delete all Amplify videos and analytics for Contributors. Previously shared links will remain viewable.
                     </Typography>
                 </Box>
             )}
@@ -1039,7 +1039,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                             </Box>
                                         </TableCell>
                                         <TableCell sx={headCellSx}>
-                                            <Typography variant="subtitle2" sx={textPrimarySx}>User permission</Typography>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>Permission</Typography>
                                         </TableCell>
                                         <TableCell sx={headCellSx}>
                                             <Typography variant="subtitle2" sx={textPrimarySx}>Job role</Typography>
@@ -1353,7 +1353,7 @@ function UsersSection({
                             <Typography variant="subtitle2" component="span">Create</Typography>
                             <Box sx={tabCountBadgeSx}>
                                 <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                                <Typography variant="caption">{editorCount}/5</Typography>
+                                <Typography variant="caption">{editorCount}/5 seats</Typography>
                             </Box>
                         </Box>
                     }
@@ -1405,7 +1405,7 @@ function UsersSection({
                                 </Box>
                             </TableCell>
                             <TableCell sx={headCellSx}>
-                                <Typography variant="subtitle2" sx={textPrimarySx}>User permission</Typography>
+                                <Typography variant="subtitle2" sx={textPrimarySx}>Permission</Typography>
                             </TableCell>
                             <TableCell sx={headCellSx}>
                                 <Typography variant="subtitle2" sx={textPrimarySx}>Job role</Typography>
