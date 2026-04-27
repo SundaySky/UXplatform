@@ -2094,17 +2094,27 @@ function PermGroup({ title, children }: { title: string; children: React.ReactNo
     );
 }
 
-function PermRow({ label, subtitle, value, options, onChange }: {
+function PermRow({ label, subtitle, value, options, onChange, info }: {
     label: string;
     subtitle?: string;
     value: string;
     options: readonly string[] | string[];
     onChange: (val: string) => void;
+    info?: string;
 }) {
     return (
         <Box sx={permRowSx}>
             <Box sx={permLabelBoxSx}>
-                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+                    {info && (
+                        <Tooltip title={info} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
+                            <SvgIcon sx={{ fontSize: 14, color: "action.active", cursor: "help" }}>
+                                <FontAwesomeIcon icon={faCircleInfo} />
+                            </SvgIcon>
+                        </Tooltip>
+                    )}
+                </Box>
                 {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
             </Box>
             <Select
@@ -2356,6 +2366,7 @@ function ViewEditPermissionsSection() {
                         value={avatarCanEdit}
                         options={["Avatar creator", "Account owner only"]}
                         onChange={setAvatarCanEdit}
+                        info="Can delete, manage access"
                     />
                     <PermRowWithUsers
                         label="Using a custom avatar"
@@ -2366,10 +2377,11 @@ function ViewEditPermissionsSection() {
                 {/* Custom voice */}
                 <PermGroup title="Custom voice">
                     <PermRow
-                        label="Create, delete and manage access to custom voice"
+                        label="Custom voice owner"
                         value={voiceCanEdit}
                         options={["Users with editor permission", "Account owner only"]}
                         onChange={setVoiceCanEdit}
+                        info="Can delete, manage access"
                     />
                     <PermRowWithUsers label="Can use custom voice" />
                 </PermGroup>
@@ -2377,10 +2389,11 @@ function ViewEditPermissionsSection() {
                 {/* Brand */}
                 <PermGroup title="Brand">
                     <PermRow
-                        label="Manage brand permission"
+                        label="Brand owner"
                         value={brandOwner}
                         options={["Everyone in the account", "None"]}
                         onChange={setBrandOwner}
+                        info="Can delete, manage access"
                     />
                     <PermRowWithUsers label="Using a brand" />
                 </PermGroup>
