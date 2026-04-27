@@ -2330,7 +2330,7 @@ function ViewEditPermissionsSection() {
                 {/* Videos and templates */}
                 <PermGroup title="Videos and templates">
                     <PermRow
-                        label="Edit"
+                        label="Edit videos and templates"
                         value={videoCanEdit}
                         options={["Video owner", "All users with editor permissions only"]}
                         onChange={setVideoCanEdit}
@@ -2342,8 +2342,7 @@ function ViewEditPermissionsSection() {
                         onChange={setVideoCanEditPerms}
                     />
                     <PermRow
-                        label="Can view"
-                        subtitle="can view others videos"
+                        label="Can view others videos"
                         value={videoCanView}
                         options={["Everyone in the account", "None"]}
                         onChange={setVideoCanView}
