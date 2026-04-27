@@ -991,14 +991,14 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     <SvgIcon sx={approvalStampIconSx}><FontAwesomeIcon icon={faStamp} /></SvgIcon>
                     <Box sx={{ flex: 1 }}>
                         <Typography variant="body1" sx={{ color: "text.primary" }}>
-                            Only users with approver permission can approve videos
+                            Enable video approvals
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.secondary", mt: "2px" }}>
-                            Set users as approvers by adding an approver permission in the users tab
+                            Only approvers can approve videos. Assign approver permissions in the Users tab.
                         </Typography>
                     </Box>
                     <Tooltip
-                        title={approvers.length === 0 ? "To enable approvals, please add at least one user with approver permission." : ""}
+                        title={approvers.length === 0 ? "Add at least one user with approver permission to enable approvals." : ""}
                         placement="top"
                         arrow
                     >
