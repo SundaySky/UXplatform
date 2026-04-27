@@ -156,10 +156,17 @@ export default function App() {
         if (!title) {
             return;
         }
-        setTemplateApprovalStates(prev => ({
-            ...prev,
-            [title]: { ...getTemplateApprovalState(title), ...patch }
-        }));
+        setTemplateApprovalStates(prev => {
+            // Read from `prev` (not the closure) so consecutive batched patches —
+            // e.g. setVideoPhase(0), setPageState("draft"), setApprovers([]) called
+            // back-to-back in the resubmit flow — all compose correctly instead of
+            // clobbering each other off a stale base.
+            const existing = prev[title] ?? { videoPhase: 0, pageState: "draft" as const, approvers: [], isPublished: false };
+            return {
+                ...prev,
+                [title]: { ...existing, ...patch }
+            };
+        });
     };
 
     const handleTemplateAdded = (data: NewTemplateData) => {
@@ -227,6 +234,28 @@ export default function App() {
                 : t
         ));
     }, [currentTaskIdx, currentTemplateData, resubmittedTemplateNames]);
+
+    // When the user is at task 8 (idx 7 — "ready to go live in Amplify"), the
+    // template is fully approved: update its approval state to phase 4 and
+    // surface "Approval granted" on the card.
+    useEffect(() => {
+        if (!currentTemplateData) {
+            return;
+        }
+        if (currentTaskIdx === 7) {
+            setCreatedTemplates(prev => prev.map(t =>
+                t.title === currentTemplateData.name
+                    ? { ...t, versionStatus: "Approval granted", commentsCount: undefined }
+                    : t
+            ));
+            updateTemplateApprovalState(currentTemplateData.name, {
+                videoPhase: 4,
+                pageState: "draft",
+                approvers: ["sjohnson"]
+            });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentTaskIdx, currentTemplateData]);
     const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
     const [videoStates, setVideoStates] = useState<Record<string, VideoState>>({});
     const [dialogStep, setDialogStep] = useState<"closed" | "form" | "confirmed">("closed");

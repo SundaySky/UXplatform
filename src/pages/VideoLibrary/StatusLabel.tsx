@@ -7,7 +7,7 @@ export default function StatusLabel({ status }: { status: StatusKey }) {
     return (
         <Tooltip title={cfg.tooltip}>
             <span>
-                <Label label={status} color={cfg.color} variant={cfg.variant} />
+                <Label label={status} color={cfg.color} variant={cfg.variant} size="small" />
             </span>
         </Tooltip>
     );

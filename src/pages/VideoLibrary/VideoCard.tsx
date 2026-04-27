@@ -145,6 +145,7 @@ export default function VideoCard({
                         <Label
                             label="Personalized"
                             color="default"
+                            size="small"
                             variant="outlined"
                             startIcon={<SvgIcon sx={personalizedLabelIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
                             sx={{ bgcolor: "background.paper" }}

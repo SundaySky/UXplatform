@@ -29,7 +29,7 @@ export const STATUS_LABEL_MAP: Record<StatusKey, { color: StatusColor; variant?:
     "Approving version...":   { color: "default", variant: "outlined", tooltip: "Approval is in progress." },
     "Archived":               { color: "default", variant: "outlined", tooltip: "Video has been archived." },
     "In testing":             { color: "warning", tooltip: "Video is in testing." },
-    "Approved for sharing":   { color: "info", tooltip: "Video is finalized and can be shared with viewers." },
+    "Approved for sharing":   { color: "success", tooltip: "Video is finalized and can be shared with viewers." },
     "Downloaded for Sharing": { color: "success", tooltip: "Video has been downloaded for sharing." },
     "Downloaded":             { color: "info", tooltip: "Video has been downloaded." },
     "Live":                   { color: "error", tooltip: "Video has been shared via Landing Page." },

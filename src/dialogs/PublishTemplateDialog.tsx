@@ -3,7 +3,7 @@ import {
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import {
-    TruffleDialogTitle, TruffleDialogActions, TruffleLink
+    TruffleDialogTitle, TruffleDialogActions
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 interface Props {
@@ -18,10 +18,10 @@ interface Props {
 }
 
 const DEFAULT_CONTRIBUTORS = [
-    "Contributor group",
-    "Contributor name",
-    "Contributor group",
-    "Contributor group"
+    "All contributors",
+    "Legal",
+    "Marketing",
+    "Sarah Johnson"
 ];
 
 export default function PublishTemplateDialog({
@@ -55,12 +55,10 @@ export default function PublishTemplateDialog({
                         </Box>
                     ))}
                 </Box>
-
-                <TruffleLink href="#">Preview template</TruffleLink>
             </DialogContent>
 
             <TruffleDialogActions>
-                <Button variant="text" size="large" onClick={onClose}>
+                <Button variant="text" size="large" onClick={onClose} sx={{ mr: "auto" }}>
                     Cancel
                 </Button>
                 <Button variant="outlined" size="large" onClick={onEditDetails}>
