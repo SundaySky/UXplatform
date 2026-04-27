@@ -45,7 +45,8 @@
       "Bash(./scripts/start-task.sh \"workflow approver user management\")",
       "mcp__firecrawl__firecrawl_browser_create",
       "Bash(./scripts/start-task.sh \"Update disable approvals dialog with pending count\")",
-      "Bash(./scripts/start-task.sh \"add seats label to amplify tab\")"
+      "Bash(./scripts/start-task.sh \"add seats label to amplify tab\")",
+      "Bash(./scripts/start-task.sh \"fix delete dialog for users with approver permission\")"
     ]
   }
 }
