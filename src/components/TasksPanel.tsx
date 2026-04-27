@@ -11,7 +11,7 @@ interface Task { id: number; label: string | string[]; done: boolean }
 const INITIAL_TASKS: Task[] = [
     { id: 1, label: "You’re working on a safety video and need to set up 12 different translations for global audiences.", done: false },
     { id: 2, label: "Your boss mentioned to you that you stopped working with Brazil and you would like to remove it from your videos.", done: false },
-    { id: 3, label: "Update this video so it can be used for audiences in Far East countries.", done: false },
+    { id: 3, label: "Update this video so it can be used by Japanese and Chinese audiences", done: false },
     { id: 4, label: ["You learned there’s an option to organize users so you can assign permissions to multiple people at once.", "You want to create Sales and Marketing teams."], done: false },
     { id: 5, label: "You want to create a new template for the Sales team about a new product launch.", done: false },
     { id: 6, label: "You feel your template is ready and you need formal approval, by Sarah from the Legal team, before it can be shared.", done: false },
