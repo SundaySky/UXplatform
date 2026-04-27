@@ -930,6 +930,138 @@ function DeleteUserDialog({
     );
 }
 
+// ─── Remove Approver Dialog (3 variants) ──────────────────────────────────────
+interface RemoveApproverDialogProps {
+    open: boolean
+    onClose: () => void
+    user: AccountUser | null
+    onConfirm: () => void
+    onDisableApprovals?: () => void
+    remainingApproversAfterRemove?: number
+    hasPendingApprovals?: boolean
+    approvalsEnabledInAccount?: boolean
+}
+
+function RemoveApproverDialog({
+    open,
+    onClose,
+    user,
+    onConfirm,
+    onDisableApprovals,
+    remainingApproversAfterRemove = 0,
+    hasPendingApprovals = false,
+    approvalsEnabledInAccount = false
+}: RemoveApproverDialogProps) {
+    if (!user) {
+        return null;
+    }
+
+    const isLastApproverWithPending = remainingApproversAfterRemove === 0 && hasPendingApprovals && approvalsEnabledInAccount;
+    const isLastApprover = remainingApproversAfterRemove === 0 && approvalsEnabledInAccount;
+
+    let dialogTitle = "";
+    let primaryButtonText = "";
+    let secondaryButtonText = "Keep approver role";
+    const bulletPoints: { text: React.ReactNode; show: boolean }[] = [];
+
+    // Scenario 3: Last approver with pending approvals
+    if (isLastApproverWithPending) {
+        dialogTitle = `Remove ${user.user.name} from approver and disable approvals?`;
+        primaryButtonText = "Remove approver and disable approvals";
+        bulletPoints.push({
+            text: "All pending approvals assigned to this user will be canceled.",
+            show: true
+        });
+        bulletPoints.push({
+            text: "Approvals will be disabled until you enable them again.",
+            show: true
+        });
+    }
+    // Scenario 2: Last approver (but no pending approvals)
+    else if (isLastApprover) {
+        dialogTitle = `Remove ${user.user.name} from approver and disable approvals?`;
+        primaryButtonText = "Remove approver and disable approvals";
+        bulletPoints.push({
+            text: "Approvals will be disabled until you enable them again.",
+            show: true
+        });
+    }
+    // Scenario 1: Has pending approvals (but not last approver)
+    else if (hasPendingApprovals) {
+        dialogTitle = `Remove ${user.user.name} from approver and cancel approvals?`;
+        primaryButtonText = "Remove approver and cancel pending approvals";
+        bulletPoints.push({
+            text: "All pending approvals assigned to this user will be canceled.",
+            show: true
+        });
+        bulletPoints.push({
+            text: "The user who submitted these approvals will be notified by email.",
+            show: true
+        });
+    }
+
+    const visibleBulletPoints = bulletPoints.filter(bp => bp.show);
+
+    const bodyContent = (
+        <Box>
+            {visibleBulletPoints.length > 0 && (
+                <Box sx={{ mb: "16px" }}>
+                    {visibleBulletPoints.map((bp, idx) => (
+                        <Typography key={idx} variant="body1" sx={{ color: "text.primary", mb: idx < visibleBulletPoints.length - 1 ? "8px" : "0px" }}>
+                            • {bp.text}
+                        </Typography>
+                    ))}
+                </Box>
+            )}
+        </Box>
+    );
+
+    const handleConfirm = () => {
+        if (isLastApproverWithPending || isLastApprover) {
+            onConfirm();
+            onDisableApprovals?.();
+        }
+        else {
+            onConfirm();
+        }
+        onClose();
+    };
+
+    return (
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth={false}
+            PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}
+        >
+            <Box sx={{ p: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>
+                <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>{dialogTitle}</TruffleDialogTitle>
+                <Box sx={{ px: "24px" }}>
+                    {bodyContent}
+                </Box>
+                <Box sx={{ px: "24px", display: "flex", gap: "12px", flexDirection: "column" }}>
+                    <Button
+                        variant="contained"
+                        size="large"
+                        fullWidth
+                        onClick={handleConfirm}
+                    >
+                        {primaryButtonText}
+                    </Button>
+                    <Button
+                        variant="text"
+                        size="large"
+                        fullWidth
+                        onClick={onClose}
+                    >
+                        {secondaryButtonText}
+                    </Button>
+                </Box>
+            </Box>
+        </Dialog>
+    );
+}
+
 
 // ─── Approvals Section ────────────────────────────────────────────────────────
 function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, onUserDeleted, pendingApprovalsCount }: {
@@ -1293,7 +1425,8 @@ function UsersSection({
     approvalsEnabled = false,
     approverIds = new Set(),
     onClose,
-    onEnableApprovalsRequested
+    onEnableApprovalsRequested,
+    onToggleApprovals
 }: {
  users: AccountUser[]
  onInviteUser: (rows: InviteRow[]) => void
@@ -1304,6 +1437,7 @@ function UsersSection({
  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
  onClose?: () => void
  onEnableApprovalsRequested?: () => void
+ onToggleApprovals?: (enabled: boolean) => void
 }) {
     const [search, setSearch] = useState("");
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -1317,6 +1451,9 @@ function UsersSection({
     const [activeTab, setActiveTab] = useState<"create" | "amplify">("create");
     const [enableApprovalsDialogOpen, setEnableApprovalsDialogOpen] = useState(false);
     const [userWithApproverAdded, setUserWithApproverAdded] = useState<AccountUser | null>(null);
+    const [removeApproverOpen, setRemoveApproverOpen] = useState(false);
+    const [userToRemoveApprover, setUserToRemoveApprover] = useState<AccountUser | null>(null);
+    const [pendingApproverRemoval, setPendingApproverRemoval] = useState<{ user: AccountUser; createSpace: string; amplifySpace: string } | null>(null);
 
     const filtered = search
         ? usersList.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
@@ -1503,6 +1640,16 @@ function UsersSection({
                         const hadApprover = editingUser.createSpace.includes("Approver");
                         const hasApprover = createSpace.includes("Approver");
                         const becameApprover = !hadApprover && hasApprover;
+                        const lostApprover = hadApprover && !hasApprover;
+
+                        // Show remove approver dialog if user is being removed from approver role
+                        if (lostApprover) {
+                            setUserToRemoveApprover(editingUser);
+                            setPendingApproverRemoval({ user: editingUser, createSpace, amplifySpace });
+                            setRemoveApproverOpen(true);
+                            setDialogMode("closed");
+                            return;
+                        }
 
                         setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u));
                         onPermissionsChanged?.(editingUser.user.id, createSpace, amplifySpace);
@@ -1536,6 +1683,34 @@ function UsersSection({
                         setUserMenuAnchor(null);
                     }
                 }}
+            />
+
+            {/* Remove Approver Dialog */}
+            <RemoveApproverDialog
+                open={removeApproverOpen}
+                onClose={() => {
+                    setRemoveApproverOpen(false);
+                    setUserToRemoveApprover(null);
+                    setPendingApproverRemoval(null);
+                }}
+                user={userToRemoveApprover}
+                remainingApproversAfterRemove={userToRemoveApprover ? Array.from(approverIds).filter(id => id !== userToRemoveApprover.user.id).length : 0}
+                hasPendingApprovals={!!userToRemoveApprover?.addedAsApprover}
+                approvalsEnabledInAccount={approvalsEnabled}
+                onConfirm={() => {
+                    if (pendingApproverRemoval) {
+                        setUsersList(prev => prev.map(u =>
+                            u.user.id === pendingApproverRemoval.user.user.id
+                                ? { ...u, createSpace: pendingApproverRemoval.createSpace, amplifySpace: pendingApproverRemoval.amplifySpace }
+                                : u
+                        ));
+                        onPermissionsChanged?.(pendingApproverRemoval.user.user.id, pendingApproverRemoval.createSpace, pendingApproverRemoval.amplifySpace);
+                        setRemoveApproverOpen(false);
+                        setUserToRemoveApprover(null);
+                        setPendingApproverRemoval(null);
+                    }
+                }}
+                onDisableApprovals={() => onToggleApprovals?.(false)}
             />
 
             {/* Enable Approvals Dialog */}
@@ -2481,18 +2656,22 @@ interface AccountSettingsDialogProps {
  initialTab?: "users" | "permissions" | "approvals" | "access" | "groups" | NavKey
 }
 
+const DEFAULT_APPROVER_IDS = new Set<string>();
+const DEFAULT_APPROVERS_LIST: { value: string; label: string }[] = [];
+const DEFAULT_VIDEO_STATES: Record<string, VideoStateForApprovals> = {};
+
 export default function AccountSettingsDialog({
     open,
     onClose,
     approvalsEnabled: externalApprovalsEnabled = false,
-    approverIds: externalApproverIds = new Set(),
-    approversList: externalApproversList = [],
+    approverIds: externalApproverIds = DEFAULT_APPROVER_IDS,
+    approversList: externalApproversList = DEFAULT_APPROVERS_LIST,
     onApprovalsEnabledChange,
     onApproversChange,
     onApproversListChange,
     onUserDeletionBlocked,
     onCancelUserApprovals,
-    videoStates = {},
+    videoStates = DEFAULT_VIDEO_STATES,
     pendingApprovalsCount = 0,
     initialTab = "users"
 }: AccountSettingsDialogProps) {
@@ -2690,6 +2869,10 @@ export default function AccountSettingsDialog({
                                 setNav("approvals");
                                 setApprovalsEnabled(true);
                                 onApprovalsEnabledChange?.(true);
+                            }}
+                            onToggleApprovals={(enabled) => {
+                                setApprovalsEnabled(enabled);
+                                onApprovalsEnabledChange?.(enabled);
                             }}
                         />
                     )}
