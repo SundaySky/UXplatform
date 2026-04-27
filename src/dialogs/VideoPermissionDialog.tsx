@@ -114,69 +114,71 @@ export function VideoAccessBar({
 
     return (
         <Box sx={accessBarRootSx}>
-            {/* Visible [icon] [label] ▾ */}
-            <Box sx={accessBarVisibleRowSx}>
-                <Typography variant="caption" sx={accessBarVisibleLabelSx}>
-                    Visible
-                </Typography>
-                <Box
-                    onClick={onChangePermission}
-                    sx={{
-                        display: "flex", alignItems: "center", gap: "4px",
-                        cursor: onChangePermission ? "pointer" : "default",
-                        "&:hover": onChangePermission ? { opacity: 0.75 } : {}
-                    }}
-                >
-                    <SvgIcon sx={{ fontSize: 15, color: permColor }}><FontAwesomeIcon icon={PermIcon} /></SvgIcon>
-                    <Typography variant="caption" sx={accessBarPermLabelSx}>
-                        {permLabel}
+            {/* Visible [icon] [label] ▾ + Avatar row */}
+            <Box sx={accessBarHeaderRowSx}>
+                <Box sx={accessBarVisibleRowSx}>
+                    <Typography variant="caption" sx={accessBarVisibleLabelSx}>
+                        Visible
                     </Typography>
-                    {onChangePermission && <SvgIcon sx={chevronSmallSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
-                </Box>
-            </Box>
-
-            {/* Avatar row */}
-            <Box sx={avatarRowSx}>
-                {ownerUsers.map(owner => (
-                    <UserChip
-                        key={owner.id}
-                        bg={owner.color}
-                        initials={owner.initials}
-                        tip={<TipContent name={`${owner.name}${owner.id === OWNER_USER.id ? " (You)" : ""}`} desc="Can manage access, delete, and rename." />}
-                    />
-                ))}
-
-                {(showEveryone || restrictedMode) && (
-                    <Box sx={avatarDividerLineSx} />
-                )}
-
-                {showEveryone && (
-                    <Tooltip
-                        title={<Typography variant="caption" sx={everyoneTooltipTextSx}>Everyone in your account can {everyoneRole === "editor" ? "edit" : "view"}</Typography>}
-                        placement="top" arrow slotProps={{ tooltip: { sx: navyTipSx } }}
+                    <Box
+                        onClick={onChangePermission}
+                        sx={{
+                            display: "flex", alignItems: "center", gap: "4px",
+                            cursor: onChangePermission ? "pointer" : "default",
+                            "&:hover": onChangePermission ? { opacity: 0.75 } : {}
+                        }}
                     >
-                        <Box sx={everyoneChipBoxSx}>
-                            <SvgIcon sx={everyoneChipIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                        </Box>
-                    </Tooltip>
-                )}
+                        <SvgIcon sx={{ fontSize: 15, color: permColor }}><FontAwesomeIcon icon={PermIcon} /></SvgIcon>
+                        <Typography variant="caption" sx={accessBarPermLabelSx}>
+                            {permLabel}
+                        </Typography>
+                        {onChangePermission && <SvgIcon sx={chevronSmallSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
+                    </Box>
+                </Box>
 
-                {restrictedMode && groups.map(pg => (
-                    <GroupChip
-                        key={pg.group.id}
-                        group={pg.group}
-                        desc={pg.role === "editor" ? "Group members can edit the video" : "Group members can view the video"}
-                    />
-                ))}
+                {/* Avatar row - right side */}
+                <Box sx={avatarRowSx}>
+                    {ownerUsers.map(owner => (
+                        <UserChip
+                            key={owner.id}
+                            bg={owner.color}
+                            initials={owner.initials}
+                            tip={<TipContent name={`${owner.name}${owner.id === OWNER_USER.id ? " (You)" : ""}`} desc="Can manage access, delete, and rename." />}
+                        />
+                    ))}
 
-                {restrictedMode && users.map((pu, i) => (
-                    <UserChip
-                        key={pu.user.id + i}
-                        bg={pu.user.color}
-                        initials={pu.user.initials}
-                        tip={<TipContent name={pu.user.name} desc={pu.role === "editor" ? "Can edit the video" : "Can view the video"} />}
-                    />
-                ))}
+                    {(showEveryone || restrictedMode) && (
+                        <Box sx={avatarDividerLineSx} />
+                    )}
+
+                    {showEveryone && (
+                        <Tooltip
+                            title={<Typography variant="caption" sx={everyoneTooltipTextSx}>Everyone in your account can {everyoneRole === "editor" ? "edit" : "view"}</Typography>}
+                            placement="top" arrow slotProps={{ tooltip: { sx: navyTipSx } }}
+                        >
+                            <Box sx={everyoneChipBoxSx}>
+                                <SvgIcon sx={everyoneChipIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                            </Box>
+                        </Tooltip>
+                    )}
+
+                    {restrictedMode && groups.map(pg => (
+                        <GroupChip
+                            key={pg.group.id}
+                            group={pg.group}
+                            desc={pg.role === "editor" ? "Group members can edit the video" : "Group members can view the video"}
+                        />
+                    ))}
+
+                    {restrictedMode && users.map((pu, i) => (
+                        <UserChip
+                            key={pu.user.id + i}
+                            bg={pu.user.color}
+                            initials={pu.user.initials}
+                            tip={<TipContent name={pu.user.name} desc={pu.role === "editor" ? "Can edit the video" : "Can view the video"} />}
+                        />
+                    ))}
+                </Box>
             </Box>
 
             {/* Manage access button */}
@@ -220,9 +222,21 @@ function PersonRow({
   roleLabel: string
   onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
 }) {
+    const tooltipContent = (
+        <Box>
+            <Typography variant="caption" sx={tipContentNameSx}>{name}</Typography>
+            <Typography variant="caption" sx={{ color: (theme: Theme) => alpha(theme.palette.common.white, 0.85), lineHeight: 1.4 }}>
+                {roleLabel.includes("own") ? "Can manage access, delete, and rename." : roleLabel.toLowerCase()}
+            </Typography>
+        </Box>
+    );
     return (
         <Box sx={personRowSx}>
-            {avatar}
+            <Tooltip title={tooltipContent} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTipSxDialog } }}>
+                <Box sx={{ cursor: "default" }}>
+                    {avatar}
+                </Box>
+            </Tooltip>
             <Box sx={personRowInfoSx}>
                 <Typography variant="subtitle2" sx={personRowNameSx}>
                     {name}
@@ -243,7 +257,7 @@ function GroupRow({
   roleLabel: string
   onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
 }) {
-    const tooltipContent = (
+    const groupTooltipContent = (
         <Box>
             <Typography variant="caption" sx={groupTooltipTitleSx}>{group.name}</Typography>
             {group.members.map(m => (
@@ -252,13 +266,13 @@ function GroupRow({
                 </Typography>
             ))}
             <Typography variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.55), lineHeight: 1.5, mt: 0.5 }}>
-                Group members are managed by account owners
+                {roleLabel.toLowerCase()} • Group members are managed by account owners
             </Typography>
         </Box>
     );
     return (
         <Box sx={personRowSx}>
-            <Tooltip title={tooltipContent} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTipSxDialog } }}>
+            <Tooltip title={groupTooltipContent} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTipSxDialog } }}>
                 <Box sx={groupAvatarBoxSx}>
                     <SvgIcon sx={groupAvatarIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
                 </Box>
@@ -1000,8 +1014,12 @@ const accessBarRootSx: SxProps<Theme> = {
     display: "flex", flexDirection: "column", gap: "10px"
 };
 
+const accessBarHeaderRowSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px"
+};
+
 const accessBarVisibleRowSx: SxProps<Theme> = {
-    display: "flex", alignItems: "center", gap: "6px"
+    display: "flex", alignItems: "center", gap: "6px", flex: 1
 };
 
 const accessBarVisibleLabelSx: SxProps<Theme> = {
@@ -1017,7 +1035,7 @@ const chevronSmallSx: SxProps<Theme> = {
 };
 
 const avatarRowSx: SxProps<Theme> = {
-    display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"
+    display: "flex", alignItems: "center", gap: "6px", flexShrink: 0
 };
 
 const avatarDividerLineSx: SxProps<Theme> = {
@@ -1126,8 +1144,10 @@ const tagGroupIconBoxSx: SxProps<Theme> = {
 const tagGroupIconSx: SxProps<Theme> = { fontSize: 11, color: "text.secondary" };
 
 const groupTagChipSx: SxProps<Theme> = {
-    bgcolor: "grey.200", color: "text.primary",
-    "& .MuiChip-deleteIcon": { color: "action.disabled", "&:hover": { color: "text.primary" } }
+    bgcolor: "grey.100", color: "text.primary", height: 28,
+    "& .MuiChip-label": { px: "8px" },
+    "& .MuiChip-icon": { ml: "4px" },
+    "& .MuiChip-deleteIcon": { color: "text.secondary", mr: "4px", "&:hover": { color: "text.primary" } }
 };
 
 const chipAvatarSx: SxProps<Theme> = {

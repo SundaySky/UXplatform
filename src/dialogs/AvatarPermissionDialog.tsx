@@ -86,9 +86,21 @@ function PersonRow({
   roleLabel: string
   onRoleClick?: (e: React.MouseEvent<HTMLElement>) => void
 }) {
+    const tooltipContent = (
+        <Box>
+            <Typography variant="caption" sx={tipContentNameSx}>{name}</Typography>
+            <Typography variant="caption" sx={{ color: (theme: Theme) => alpha(theme.palette.common.white, 0.85), lineHeight: 1.4 }}>
+                {roleLabel.toLowerCase()}
+            </Typography>
+        </Box>
+    );
     return (
         <Box sx={personRowSx}>
-            {avatar}
+            <Tooltip title={tooltipContent} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTooltipSx } }}>
+                <Box sx={{ cursor: "default" }}>
+                    {avatar}
+                </Box>
+            </Tooltip>
             <Box sx={personRowInnerSx}>
                 <Typography variant="subtitle2" sx={personNameSx}>
                     {name}
@@ -109,7 +121,7 @@ function GroupRow({
   roleLabel: string
   onRoleClick?: (e: React.MouseEvent<HTMLElement>) => void
 }) {
-    const tooltipContent = (
+    const groupTooltipContent = (
         <Box>
             <Typography variant="caption" sx={groupTooltipTitleSx}>{group.name}</Typography>
             {group.members.map(m => (
@@ -118,13 +130,13 @@ function GroupRow({
                 </Typography>
             ))}
             <Typography variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.55), lineHeight: 1.5, mt: 0.5 }}>
-                Group members are managed by account owners
+                {roleLabel.toLowerCase()} • Group members are managed by account owners
             </Typography>
         </Box>
     );
     return (
         <Box sx={personRowSx}>
-            <Tooltip title={tooltipContent} placement="bottom" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+            <Tooltip title={groupTooltipContent} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTooltipSx } }}>
                 <Box sx={groupAvatarBoxSx}>
                     <SvgIcon sx={groupAvatarIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
                 </Box>
@@ -595,12 +607,12 @@ export default function AvatarPermissionDialog({
                                                         <Typography variant="caption" sx={requestNameSx}>{req.name}</Typography>
                                                         <Typography variant="caption" sx={personEmailSx}>{req.email}</Typography>
                                                     </Box>
-                                                    <Tooltip title="Deny" placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+                                                    <Tooltip title="Deny" placement="top" arrow slotProps={{ tooltip: { sx: navyTooltipSx } }}>
                                                         <IconButton size="small" onClick={() => handleDeny(req)} sx={denyIconButtonSx}>
                                                             <SvgIcon sx={requestActionIconSx}><FontAwesomeIcon icon={faCircleMinus} /></SvgIcon>
                                                         </IconButton>
                                                     </Tooltip>
-                                                    <Tooltip title="Approve" placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+                                                    <Tooltip title="Approve" placement="top" arrow slotProps={{ tooltip: { sx: navyTooltipSx } }}>
                                                         <IconButton size="small" onClick={() => handleApprove(req)} sx={approveIconButtonSx}>
                                                             <SvgIcon sx={requestActionIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon>
                                                         </IconButton>
@@ -758,6 +770,10 @@ const groupTooltipTitleSx: SxProps<Theme> = {
     fontWeight: 600, color: "common.white", lineHeight: 1.5, display: "block"
 };
 
+const tipContentNameSx: SxProps<Theme> = {
+    fontWeight: 600, color: "common.white", lineHeight: 1.4, display: "block"
+};
+
 const roleButtonChipSx: SxProps<Theme> = {
     flexShrink: 0, whiteSpace: "nowrap"
 };
@@ -819,8 +835,10 @@ const tagGroupIconBoxSx: SxProps<Theme> = {
 const tagGroupIconSx: SxProps<Theme> = { fontSize: 11, color: "text.secondary" };
 
 const groupTagChipSx: SxProps<Theme> = {
-    bgcolor: "grey.200", color: "text.primary",
-    "& .MuiChip-deleteIcon": { color: "action.disabled", "&:hover": { color: "text.primary" } }
+    bgcolor: "grey.100", color: "text.primary", height: 28,
+    "& .MuiChip-label": { px: "8px" },
+    "& .MuiChip-icon": { ml: "4px" },
+    "& .MuiChip-deleteIcon": { color: "text.secondary", mr: "4px", "&:hover": { color: "text.primary" } }
 };
 
 const tagAvatarSx: SxProps<Theme> = {

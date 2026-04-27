@@ -35,7 +35,12 @@
       "Bash(git checkout *)",
       "Bash(./scripts/end-task.sh \"Account settings: simplify groups dialog and add access sub-navigation\")",
       "Bash(git add *)",
-      "Bash(git commit -m 'Update Videos and templates permissions copy *)"
+      "Bash(git commit -m 'Update Videos and templates permissions copy *)",
+      "Bash(gh pr *)",
+      "Bash(./scripts/start-task.sh \"groups-video-avatar-access\")",
+      "Bash(git stash *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git rebase *)"
     ]
   }
 }
