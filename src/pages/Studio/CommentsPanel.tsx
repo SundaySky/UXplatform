@@ -79,6 +79,7 @@ export default function CommentsPanel({
 
     const handleRequestApproval = () => {
         onRequestApproval();
+        onClose();
     };
 
     if (!open) {

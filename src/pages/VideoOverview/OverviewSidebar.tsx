@@ -137,7 +137,7 @@ export default function OverviewSidebar({
             <Box sx={sidebarStatusChipBoxSx}>
                 <Label
                     label={effectiveStatus === "pending" ? "Pending approval" : effectiveStatus === "approved" ? "Approved for sharing" : "Draft"}
-                    color={effectiveStatus === "approved" ? "info" : "default"}
+                    color={effectiveStatus === "approved" ? "success" : "default"}
                     size="small"
                 />
             </Box>

@@ -23,7 +23,7 @@ type AudienceOption = {
     category: "all" | "groups" | "users";
 };
 
-const AUDIENCE_GROUPS = ["Sales", "Marketing"];
+const AUDIENCE_GROUPS = ["Sales", "Marketing", "Legal"];
 
 const AUDIENCE_USERS = [
     { name: "Sarah Johnson", email: "sjohnson@company.com" },
@@ -96,6 +96,17 @@ export default function CreateTemplateDialog({
         && audience.length > 0
         && (purpose.length > 0 || purposeInput.trim().length > 0)
         && description.trim().length > 0;
+
+    // True when the user has changed any field from its initial value (edit mode only).
+    const arraysEqualAsSets = (a: string[], b: string[]) =>
+        a.length === b.length && a.every(x => b.includes(x));
+    const hasChanges = !isCreate && (
+        name !== initialName
+        || aspectRatio !== initialAspectRatio
+        || !arraysEqualAsSets(audience, initialAudience)
+        || !arraysEqualAsSets(purpose, initialPurpose)
+        || description !== initialDescription
+    );
 
     // Memoized — prevents MUI Autocomplete from re-mounting / clearing the input
     // on every render due to `value` being a freshly-built array reference.
@@ -274,11 +285,11 @@ export default function CreateTemplateDialog({
                     onChange={(e) => setDescription(e.target.value)}
                 />
 
-                {/* Warning shown only in edit mode — per Figma node 20036:95215 */}
-                {!isCreate && (
+                {/* Warning shown only in edit mode AFTER the user has actually made changes */}
+                {!isCreate && hasChanges && (
                     <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faTriangleExclamation} /></SvgIcon>}>
                         <AttentionBoxContent>
-                            Any changes will be visible to and influence Contributors who customize this template. Re-publish to apply changes.
+                            Since you’ve updated the template, additional approval is required.
                         </AttentionBoxContent>
                     </AttentionBox>
                 )}
@@ -297,7 +308,7 @@ export default function CreateTemplateDialog({
                     {isCreate
                         ? "Create new template"
                         : wasApproved
-                            ? "Submit for approval"
+                            ? "Resubmit for approval"
                             : "Update"}
                 </Button>
             </TruffleDialogActions>

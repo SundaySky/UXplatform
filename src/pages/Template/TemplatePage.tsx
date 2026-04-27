@@ -10,7 +10,7 @@ import {
     faArrowLeft, faEllipsisVertical, faPen,
     faCircleQuestion, faSquareList, faEnvelope,
     faCode, faDownload, faFileExport, faEye, faGlobe,
-    faUsers, faCircleCheck, faCheck, faChevronDown, faXmark, faComment
+    faUsers, faCircleCheck, faCheck, faChevronDown, faXmark, faComment, faPaperPlane
 } from "@fortawesome/pro-regular-svg-icons";
 import {
     TruffleLink, TruffleAvatar, Label, Search, TruffleAlert
@@ -149,7 +149,7 @@ export default function TemplatePage({
     // ── Sidebar status label ───────────────────────────────────────────────
     function statusLabel() {
         if (videoPhase === 4) {
-            return <Label label="Approved" color="success" size="small" />;
+            return <Label label="Approved for sharing" color="success" size="small" />;
         }
         if (videoPhase === 3) {
             return <Label label="Ready to approve" color="info" size="small" />;
@@ -273,9 +273,9 @@ export default function TemplatePage({
             return (
                 <Button
                     variant="contained"
-                    color="gradient"
+                    color="primary"
                     size="medium"
-                    startIcon={<SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
+                    startIcon={<SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faPaperPlane} /></SvgIcon>}
                     onClick={() => setPublishDialogOpen(true)}
                 >
                     {isPublished ? "Update published template" : "Publish to Amplify"}
@@ -524,17 +524,27 @@ export default function TemplatePage({
                                     <Typography variant="body1" color="text.primary">
                                         On-going version
                                     </Typography>
-                                    {isPending ? (
-                                        <Box sx={onGoingDashedLabelSx}>
+                                    {(() => {
+                                        const ongoingLabel = videoPhase >= 3
+                                            ? "Approval granted"
+                                            : isPending
+                                                ? "Pending approval"
+                                                : null;
+                                        if (ongoingLabel) {
+                                            return (
+                                                <Box sx={onGoingDashedLabelSx}>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {ongoingLabel}
+                                                    </Typography>
+                                                </Box>
+                                            );
+                                        }
+                                        return (
                                             <Typography variant="caption" color="text.secondary">
-                                                Pending approval
+                                                —
                                             </Typography>
-                                        </Box>
-                                    ) : (
-                                        <Typography variant="caption" color="text.secondary">
-                                            —
-                                        </Typography>
-                                    )}
+                                        );
+                                    })()}
                                 </Box>
                             </Box>
 
@@ -732,6 +742,7 @@ export default function TemplatePage({
                     setEditDialogOpen(true);
                 }}
                 templateName={details.name}
+                contributors={details.audience.map(a => a.toLowerCase() === "sales" ? "Legal" : a)}
             />
 
             {/* Edit template details — pre-filled */}
@@ -741,11 +752,23 @@ export default function TemplatePage({
                 mode="edit"
                 initialName={details.name}
                 initialAspectRatio={details.aspectRatio}
-                initialAudience={details.audience}
+                initialAudience={details.audience.map(a => a.toLowerCase() === "sales" ? "Legal" : a)}
                 initialPurpose={details.purpose}
                 initialDescription={details.description}
                 wasApproved={videoPhase >= 3 || isPublished}
-                onSubmit={() => setEditDialogOpen(false)}
+                onSubmit={() => {
+                    setEditDialogOpen(false);
+                    // If the template was already approved, "Resubmit for approval"
+                    // resets approval state and kicks off the standard approval flow
+                    // (Ask-an-approver dialog → confirmation → snackbar → pending pill).
+                    if (videoPhase >= 3 || isPublished) {
+                        setVideoPhase(0);
+                        setPageState("draft");
+                        setApprovers([]);
+                        setIsPublished(false);
+                        setDialogStep("form");
+                    }
+                }}
             />
 
             {/* ── Feedback notification snackbar (fixed bottom-center) ──────────── */}
