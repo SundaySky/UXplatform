@@ -1254,13 +1254,13 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
             >
                 <Box sx={dialogBodySx}>
                     <Typography variant="h4" sx={dialogTitleSx}>
-                        Cancel all pending approvals?
+                        Cancel all {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"}?
                     </Typography>
                     <Typography variant="body1" sx={{ color: "text.secondary", mb: "8px" }}>
-                        You have {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"} in the account. Disabling approvals will cancel all pending approvals.
+                        Disabling approvals will cancel all {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"} in this account.
                     </Typography>
                     <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px" }}>
-                        The user who submitted the approvals will be notified via email.
+                        The user who submitted them will be notified by email.
                     </Typography>
                     <Box sx={dialogActionsRowSx}>
                         <Button onClick={() => setDisableConfirmOpen(false)} sx={textCancelButtonSx}>
@@ -1274,7 +1274,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                 onToggle(false);
                             }}
                         >
-                            Cancel all pending approvals
+                            Cancel all {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"}
                         </Button>
                     </Box>
                 </Box>
