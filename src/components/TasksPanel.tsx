@@ -17,8 +17,8 @@ const INITIAL_TASKS: Task[] = [
     { id: 6, label: "You feel your template is ready and you need formal approval, by Sarah from the Legal team, before it can be shared.", done: false },
     { id: 7, label: "Sarah mentioned she submitted feedback for your approval", done: false },
     { id: 8, label: "After completing all changes and receiving approval, the template is ready to go live in Amplify", done: false },
-    { id: 9, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
-    { id: 10, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false }
+    { id: 9, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. The marketing team should be able to view it. no one else can see it.", done: false },
+    { id: 10, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar, the legal team should be able to use it.", done: false }
 ];
 
 type SessionState = "idle" | "active" | "survey" | "complete"
