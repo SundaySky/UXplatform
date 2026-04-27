@@ -2307,7 +2307,7 @@ function ViewEditPermissionsSection() {
     const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
     const [videoCanEditPerms, setVideoCanEditPerms] = React.useState("Video owner");
     const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
-    const [avatarCanEdit, setAvatarCanEdit] = React.useState("Users with editor permission");
+    const [avatarCanEdit, setAvatarCanEdit] = React.useState("Avatar creator");
     const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
     const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
 
@@ -2352,9 +2352,9 @@ function ViewEditPermissionsSection() {
                 {/* Custom avatars */}
                 <PermGroup title="Custom avatars">
                     <PermRow
-                        label="Control access to custom avatars"
+                        label="Avatar owner"
                         value={avatarCanEdit}
-                        options={["Users with editor permission", "Account owner only"]}
+                        options={["Avatar creator", "Account owner only"]}
                         onChange={setAvatarCanEdit}
                     />
                     <PermRowWithUsers
