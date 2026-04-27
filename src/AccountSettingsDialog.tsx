@@ -2109,7 +2109,7 @@ function PermRow({ label, subtitle, value, options, onChange, info }: {
                     <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
                     {info && (
                         <Tooltip title={info} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                            <SvgIcon sx={{ fontSize: 12, color: "action.active", cursor: "help" }}>
+                            <SvgIcon sx={{ fontSize: "12px !important", width: "12px !important", height: "12px !important", color: "action.active", cursor: "help" }}>
                                 <FontAwesomeIcon icon={faCircleInfo} />
                             </SvgIcon>
                         </Tooltip>
