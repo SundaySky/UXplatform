@@ -221,7 +221,7 @@ function UserTypeSelector({
                     <Typography variant="subtitle2" sx={textPrimarySx}>Amplify</Typography>
                     <Box sx={tabCountBadgeSx}>
                         <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
-                        <Typography variant="caption">{contributorCount}/10</Typography>
+                        <Typography variant="caption">{contributorCount}/10 seats</Typography>
                     </Box>
                 </Box>
                 <Box
@@ -229,8 +229,8 @@ function UserTypeSelector({
                     sx={{ ...userTypeOptionSx, cursor: "pointer", bgcolor: amplifyContributor ? "primary.light" : "transparent", "&:hover": { bgcolor: amplifyContributor ? "primary.light" : "action.hover" } }}
                 >
                     <Box sx={{ flex: 1 }}>
-                        <Typography variant="subtitle2" sx={textPrimarySx}>Contributor (Require a seat)</Typography>
-                        <Typography variant="body1" sx={textSecondarySx}>Can access templates made by editors.</Typography>
+                        <Typography variant="subtitle2" sx={textPrimarySx}>Contributor</Typography>
+                        <Typography variant="body1" sx={textSecondarySx}>Can access templates made by editors. Uses a seat.</Typography>
                     </Box>
                     {amplifyContributor && <SvgIcon sx={{ fontSize: 14, color: "primary.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCheck} /></SvgIcon>}
                 </Box>
