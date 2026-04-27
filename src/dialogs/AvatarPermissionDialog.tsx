@@ -17,11 +17,14 @@ import {
     type PermissionTab,
     type PermissionUser,
     type UserRole,
+    type UserGroup,
+    type PermissionGroup,
     OWNER_USER,
-    ALL_USERS
+    ALL_USERS,
+    ALL_GROUPS
 } from "./ManageAccessDialog";
 
-// ─── Types (kept for AvatarLibraryPanel compatibility) ────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 export type AvatarUsagePermission = "everyone" | "specific" | "private"
 
 export interface AccessRequest {
@@ -35,9 +38,15 @@ export interface AccessRequest {
 export interface AvatarPermissionSettings {
   usagePermission: AvatarUsagePermission
   specificUsers: User[]
+  specificGroups: PermissionGroup[]
   approverUsers: User[]
   everyoneRole: "editor" | "viewer" | "restricted"
 }
+
+// ─── Add option union ─────────────────────────────────────────────────────────
+type AddOption =
+    | { kind: "user"; data: User }
+    | { kind: "group"; data: UserGroup }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 function toTab(perm: AvatarUsagePermission): PermissionTab {
@@ -61,7 +70,7 @@ function RoleButton({ label, onClick }: { label: string; onClick: (e: React.Mous
             deleteIcon={<SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
             onDelete={onClick}
             onClick={e => {
-                e.stopPropagation(); onClick(e); 
+                e.stopPropagation(); onClick(e);
             }}
             sx={roleButtonChipSx}
         />
@@ -93,62 +102,148 @@ function PersonRow({
     );
 }
 
-// ─── Inline Add Avatar Users Autocomplete ────────────────────────────────
-function InlineAddAvatarUsers({
-    value, onChange, excludeIds
+function GroupRow({
+    group, roleLabel, onRoleClick
 }: {
-  value: User[]
-  onChange: (v: User[]) => void
-  excludeIds: string[]
+  group: UserGroup
+  roleLabel: string
+  onRoleClick?: (e: React.MouseEvent<HTMLElement>) => void
 }) {
-    const options = ALL_USERS.filter(u => !excludeIds.includes(u.id));
+    const tooltipContent = (
+        <Box>
+            <Typography variant="caption" sx={groupTooltipTitleSx}>{group.name}</Typography>
+            {group.members.map(m => (
+                <Typography key={m.id} variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.8), lineHeight: 1.5 }}>
+                    • {m.name}
+                </Typography>
+            ))}
+            <Typography variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.55), lineHeight: 1.5, mt: 0.5 }}>
+                Group members are managed by account owners
+            </Typography>
+        </Box>
+    );
+    return (
+        <Box sx={personRowSx}>
+            <Tooltip title={tooltipContent} placement="bottom" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
+                <Box sx={groupAvatarBoxSx}>
+                    <SvgIcon sx={groupAvatarIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                </Box>
+            </Tooltip>
+            <Box sx={personRowInnerSx}>
+                <Typography variant="subtitle2" sx={personNameSx}>{group.name}</Typography>
+                <Typography variant="caption" sx={personEmailSx}>{group.members.length} members</Typography>
+            </Box>
+            {onRoleClick && <RoleButton label={roleLabel} onClick={onRoleClick} />}
+        </Box>
+    );
+}
+
+// ─── Inline Add Avatar Users+Groups Autocomplete ──────────────────────────────
+function InlineAddAvatarUsersGroups({
+    value, onChange, excludeIds, excludeGroupIds
+}: {
+  value: AddOption[]
+  onChange: (v: AddOption[]) => void
+  excludeIds: string[]
+  excludeGroupIds: string[]
+}) {
+    const userOptions: AddOption[] = ALL_USERS
+        .filter(u => !excludeIds.includes(u.id))
+        .map(u => ({ kind: "user", data: u }));
+    const groupOptions: AddOption[] = ALL_GROUPS
+        .filter(g => !excludeGroupIds.includes(g.id))
+        .map(g => ({ kind: "group", data: g }));
+    const options: AddOption[] = [...groupOptions, ...userOptions];
+
     return (
         <Box sx={addUsersContainerSx}>
-            <Autocomplete<User, true>
+            <Autocomplete<AddOption, true>
                 multiple
                 autoFocus
                 value={value}
                 onChange={(_, v) => onChange(v)}
                 options={options}
-                getOptionLabel={u => u.name}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
+                groupBy={opt => opt.kind === "group" ? "User groups" : "Users"}
+                getOptionLabel={opt => opt.data.name}
+                isOptionEqualToValue={(a, b) => a.kind === b.kind && a.data.id === b.data.id}
                 disableCloseOnSelect
                 popupIcon={null}
+                renderGroup={params => (
+                    <Box key={params.key}>
+                        <Box sx={groupHeaderBoxSx}>
+                            <Typography variant="subtitle2" sx={groupHeaderLabelSx}>
+                                {params.group}
+                            </Typography>
+                        </Box>
+                        {params.children}
+                    </Box>
+                )}
                 renderInput={params => (
                     <TextField
                         {...params}
                         autoFocus
-                        placeholder={value.length === 0 ? "Search users…" : ""}
+                        placeholder={value.length === 0 ? "Search users or groups…" : ""}
                         inputProps={{ ...params.inputProps, autoComplete: "new-password" }}
                         sx={addUsersTextFieldSx}
                     />
                 )}
                 renderTags={(tagValue, getTagProps) =>
-                    tagValue.map((user, index) => (
-                        <Chip
-                            {...getTagProps({ index })}
-                            key={user.id}
-                            label={user.name}
-                            size="small"
-                            avatar={<Avatar sx={tagAvatarSx}>{user.initials}</Avatar>}
-                            sx={tagChipSx}
-                        />
-                    ))
+                    tagValue.map((opt, index) => {
+                        if (opt.kind === "group") {
+                            const g = opt.data as UserGroup;
+                            return (
+                                <Chip
+                                    {...getTagProps({ index })}
+                                    key={g.id}
+                                    label={g.name}
+                                    size="small"
+                                    avatar={
+                                        <Box sx={tagGroupIconBoxSx}>
+                                            <SvgIcon sx={tagGroupIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                        </Box>
+                                    }
+                                    sx={groupTagChipSx}
+                                />
+                            );
+                        }
+                        const u = opt.data as User;
+                        return (
+                            <Chip
+                                {...getTagProps({ index })}
+                                key={u.id}
+                                label={u.name}
+                                size="small"
+                                avatar={<Avatar sx={tagAvatarSx}>{u.initials}</Avatar>}
+                                sx={tagChipSx}
+                            />
+                        );
+                    })
                 }
                 renderOption={(props, option) => {
                     const { key, ...listProps } = props as typeof props & { key: string };
+                    if (option.kind === "group") {
+                        const g = option.data as UserGroup;
+                        return (
+                            <Box key={key} component="li" {...listProps} sx={optionRowSx}>
+                                <Box sx={optionGroupIconBoxSx}>
+                                    <SvgIcon sx={optionGroupIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                </Box>
+                                <Box sx={personRowInnerSx}>
+                                    <Typography variant="subtitle2" sx={optionNameSx}>{g.name}</Typography>
+                                    <Typography variant="caption" sx={personEmailSx}>{g.members.length} members</Typography>
+                                </Box>
+                            </Box>
+                        );
+                    }
+                    const u = option.data as User;
                     return (
                         <Box key={key} component="li" {...listProps} sx={optionRowSx}>
                             <Avatar variant="rounded" sx={optionAvatarSx}>
-                                {option.initials}
+                                {u.initials}
                             </Avatar>
                             <Box sx={personRowInnerSx}>
-                                <Typography variant="subtitle2" sx={optionNameSx}>
-                                    {option.name}
-                                </Typography>
-                                <Typography variant="caption" sx={personEmailSx}>
-                                    {option.email}
-                                </Typography>
+                                <Typography variant="subtitle2" sx={optionNameSx}>{u.name}</Typography>
+                                <Typography variant="caption" sx={personEmailSx}>{u.email}</Typography>
                             </Box>
                         </Box>
                     );
@@ -156,7 +251,6 @@ function InlineAddAvatarUsers({
                 ListboxProps={{ sx: listboxSx }}
                 slotProps={{ paper: { sx: autocompleteDropdownPaperSx } }}
             />
-
         </Box>
     );
 }
@@ -185,6 +279,7 @@ export default function AvatarPermissionDialog({
     const [users, setUsers] = useState<PermissionUser[]>(
         (initialSettings?.specificUsers ?? []).map(u => ({ user: u, role: "viewer" as UserRole }))
     );
+    const [groups, setGroups] = useState<PermissionGroup[]>(initialSettings?.specificGroups ?? []);
     const [ownerUsers, setOwnerUsers] = useState<User[]>(initialSettings?.approverUsers ?? [OWNER_USER]);
     const [requests, setRequests] = useState<AccessRequest[]>(initialRequests);
     const [showDiscard, setShowDiscard] = useState(false);
@@ -192,7 +287,7 @@ export default function AvatarPermissionDialog({
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const [menuTarget, setMenuTarget] = useState<"owner" | "everyone" | string | null>(null);
     const [showAddDialog, setShowAddDialog] = useState(false);
-    const [addUsers, setAddUsers] = useState<User[]>([]);
+    const [addSelections, setAddSelections] = useState<AddOption[]>([]);
 
     useEffect(() => {
         if (open) {
@@ -201,6 +296,7 @@ export default function AvatarPermissionDialog({
             setRestricted(toEveryoneRestricted(perm));
             setEveryoneRole(initialSettings?.everyoneRole ?? "viewer");
             setUsers((initialSettings?.specificUsers ?? []).map(u => ({ user: u, role: "viewer" as UserRole })));
+            setGroups(initialSettings?.specificGroups ?? []);
             setOwnerUsers(initialSettings?.approverUsers ?? [OWNER_USER]);
             setRequests(initialRequests);
             setMenuAnchor(null);
@@ -208,17 +304,17 @@ export default function AvatarPermissionDialog({
             setShowDiscard(false);
             setShowDenyAll(false);
             setShowAddDialog(false);
-            setAddUsers([]);
+            setAddSelections([]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
-    // Auto-set restricted when specific users are added
+    // Auto-set restricted when specific users/groups are added
     useEffect(() => {
-        if (users.length > 0 && !restricted && tab === "teams") {
+        if ((users.length > 0 || groups.length > 0) && !restricted && tab === "teams") {
             setRestricted(true);
         }
-    }, [users.length, restricted, tab]);
+    }, [users.length, groups.length, restricted, tab]);
 
     function sameIds(a: User[], b: User[]) {
         if (a.length !== b.length) {
@@ -230,20 +326,25 @@ export default function AvatarPermissionDialog({
     const externalPerm = toExternalPerm(tab, restricted);
     const initSp = initialSettings?.specificUsers ?? [];
     const initAp = initialSettings?.approverUsers ?? [OWNER_USER];
+    const initGp = initialSettings?.specificGroups ?? [];
     const isDirty =
-    externalPerm !== initPerm ||
-    !sameIds(users.map(pu => pu.user), initSp) ||
-    !sameIds(ownerUsers, initAp);
+        externalPerm !== initPerm ||
+        !sameIds(users.map(pu => pu.user), initSp) ||
+        !sameIds(ownerUsers, initAp) ||
+        groups.length !== initGp.length ||
+        !groups.every((pg, i) => pg.group.id === initGp[i]?.group.id);
 
     function handleClose() {
         if (isDirty) {
             setShowDiscard(true); return; 
-        } onClose(); 
+        }
+        onClose();
     }
     function handleSave() {
         onSave({
             usagePermission: externalPerm,
             specificUsers:   users.map(pu => pu.user),
+            specificGroups:  groups,
             approverUsers:   ownerUsers,
             everyoneRole:    everyoneRole
         }, requests);
@@ -253,11 +354,14 @@ export default function AvatarPermissionDialog({
         setMenuAnchor(e.currentTarget); setMenuTarget(target);
     }
     function closeMenuFn() {
-        setMenuAnchor(null); setMenuTarget(null); 
+        setMenuAnchor(null); setMenuTarget(null);
     }
 
     function removeUser(userId: string) {
         setUsers(prev => prev.filter(pu => pu.user.id !== userId));
+    }
+    function removeGroup(groupId: string) {
+        setGroups(prev => prev.filter(pg => pg.group.id !== groupId));
     }
 
     function reqToUser(req: AccessRequest): User {
@@ -282,26 +386,40 @@ export default function AvatarPermissionDialog({
         setRequests([]);
     }
     function handleDenyAll() {
-        setRequests([]); setShowDenyAll(false); 
+        setRequests([]); setShowDenyAll(false);
     }
 
-    function handleAddAvatarUsers() {
-        if (addUsers.length === 0) {
+    function handleAddAvatarUsersGroups() {
+        if (addSelections.length === 0) {
             return;
         }
-        const existingIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)]);
-        const newOnes = addUsers.filter(u => !existingIds.has(u.id));
-        if (newOnes.length > 0) {
-            setUsers(prev => [...prev, ...newOnes.map(u => ({ user: u, role: "viewer" as UserRole }))]);
+        const existingUserIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)]);
+        const existingGroupIds = new Set(groups.map(pg => pg.group.id));
+
+        const newUsers = addSelections
+            .filter(s => s.kind === "user" && !existingUserIds.has((s.data as User).id))
+            .map(s => ({ user: s.data as User, role: "viewer" as UserRole }));
+        const newGroups = addSelections
+            .filter(s => s.kind === "group" && !existingGroupIds.has((s.data as UserGroup).id))
+            .map(s => ({ group: s.data as UserGroup, role: "viewer" as UserRole }));
+
+        if (newUsers.length > 0) {
+            setUsers(prev => [...prev, ...newUsers]);
         }
+        if (newGroups.length > 0) {
+            setGroups(prev => [...prev, ...newGroups]);
+        }
+
         setShowAddDialog(false);
-        setAddUsers([]);
+        setAddSelections([]);
     }
 
     const menuUser = (menuTarget && menuTarget !== "owner" && menuTarget !== "everyone")
         ? (users.find(pu => pu.user.id === menuTarget) ?? null)
         : null;
-
+    const menuGroup = (menuTarget && menuTarget !== "owner" && menuTarget !== "everyone" && !menuUser)
+        ? (groups.find(pg => pg.group.id === menuTarget) ?? null)
+        : null;
 
     return (
         <>
@@ -317,7 +435,7 @@ export default function AvatarPermissionDialog({
                             <IconButton size="small" onClick={() => setShowAddDialog(false)} sx={backIconButtonSx}>
                                 <SvgIcon><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                             </IconButton>
-                            Add users
+                            Add users or groups
                         </Box>
                     </TruffleDialogTitle>
                 ) : (
@@ -333,10 +451,11 @@ export default function AvatarPermissionDialog({
 
                 <DialogContent sx={dialogContentSx}>
                     {showAddDialog ? (
-                        <InlineAddAvatarUsers
-                            value={addUsers}
-                            onChange={setAddUsers}
+                        <InlineAddAvatarUsersGroups
+                            value={addSelections}
+                            onChange={setAddSelections}
                             excludeIds={[OWNER_USER.id, ...users.map(pu => pu.user.id)]}
+                            excludeGroupIds={groups.map(pg => pg.group.id)}
                         />
                     ) : (
                         <>
@@ -359,7 +478,7 @@ export default function AvatarPermissionDialog({
                             {/* Who can access */}
                             <Box>
                                 <Typography variant="h5" sx={sectionHeadingSx}>
-              Who can use this avatar
+                                    Who can use this avatar
                                 </Typography>
 
                                 <Box sx={userListBoxSx}>
@@ -375,6 +494,18 @@ export default function AvatarPermissionDialog({
                                         roleLabel="Avatar owner"
                                         onRoleClick={tab === "teams" ? (e => openMenuFn(e, "owner")) : undefined}
                                     />
+
+                                    {/* Added groups — teams tab only */}
+                                    {tab === "teams" && groups.map(pg => (
+                                        <Box key={pg.group.id}>
+                                            <Divider />
+                                            <GroupRow
+                                                group={pg.group}
+                                                roleLabel="Can use"
+                                                onRoleClick={e => openMenuFn(e, pg.group.id)}
+                                            />
+                                        </Box>
+                                    ))}
 
                                     {/* Added users — teams tab only */}
                                     {tab === "teams" && users.map(pu => (
@@ -404,7 +535,7 @@ export default function AvatarPermissionDialog({
                                                 </Box>
                                                 <Box sx={personRowInnerSx}>
                                                     <Typography variant="subtitle2" sx={everyoneNameSx}>
-                        Everyone in your account
+                                                        Everyone in your account
                                                     </Typography>
                                                 </Box>
                                                 <RoleButton
@@ -421,18 +552,18 @@ export default function AvatarPermissionDialog({
                                     <Alert severity="info" icon={<SvgIcon><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
                                         sx={privateModeAlertSx}
                                     >
-                Only you can use this avatar.
+                                        Only you can use this avatar.
                                     </Alert>
                                 )}
 
-                                {/* Add user */}
+                                {/* Add user and groups */}
                                 {tab === "teams" && (
                                     <Button
                                         startIcon={<SvgIcon sx={addUserIconSx}><FontAwesomeIcon icon={faUserPlus} /></SvgIcon>}
                                         onClick={() => setShowAddDialog(true)}
                                         sx={addUserButtonSx}
                                     >
-                Add user
+                                        Add user and groups
                                     </Button>
                                 )}
                             </Box>
@@ -480,11 +611,11 @@ export default function AvatarPermissionDialog({
                                         <Box sx={bulkActionsRowSx}>
                                             <Button variant="outlined" fullWidth size="small" onClick={() => setShowDenyAll(true)}
                                                 sx={denyAllButtonSx}>
-                    Deny all
+                                                Deny all
                                             </Button>
                                             <Button variant="outlined" fullWidth size="small" onClick={handleApproveAll}
                                                 sx={allowAllButtonSx}>
-                    Allow all
+                                                Allow all
                                             </Button>
                                         </Box>
                                     </Box>
@@ -499,7 +630,7 @@ export default function AvatarPermissionDialog({
                         <Button variant="outlined" color="primary" size="large" onClick={() => setShowAddDialog(false)}>
                             Cancel
                         </Button>
-                        <Button variant="contained" color="primary" size="large" disabled={addUsers.length === 0} onClick={handleAddAvatarUsers}>
+                        <Button variant="contained" color="primary" size="large" disabled={addSelections.length === 0} onClick={handleAddAvatarUsersGroups}>
                             Add
                         </Button>
                     </TruffleDialogActions>
@@ -552,6 +683,18 @@ export default function AvatarPermissionDialog({
                         </TruffleMenuItem>
                     ]}
 
+                    {menuGroup && [
+                        <TruffleMenuItem key="cu" selected disableRipple disabled>
+                            Can use
+                        </TruffleMenuItem>,
+                        <Divider key="d1" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="rm" error onClick={() => {
+                            removeGroup(menuTarget as string); closeMenuFn();
+                        }}>
+                            Remove permission
+                        </TruffleMenuItem>
+                    ]}
+
                     {menuTarget === "everyone" && [
                         <TruffleMenuItem key="cu" selected={everyoneRole === "editor"} onClick={() => {
                             setEveryoneRole("editor"); closeMenuFn();
@@ -578,7 +721,7 @@ export default function AvatarPermissionDialog({
                 <TruffleDialogActions>
                     <Button variant="outlined" color="primary" size="large" onClick={() => setShowDiscard(false)}>Stay</Button>
                     <Button variant="contained" color="error" size="large" onClick={() => {
-                        setShowDiscard(false); onClose(); 
+                        setShowDiscard(false); onClose();
                     }}>
                         Leave
                     </Button>
@@ -611,6 +754,10 @@ const navyTooltipSx = {
     "& .MuiTooltip-arrow": { color: "secondary.main" }
 };
 
+const groupTooltipTitleSx: SxProps<Theme> = {
+    fontWeight: 600, color: "common.white", lineHeight: 1.5, display: "block"
+};
+
 const roleButtonChipSx: SxProps<Theme> = {
     flexShrink: 0, whiteSpace: "nowrap"
 };
@@ -639,6 +786,13 @@ const personEmailSx: SxProps<Theme> = {
     color: "text.secondary", lineHeight: 1.3
 };
 
+const groupAvatarBoxSx: SxProps<Theme> = {
+    width: 36, height: 36, borderRadius: "8px", bgcolor: "grey.100",
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "default"
+};
+
+const groupAvatarIconSx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
+
 const addUsersContainerSx: SxProps<Theme> = {
     display: "flex", flexDirection: "column", gap: "8px"
 };
@@ -647,6 +801,26 @@ const addUsersTextFieldSx: SxProps<Theme> = {
     "& .MuiOutlinedInput-root": { borderRadius: "8px", pr: "8px !important" },
     "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" },
     "& .MuiInputBase-root": { flexWrap: "wrap", gap: "4px", p: "8px 12px" }
+};
+
+const groupHeaderBoxSx: SxProps<Theme> = {
+    px: "12px", py: "6px", bgcolor: "grey.50", borderBottom: 1, borderColor: "divider"
+};
+
+const groupHeaderLabelSx: SxProps<Theme> = {
+    color: "text.secondary", letterSpacing: "0.02em"
+};
+
+const tagGroupIconBoxSx: SxProps<Theme> = {
+    width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center",
+    borderRadius: "4px", bgcolor: "grey.300", flexShrink: 0
+};
+
+const tagGroupIconSx: SxProps<Theme> = { fontSize: 11, color: "text.secondary" };
+
+const groupTagChipSx: SxProps<Theme> = {
+    bgcolor: "grey.200", color: "text.primary",
+    "& .MuiChip-deleteIcon": { color: "action.disabled", "&:hover": { color: "text.primary" } }
 };
 
 const tagAvatarSx: SxProps<Theme> = {
@@ -664,6 +838,13 @@ const optionRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1
 };
 
+const optionGroupIconBoxSx: SxProps<Theme> = {
+    width: 36, height: 36, borderRadius: "8px", bgcolor: "grey.100", flexShrink: 0,
+    display: "flex", alignItems: "center", justifyContent: "center"
+};
+
+const optionGroupIconSx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
+
 const optionAvatarSx: SxProps<Theme> = {
     width: 36, height: 36, bgcolor: "primary.light", flexShrink: 0, color: "text.primary"
 };
@@ -680,7 +861,6 @@ const listboxSx: SxProps<Theme> = {
 const autocompleteDropdownPaperSx: SxProps<Theme> = {
     borderRadius: "8px", boxShadow: "0px 0px 10px rgba(3,25,79,0.18)", mt: "4px"
 };
-
 
 const dialogPaperSx: SxProps<Theme> = {
     width: 560, maxWidth: "98vw", borderRadius: "12px"

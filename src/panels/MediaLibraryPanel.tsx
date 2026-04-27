@@ -91,6 +91,7 @@ const defaultPermissions = (): PermissionSettings => ({
     tab:          "teams",
     everyoneRole: "viewer",
     users:        [],
+    groups:       [],
     ownerUsers:   [OWNER_USER]
 });
 
