@@ -2137,7 +2137,7 @@ type PermOption =
 
 const EDITOR_USER_OPTIONS: PermOption[] = ALL_USERS.map(u => ({ kind: "user" as const, user: u }));
 
-const DEFAULT_FIXED_LABELS = ["None", "Users with editor permission"];
+const DEFAULT_FIXED_LABELS = ["Restrict", "Users with editor permission"];
 
 function getPermOptionLabel(opt: PermOption): string {
     return opt.kind === "fixed" ? opt.label : (opt.user.name || opt.user.email);
@@ -2315,7 +2315,6 @@ function PermRowWithUsers({
 
 function ViewEditPermissionsSection() {
     const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
-    const [videoCanEditPerms, setVideoCanEditPerms] = React.useState("Video owner");
     const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
     const [avatarCanEdit, setAvatarCanEdit] = React.useState("Avatar creator");
     const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
@@ -2346,15 +2345,9 @@ function ViewEditPermissionsSection() {
                         onChange={setVideoCanEdit}
                     />
                     <PermRow
-                        label="Edit permissions"
-                        value={videoCanEditPerms}
-                        options={["Video owner", "All users with editor permissions only"]}
-                        onChange={setVideoCanEditPerms}
-                    />
-                    <PermRow
                         label="Can view others videos"
                         value={videoCanView}
-                        options={["Everyone in the account", "None"]}
+                        options={["Everyone in the account", "Restrict"]}
                         onChange={setVideoCanView}
                     />
                 </PermGroup>
@@ -2391,7 +2384,7 @@ function ViewEditPermissionsSection() {
                     <PermRow
                         label="Brand owner"
                         value={brandOwner}
-                        options={["Everyone in the account", "None"]}
+                        options={["Everyone in the account", "Restrict"]}
                         onChange={setBrandOwner}
                         info="Can delete, manage access"
                     />
