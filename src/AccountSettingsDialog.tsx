@@ -1547,13 +1547,13 @@ function UsersSection({
             >
                 <Box sx={dialogBodySx}>
                     <Typography variant="h4" sx={dialogTitleSx}>
-                        Enable approvals for videos?
+                        Enable video approvals?
                     </Typography>
                     <Typography variant="body1" sx={dialogBodyTextSx}>
-                        You added an approver permission to {userWithApproverAdded?.user.name}.
+                        You added approver permission to {userWithApproverAdded?.user.name}.
                         <br />
                         <br />
-                        In order to be able to submit for approval, you need to enable approvals.
+                        To submit videos for approval, turn on approvals.
                     </Typography>
                     <Box sx={dialogActionsRowSx}>
                         <Button
