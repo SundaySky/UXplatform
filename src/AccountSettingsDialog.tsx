@@ -1226,7 +1226,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                 }}
                 user={userToDelete}
                 remainingApproversAfterDelete={userToDelete ? Array.from(approverIds).filter(id => id !== userToDelete.user.id).length : 0}
-                hasPendingApprovals={userToDelete?.createSpace?.includes("Approver") ?? false}
+                hasPendingApprovals={!!userToDelete?.addedAsApprover}
                 isContributor={userToDelete?.amplifySpace === "Contributor"}
                 approvalsEnabledInAccount={enabled}
                 onConfirm={() => {
