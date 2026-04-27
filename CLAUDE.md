@@ -189,8 +189,9 @@ When building UI that is **not** directly from a Figma design (inferred dialogs,
 
 | Context | Default |
 |---|---|
+| **Any button inside a `<Dialog>`** | `size="large"` — applies to primary, secondary, cancel, text, outlined, and contained alike. Override only if the user explicitly says otherwise. |
 | **Dialog primary action button** | `variant="contained"` `size="large"` `fullWidth` |
-| **Dialog secondary / cancel button** | `variant="text"` or `TruffleLink` |
+| **Dialog secondary / cancel button** | `variant="text"` (or `outlined`) `size="large"` — or `TruffleLink` |
 | **Inline card primary action** | `variant="contained"` `size="medium"` `fullWidth` |
 | **Destructive action button** | `variant="outlined"` `color="error"` |
 | **Icon-only button** | `TruffleIconButton` (never raw `IconButton` with custom sx) |
@@ -202,6 +203,14 @@ When building UI that is **not** directly from a Figma design (inferred dialogs,
 | **Metadata / timestamps** | `Typography variant="caption"` |
 
 ---
+
+### Session state — STRICT
+
+Anything the user types, picks, or otherwise enters during a session must persist across page navigations and task switches. State should only clear on a hard browser refresh.
+
+- **Lift state to `App.tsx`** for any user-entered data that's referenced from more than one page or that needs to survive a page change. Examples already lifted: `createdTemplates`, `createdTemplateDataByTitle`, `currentTemplateData`, `enabledLangs`, `videoStates`.
+- **Keep state local** only for ephemeral UI (open/closed dialogs, hover, transient form values that are committed via callbacks). When in doubt, lift.
+- When adding a new page-level `useState` for user-input data, the default is to mirror it (or fully lift it) into `App.tsx` so task switches don't reset it.
 
 ### DS conflict alerts — STRICT
 

@@ -8,10 +8,13 @@ import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-
 interface Props {
   open: boolean
   onClose: () => void
-  onConfirm: () => void // "Cancel approval & edit video"
+  onConfirm: () => void
+  /** Name of the approver shown in the body copy. Defaults to "The approver". */
+  approverName?: string
 }
 
-export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props) {
+export default function CancelApprovalDialog({ open, onClose, onConfirm, approverName }: Props) {
+    const subject = approverName && approverName.trim().length > 0 ? approverName : "The approver";
     return (
         <Dialog
             open={open}
@@ -26,28 +29,30 @@ export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props
         >
             {/* ── Title ────────────────────────────────────────────────────────── */}
             <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
-                Editing will cancel approval
+                Cancel approval and resubmit later?
             </TruffleDialogTitle>
 
             {/* ── Content ──────────────────────────────────────────────────────── */}
             <DialogContent sx={contentSx}>
-                <Typography variant="body1" sx={firstParaSx}>
-          To edit this video, you'll need to cancel the current approval.
-                </Typography>
                 <Typography variant="body1" color="text.primary">
-          Any changes will make the shared version outdated, and you'll need to request approval again.
+                    {subject} will be notified by email that the approval was canceled.
                 </Typography>
             </DialogContent>
 
             {/* ── Actions ──────────────────────────────────────────────────────── */}
             <TruffleDialogActions>
                 <Button variant="text" color="primary" size="large" onClick={onClose}>
-                    Cancel
+                    Keep approval
                 </Button>
-                <Button variant="contained" color="primary" size="large" onClick={() => {
-                    onConfirm(); onClose(); 
-                }}>
-                    Cancel approval &amp; edit video
+                <Button
+                    variant="contained"
+                    color="error"
+                    size="large"
+                    onClick={() => {
+                        onConfirm(); onClose();
+                    }}
+                >
+                    Cancel approval
                 </Button>
             </TruffleDialogActions>
         </Dialog>
@@ -56,4 +61,3 @@ export default function CancelApprovalDialog({ open, onClose, onConfirm }: Props
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const contentSx: SxProps<Theme> = { px: "32px", pt: "0 !important", pb: "8px" };
-const firstParaSx: SxProps<Theme> = { color: "text.primary", mb: 1.5 };

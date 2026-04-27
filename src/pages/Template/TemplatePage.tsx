@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
-    Box, Typography, IconButton, SvgIcon, Button,
-    Paper, Tabs, Tab, Divider, Switch,
+    Box, Typography, IconButton, SvgIcon, Button, ButtonGroup,
+    Paper, Tabs, Tab, Divider, Switch, Menu, MenuItem,
     List, ListItemButton, ListItemIcon, ListItemText, Tooltip
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
@@ -10,10 +10,10 @@ import {
     faArrowLeft, faEllipsisVertical, faPen,
     faCircleQuestion, faSquareList, faEnvelope,
     faCode, faDownload, faFileExport, faEye, faGlobe,
-    faUsers, faCircleCheck, faCheck, faCircle, faCircleDot, faComment
+    faUsers, faCircleCheck, faCheck, faChevronDown, faXmark, faComment
 } from "@fortawesome/pro-regular-svg-icons";
 import {
-    TruffleLink, TruffleAvatar, Label
+    TruffleLink, TruffleAvatar, Label, Search, TruffleAlert
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import ApprovalDialog from "../../dialogs/ApprovalDialog";
 import ConfirmationDialog from "../../dialogs/ConfirmationDialog";
@@ -21,6 +21,7 @@ import ApproveVideoDialog from "../../dialogs/ApproveVideoDialog";
 import CancelApprovalDialog from "../../dialogs/CancelApprovalDialog";
 import PublishTemplateDialog from "../../dialogs/PublishTemplateDialog";
 import CreateTemplateDialog from "../../dialogs/CreateTemplateDialog";
+import type { NewTemplateData } from "../../components/AppSidebar";
 import { TOTAL_COMMENT_COUNT } from "../Studio/CommentsPanel";
 
 const TEMPLATE_TITLE = "Digital Account Engagement Stylised video";
@@ -45,24 +46,94 @@ const PHASE_STATUS: Record<number, "draft" | "pending" | "approved"> = {
     0: "draft", 1: "pending", 2: "pending", 3: "approved", 4: "approved"
 };
 
+// Renders up to 3 standard Labels; if there are more, shows a "+X" Label
+// with a Tooltip listing the overflow items.
+function ChipsRowWithOverflow({ items }: { items: string[] }) {
+    const visible = items.slice(0, 3);
+    const overflow = items.slice(3);
+    return (
+        <Box sx={chipsRowSx}>
+            {visible.map(i => (
+                <Label key={i} label={i} variant="standard" size="small" />
+            ))}
+            {overflow.length > 0 && (
+                <Tooltip title={overflow.join(", ")} arrow>
+                    <Box component="span">
+                        <Label label={`+${overflow.length}`} variant="standard" size="small" />
+                    </Box>
+                </Tooltip>
+            )}
+        </Box>
+    );
+}
+
+// Approval state shape — kept in sync with App.tsx's lifted store.
+interface TemplateApprovalStateShape {
+    videoPhase: number;
+    pageState: "draft" | "pending";
+    approvers: string[];
+    isPublished: boolean;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function TemplatePage({
     onNavigateBack,
-    onNavigateToStudio
+    onNavigateToStudio,
+    onViewComments,
+    template,
+    onApprovalSubmitted,
+    onApprovalCancelled,
+    showApproverComments = false,
+    approvalState: approvalStateProp,
+    onApprovalStateChange
 }: {
     onNavigateBack: () => void;
     onNavigateToStudio?: (name?: string) => void;
+    /** Navigate to the studio with the comments panel open (used by "View N comments in Studio"). */
+    onViewComments?: (name?: string) => void;
+    template?: NewTemplateData;
+    onApprovalSubmitted?: () => void;
+    onApprovalCancelled?: () => void;
+    /** When true (e.g. driven by task 7), force the "View N comments in Studio" button. */
+    showApproverComments?: boolean;
+    /** Controlled approval state lifted to App.tsx so it persists across task switches. */
+    approvalState?: TemplateApprovalStateShape;
+    onApprovalStateChange?: (patch: Partial<TemplateApprovalStateShape>) => void;
 }) {
+    // Use user-entered template data when available, falling back to the hardcoded sample
+    const details = template ?? TEMPLATE_DETAILS;
     const [activeTab, setActiveTab] = useState(0);
     const [downloadableEnabled, setDownloadableEnabled] = useState(false);
     const [publishDialogOpen, setPublishDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [isPublished, setIsPublished] = useState(false);
+    // Snackbar shown after the user clicks "Notify me about feedback" in ConfirmationDialog
+    const [feedbackSnackbarDate, setFeedbackSnackbarDate] = useState<string | null>(null);
 
     // ── Approval flow state ────────────────────────────────────────────────
-    const [videoPhase, setVideoPhase] = useState(0);
-    const [pageState, setPageState] = useState<"draft" | "pending">("draft");
-    const [approvers, setApprovers] = useState<string[]>([]);
+    // Backed by props from App.tsx (lifted so it persists across task switches).
+    // Falls back to local state when used outside the app shell.
+    const [internalApprovalState, setInternalApprovalState] = useState<TemplateApprovalStateShape>({
+        videoPhase: 0,
+        pageState: "draft",
+        approvers: [],
+        isPublished: false
+    });
+    const approvalState = approvalStateProp ?? internalApprovalState;
+    const patchApproval = (patch: Partial<TemplateApprovalStateShape>) => {
+        if (onApprovalStateChange) {
+            onApprovalStateChange(patch);
+        }
+        else {
+            setInternalApprovalState(prev => ({ ...prev, ...patch }));
+        }
+    };
+    const { videoPhase, pageState, approvers, isPublished } = approvalState;
+    const setVideoPhase = (v: number) => patchApproval({ videoPhase: v });
+    const setPageState = (s: "draft" | "pending") => patchApproval({ pageState: s });
+    const setApprovers = (a: string[]) => patchApproval({ approvers: a });
+    const setIsPublished = (v: boolean) => patchApproval({ isPublished: v });
+
+    // Dialog open/close state stays local — these are ephemeral UI, not persistent data.
     const [dialogStep, setDialogStep] = useState<"closed" | "form" | "confirmed">("closed");
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [cancelApprovalDialogOpen, setCancelApprovalDialogOpen] = useState(false);
@@ -83,26 +154,73 @@ export default function TemplatePage({
         if (videoPhase === 3) {
             return <Label label="Ready to approve" color="info" size="small" />;
         }
-        if (isPending) {
-            return <Label label="In review" color="warning" size="small" />;
-        }
+        // While pending, the template still reads as Draft per design.
         return <Label label="Draft" color="default" size="small" />;
     }
 
+    // Anchor element for the split-button dropdown menu attached to the chevron
+    const [pendingMenuAnchor, setPendingMenuAnchor] = useState<HTMLElement | null>(null);
+
     // ── Action button ──────────────────────────────────────────────────────
     function ActionButton() {
-        // Phase 0 + pending
+        // Task 7 override: surface the "View N comments in Studio" button
+        if (showApproverComments) {
+            return (
+                <Button
+                    variant="contained" size="medium" color="primary"
+                    startIcon={<SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faComment} /></SvgIcon>}
+                    onClick={() => (onViewComments ?? onNavigateToStudio)?.(details.name)}
+                >
+                    View {TOTAL_COMMENT_COUNT} comments in Studio
+                </Button>
+            );
+        }
+
+        // Phase 0 + pending — split button: "Pending approval" + chevron;
+        // chevron click drops a menu with "Cancel approval request".
         if (videoPhase === 0 && effectiveStatus === "pending") {
             return (
-                <Tooltip title={pendingTooltip} placement="top" arrow
-                    componentsProps={{ tooltip: { sx: darkTooltipSx }, arrow: { sx: darkTooltipArrowSx } }}
-                >
-                    <Button variant="outlined" size="medium" color="success"
-                        startIcon={<SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
+                <>
+                    <Tooltip title={pendingTooltip} placement="top" arrow
+                        componentsProps={{ tooltip: { sx: darkTooltipSx }, arrow: { sx: darkTooltipArrowSx } }}
                     >
-                        Pending approval
-                    </Button>
-                </Tooltip>
+                        <ButtonGroup variant="outlined" size="medium" color="success">
+                            <Button
+                                startIcon={<SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
+                            >
+                                Pending approval
+                            </Button>
+                            <Button
+                                size="small"
+                                aria-label="Open pending approval menu"
+                                onClick={(e) => setPendingMenuAnchor(e.currentTarget)}
+                                sx={{ px: 1 }}
+                            >
+                                <SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>
+                            </Button>
+                        </ButtonGroup>
+                    </Tooltip>
+                    <Menu
+                        anchorEl={pendingMenuAnchor}
+                        open={Boolean(pendingMenuAnchor)}
+                        onClose={() => setPendingMenuAnchor(null)}
+                        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                        transformOrigin={{ vertical: "top", horizontal: "left" }}
+                    >
+                        <MenuItem
+                            onClick={() => {
+                                setPendingMenuAnchor(null);
+                                setCancelApprovalDialogOpen(true);
+                            }}
+                            sx={{ color: "error.main" }}
+                        >
+                            <SvgIcon sx={{ ...btnIconSx, color: "error.main", mr: 1 }}>
+                                <FontAwesomeIcon icon={faXmark} />
+                            </SvgIcon>
+                            Cancel approval request
+                        </MenuItem>
+                    </Menu>
+                </>
             );
         }
 
@@ -142,8 +260,8 @@ export default function TemplatePage({
         if (videoPhase === 2) {
             return (
                 <Button variant="contained" size="medium" color="primary"
-                    startIcon={<SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>}
-                    onClick={() => onNavigateToStudio?.(TEMPLATE_TITLE)}
+                    startIcon={<SvgIcon sx={btnIconSx}><FontAwesomeIcon icon={faComment} /></SvgIcon>}
+                    onClick={() => (onViewComments ?? onNavigateToStudio)?.(details.name)}
                 >
                     View {TOTAL_COMMENT_COUNT} comments in Studio
                 </Button>
@@ -194,24 +312,6 @@ export default function TemplatePage({
         );
     }
 
-    // ── Approval progress step state ──────────────────────────────────────
-    function getStepState(stepIndex: number): "completed" | "active" | "future" {
-        const currentStep =
-            videoPhase === 4 ? 3 :
-                videoPhase === 3 ? 2 :
-                    (videoPhase === 1 || videoPhase === 2 || (videoPhase === 0 && pageState === "pending")) ? 1 :
-                        0;
-        if (stepIndex < currentStep) {
-            return "completed";
-        }
-        if (stepIndex === currentStep) {
-            return "active";
-        }
-        return "future";
-    }
-
-    const hasComments = videoPhase === 1 || videoPhase === 2;
-
     return (
         <Box sx={pageRootSx}>
 
@@ -242,10 +342,10 @@ export default function TemplatePage({
                         Templates Library
                     </TruffleLink>
 
-                    {/* Title row */}
+                    {/* Title row — reflects the template name */}
                     <Box sx={titleRowSx}>
                         <Typography variant="subtitle2" sx={{ flex: 1 }}>
-                            {TEMPLATE_TITLE}
+                            {details.name}
                         </Typography>
                         <IconButton size="small" sx={iconBtnSx}>
                             <SvgIcon sx={iconSmSx}>
@@ -259,7 +359,7 @@ export default function TemplatePage({
 
                     {/* Nav actions */}
                     <List disablePadding sx={navListSx}>
-                        <ListItemButton sx={navItemSx}>
+                        <ListItemButton selected sx={navItemSx}>
                             <ListItemIcon sx={navIconSx}>
                                 <SvgIcon sx={iconSmSx}>
                                     <FontAwesomeIcon icon={faPen} />
@@ -282,26 +382,19 @@ export default function TemplatePage({
             {/* ── Main content column (AppBar + content row) ───────────────────── */}
             <Box sx={mainColumnSx}>
 
-                {/* AppBar */}
+                {/* AppBar — matches VideoOverviewPage; no page-title h2 since the template
+                    title is shown on the card */}
                 <Box sx={appBarSx}>
-                    <Typography variant="subtitle2" color="secondary.main">
-                        Template Page
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <IconButton size="small" sx={iconBtnSx}>
-                            <SvgIcon sx={iconSmSx}>
-                                <FontAwesomeIcon icon={faGlobe} />
-                            </SvgIcon>
-                        </IconButton>
-                        <Typography variant="body1" color="text.secondary">
-                            Website
-                        </Typography>
-                        <IconButton size="small" sx={iconBtnSx}>
-                            <SvgIcon sx={iconSmSx}>
-                                <FontAwesomeIcon icon={faCircleQuestion} />
-                            </SvgIcon>
-                        </IconButton>
-                    </Box>
+                    <Box sx={{ flex: 1 }} />
+                    <Search
+                        size="small"
+                        value=""
+                        onChange={() => {}}
+                        onClear={() => {}}
+                        numberOfResults={0}
+                        placeholder="Search libraries"
+                        sx={appBarSearchSx}
+                    />
                 </Box>
 
                 {/* Content row */}
@@ -375,63 +468,74 @@ export default function TemplatePage({
 
                             <Divider />
 
-                            {/* Template details */}
-                            <Box sx={metaDetailRowSx}>
-                                <TruffleAvatar
-                                    icon={
-                                        <SvgIcon>
-                                            <FontAwesomeIcon icon={faSquareList} />
-                                        </SvgIcon>
-                                    }
-                                    size="large"
-                                />
-                                <Box sx={{ ml: 1.5, flex: 1 }}>
-                                    <Typography variant="caption" color="text.secondary" display="block">
-                                        Template details
-                                    </Typography>
-                                    <Typography variant="body1" noWrap>
-                                        {TEMPLATE_TITLE}
-                                    </Typography>
-                                    <Box sx={tagsRowSx}>
-                                        {TEMPLATE_DETAILS.purpose.map(p => (
-                                            <Typography key={p} variant="caption" color="text.secondary">{p}</Typography>
-                                        ))}
+                            {/* Template details (hover to reveal Edit icon) */}
+                            <Box sx={templateDetailsHoverWrapperSx}>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setEditDialogOpen(true)}
+                                    aria-label="Edit template details"
+                                    className="template-details-edit-icon"
+                                    sx={templateDetailsEditIconSx}
+                                >
+                                    <SvgIcon sx={iconSmSx}>
+                                        <FontAwesomeIcon icon={faPen} />
+                                    </SvgIcon>
+                                </IconButton>
+                                <Box sx={metaDetailRowSx}>
+                                    <TruffleAvatar
+                                        icon={
+                                            <SvgIcon>
+                                                <FontAwesomeIcon icon={faSquareList} />
+                                            </SvgIcon>
+                                        }
+                                        size="large"
+                                    />
+                                    <Box sx={templateDetailsBodySx}>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            Template details
+                                        </Typography>
+                                        <Typography variant="subtitle2">
+                                            {details.name}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {details.description}
+                                        </Typography>
+                                        <Box sx={detailsChipsRowSx}>
+                                            <ChipsRowWithOverflow items={details.audience} />
+                                            <ChipsRowWithOverflow items={details.purpose} />
+                                        </Box>
                                     </Box>
                                 </Box>
                             </Box>
 
                             <Divider />
 
-                            {/* Approval progress */}
-                            <Box sx={approvalProgressSx}>
-                                {APPROVAL_STEPS.map((step, i) => {
-                                    const state = getStepState(i);
-                                    const isCompleted = state === "completed";
-                                    const isActive = state === "active";
-                                    return (
-                                        <Box key={step.key} sx={stepRowSx}>
-                                            <SvgIcon sx={isCompleted ? stepIconCompletedSx : isActive ? stepIconActiveSx : stepIconFutureSx}>
-                                                <FontAwesomeIcon icon={isCompleted ? faCircleCheck : isActive ? faCircleDot : faCircle} />
-                                            </SvgIcon>
-                                            <Typography
-                                                variant="body1"
-                                                color={isActive ? "text.primary" : isCompleted ? "text.secondary" : "text.disabled"}
-                                            >
-                                                {step.label}
+                            {/* On-going version */}
+                            <Box sx={metaDetailRowSx}>
+                                <TruffleAvatar
+                                    icon={
+                                        <SvgIcon>
+                                            <FontAwesomeIcon icon={faFileExport} />
+                                        </SvgIcon>
+                                    }
+                                    size="large"
+                                />
+                                <Box sx={{ ml: 1.5, flex: 1 }}>
+                                    <Typography variant="body1" color="text.primary">
+                                        On-going version
+                                    </Typography>
+                                    {isPending ? (
+                                        <Box sx={onGoingDashedLabelSx}>
+                                            <Typography variant="caption" color="text.secondary">
+                                                Pending approval
                                             </Typography>
-                                            {step.showComments && hasComments && (
-                                                <Box sx={commentChipSx}>
-                                                    <SvgIcon sx={commentChipIconSx}>
-                                                        <FontAwesomeIcon icon={faComment} />
-                                                    </SvgIcon>
-                                                    <Typography variant="caption" color="primary.main">
-                                                        {TOTAL_COMMENT_COUNT} comments
-                                                    </Typography>
-                                                </Box>
-                                            )}
                                         </Box>
-                                    );
-                                })}
+                                    ) : (
+                                        <Typography variant="caption" color="text.secondary">
+                                            —
+                                        </Typography>
+                                    )}
+                                </Box>
                             </Box>
 
                         </Paper>
@@ -575,6 +679,7 @@ export default function TemplatePage({
                     setApprovers(selectedApprovers);
                     setPageState("pending");
                     setDialogStep("confirmed");
+                    onApprovalSubmitted?.();
                 }}
             />
 
@@ -583,6 +688,11 @@ export default function TemplatePage({
                 open={dialogStep === "confirmed"}
                 onClose={() => setDialogStep("closed")}
                 approverCount={approvers.length || 1}
+                onNotifyFeedback={() => {
+                    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                    setFeedbackSnackbarDate(today);
+                    setTimeout(() => setFeedbackSnackbarDate(null), 6000);
+                }}
             />
 
             {/* Approve template dialog (phase 3 → 4) */}
@@ -599,11 +709,13 @@ export default function TemplatePage({
             <CancelApprovalDialog
                 open={cancelApprovalDialogOpen}
                 onClose={() => setCancelApprovalDialogOpen(false)}
+                approverName={approvers.length > 0 ? (APPROVER_USERS[approvers[0]] ?? approvers[0]) : undefined}
                 onConfirm={() => {
                     setCancelApprovalDialogOpen(false);
                     setVideoPhase(0);
                     setPageState("draft");
                     setApprovers([]);
+                    onApprovalCancelled?.();
                 }}
             />
 
@@ -619,7 +731,7 @@ export default function TemplatePage({
                     setPublishDialogOpen(false);
                     setEditDialogOpen(true);
                 }}
-                templateName={TEMPLATE_TITLE}
+                templateName={details.name}
             />
 
             {/* Edit template details — pre-filled */}
@@ -627,25 +739,32 @@ export default function TemplatePage({
                 open={editDialogOpen}
                 onClose={() => setEditDialogOpen(false)}
                 mode="edit"
-                initialName={TEMPLATE_DETAILS.name}
-                initialAspectRatio={TEMPLATE_DETAILS.aspectRatio}
-                initialAudience={TEMPLATE_DETAILS.audience}
-                initialPurpose={TEMPLATE_DETAILS.purpose}
-                initialDescription={TEMPLATE_DETAILS.description}
+                initialName={details.name}
+                initialAspectRatio={details.aspectRatio}
+                initialAudience={details.audience}
+                initialPurpose={details.purpose}
+                initialDescription={details.description}
+                wasApproved={videoPhase >= 3 || isPublished}
                 onSubmit={() => setEditDialogOpen(false)}
             />
+
+            {/* ── Feedback notification snackbar (fixed bottom-center) ──────────── */}
+            {feedbackSnackbarDate !== null && (
+                <Box sx={feedbackSnackbarWrapperSx}>
+                    {/* @ts-expect-error TruffleAlert's typed Pick<HTMLAttributes> incorrectly requires React 18 placeholder/onPointer props; remove when the library switches to Omit. */}
+                    <TruffleAlert
+                        variant="filled"
+                        CloseIconButtonProps={{ onClick: () => setFeedbackSnackbarDate(null) }}
+                    >
+                        Approval requested on {feedbackSnackbarDate}. You&apos;ll be notified by email when feedback is received.
+                    </TruffleAlert>
+                </Box>
+            )}
         </Box>
     );
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const APPROVAL_STEPS = [
-    { key: "draft", label: "New version draft", showComments: false },
-    { key: "pending", label: "Pending approval", showComments: true },
-    { key: "granted", label: "Approval granted", showComments: false },
-    { key: "sharing", label: "Approve for sharing", showComments: false }
-] as const;
-
 const REVIEW_ITEMS = [
     { icon: faEye, label: "Preview as Contributor" },
     { icon: faFileExport, label: "Export script" },
@@ -659,7 +778,7 @@ const pageRootSx: SxProps<Theme> = {
     width: "100%",
     height: "100%",
     overflow: "hidden",
-    bgcolor: "other.editorBackground"
+    bgcolor: "primary.light"
 };
 
 const drawerSx: SxProps<Theme> = {
@@ -748,11 +867,14 @@ const appBarSx: SxProps<Theme> = {
     flexShrink: 0,
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
     px: 4,
-    bgcolor: "other.editorBackground",
-    borderBottom: "1px solid",
-    borderColor: "divider"
+    gap: 2,
+    bgcolor: "primary.light"
+};
+
+const appBarSearchSx: SxProps<Theme> = {
+    minWidth: "183px",
+    width: "268px"
 };
 
 const contentRowSx: SxProps<Theme> = {
@@ -773,15 +895,31 @@ const centerContentSx: SxProps<Theme> = {
 };
 
 const videoCardPaperSx: SxProps<Theme> = {
-    overflow: "hidden"
+    overflow: "hidden",
+    px: "10px"
 };
 
 const cardActionBarSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    px: 2,
+    // px:0 so the buttons align with the thumbnail edges (Paper provides the 10px padding)
+    px: 0,
     py: 1.5
+};
+
+const templateDetailsHoverWrapperSx: SxProps<Theme> = {
+    position: "relative",
+    "&:hover .template-details-edit-icon": { opacity: 1 }
+};
+
+const templateDetailsEditIconSx: SxProps<Theme> = {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    opacity: 0,
+    transition: "opacity 150ms",
+    color: "action.active"
 };
 
 const videoThumbWrapperSx: SxProps<Theme> = {
@@ -821,11 +959,48 @@ const metaDetailRowSx: SxProps<Theme> = {
     py: 1.5
 };
 
-const tagsRowSx: SxProps<Theme> = {
+const templateDetailsBodySx: SxProps<Theme> = {
+    ml: 1.5,
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 1
+};
+
+const chipsRowSx: SxProps<Theme> = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 0.5
+};
+
+const detailsChipsRowSx: SxProps<Theme> = {
     display: "flex",
     flexWrap: "wrap",
     gap: 1,
-    mt: 0.75
+    alignItems: "center"
+};
+
+// Dashed pill for the "On-going version" row — matches the dashedLabel pattern
+// used in TemplateCard.tsx and VideoCard.tsx for consistency across cards.
+const onGoingDashedLabelSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    border: "1px dashed",
+    borderColor: "divider",
+    borderRadius: "4px",
+    px: 1,
+    py: "2px",
+    mt: "2px"
+};
+
+// Snackbar pinned to the bottom-center of the viewport — matches the
+// success-toast pattern used in LanguagesPanel.tsx.
+const feedbackSnackbarWrapperSx: SxProps<Theme> = {
+    position: "fixed",
+    bottom: 24,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: (theme) => theme.zIndex.snackbar
 };
 
 const rightPanelSx: SxProps<Theme> = {
@@ -870,64 +1045,6 @@ const btnIconSx: SxProps<Theme> = {
     fontSize: "14px !important",
     width: "14px !important",
     height: "14px !important"
-};
-
-const approvalProgressSx: SxProps<Theme> = {
-    display: "flex",
-    flexDirection: "column",
-    gap: 1.5,
-    px: 2,
-    py: 2
-};
-
-const stepRowSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    gap: 1.5
-};
-
-const stepIconCompletedSx: SxProps<Theme> = {
-    fontSize: "16px !important",
-    width: "16px !important",
-    height: "16px !important",
-    color: "success.main",
-    flexShrink: 0
-};
-
-const stepIconActiveSx: SxProps<Theme> = {
-    fontSize: "16px !important",
-    width: "16px !important",
-    height: "16px !important",
-    color: "primary.main",
-    flexShrink: 0
-};
-
-const stepIconFutureSx: SxProps<Theme> = {
-    fontSize: "16px !important",
-    width: "16px !important",
-    height: "16px !important",
-    color: "text.disabled",
-    flexShrink: 0
-};
-
-const commentChipSx: SxProps<Theme> = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 0.5,
-    px: 1,
-    py: 0.25,
-    borderRadius: "100px",
-    border: "1px solid",
-    borderColor: "primary.main",
-    bgcolor: "action.selected",
-    ml: 0.5
-};
-
-const commentChipIconSx: SxProps<Theme> = {
-    fontSize: "12px !important",
-    width: "12px !important",
-    height: "12px !important",
-    color: "primary.main"
 };
 
 const darkTooltipSx = {

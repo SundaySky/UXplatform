@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { SxProps, Theme } from "@mui/material";
 import {
-    AppBar, Badge, Box, Breadcrumbs, Button, Divider, IconButton, MenuItem,
+    AppBar, Badge, Box, Breadcrumbs, Divider, IconButton, MenuItem,
     SvgIcon, Toolbar, Typography
 } from "@mui/material";
 import {
@@ -13,13 +13,14 @@ import { faChevronLeft, faChevronRight, faGrip, faArrowUpArrowDown } from "@fort
 import AppSidebar from "../../components/AppSidebar";
 import { NotificationBell, type NotificationItem } from "../../panels/NotificationsPanel";
 import TemplateCard, { type TemplateItem } from "./TemplateCard";
+import type { NewTemplateData } from "../../components/AppSidebar";
 
 // ─── Sample data ──────────────────────────────────────────────────────────────
 const RECENT_TEMPLATES: TemplateItem[] = [
-    { title: "Motivation", editedBy: "Edited on Jan 21 by you", status: "Published", personalized: true, purposeLabels: ["Engagement"] },
-    { title: "Nice to see you!", editedBy: "Edited on Jan 15 by you", status: "Published", hasNewDraft: true, purposeLabels: ["Onboarding", "Retention"] },
+    { title: "Motivation", editedBy: "Edited on Jan 21 by you", status: "Draft", personalized: true, purposeLabels: ["Engagement"] },
+    { title: "Nice to see you!", editedBy: "Edited on Jan 15 by you", status: "Draft", purposeLabels: ["Onboarding", "Retention"] },
     { title: "Welcome to SundaySky", editedBy: "Edited on Jan 10 by you", status: "Draft", personalized: true, purposeLabels: ["Onboarding"] },
-    { title: "Live Fully in Vietnam", editedBy: "Edited on Dec 30 by you", status: "Published", purposeLabels: ["Marketing", "Awareness"] },
+    { title: "Live Fully in Vietnam", editedBy: "Edited on Dec 30 by you", status: "Draft", purposeLabels: ["Marketing", "Awareness"] },
     { title: "Looking forward to talking to you", editedBy: "Edited on Dec 20 by you", status: "Draft", purposeLabels: ["Sales"] }
 ];
 
@@ -36,16 +37,23 @@ export default function TemplateLibraryPage({
     onNavigateBack,
     onNavigateToTemplate,
     onCreateTemplateFromScratch,
+    onTemplateAdded,
+    createdTemplates = [],
     notifications
 }: {
     onNavigateBack?: () => void;
     onNavigateToTemplate?: (name?: string) => void;
     onCreateTemplateFromScratch?: (name: string) => void;
+    onTemplateAdded?: (data: NewTemplateData) => void;
+    createdTemplates?: TemplateItem[];
     notifications?: NotificationItem[];
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [sortValue, setSortValue] = useState("lastEdited");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+    const recentTemplates: TemplateItem[] = [...createdTemplates, ...RECENT_TEMPLATES];
+    const allTemplates: TemplateItem[] = [...createdTemplates, ...ALL_TEMPLATES];
 
     return (
         <Box sx={pageRootSx}>
@@ -53,6 +61,7 @@ export default function TemplateLibraryPage({
                 selectedNav="Template Library"
                 onVideoLibraryClick={onNavigateBack}
                 onTemplateCreated={onCreateTemplateFromScratch ?? (onNavigateToTemplate as ((name: string) => void) | undefined)}
+                onTemplateAdded={onTemplateAdded}
             />
 
             <Box sx={mainColumnSx}>
@@ -104,13 +113,6 @@ export default function TemplateLibraryPage({
                             >
                                 How to create a template
                             </TruffleLink>
-                            <Button
-                                variant="contained"
-                                size="small"
-                                onClick={() => onNavigateToTemplate?.("New template")}
-                            >
-                                Create new template
-                            </Button>
                         </Box>
                     </Box>
 
@@ -119,9 +121,13 @@ export default function TemplateLibraryPage({
                         <Typography variant="h2" color="text.primary">Recent</Typography>
                         <Box sx={recentScrollRowSx}>
                             <Box sx={recentScrollContainerSx}>
-                                {RECENT_TEMPLATES.map((t, i) => (
+                                {recentTemplates.map((t, i) => (
                                     <Box key={t.title + i} sx={recentCardSlotSx}>
-                                        <TemplateCard template={t} onClick={(name) => onNavigateToTemplate?.(name)} />
+                                        <TemplateCard
+                                            template={t}
+                                            onClick={(name) => onNavigateToTemplate?.(name)}
+                                            singleLineTitle
+                                        />
                                     </Box>
                                 ))}
                             </Box>
@@ -173,10 +179,10 @@ export default function TemplateLibraryPage({
 
                     {/* ── Templates ── */}
                     <Typography variant="h2" color="text.primary" sx={templatesSectionHeadingSx}>
-                        Templates ({ALL_TEMPLATES.length})
+                        Templates ({allTemplates.length})
                     </Typography>
                     <Box sx={templatesGridSx}>
-                        {ALL_TEMPLATES.map((t, i) => (
+                        {allTemplates.map((t, i) => (
                             <TemplateCard key={t.title + i} template={t} onClick={onNavigateToTemplate} />
                         ))}
                     </Box>

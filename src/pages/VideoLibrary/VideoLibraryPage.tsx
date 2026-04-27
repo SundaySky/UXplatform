@@ -11,6 +11,7 @@ import { faBars, faFolderPlus } from "@fortawesome/pro-regular-svg-icons";
 import { faChevronLeft, faChevronRight, faGrip } from "@fortawesome/pro-solid-svg-icons";
 import AccountSettingsDialog from "../../AccountSettingsDialog";
 import AppSidebar from "../../components/AppSidebar";
+import type { NewTemplateData } from "../../components/AppSidebar";
 import { NotificationBell, type NotificationItem } from "../../panels/NotificationsPanel";
 import { type VideoPermissionSettings } from "../../dialogs/VideoPermissionDialog";
 import VideoCard from "./VideoCard";
@@ -51,6 +52,7 @@ export default function VideoLibraryPage({
     onEditVideo,
     onNavigateToTemplate,
     onCreateTemplateFromScratch,
+    onTemplateAdded,
     notifications,
     videoStates,
     onPermChange,
@@ -71,6 +73,7 @@ export default function VideoLibraryPage({
   onEditVideo?: (v: VideoItem) => void
   onNavigateToTemplate?: () => void
   onCreateTemplateFromScratch?: (name: string) => void
+  onTemplateAdded?: (data: NewTemplateData) => void
   notifications?: NotificationItem[]
   videoStates?: Record<string, LiveVideoState>
   onPermChange?: (key: string, s: VideoPermissionSettings) => void
@@ -135,7 +138,7 @@ export default function VideoLibraryPage({
                 onUserDeletionBlocked={handleUserDeletionBlocked}
                 pendingApprovalsCount={pendingApprovalsCount}
             />
-            <AppSidebar onTemplateLibraryClick={onNavigateToTemplate} onTemplateCreated={onCreateTemplateFromScratch} />
+            <AppSidebar onTemplateLibraryClick={onNavigateToTemplate} onTemplateCreated={onCreateTemplateFromScratch} onTemplateAdded={onTemplateAdded} />
 
             <Box sx={mainColumnSx}>
                 {/* AppBar */}

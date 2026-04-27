@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Box, Typography, IconButton, SvgIcon, Button,
-    Select, MenuItem, FormControl, Checkbox, Tooltip,
-    Autocomplete, TextField, InputAdornment, Divider
+    Select, MenuItem, FormControl, Divider,
+    Autocomplete, TextField, InputAdornment
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -91,18 +91,54 @@ export default function LanguagesPanel({
     open,
     onClose,
     enabledLangs,
-    onEnabledLangsChange
+    onEnabledLangsChange,
+    selectedLangs: selectedLangsProp,
+    onSelectedLangsChange
 }: {
     open: boolean;
     onClose: () => void;
     enabledLangs: string[];
     onEnabledLangsChange: (langs: string[]) => void;
+    /** Optional controlled in-progress selections — when provided, picks survive unmount. */
+    selectedLangs?: string[];
+    onSelectedLangsChange?: (langs: string[]) => void;
 }) {
-    const [panelState, setPanelState] = useState<PanelState>("promo");
+    // Initialize panelState from the lifted enabledLangs/selectedLangs so the
+    // panel resumes wherever the user left off across task switches / page navs.
+    const [panelState, setPanelState] = useState<PanelState>(() => {
+        if (enabledLangs.length > 0) {
+            return "settled";
+        }
+        if (selectedLangsProp && selectedLangsProp.length > 0 && selectedLangsProp.some(l => l !== "")) {
+            return "selector";
+        }
+        return "promo";
+    });
+
+    // If the lifted enabledLangs prop becomes non-empty AFTER mount (e.g. App
+    // state hadn't propagated when this component first mounted), advance the
+    // panel from intro/promo to settled so the user sees their saved languages.
+    useEffect(() => {
+        if (enabledLangs.length > 0 && panelState === "promo") {
+            setPanelState("settled");
+        }
+    }, [enabledLangs.length, panelState]);
     // Source language (the original video narration language)
     const [sourceLanguage, setSourceLanguage] = useState("English (US)");
-    // Confirmed selections — one language per row
-    const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+    // In-progress selections — one language per row.
+    // Backed by a controlled prop when provided (lifted to App.tsx so picks persist
+    // across task switches), with a local fallback for standalone usage.
+    const [internalSelectedLangs, setInternalSelectedLangs] = useState<string[]>([]);
+    const selectedLangs = selectedLangsProp ?? internalSelectedLangs;
+    const setSelectedLangs = (langs: string[] | ((prev: string[]) => string[])) => {
+        const next = typeof langs === "function" ? (langs as (p: string[]) => string[])(selectedLangs) : langs;
+        if (onSelectedLangsChange) {
+            onSelectedLangsChange(next);
+        }
+        else {
+            setInternalSelectedLangs(next);
+        }
+    };
     // Snapshot of what was sent to "apply"
     const [pendingLangs, setPendingLangs] = useState<string[]>([]);
     // Language picker dialog
@@ -124,9 +160,14 @@ export default function LanguagesPanel({
     const canEnable = isRemovingAll || (hasChanges && selectedCount > 0);
     const activeLangsList = enabledLangs;
 
+    // Tracks whether the picker dialog was just confirmed (vs cancelled), so the
+    // following onClose can route the panel to the right state.
+    const pickerConfirmedRef = useRef(false);
+
     function handlePickerConfirm(langs: string[]) {
         const sorted = [...langs].sort((a, b) => a.localeCompare(b));
         setSelectedLangs(sorted.slice(0, MAX_LANGUAGES));
+        pickerConfirmedRef.current = true;
     }
 
     function handleSetLangAt(idx: number, lang: string) {
@@ -419,12 +460,13 @@ export default function LanguagesPanel({
                                             onClick={() => setShowPicker(true)}
                                             sx={addBtnSx}
                                         >
-                                            {selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
+                                            {isEditMode || selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
                                         </Button>
                                     )}
                                 </Box>
 
-                                {/* ── Language rows: filled slots + trailing multi-select (non-edit) ── */}
+                                {/* ── Language rows: read-only display of selected languages.
+                                    Adding/removing happens via the picker dialog (Manage / + Add). */}
                                 <Box sx={langRowsContainerSx}>
                                     {selectedLangs.map((lang, idx) => (
                                         <Box key={idx} sx={slotRowSx}>
@@ -483,62 +525,6 @@ export default function LanguagesPanel({
                                             />
                                         </Box>
                                     ))}
-
-                                    {/* ── Trailing multi-select slot — only in non-edit mode ── */}
-                                    {!isEditMode && filledLangs.length < MAX_LANGUAGES && (
-                                        <Box sx={slotRowSx}>
-                                            <FormControl size="medium" sx={{ flex: 1, minWidth: 0 }}>
-                                                <Select
-                                                    multiple
-                                                    displayEmpty
-                                                    value={filledLangs}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value as string[];
-                                                        setSelectedLangs(val.slice(0, MAX_LANGUAGES));
-                                                    }}
-                                                    IconComponent={() => (
-                                                        <SvgIcon sx={selectIconSx}>
-                                                            <FontAwesomeIcon icon={faAngleDown} />
-                                                        </SvgIcon>
-                                                    )}
-                                                    renderValue={() => (
-                                                        <Typography variant="body1" color="text.disabled" sx={{ fontStyle: "italic" }}>
-                                                            Choose language
-                                                        </Typography>
-                                                    )}
-                                                    MenuProps={{ PaperProps: { sx: { maxHeight: 360 } } }}
-                                                >
-                                                    {LANGUAGE_OPTIONS.map(({ name, flag }) => {
-                                                        const isChecked = filledLangs.includes(name);
-                                                        const isDisabled = !isChecked && filledLangs.length >= MAX_LANGUAGES;
-                                                        return (
-                                                            <Tooltip
-                                                                key={name}
-                                                                title={isDisabled ? `You've reached the limit of ${MAX_LANGUAGES} languages` : ""}
-                                                                placement="right"
-                                                                arrow
-                                                            >
-                                                                <span>
-                                                                    <MenuItem
-                                                                        value={name}
-                                                                        disabled={isDisabled}
-                                                                        sx={multiSelectMenuItemSx}
-                                                                    >
-                                                                        <Checkbox checked={isChecked} size="medium" color="primary" sx={{ p: "2px", mr: 1 }} />
-                                                                        <Typography sx={{ fontSize: 16, lineHeight: 1, mr: 1 }}>{flag}</Typography>
-                                                                        <Typography variant="body1">{name}</Typography>
-                                                                    </MenuItem>
-                                                                </span>
-                                                            </Tooltip>
-                                                        );
-                                                    })}
-                                                </Select>
-                                            </FormControl>
-                                            <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
-                                                <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                            </IconButton>
-                                        </Box>
-                                    )}
                                 </Box>
                             </Box>
 
@@ -587,9 +573,17 @@ export default function LanguagesPanel({
                                     : isEditMode
                                         ? "Apply changes"
                                         : "Enable translations"}
-                                {!isRemovingAll && selectedCount > 0 && (
-                                    <Box component="span" sx={countBadgeSx}>{selectedCount}</Box>
-                                )}
+                                {!isRemovingAll && (() => {
+                                    // In edit mode the badge counts ACTUAL CHANGES
+                                    // (additions + removals); otherwise it's just the
+                                    // total count of selected languages.
+                                    const additions = filledLangs.filter(l => !enabledLangs.includes(l)).length;
+                                    const removals = enabledLangs.filter(l => !filledLangs.includes(l)).length;
+                                    const count = isEditMode ? additions + removals : selectedCount;
+                                    return count > 0
+                                        ? <Box component="span" sx={countBadgeSx}>{count}</Box>
+                                        : null;
+                                })()}
                             </Button>
 
                             <Box sx={{ textAlign: "center", mt: 1.5 }}>
@@ -688,7 +682,7 @@ export default function LanguagesPanel({
                                                 onClick={() => setShowPicker(true)}
                                                 sx={addBtnSx}
                                             >
-                                                {selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
+                                                {isEditMode || selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
                                             </Button>
                                         </Box>
 
@@ -987,7 +981,29 @@ export default function LanguagesPanel({
             {/* ── Language picker dialog ───────────────────────────────── */}
             <LanguagePickerDialog
                 open={showPicker}
-                onClose={() => setShowPicker(false)}
+                onClose={() => {
+                    setShowPicker(false);
+                    // If user just confirmed (clicked "Select languages"), show the
+                    // selector view with the picked languages in dropdowns.
+                    if (pickerConfirmedRef.current) {
+                        pickerConfirmedRef.current = false;
+                        setPanelState("selector");
+                        return;
+                    }
+                    // Otherwise (cancel/X/Esc), revert from the picker state to the
+                    // appropriate panel view so the user isn't left on a blank picker.
+                    if (panelState === "picker") {
+                        if (enabledLangs.length > 0 && filledLangs.length > 0 && !isEditMode) {
+                            setPanelState("settled");
+                        }
+                        else if (isEditMode) {
+                            setPanelState("selector");
+                        }
+                        else {
+                            setPanelState("promo");
+                        }
+                    }
+                }}
                 currentLangs={filledLangs}
                 onConfirm={handlePickerConfirm}
             />
@@ -1286,12 +1302,6 @@ const langRowsContainerSx: SxProps<Theme> = {
     display: "flex",
     flexDirection: "column",
     gap: 1
-};
-
-// Prevent full-row highlight on checked items in multi-select
-const multiSelectMenuItemSx: SxProps<Theme> = {
-    "&.Mui-selected": { bgcolor: "transparent" },
-    "&.Mui-selected:hover": { bgcolor: "action.hover" }
 };
 
 const sourceLangRenderValueSx: SxProps<Theme> = {
