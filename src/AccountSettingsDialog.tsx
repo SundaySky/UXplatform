@@ -2377,12 +2377,12 @@ function ViewEditPermissionsSection() {
                 {/* Brand */}
                 <PermGroup title="Brand">
                     <PermRow
-                        label="Can create, delete and manage brand permission"
+                        label="Manage brand permission"
                         value={brandOwner}
                         options={["Everyone in the account", "None"]}
                         onChange={setBrandOwner}
                     />
-                    <PermRowWithUsers label="Can use" />
+                    <PermRowWithUsers label="Using a brand" />
                 </PermGroup>
             </Box>
 
