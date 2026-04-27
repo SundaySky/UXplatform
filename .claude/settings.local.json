@@ -40,7 +40,10 @@
       "Bash(./scripts/start-task.sh \"groups-video-avatar-access\")",
       "Bash(git stash *)",
       "Bash(git commit -m ' *)",
-      "Bash(git rebase *)"
+      "Bash(git rebase *)",
+      "Bash(xargs -I {} git log {}..main --author=\"Maya\" --oneline)",
+      "Bash(./scripts/start-task.sh \"workflow approver user management\")",
+      "mcp__firecrawl__firecrawl_browser_create"
     ]
   }
 }
