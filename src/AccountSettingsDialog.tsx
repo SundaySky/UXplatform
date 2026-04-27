@@ -67,7 +67,7 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
 ];
 
 const PERMISSIONS_SUBNAV: { key: NavKey; label: string }[] = [
-    { key: "permissions-view-edit", label: "Viewing and editing" },
+    { key: "permissions-view-edit", label: "Default access permissions" },
     { key: "permissions-ai", label: "AI features" }
 ];
 
@@ -2314,7 +2314,7 @@ function ViewEditPermissionsSection() {
     return (
         <Box sx={sectionContainerSx}>
             <Typography variant="h3" sx={{ color: "text.primary", mb: "12px", flexShrink: 0 }}>
-                Viewing and editing permissions
+                Default access permissions
             </Typography>
 
             {/* Explanation */}
