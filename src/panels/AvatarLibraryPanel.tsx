@@ -82,22 +82,14 @@ const BETA_AVATARS: AvatarItem[] = [
 // ─── Rounded-square avatar chip (for options menu) ─────────────────────────
 function AvatarChip({
     initials,
-    color,
     tooltip
 }: {
   initials: string
-  color: string
   tooltip: string
 }) {
     return (
         <Tooltip title={tooltip} placement="top" arrow componentsProps={{ tooltip: { sx: navyTooltipSx } }}>
-            <Box sx={{
-                width: 28, height: 28,
-                bgcolor: color,
-                borderRadius: "6px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "default", flexShrink: 0
-            }}>
+            <Box sx={avatarChipSx}>
                 <Typography variant="caption" sx={chipInitialsSx}>
                     {initials}
                 </Typography>
@@ -124,7 +116,6 @@ function AvatarCard({
   requestCount?: number
   onOpenMenu?: (e: React.MouseEvent<HTMLButtonElement>, id: string) => void
 }) {
-    const [hovered, setHovered] = useState(false);
     const perm = permSettings?.usagePermission ?? "everyone";
     const showPermIcon = perm !== "everyone";
 
@@ -132,25 +123,26 @@ function AvatarCard({
         ? "Only you can use this avatar. Everyone else can view it."
         : "Only specific users can use this custom avatar. Everyone else can see it.";
 
-    // Button label: if any avatar is active → Replace, otherwise Add (icon already shows +)
     const btnLabel = anyActive ? "Replace" : "Add";
+    const btnIcon = anyActive ? faArrowsLeftRight : faPlus;
 
     return (
         <Box
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
             sx={{
                 borderRadius: "8px",
                 overflow: "hidden",
-                border: isActive
-                    ? "2px solid"
-                    : "1px solid",
+                border: isActive ? "2px solid" : "1px solid",
                 borderColor: isActive ? "primary.main" : "divider",
                 cursor: "pointer",
                 position: "relative",
-                bgcolor: hovered ? "grey.50" : "background.paper",
                 transition: "box-shadow 0.15s",
-                boxShadow: hovered ? "0 2px 8px rgba(3,25,79,0.14)" : "none"
+                "& .av-scrim": { opacity: 0, transition: "opacity 0.15s" },
+                "& .av-actions": { visibility: "hidden" },
+                "&:hover": {
+                    boxShadow: 24,
+                    "& .av-scrim": { opacity: 1 },
+                    "& .av-actions": { visibility: "visible" }
+                }
             }}
         >
             {/* Photo area */}
@@ -168,64 +160,58 @@ function AvatarCard({
                     </Box>
                 )}
 
-                {/* Hover overlay — action buttons */}
-                {hovered && (
-                    <Box sx={cardHoverOverlaySx}>
-                        {/* + Add / Replace */}
-                        <Button
+                {/* Dark scrim */}
+                <Box className="av-scrim" sx={cardScrimSx} />
+
+                {/* Left actions: Add / Replace */}
+                <Box className="av-actions" sx={cardActionsLeftSx}>
+                    <Button
+                        variant="contained"
+                        color="white"
+                        size="small"
+                        startIcon={<SvgIcon sx={overlayBtnIconSx}><FontAwesomeIcon icon={btnIcon} /></SvgIcon>}
+                        onClick={e => {
+                            e.stopPropagation(); onAdd(avatar.id); 
+                        }}
+                    >
+                        {btnLabel}
+                    </Button>
+                </Box>
+
+                {/* Right actions: Expand + three-dot */}
+                <Box className="av-actions" sx={cardActionsRightSx}>
+                    <Tooltip title="Preview" placement="top" arrow
+                        componentsProps={{ tooltip: { sx: navyTooltipSx } }}
+                    >
+                        <TruffleIconButton
                             variant="contained"
                             color="white"
                             size="small"
-                            startIcon={
-                                anyActive
-                                    ? <SvgIcon sx={overlayBtnIconSx}><FontAwesomeIcon icon={faArrowsLeftRight} /></SvgIcon>
-                                    : <SvgIcon sx={overlayBtnIconSx}><FontAwesomeIcon icon={faPlus} /></SvgIcon>
-                            }
+                            onClick={e => e.stopPropagation()}
+                            placeholder={undefined}
+                            onPointerEnterCapture={undefined}
+                            onPointerLeaveCapture={undefined}
+                        >
+                            <SvgIcon sx={overlaySmallIconSx}><FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} /></SvgIcon>
+                        </TruffleIconButton>
+                    </Tooltip>
+
+                    {avatar.isCustom && onOpenMenu && (
+                        <TruffleIconButton
+                            variant="contained"
+                            color="white"
+                            size="small"
                             onClick={e => {
-                                e.stopPropagation(); onAdd(avatar.id);
+                                e.stopPropagation(); onOpenMenu(e, avatar.id); 
                             }}
+                            placeholder={undefined}
+                            onPointerEnterCapture={undefined}
+                            onPointerLeaveCapture={undefined}
                         >
-                            {btnLabel}
-                        </Button>
-
-                        {/* Spacer */}
-                        <Box sx={spacerSx} />
-
-                        {/* Expand preview */}
-                        <Tooltip title="Preview" placement="top" arrow
-                            componentsProps={{ tooltip: { sx: navyTooltipSx } }}
-                        >
-                            <TruffleIconButton
-                                variant="contained"
-                                color="white"
-                                size="small"
-                                onClick={e => e.stopPropagation()}
-                                placeholder={undefined}
-                                onPointerEnterCapture={undefined}
-                                onPointerLeaveCapture={undefined}
-                            >
-                                <SvgIcon sx={overlaySmallIconSx}><FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} /></SvgIcon>
-                            </TruffleIconButton>
-                        </Tooltip>
-
-                        {/* Three-dot options (custom avatars only) */}
-                        {avatar.isCustom && onOpenMenu && (
-                            <TruffleIconButton
-                                variant="contained"
-                                color="white"
-                                size="small"
-                                onClick={e => {
-                                    e.stopPropagation(); onOpenMenu(e, avatar.id);
-                                }}
-                                placeholder={undefined}
-                                onPointerEnterCapture={undefined}
-                                onPointerLeaveCapture={undefined}
-                            >
-                                <SvgIcon sx={overlaySmallIconSx}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
-                            </TruffleIconButton>
-                        )}
-                    </Box>
-                )}
+                            <SvgIcon sx={overlaySmallIconSx}><FontAwesomeIcon icon={faEllipsisVertical} /></SvgIcon>
+                        </TruffleIconButton>
+                    )}
+                </Box>
 
                 {/* Request count badge */}
                 {(requestCount ?? 0) > 0 && (
@@ -332,6 +318,7 @@ export default function AvatarLibraryPanel({
 
     const menuAvatar = CUSTOM_AVATARS.find(a => a.id === menuAvatarId);
     const menuApprovers = menuAvatarId ? (permMap[menuAvatarId]?.approverUsers ?? [OWNER_USER]) : [OWNER_USER];
+    const menuSpecificUsers = menuAvatarId ? (permMap[menuAvatarId]?.specificUsers ?? []) : [];
 
     const permDialogAvatar = CUSTOM_AVATARS.find(a => a.id === permDialogAvatarId);
 
@@ -579,7 +566,7 @@ export default function AvatarLibraryPanel({
                         >
                             <SvgIcon sx={managePermIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
                             <Typography variant="caption" sx={managePermLabelSx}>
-                Manage usage permission
+                Avatar usage access
                             </Typography>
                             {/* User chips — approvers + requesters */}
                             <Box sx={chipsRowSx}>
@@ -587,15 +574,20 @@ export default function AvatarLibraryPanel({
                                     <AvatarChip
                                         key={user.id}
                                         initials={user.initials}
-                                        color={user.color}
                                         tooltip={`${user.name}\nCan manage access, delete, and rename.`}
+                                    />
+                                ))}
+                                {menuSpecificUsers.map(user => (
+                                    <AvatarChip
+                                        key={user.id}
+                                        initials={user.initials}
+                                        tooltip={`${user.name}\nCan use this avatar`}
                                     />
                                 ))}
                                 {(menuAvatarId ? (requestsMap[menuAvatarId] ?? []) : []).map(req => (
                                     <AvatarChip
                                         key={req.id}
                                         initials={req.initials}
-                                        color={req.color}
                                         tooltip={`${req.name}\nRequested access`}
                                     />
                                 ))}
@@ -623,7 +615,7 @@ export default function AvatarLibraryPanel({
                                 sx={menuDeleteRowSx}
                                 onClick={closeMenu}
                             >
-                                <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
+                                <SvgIcon sx={menuDeleteIconSx}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
                                 <Typography variant="caption" sx={menuDeleteLabelSx}>
                   Delete
                                 </Typography>
@@ -651,8 +643,16 @@ export default function AvatarLibraryPanel({
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 // AvatarChip
+const avatarChipSx: SxProps<Theme> = {
+    width: 24, height: 24,
+    bgcolor: "primary.light",
+    borderRadius: "6px",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "default", flexShrink: 0
+};
+
 const chipInitialsSx: SxProps<Theme> = {
-    color: "common.white", lineHeight: 1
+    color: "text.primary", lineHeight: 1
 };
 
 // AvatarCard
@@ -679,24 +679,36 @@ const cardPlaceholderIconSx: SxProps<Theme> = {
     fontSize: 52, color: "action.disabled"
 };
 
-const cardHoverOverlaySx: SxProps<Theme> = {
+const cardScrimSx: SxProps<Theme> = {
     position: "absolute",
-    top: 0, left: 0, right: 0,
-    display: "flex", alignItems: "flex-start",
-    p: "6px",
+    inset: 0,
+    bgcolor: "text.disabled"
+};
+
+const cardActionsLeftSx: SxProps<Theme> = {
+    position: "absolute",
+    top: "8px",
+    left: "8px"
+};
+
+const cardActionsRightSx: SxProps<Theme> = {
+    position: "absolute",
+    top: "8px",
+    right: "8px",
+    display: "flex",
     gap: "4px"
 };
 
 const overlayBtnIconSx: SxProps<Theme> = {
-    fontSize: "14px !important"
-};
-
-const spacerSx: SxProps<Theme> = {
-    flex: 1
+    fontSize: "14px !important",
+    width: "14px !important",
+    height: "14px !important"
 };
 
 const overlaySmallIconSx: SxProps<Theme> = {
-    fontSize: 14
+    fontSize: "14px !important",
+    width: "14px !important",
+    height: "14px !important"
 };
 
 const requestBadgeBoxSx: SxProps<Theme> = {
@@ -873,7 +885,8 @@ const managePermRowSx: SxProps<Theme> = {
 };
 
 const managePermIconSx: SxProps<Theme> = {
-    fontSize: 18, color: "action.active", flexShrink: 0
+    fontSize: "16px !important", width: "16px !important", height: "16px !important",
+    color: "action.active", flexShrink: 0
 };
 
 const managePermLabelSx: SxProps<Theme> = {
@@ -896,11 +909,16 @@ const menuDetailsRowSx: SxProps<Theme> = {
 };
 
 const menuDetailsIconSx: SxProps<Theme> = {
-    fontSize: 18, color: "action.active"
+    fontSize: "16px !important", width: "16px !important", height: "16px !important",
+    color: "action.active"
 };
 
 const menuDetailsLabelSx: SxProps<Theme> = {
     color: "text.primary"
+};
+
+const menuDeleteIconSx: SxProps<Theme> = {
+    fontSize: "16px !important", width: "16px !important", height: "16px !important"
 };
 
 const menuDeleteSectionBoxSx: SxProps<Theme> = {

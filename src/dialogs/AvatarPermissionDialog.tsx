@@ -325,7 +325,7 @@ export default function AvatarPermissionDialog({
                         HelpCenterIconButtonProps={{ onClick: () => {} }}
                         CloseIconButtonProps={{ onClick: handleClose }}
                     >
-                        {`Manage "${avatarName}" avatar usage permissions`}
+                        {`"${avatarName}" avatar usage access`}
                     </TruffleDialogTitle>
                 )}
 
