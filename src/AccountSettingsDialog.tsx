@@ -2352,13 +2352,13 @@ function ViewEditPermissionsSection() {
                 {/* Custom avatars */}
                 <PermGroup title="Custom avatars">
                     <PermRow
-                        label="Create, delete and manage access to custom avatars"
+                        label="Control access to custom avatars"
                         value={avatarCanEdit}
                         options={["Users with editor permission", "Account owner only"]}
                         onChange={setAvatarCanEdit}
                     />
                     <PermRowWithUsers
-                        label="Can use custom avatar"
+                        label="Using a custom avatar"
                         fixedLabels={["Users can ask owners to use", "Users with editor permission"]}
                     />
                 </PermGroup>
