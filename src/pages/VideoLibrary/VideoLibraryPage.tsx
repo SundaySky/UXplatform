@@ -1,14 +1,18 @@
 import { useCallback, useState } from "react";
 import {
-    AppBar, Badge, Box, Button, Divider, IconButton, SvgIcon, Toolbar, Typography
+    AppBar, Badge, Box, Button, Divider, IconButton, ListItemIcon, ListItemText,
+    MenuItem, Popover, SvgIcon, Toolbar, Typography
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import {
     Search, ToggleIconButton, TruffleAvatar, TruffleToggleButtonGroup
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faFolderPlus } from "@fortawesome/pro-regular-svg-icons";
-import { faChevronLeft, faChevronRight, faGrip } from "@fortawesome/pro-solid-svg-icons";
+import {
+    faBars, faFolderPlus, faGear, faCircleQuestion,
+    faRightFromBracket, faShield, faArrowUpRightFromSquare
+} from "@fortawesome/pro-regular-svg-icons";
+import { faChevronLeft, faChevronRight, faGrip, faArrowUpArrowDown } from "@fortawesome/pro-solid-svg-icons";
 import AccountSettingsDialog from "../../AccountSettingsDialog";
 import AppSidebar from "../../components/AppSidebar";
 import { NotificationBell, type NotificationItem } from "../../panels/NotificationsPanel";
@@ -93,6 +97,7 @@ export default function VideoLibraryPage({
     const accountSettingsInitialTab = externalAccountSettingsInitialTab ?? _accountSettingsInitialTab;
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(null);
 
     const pendingApprovalsCount = videoStates
         ? Object.values(videoStates).filter(v => v.sentApprovers?.length > 0).length
@@ -154,11 +159,7 @@ export default function VideoLibraryPage({
                             <NotificationBell notifications={notifications} />
                             <Divider orientation="vertical" flexItem sx={appBarDividerSx} />
                             <Box
-                                onClick={() => {
-                                    setAccountSettingsOpen(true);
-                                    setAccountSettingsInitialTab("users");
-                                    onAccountSettingsOpen?.(true);
-                                }}
+                                onClick={(e) => setUserMenuAnchor(e.currentTarget)}
                                 sx={userMenuTriggerSx}
                             >
                                 <Typography variant="body2" color="text.secondary" sx={userMenuAccountNameSx}>
@@ -173,6 +174,68 @@ export default function VideoLibraryPage({
                                     <TruffleAvatar text="MC" size="medium" sx={userAvatarSx} />
                                 </Badge>
                             </Box>
+
+                            {/* ── User menu popover ── */}
+                            <Popover
+                                open={Boolean(userMenuAnchor)}
+                                anchorEl={userMenuAnchor}
+                                onClose={() => setUserMenuAnchor(null)}
+                                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                                PaperProps={{ sx: userMenuPaperSx }}
+                            >
+                                {/* Header */}
+                                <Box sx={userMenuHeaderSx}>
+                                    <TruffleAvatar text="ND" size="large" sx={userMenuAvatarSx} />
+                                    <Box>
+                                        <Typography variant="subtitle1">naor.daniel@sundaysky.com</Typography>
+                                        <Typography variant="body1" color="text.secondary">Naor playground</Typography>
+                                    </Box>
+                                </Box>
+
+                                {/* Switch account button */}
+                                <Box sx={userMenuSwitchBtnBoxSx}>
+                                    <Button
+                                        variant="outlined"
+                                        fullWidth
+                                        startIcon={<FontAwesomeIcon icon={faArrowUpArrowDown} />}
+                                    >
+                                        Switch to SundaySky Amplify
+                                    </Button>
+                                </Box>
+
+                                <Divider />
+
+                                {/* Menu items */}
+                                <MenuItem onClick={() => {
+                                    setUserMenuAnchor(null); setAccountSettingsOpen(true); setAccountSettingsInitialTab("users"); onAccountSettingsOpen?.(true); 
+                                }}>
+                                    <ListItemIcon><SvgIcon sx={menuIconSx}><FontAwesomeIcon icon={faGear} /></SvgIcon></ListItemIcon>
+                                    <ListItemText>Account settings</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => setUserMenuAnchor(null)}>
+                                    <ListItemIcon><SvgIcon sx={menuIconSx}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon></ListItemIcon>
+                                    <ListItemText>
+                                        <Box sx={menuItemWithLinkSx}>
+                                            Get Help
+                                            <SvgIcon sx={externalLinkIconSx}><FontAwesomeIcon icon={faArrowUpRightFromSquare} /></SvgIcon>
+                                        </Box>
+                                    </ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => setUserMenuAnchor(null)}>
+                                    <ListItemIcon><SvgIcon sx={menuIconSx}><FontAwesomeIcon icon={faRightFromBracket} /></SvgIcon></ListItemIcon>
+                                    <ListItemText>Sign-Out</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => setUserMenuAnchor(null)}>
+                                    <ListItemIcon><SvgIcon sx={menuIconSx}><FontAwesomeIcon icon={faShield} /></SvgIcon></ListItemIcon>
+                                    <ListItemText>
+                                        <Box sx={menuItemWithLinkSx}>
+                                            Privacy Policy
+                                            <SvgIcon sx={externalLinkIconSx}><FontAwesomeIcon icon={faArrowUpRightFromSquare} /></SvgIcon>
+                                        </Box>
+                                    </ListItemText>
+                                </MenuItem>
+                            </Popover>
                         </Box>
                     </Toolbar>
                 </AppBar>
@@ -479,4 +542,49 @@ const captionSecondaryColorSx: SxProps<Theme> = {
 const videosSectionHeadingSx: SxProps<Theme> = {
     color: "text.primary",
     mb: 2
+};
+
+const userMenuPaperSx: SxProps<Theme> = {
+    width: 300,
+    borderRadius: 2,
+    mt: 0.5
+};
+
+const userMenuHeaderSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
+    px: 2,
+    py: 2.5
+};
+
+const userMenuAvatarSx: SxProps<Theme> = {
+    bgcolor: "secondary.main",
+    color: "common.white",
+    flexShrink: 0
+};
+
+const userMenuSwitchBtnBoxSx: SxProps<Theme> = {
+    px: 2,
+    pb: 2
+};
+
+const menuIconSx: SxProps<Theme> = {
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
+    color: "text.secondary"
+};
+
+const menuItemWithLinkSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 0.75
+};
+
+const externalLinkIconSx: SxProps<Theme> = {
+    fontSize: "11px !important",
+    width: "11px !important",
+    height: "11px !important",
+    color: "text.disabled"
 };

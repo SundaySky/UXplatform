@@ -9,7 +9,7 @@ import {
     Autocomplete, TextField
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup } from "@fortawesome/pro-regular-svg-icons";
+import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup, faWandMagicSparkles } from "@fortawesome/pro-regular-svg-icons";
 import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
@@ -63,15 +63,10 @@ type NavKey = "users" | "approvals" | "groups"
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
     { key: "users", label: "All users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
     { key: "groups", label: "Groups", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon> },
-    { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> }
+    { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> },
+    { key: "permissions-view-edit", label: "Access Defaults", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
+    { key: "permissions-ai", label: "AI features", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faWandMagicSparkles} /></SvgIcon> }
 ];
-
-const PERMISSIONS_SUBNAV: { key: NavKey; label: string }[] = [
-    { key: "permissions-view-edit", label: "Access Defaults" },
-    { key: "permissions-ai", label: "AI features" }
-];
-
-const isPermissionsNav = (n: NavKey) => n.startsWith("permissions-");
 
 
 
@@ -1630,6 +1625,7 @@ function GroupDialog({ open, onClose, onSave, mode, group, accountUsers, existin
 }) {
     const [name, setName] = useState(group?.name ?? "");
     const [selectedUsers, setSelectedUsers] = useState<typeof ALL_USERS[number][]>([]);
+    const [discardOpen, setDiscardOpen] = useState(false);
 
     React.useEffect(() => {
         if (open) {
@@ -1650,102 +1646,146 @@ function GroupDialog({ open, onClose, onSave, mode, group, accountUsers, existin
     );
     const canSave = trimmedName.length > 0 && !isDuplicateName;
 
+    // Detect unsaved changes
+    const initialUserIds = group?.userIds ?? [];
+    const hasChanges = mode === "create"
+        ? trimmedName.length > 0 || selectedUsers.length > 0
+        : trimmedName !== (group?.name ?? "") || selectedUsers.some(u => !initialUserIds.includes(u.id)) || initialUserIds.some(id => !selectedUsers.find(u => u.id === id));
+
+    const handleAttemptClose = () => {
+        if (hasChanges) {
+            setDiscardOpen(true);
+        }
+        else {
+            onClose();
+        }
+    };
+
     return (
-        <Dialog open={open} onClose={onClose} maxWidth={false}
-            PaperProps={{ sx: { width: 540, borderRadius: "12px", p: 0, maxHeight: "90vh", display: "flex", flexDirection: "column" } }}>
-            <Box sx={groupDialogScrollSx}>
-                {/* Title */}
-                <Box sx={dialogTitleRowMb24Sx}>
-                    <Typography variant="h4" sx={textPrimarySx}>
-                        {mode === "create" ? "Create group" : "Edit group"}
-                    </Typography>
-                    <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}>
-                        <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
-                    </IconButton>
-                </Box>
+        <>
+            <Dialog open={open} onClose={handleAttemptClose} maxWidth={false}
+                PaperProps={{ sx: { width: 540, borderRadius: "12px", p: 0, maxHeight: "90vh", display: "flex", flexDirection: "column" } }}>
+                <Box sx={groupDialogScrollSx}>
+                    {/* Title */}
+                    <Box sx={dialogTitleRowMb24Sx}>
+                        <Typography variant="h4" sx={textPrimarySx}>
+                            {mode === "create" ? "Create group" : "Edit group"}
+                        </Typography>
+                        <IconButton size="small" onClick={handleAttemptClose} sx={closeIconButtonSx}>
+                            <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
+                        </IconButton>
+                    </Box>
 
-                {/* Name */}
-                <Box sx={groupFieldWrapSx}>
-                    <TextField
-                        label="Group name"
-                        fullWidth
-                        placeholder="e.g. Marketing team"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        error={isDuplicateName}
-                        helperText={isDuplicateName ? "A group with this name already exists." : ""}
-                    />
-                </Box>
+                    {/* Name */}
+                    <Box sx={groupFieldWrapSx}>
+                        <TextField
+                            label="Group name"
+                            fullWidth
+                            placeholder="e.g. Marketing team"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            error={isDuplicateName}
+                            helperText={isDuplicateName ? "A group with this name already exists." : ""}
+                        />
+                    </Box>
 
-                {/* Users — existing account users only, no new email invites */}
-                <Box sx={groupFieldWrapSx}>
-                    <Autocomplete<typeof ALL_USERS[number], true>
-                        multiple
-                        options={ALL_USERS}
-                        value={selectedUsers}
-                        onChange={(_, val) => setSelectedUsers(val)}
-                        getOptionLabel={u => u.name}
-                        isOptionEqualToValue={(a, b) => a.id === b.id}
-                        disableCloseOnSelect
-                        popupIcon={null}
-                        renderTags={(tagValue, getTagProps) => (
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                                {tagValue.map((user, index) => (
-                                    <Chip
-                                        {...getTagProps({ index })}
-                                        key={user.id}
-                                        label={user.name}
-                                        size="small"
-                                    />
-                                ))}
-                            </Box>
-                        )}
-                        renderInput={params => (
-                            <TextField
-                                {...params}
-                                label="Users"
-                                placeholder={selectedUsers.length === 0 ? "Search by name…" : ""}
-                            />
-                        )}
-                        renderOption={(props, option) => {
-                            const au = findAccountUser(option.id, accountUsers);
-                            return (
-                                <Box component="li" {...props} key={option.id}
-                                    sx={{ display: "flex", alignItems: "center", gap: "10px", px: "12px", py: "8px" }}>
-                                    <TruffleAvatar text={option.initials} size="small" sx={{ flexShrink: 0 }} />
-                                    <Box>
-                                        <Typography variant="subtitle2" sx={textPrimarySx}>{option.name}</Typography>
-                                        <Typography variant="caption" sx={textSecondarySx}>
-                                            {option.email}{au ? ` · ${au.createSpace}` : ""}
-                                        </Typography>
-                                    </Box>
+                    {/* Users — existing account users only, no new email invites */}
+                    <Box sx={groupFieldWrapSx}>
+                        <Autocomplete<typeof ALL_USERS[number], true>
+                            multiple
+                            options={ALL_USERS}
+                            value={selectedUsers}
+                            onChange={(_, val) => setSelectedUsers(val)}
+                            getOptionLabel={u => u.name}
+                            isOptionEqualToValue={(a, b) => a.id === b.id}
+                            disableCloseOnSelect
+                            popupIcon={null}
+                            renderTags={(tagValue, getTagProps) => (
+                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                    {tagValue.map((user, index) => (
+                                        <Chip
+                                            {...getTagProps({ index })}
+                                            key={user.id}
+                                            label={user.name}
+                                            size="small"
+                                        />
+                                    ))}
                                 </Box>
-                            );
-                        }}
-                    />
-                </Box>
+                            )}
+                            renderInput={params => (
+                                <TextField
+                                    {...params}
+                                    label="Users"
+                                    placeholder={selectedUsers.length === 0 ? "Search by name…" : ""}
+                                />
+                            )}
+                            renderOption={(props, option) => {
+                                const au = findAccountUser(option.id, accountUsers);
+                                return (
+                                    <Box component="li" {...props} key={option.id}
+                                        sx={{ display: "flex", alignItems: "center", gap: "10px", px: "12px", py: "8px" }}>
+                                        <TruffleAvatar text={option.initials} size="small" sx={{ flexShrink: 0 }} />
+                                        <Box>
+                                            <Typography variant="subtitle2" sx={textPrimarySx}>{option.name}</Typography>
+                                            <Typography variant="caption" sx={textSecondarySx}>
+                                                {option.email}{au ? ` · ${au.createSpace}` : ""}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                );
+                            }}
+                        />
+                    </Box>
 
-                {/* Actions */}
-                <Box sx={dialogActionsRowSx}>
-                    <Button variant="outlined" onClick={onClose} sx={cancelButtonSx}>Cancel</Button>
-                    <Button
-                        variant="contained"
-                        disabled={!canSave}
-                        onClick={() => {
-                            onSave({
-                                name: name.trim(),
-                                userIds: selectedUsers.map(u => u.id),
-                                createPermission: "",
-                                amplifyPermission: ""
-                            });
-                            onClose();
-                        }}
-                    >
-                        {mode === "create" ? "Create group" : "Save changes"}
-                    </Button>
+                    {/* Actions */}
+                    <Box sx={dialogActionsRowSx}>
+                        <Button variant="outlined" onClick={handleAttemptClose} sx={cancelButtonSx}>Cancel</Button>
+                        <Button
+                            variant="contained"
+                            disabled={!canSave}
+                            onClick={() => {
+                                onSave({
+                                    name: name.trim(),
+                                    userIds: selectedUsers.map(u => u.id),
+                                    createPermission: "",
+                                    amplifyPermission: ""
+                                });
+                                onClose();
+                            }}
+                        >
+                            {mode === "create" ? "Create group" : "Save changes"}
+                        </Button>
+                    </Box>
                 </Box>
-            </Box>
-        </Dialog>
+            </Dialog>
+
+            {/* Discard unsaved changes confirmation */}
+            <Dialog open={discardOpen} onClose={() => setDiscardOpen(false)} maxWidth={false}
+                PaperProps={{ sx: { width: 420, borderRadius: "12px", p: 0 } }}>
+                <Box sx={dialogBodySx}>
+                    <Typography variant="h4" sx={{ ...textPrimarySx, mb: "8px" }}>
+                    Discard changes?
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px", lineHeight: 1.6 }}>
+                    You have unsaved changes. If you leave now, your changes will be lost.
+                    </Typography>
+                    <Box sx={dialogActionsRowSx}>
+                        <Button variant="outlined" onClick={() => setDiscardOpen(false)} sx={cancelButtonSx}>
+                        Keep editing
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="error"
+                            onClick={() => {
+                                setDiscardOpen(false); onClose(); 
+                            }}
+                        >
+                        Discard
+                        </Button>
+                    </Box>
+                </Box>
+            </Dialog>
+        </>
     );
 }
 
@@ -2094,14 +2134,18 @@ function PermGroup({ title, children }: { title: string; children: React.ReactNo
     );
 }
 
-function PermRow({ label, subtitle, value, options, onChange, info }: {
+
+
+function PermRow({
+    label,
+    fixedLabels = DEFAULT_FIXED_LABELS,
+    info
+}: {
     label: string;
-    subtitle?: string;
-    value: string;
-    options: readonly string[] | string[];
-    onChange: (val: string) => void;
+    fixedLabels?: string[];
     info?: string;
 }) {
+    const [value, setValue] = React.useState(fixedLabels[0]);
     return (
         <Box sx={permRowSx}>
             <Box sx={permLabelBoxSx}>
@@ -2115,93 +2159,115 @@ function PermRow({ label, subtitle, value, options, onChange, info }: {
                         </Tooltip>
                     )}
                 </Box>
-                {subtitle && <Typography variant="caption" sx={textSecondarySx}>{subtitle}</Typography>}
             </Box>
             <Select
                 value={value}
-                onChange={e => onChange(e.target.value as string)}
+                onChange={e => setValue(e.target.value)}
                 size="small"
                 variant="outlined"
                 sx={permSelectSx}
             >
-                {options.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                {fixedLabels.map(l => <MenuItem key={l} value={l}>{l}</MenuItem>)}
             </Select>
         </Box>
     );
 }
 
-
 type PermOption =
     | { kind: "fixed"; label: string }
-    | { kind: "user"; user: typeof ALL_USERS[number] };
+    | { kind: "user"; user: typeof ALL_USERS[number] }
+    | { kind: "group"; group: UserGroup };
 
 const EDITOR_USER_OPTIONS: PermOption[] = ALL_USERS.map(u => ({ kind: "user" as const, user: u }));
 
 const DEFAULT_FIXED_LABELS = ["Restrict", "Users with editor permission"];
 
 function getPermOptionLabel(opt: PermOption): string {
-    return opt.kind === "fixed" ? opt.label : (opt.user.name || opt.user.email);
+    if (opt.kind === "fixed") {
+        return opt.label;
+    }
+    if (opt.kind === "user") {
+        return opt.user.name || opt.user.email;
+    }
+    return opt.group.name;
 }
 
 function PermRowWithUsers({
     label,
-    fixedLabels = DEFAULT_FIXED_LABELS
+    fixedLabels = DEFAULT_FIXED_LABELS,
+    groups = [],
+    info
 }: {
     label: string;
     fixedLabels?: string[];
+    groups?: UserGroup[];
+    info?: string;
 }) {
-    const fixedPermOptions: PermOption[] = fixedLabels.map(l => ({ kind: "fixed", label: l }));
-    const allOptions: PermOption[] = [...fixedPermOptions, ...EDITOR_USER_OPTIONS];
+    const defaultLabel = fixedLabels[0];
+    const groupOptions: PermOption[] = groups.map(g => ({ kind: "group", group: g }));
+    const allOptions: PermOption[] = [
+        ...fixedLabels.map(l => ({ kind: "fixed" as const, label: l })),
+        ...groupOptions,
+        ...EDITOR_USER_OPTIONS
+    ];
 
-    const defaultLabel =
-        fixedLabels.find(l => l.toLowerCase().includes("editor")) ??
-        fixedLabels[fixedLabels.length - 1];
-
-    // fixedValue: which fixed label is active (when no users are chosen)
     const [fixedValue, setFixedValue] = React.useState(defaultLabel);
-    // selectedUsers: individual users picked via the Autocomplete
     const [selectedUsers, setSelectedUsers] = React.useState<typeof ALL_USERS[number][]>([]);
-    // isEditing: true while the Autocomplete is focused / open
+    const [selectedGroups, setSelectedGroups] = React.useState<UserGroup[]>([]);
     const [isEditing, setIsEditing] = React.useState(false);
 
-    const hasUsers = selectedUsers.length > 0;
-    // Show plain Select when a fixed permission is active and the user has not focused the field
-    const showAsSelect = !isEditing && !hasUsers;
+    const hasSelection = selectedUsers.length > 0 || selectedGroups.length > 0;
+    const showAsSelect = !isEditing && !hasSelection;
 
-    // The value array fed to the Autocomplete
-    const autocompleteValue: PermOption[] = hasUsers
-        ? selectedUsers.map(u => ({ kind: "user" as const, user: u }))
+    const autocompleteValue: PermOption[] = hasSelection
+        ? [
+            ...selectedUsers.map(u => ({ kind: "user" as const, user: u })),
+            ...selectedGroups.map(g => ({ kind: "group" as const, group: g }))
+        ]
         : [{ kind: "fixed" as const, label: fixedValue }];
 
-    const handleAutocompleteChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
+    const handleChange = (_e: React.SyntheticEvent, newValue: PermOption[]) => {
         const last = newValue[newValue.length - 1];
         if (!last) {
-            // Cleared — reset to default, back to Select mode
             setFixedValue(defaultLabel);
             setSelectedUsers([]);
+            setSelectedGroups([]);
             setIsEditing(false);
             return;
         }
         if (last.kind === "fixed") {
-            // Fixed option chosen exclusively → back to Select mode
             setFixedValue(last.label);
             setSelectedUsers([]);
+            setSelectedGroups([]);
             setIsEditing(false);
         }
         else {
-            // User chip added — clear any fixed label, stay in Autocomplete mode
             setFixedValue("");
             setSelectedUsers(
                 newValue
                     .filter((v): v is { kind: "user"; user: typeof ALL_USERS[number] } => v.kind === "user")
                     .map(v => v.user)
             );
+            setSelectedGroups(
+                newValue
+                    .filter((v): v is { kind: "group"; group: UserGroup } => v.kind === "group")
+                    .map(v => v.group)
+            );
         }
     };
 
     const labelCol = (
         <Box sx={permLabelBoxSx}>
-            <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
+                {info && (
+                    <Tooltip title={info} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
+                        <SvgIcon sx={{ fontSize: "12px !important", width: "12px !important", height: "12px !important", color: "action.active", cursor: "help" }}>
+                            <FontAwesomeIcon icon={faCircleInfo} />
+                        </SvgIcon>
+                    </Tooltip>
+                )}
+            </Box>
         </Box>
     );
 
@@ -2209,14 +2275,13 @@ function PermRowWithUsers({
         return (
             <Box sx={permRowSx}>
                 {labelCol}
-                {/* open={false} prevents the Select's own dropdown; onOpen switches to Autocomplete */}
                 <Select
                     value={fixedValue}
                     open={false}
                     onOpen={() => setIsEditing(true)}
                     size="small"
                     variant="outlined"
-                    sx={permAutocompleteSx}
+                    sx={permSelectSx}
                 >
                     {fixedLabels.map(l => <MenuItem key={l} value={l}>{l}</MenuItem>)}
                 </Select>
@@ -2232,14 +2297,10 @@ function PermRowWithUsers({
                 disableCloseOnSelect
                 open={isEditing}
                 onOpen={() => setIsEditing(true)}
-                onClose={() => {
-                    // Always collapse the dropdown on outside click / Escape.
-                    // showAsSelect handles whether to render Select or closed Autocomplete-with-chips.
-                    setIsEditing(false);
-                }}
+                onClose={() => setIsEditing(false)}
                 options={allOptions}
                 value={autocompleteValue}
-                onChange={handleAutocompleteChange}
+                onChange={handleChange}
                 getOptionLabel={getPermOptionLabel}
                 isOptionEqualToValue={(a, b) => {
                     if (a.kind !== b.kind) {
@@ -2251,26 +2312,34 @@ function PermRowWithUsers({
                     if (a.kind === "user" && b.kind === "user") {
                         return a.user.id === b.user.id;
                     }
+                    if (a.kind === "group" && b.kind === "group") {
+                        return a.group.id === b.group.id;
+                    }
                     return false;
                 }}
-                groupBy={(opt) => opt.kind}
+                groupBy={opt => opt.kind}
                 filterOptions={(options, state) => {
                     const input = state.inputValue.toLowerCase();
                     if (!input) {
                         return options;
                     }
-                    const fixed = options.filter(o => o.kind === "fixed");
-                    const users = options.filter(o =>
-                        o.kind === "user" && (
-                            (o.user.name || "").toLowerCase().includes(input) ||
-                            o.user.email.toLowerCase().includes(input)
-                        )
+                    return options.filter(o =>
+                        o.kind === "fixed" ? true :
+                            o.kind === "user" ? (o.user.name || "").toLowerCase().includes(input) || o.user.email.toLowerCase().includes(input) :
+                                o.kind === "group" ? o.group.name.toLowerCase().includes(input) : false
                     );
-                    return [...fixed, ...users];
                 }}
                 renderGroup={(params) => (
                     <React.Fragment key={params.key}>
-                        {params.group === "user" && <Divider />}
+                        {/* Divider + section header for groups and users */}
+                        {(params.group === "group" || params.group === "user") && (
+                            <Box sx={permDropdownSectionSx}>
+                                <Divider />
+                                <Typography variant="subtitle2" sx={permDropdownSectionLabelSx}>
+                                    {params.group === "group" ? "Groups" : "Specific users"}
+                                </Typography>
+                            </Box>
+                        )}
                         <Box component="ul" sx={permAutocompleteGroupListSx}>
                             {params.children}
                         </Box>
@@ -2285,7 +2354,7 @@ function PermRowWithUsers({
                     vals.map((opt, i) => {
                         if (opt.kind === "fixed") {
                             return (
-                                <Typography key={i} variant="body1" sx={permFixedSelectionTextSx}>
+                                <Typography key={i} variant="body1" sx={permFixedChipSx}>
                                     {getPermOptionLabel(opt)}
                                 </Typography>
                             );
@@ -2301,11 +2370,7 @@ function PermRowWithUsers({
                 }
                 size="small"
                 renderInput={params => (
-                    <TextField
-                        {...params}
-                        size="small"
-                        autoFocus={!hasUsers}
-                    />
+                    <TextField {...params} size="small" autoFocus={!hasSelection} />
                 )}
                 sx={permAutocompleteSx}
             />
@@ -2313,12 +2378,7 @@ function PermRowWithUsers({
     );
 }
 
-function ViewEditPermissionsSection() {
-    const [videoCanEdit, setVideoCanEdit] = React.useState("Video owner");
-    const [videoCanView, setVideoCanView] = React.useState("Everyone in the account");
-    const [avatarCanEdit, setAvatarCanEdit] = React.useState("Avatar creator");
-    const [voiceCanEdit, setVoiceCanEdit] = React.useState("Users with editor permission");
-    const [brandOwner, setBrandOwner] = React.useState("Everyone in the account");
+function ViewEditPermissionsSection({ groups = [] }: { groups?: UserGroup[] }) {
 
     return (
         <Box sx={sectionContainerSx}>
@@ -2340,55 +2400,58 @@ function ViewEditPermissionsSection() {
                 <PermGroup title="Videos and templates">
                     <PermRow
                         label="Edit videos and templates"
-                        value={videoCanEdit}
-                        options={["Video owner", "All users with editor permissions only"]}
-                        onChange={setVideoCanEdit}
+                        fixedLabels={["All users with editor permissions", "Private to owner"]}
                     />
-                    <PermRow
-                        label="Can view others videos"
-                        value={videoCanView}
-                        options={["Everyone in the account", "Restrict"]}
-                        onChange={setVideoCanView}
+                    <PermRowWithUsers
+                        label="Videos and templates are visible to"
+                        fixedLabels={["Everyone in the account", "Restrict"]}
+                        groups={groups}
                     />
                 </PermGroup>
 
                 {/* Custom avatars */}
                 <PermGroup title="Custom avatars">
-                    <PermRow
+                    <PermRowWithUsers
                         label="Avatar owner"
-                        value={avatarCanEdit}
-                        options={["Avatar creator", "Account owner only"]}
-                        onChange={setAvatarCanEdit}
+                        fixedLabels={["All users with editor permissions", "Private to owner"]}
+                        groups={groups}
                         info="Can delete, manage access"
                     />
                     <PermRowWithUsers
-                        label="Using a custom avatar"
+                        label="Using a custom avatar in a video"
                         fixedLabels={["Users can ask owners to use", "Users with editor permission"]}
+                        groups={groups}
                     />
                 </PermGroup>
 
                 {/* Custom voice */}
                 <PermGroup title="Custom voice">
-                    <PermRow
+                    <PermRowWithUsers
                         label="Custom voice owner"
-                        value={voiceCanEdit}
-                        options={["Users with editor permission", "Account owner only"]}
-                        onChange={setVoiceCanEdit}
+                        fixedLabels={["All users with editor permissions", "Private to owner"]}
+                        groups={groups}
                         info="Can delete, manage access"
                     />
-                    <PermRowWithUsers label="Can use custom voice" />
+                    <PermRowWithUsers
+                        label="Use a custom voice in a video"
+                        fixedLabels={["Users can ask owners to use", "Users with editor permission"]}
+                        groups={groups}
+                    />
                 </PermGroup>
 
                 {/* Brand */}
                 <PermGroup title="Brand">
-                    <PermRow
+                    <PermRowWithUsers
                         label="Brand owner"
-                        value={brandOwner}
-                        options={["Everyone in the account", "Restrict"]}
-                        onChange={setBrandOwner}
+                        fixedLabels={["All users with editor permissions", "Private to owner"]}
+                        groups={groups}
                         info="Can delete, manage access"
                     />
-                    <PermRowWithUsers label="Using a brand" />
+                    <PermRowWithUsers
+                        label="Using a brand in a video"
+                        fixedLabels={["Users can ask owners to use", "Users with editor permission"]}
+                        groups={groups}
+                    />
                 </PermGroup>
             </Box>
 
@@ -2443,7 +2506,6 @@ export default function AccountSettingsDialog({
         return t as NavKey;
     };
     const [nav, setNav] = useState<NavKey>(resolveInitialTab(initialTab));
-    const [permissionsExpanded, setPermissionsExpanded] = useState(() => isPermissionsNav(resolveInitialTab(initialTab)));
     const [users, setUsers] = useState<AccountUser[]>(INITIAL_USERS);
     const [approverIds, setApproverIds] = useState<Set<string>>(externalApproverIds);
     const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled);
@@ -2548,6 +2610,7 @@ export default function AccountSettingsDialog({
             open={open}
             onClose={onClose}
             maxWidth={false}
+            keepMounted
             PaperProps={{ sx: { width: 1020, maxWidth: "95vw", height: 680, maxHeight: "90vh", borderRadius: "12px", display: "flex", flexDirection: "column", overflow: "hidden", p: 0 } }}
         >
             {/* Title bar */}
@@ -2577,40 +2640,6 @@ export default function AccountSettingsDialog({
                         </Box>
                     ))}
 
-                    {/* Permissions expandable parent */}
-                    <Box
-                        onClick={() => {
-                            const willExpand = !permissionsExpanded;
-                            setPermissionsExpanded(willExpand);
-                            if (willExpand && !isPermissionsNav(nav)) {
-                                setNav("permissions-ai");
-                            }
-                        }}
-                        sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: isPermissionsNav(nav) ? "action.hover" : "transparent", color: isPermissionsNav(nav) ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
-                    >
-                        <Box sx={{ color: isPermissionsNav(nav) ? "primary.main" : "action.active", display: "flex", flexShrink: 0 }}>
-                            <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon>
-                        </Box>
-                        <Typography variant="body1" sx={{ fontWeight: isPermissionsNav(nav) ? 600 : 400, color: "inherit", flex: 1 }}>
-                            Permissions
-                        </Typography>
-                        <SvgIcon sx={{ fontSize: "14px !important", transition: "transform 0.2s", transform: permissionsExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>
-                            <FontAwesomeIcon icon={faChevronDown} />
-                        </SvgIcon>
-                    </Box>
-
-                    {/* Permissions sub-nav */}
-                    {permissionsExpanded && PERMISSIONS_SUBNAV.map(item => (
-                        <Box
-                            key={item.key}
-                            onClick={() => setNav(item.key)}
-                            sx={{ display: "flex", alignItems: "center", pl: "36px", pr: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
-                        >
-                            <Typography variant="body1" sx={{ fontWeight: nav === item.key ? 600 : 400, color: "inherit" }}>
-                                {item.label}
-                            </Typography>
-                        </Box>
-                    ))}
                 </Box>
 
                 {/* Content */}
@@ -2674,7 +2703,7 @@ export default function AccountSettingsDialog({
                     {nav === "permissions-ai" && <PlaceholderSection label="AI features" />}
                     {/* Keep mounted so state survives tab switches */}
                     <Box sx={{ display: nav === "permissions-view-edit" ? "contents" : "none" }}>
-                        <ViewEditPermissionsSection />
+                        <ViewEditPermissionsSection groups={groups} />
                     </Box>
                     {nav === "approvals" && (
                         <ApprovalsSection
@@ -2852,7 +2881,9 @@ const permGroupCardSx: SxProps<Theme> = { border: 1, borderColor: "divider", bor
 const permGroupsScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "48px", pb: "8px" };
 const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "flex-start", px: "16px", py: "10px", gap: "16px" };
 const permLabelBoxSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px", width: 260, flexShrink: 0 };
-const permSelectSx: SxProps<Theme> = { minWidth: 180, "& .MuiSelect-select": { py: "4px" } };
+const permSelectSx: SxProps<Theme> = { flex: 1, minWidth: 180, "& .MuiSelect-select": { py: "4px" } };
 const permAutocompleteSx: SxProps<Theme> = { flex: 1 };
 const permAutocompleteGroupListSx: SxProps<Theme> = { p: 0, m: 0, listStyle: "none" };
-const permFixedSelectionTextSx: SxProps<Theme> = { color: "text.primary", px: 0.5, lineHeight: 1 };
+const permDropdownSectionSx: SxProps<Theme> = {};
+const permDropdownSectionLabelSx: SxProps<Theme> = { color: "text.secondary", px: 2, display: "block", py: 0.75, bgcolor: (theme) => theme.palette.grey[50] };
+const permFixedChipSx: SxProps<Theme> = { color: "text.primary", px: 0.5, lineHeight: 1 };
