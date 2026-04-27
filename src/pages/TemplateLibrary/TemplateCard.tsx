@@ -3,7 +3,7 @@ import { Box, Button, Divider, Menu, SvgIcon, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faArrowsRotate, faCircleInfo, faEllipsisVertical, faFilm, faFolder, faPaste, faPen, faPlay, faUsers
+    faArrowsRotate, faCircleInfo, faComment, faEllipsisVertical, faFilm, faFolder, faPaste, faPen, faPlay, faUsers
 } from "@fortawesome/pro-regular-svg-icons";
 import {
     Label, ThumbnailActions, TruffleIconButton, TruffleMenuItem, TypographyWithTooltipOnOverflow
@@ -17,6 +17,10 @@ export interface TemplateItem {
     status: "Published" | "Draft";
     personalized?: boolean;
     hasNewDraft?: boolean;
+    /** Optional dashed-pill label below the edited line (e.g. "Pending approval"). */
+    versionStatus?: string;
+    /** Optional comments count rendered as an info pill next to the version status. */
+    commentsCount?: number;
     purposeLabels: string[];
 }
 
@@ -29,7 +33,7 @@ function DashedLabel({ label }: { label: string }) {
     );
 }
 
-export default function TemplateCard({ template, onClick }: { template: TemplateItem; onClick?: (name: string) => void }) {
+export default function TemplateCard({ template, onClick, singleLineTitle = false }: { template: TemplateItem; onClick?: (name: string) => void; singleLineTitle?: boolean }) {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
     const openMenu = (e: React.MouseEvent<HTMLElement>) => {
@@ -38,7 +42,12 @@ export default function TemplateCard({ template, onClick }: { template: Template
     };
 
     return (
-        <Box sx={templateCardSx}>
+        <Box
+            sx={templateCardSx}
+            onClick={() => onClick?.(template.title)}
+            role="button"
+            tabIndex={0}
+        >
             <ThumbnailActions
                 ContentProps={{ sx: thumbContentSx }}
                 showActions="onHover"
@@ -64,7 +73,6 @@ export default function TemplateCard({ template, onClick }: { template: Template
                         </Button>
                     </Box>
                 }
-                onClick={() => onClick?.(template.title)}
                 sx={thumbnailActionsSx}
             >
                 <Box component="img" src={IMG_THUMB} alt="" sx={thumbImgSx} />
@@ -99,7 +107,11 @@ export default function TemplateCard({ template, onClick }: { template: Template
             {/* Card body */}
             <Box sx={cardBodySx}>
                 <Box sx={cardTitleRowSx}>
-                    <TypographyWithTooltipOnOverflow variant="h5" multiline sx={cardTitleSx}>
+                    <TypographyWithTooltipOnOverflow
+                        variant="h5"
+                        multiline={!singleLineTitle}
+                        sx={singleLineTitle ? cardTitleSingleLineSx : cardTitleSx}
+                    >
                         {template.title}
                     </TypographyWithTooltipOnOverflow>
                     <TruffleIconButton
@@ -116,10 +128,26 @@ export default function TemplateCard({ template, onClick }: { template: Template
                 <Typography variant="caption" color="text.secondary" noWrap>
                     {template.editedBy}
                 </Typography>
-                {/* Always rendered to keep all cards the same height */}
-                <Box sx={{ visibility: template.hasNewDraft ? "visible" : "hidden" }}>
-                    <DashedLabel label="New version draft" />
-                </Box>
+                {/* Dashed pill + optional comments info pill.
+                    Always rendered (placeholder when empty) to keep card heights aligned. */}
+                {(() => {
+                    const text = template.versionStatus ?? (template.hasNewDraft ? "New version draft" : null);
+                    const comments = template.commentsCount;
+                    const showRow = text !== null || (comments !== undefined && comments > 0);
+                    return (
+                        <Box sx={{ display: "flex", gap: "6px", alignItems: "center", visibility: showRow ? "visible" : "hidden" }}>
+                            <DashedLabel label={text ?? "—"} />
+                            {comments !== undefined && comments > 0 && (
+                                <Label
+                                    label={`${comments} comments`}
+                                    color="info"
+                                    size="small"
+                                    startIcon={<SvgIcon sx={labelIconSx}><FontAwesomeIcon icon={faComment} /></SvgIcon>}
+                                />
+                            )}
+                        </Box>
+                    );
+                })()}
             </Box>
 
             {/* Context menu */}
@@ -233,6 +261,16 @@ const cardTitleSx: SxProps<Theme> = {
     WebkitBoxOrient: "vertical",
     overflow: "hidden",
     minHeight: "42px",
+    lineHeight: 1.5
+};
+
+const cardTitleSingleLineSx: SxProps<Theme> = {
+    flex: 1,
+    display: "-webkit-box",
+    WebkitLineClamp: 1,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+    minHeight: "21px",
     lineHeight: 1.5
 };
 const threeDotsBtnSx: SxProps<Theme> = {

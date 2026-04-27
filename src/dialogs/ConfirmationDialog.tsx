@@ -4,18 +4,19 @@ import {
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faLink } from "@fortawesome/pro-regular-svg-icons/faLink";
+import { faShareNodes } from "@fortawesome/pro-regular-svg-icons/faShareNodes";
 import { TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 interface Props {
   open: boolean
   onClose: () => void
-  approverCount: number
+  /** Kept for backwards-compat with existing consumers; no longer used. */
+  approverCount?: number
+  /** Fired when the user clicks "Notify me about feedback" — used to show a snackbar. */
+  onNotifyFeedback?: () => void
 }
 
-export default function ConfirmationDialog({ open, onClose, approverCount }: Props) {
-    const isMulti = approverCount > 1;
-
+export default function ConfirmationDialog({ open, onClose, onNotifyFeedback }: Props) {
     return (
         <Dialog
             open={open}
@@ -30,34 +31,38 @@ export default function ConfirmationDialog({ open, onClose, approverCount }: Pro
             maxWidth="sm"
             fullWidth
         >
-            {/* ── Title ──────────────────────────────────────────────────────────── */}
-            <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>
-                {isMulti
-                    ? "Approval request sent. You'll be notified by email when approvers respond."
-                    : "Approval request sent, you'll be notified when the approver respond"}
+            {/* ── Title (multiline so it doesn't truncate) ──────────────────────── */}
+            <TruffleDialogTitle multiline CloseIconButtonProps={{ onClick: onClose }}>
+                A link to the video has been emailed to the approver
             </TruffleDialogTitle>
 
             {/* ── Content ────────────────────────────────────────────────────────── */}
             <DialogContent sx={contentSx}>
                 <Box sx={contentBodySx}>
-                    {isMulti && (
-                        <Typography variant="body1" color="text.primary">
-              Comments will be available once everyone has responded.
-                        </Typography>
-                    )}
                     <Typography variant="body1" color="text.primary">
-            You can also share the video using the link.
+                        You&apos;ll be notified by email when feedback is received.
+                    </Typography>
+                    <Typography variant="body1" color="text.primary">
+                        You can also share the video using the approval link below.
                     </Typography>
                 </Box>
             </DialogContent>
 
-            {/* ── Actions: Share video using link (text/left) · Close (contained/right) ─── */}
+            {/* ── Actions ─────────────────────────────────────────────────────────── */}
             <TruffleDialogActions>
-                <Button variant="text" color="primary" size="large" startIcon={<SvgIcon><FontAwesomeIcon icon={faLink} /></SvgIcon>}>
-                    Share video using link
+                <Button variant="text" color="primary" size="large" startIcon={<SvgIcon><FontAwesomeIcon icon={faShareNodes} /></SvgIcon>}>
+                    Share approval link
                 </Button>
-                <Button variant="contained" color="primary" size="large" onClick={onClose}>
-                    Close
+                <Button
+                    variant="contained"
+                    color="primary"
+                    size="large"
+                    onClick={() => {
+                        onNotifyFeedback?.();
+                        onClose();
+                    }}
+                >
+                    Notify me about feedback
                 </Button>
             </TruffleDialogActions>
         </Dialog>

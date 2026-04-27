@@ -92,9 +92,15 @@ interface Props {
   onPermChange?: (s: VideoPermissionSettings) => void
   awaitingApprovers?: boolean
   onEditAttempt?: () => void
+  /** Controlled enabledLangs — lifted to App.tsx so selections persist between tasks. */
+  enabledLangs?: string[]
+  onEnabledLangsChange?: (langs: string[]) => void
+  /** Controlled in-progress language selections — also lifted so picks persist. */
+  selectedLangs?: string[]
+  onSelectedLangsChange?: (langs: string[]) => void
 }
 
-export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers, onEditAttempt }: Props) {
+export default function StudioPage({ videoTitle, initialHeadingText, initialSubheadingText, approverNames, onNavigateToVideoPage, onNavigateToLibrary, onRequestReapproval, onHeadingChange, onSubheadingChange, openCommentsOnMount, triggerOpenComments, notifications, initialThreads, initialPermSettings, onPermChange, awaitingApprovers, onEditAttempt, enabledLangs: enabledLangsProp, onEnabledLangsChange, selectedLangs, onSelectedLangsChange }: Props) {
     const theme = useTheme();
     const [commentsOpen, setCommentsOpen] = useState(() => openCommentsOnMount ?? false);
 
@@ -110,7 +116,18 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
     const [avatarLibOpen, setAvatarLibOpen] = useState(false);
     const [avatarReqCount, setAvatarReqCount] = useState(4); // mock: adam has 4 pending
     const [langsOpen, setLangsOpen] = useState(false);
-    const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
+    // Use the controlled prop if provided (from App.tsx), otherwise fall back to local state
+    // so this component still works in isolation.
+    const [internalEnabledLangs, setInternalEnabledLangs] = useState<string[]>([]);
+    const enabledLangs = enabledLangsProp ?? internalEnabledLangs;
+    const setEnabledLangs = (langs: string[]) => {
+        if (onEnabledLangsChange) {
+            onEnabledLangsChange(langs);
+        }
+        else {
+            setInternalEnabledLangs(langs);
+        }
+    };
     const [selectedDisplayLang, setSelectedDisplayLang] = useState("English");
     const [langMenuAnchor, setLangMenuAnchor] = useState<HTMLElement | null>(null);
     const [selectedScene, setSelectedScene] = useState(0);
@@ -650,7 +667,7 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
               <LanguagesPanel
                   open={langsOpen}
                   onClose={() => {
-                      setLangsOpen(false); setActiveNav(null); 
+                      setLangsOpen(false); setActiveNav(null);
                   }}
                   enabledLangs={enabledLangs}
                   onEnabledLangsChange={(langs) => {
@@ -660,6 +677,8 @@ export default function StudioPage({ videoTitle, initialHeadingText, initialSubh
                           setSelectedDisplayLang("English");
                       }
                   }}
+                  selectedLangs={selectedLangs}
+                  onSelectedLangsChange={onSelectedLangsChange}
               />
 
               {/* Stage */}

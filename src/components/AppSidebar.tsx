@@ -23,15 +23,25 @@ const NAV_ITEMS: { icon: NavIcon; label: string }[] = [
     { icon: { kind: "fa", icon: faAnalytics }, label: "Analytics" }
 ];
 
+export interface NewTemplateData {
+    name: string;
+    aspectRatio: string;
+    audience: string[];
+    purpose: string[];
+    description: string;
+}
+
 export default function AppSidebar({
     onTemplateLibraryClick,
     onVideoLibraryClick,
     onTemplateCreated,
+    onTemplateAdded,
     selectedNav = "Video Library"
 }: {
     onTemplateLibraryClick?: () => void;
     onVideoLibraryClick?: () => void;
     onTemplateCreated?: (name: string) => void;
+    onTemplateAdded?: (data: NewTemplateData) => void;
     selectedNav?: string;
 }) {
     const [createMenuAnchor, setCreateMenuAnchor] = useState<HTMLElement | null>(null);
@@ -122,7 +132,9 @@ export default function AppSidebar({
                 mode="create"
                 onSubmit={(data) => {
                     setCreateDialogOpen(false);
-                    onTemplateCreated?.(data.name || "New template");
+                    const name = data.name || "New template";
+                    onTemplateAdded?.({ ...data, name });
+                    onTemplateCreated?.(name);
                 }}
             />
 

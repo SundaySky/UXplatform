@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography, useTheme } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
+import { TruffleAlert } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import ApprovalDialog from "./dialogs/ApprovalDialog";
 import ConfirmationDialog from "./dialogs/ConfirmationDialog";
 import ApproveVideoDialog from "./dialogs/ApproveVideoDialog";
@@ -12,6 +13,8 @@ import StudioPage from "./pages/Studio/StudioPage";
 import { INITIAL_THREADS, TOTAL_COMMENT_COUNT } from "./pages/Studio/CommentsPanel";
 import TemplatePage from "./pages/Template/TemplatePage";
 import TemplateLibraryPage from "./pages/TemplateLibrary/TemplateLibraryPage";
+import { type TemplateItem } from "./pages/TemplateLibrary/TemplateCard";
+import type { NewTemplateData } from "./components/AppSidebar";
 import TemplateStudioPage from "./pages/TemplateStudio/TemplateStudioPage";
 import { type NotificationItem } from "./panels/NotificationsPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./dialogs/VideoPermissionDialog";
@@ -52,10 +55,178 @@ const PHASE_STATUS: Record<number, "draft" | "pending" | "approved"> = { 0: "dra
 type VideoState = { phase: number; pageState: "draft" | "pending"; sentApprovers: string[]; commentsCleared?: boolean; headingText?: string; subheadingText?: string; permSettings?: VideoPermissionSettings; sentAt?: string }
 const DEFAULT_VIDEO_STATE: VideoState = { phase: 0, pageState: "draft", sentApprovers: [] };
 
+// Plausible details for the sample templates in the library (so the Template page
+// shows something coherent when the user clicks a card they didn't create themselves).
+const LIBRARY_TEMPLATE_DETAILS: Record<string, NewTemplateData> = {
+    "Motivation": {
+        name: "Motivation",
+        aspectRatio: "16:9",
+        audience: ["Marketing team", "Customer Success"],
+        purpose: ["Engagement"],
+        description: "Inspire and motivate viewers with a personalized message that reinforces their progress and the value of staying engaged."
+    },
+    "Nice to see you!": {
+        name: "Nice to see you!",
+        aspectRatio: "16:9",
+        audience: ["Customer Success"],
+        purpose: ["Onboarding", "Retention"],
+        description: "A warm, personalized greeting for returning customers — reminds them what they last did and what's worth checking out next."
+    },
+    "Welcome to SundaySky": {
+        name: "Welcome to SundaySky",
+        aspectRatio: "16:9",
+        audience: ["All contributors"],
+        purpose: ["Onboarding"],
+        description: "Personalized welcome video for new users — introduces the platform, the team, and the most useful first steps."
+    },
+    "Live Fully in Vietnam": {
+        name: "Live Fully in Vietnam",
+        aspectRatio: "16:9",
+        audience: ["Marketing team"],
+        purpose: ["Marketing", "Awareness"],
+        description: "Awareness-driver for the Vietnam launch — highlights local stories and the lifestyle benefits of the program."
+    },
+    "Looking forward to talking to you": {
+        name: "Looking forward to talking to you",
+        aspectRatio: "16:9",
+        audience: ["Sales team"],
+        purpose: ["Sales"],
+        description: "A pre-meeting reminder for prospects — reinforces the meeting agenda and the value the rep will bring to the call."
+    }
+};
+
+function lookupTemplateData(
+    title: string,
+    createdByTitle: Record<string, NewTemplateData>
+): NewTemplateData {
+    if (createdByTitle[title]) {
+        return createdByTitle[title];
+    }
+    if (LIBRARY_TEMPLATE_DETAILS[title]) {
+        return LIBRARY_TEMPLATE_DETAILS[title];
+    }
+    // Generic fallback — title-only template with sensible defaults.
+    return {
+        name: title,
+        aspectRatio: "16:9",
+        audience: ["All contributors"],
+        purpose: ["General"],
+        description: `Template for ${title}.`
+    };
+}
+
 export default function App() {
     const theme = useTheme();
     const [currentPage, setCurrentPage] = useState<"video" | "library" | "studio" | "template" | "template-library" | "template-studio">("library");
     const [templateStudioName, setTemplateStudioName] = useState("Template name");
+    const [createdTemplates, setCreatedTemplates] = useState<TemplateItem[]>([]);
+    // Full form data of every user-created template, keyed by title — used by
+    // TemplatePage to show the actual entries the user filled in.
+    const [createdTemplateDataByTitle, setCreatedTemplateDataByTitle] = useState<Record<string, NewTemplateData>>({});
+    // The template the user is currently viewing on the Template page.
+    const [currentTemplateData, setCurrentTemplateData] = useState<NewTemplateData | undefined>(undefined);
+    // Current task index in the side TasksPanel — used to drive scenario state
+    // (e.g., on task 7 the template page shows "3 comments from approver").
+    const [currentTaskIdx, setCurrentTaskIdx] = useState(0);
+    // Languages selected by the user — lifted out of Studio/TemplateStudio so
+    // selections persist across task switches and page navigations.
+    const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
+    // In-progress language picks (before "Enable translations" applies them).
+    // Also lifted so partial selections survive task switches.
+    const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+
+    // Per-template approval state — lifted out of TemplatePage so approval
+    // selections (approvers, phase, etc.) persist across task switches.
+    type TemplateApprovalState = {
+        videoPhase: number;
+        pageState: "draft" | "pending";
+        approvers: string[];
+        isPublished: boolean;
+    };
+    const [templateApprovalStates, setTemplateApprovalStates] = useState<Record<string, TemplateApprovalState>>({});
+
+    const getTemplateApprovalState = (title: string | undefined): TemplateApprovalState => {
+        if (!title) {
+            return { videoPhase: 0, pageState: "draft", approvers: [], isPublished: false };
+        }
+        return templateApprovalStates[title] ?? { videoPhase: 0, pageState: "draft", approvers: [], isPublished: false };
+    };
+
+    const updateTemplateApprovalState = (title: string | undefined, patch: Partial<TemplateApprovalState>) => {
+        if (!title) {
+            return;
+        }
+        setTemplateApprovalStates(prev => ({
+            ...prev,
+            [title]: { ...getTemplateApprovalState(title), ...patch }
+        }));
+    };
+
+    const handleTemplateAdded = (data: NewTemplateData) => {
+        const newTemplate: TemplateItem = {
+            title: data.name,
+            editedBy: "Edited just now by you",
+            status: "Draft",
+            personalized: false,
+            purposeLabels: data.purpose
+        };
+        setCreatedTemplates(prev => [newTemplate, ...prev]);
+        setCreatedTemplateDataByTitle(prev => ({ ...prev, [data.name]: data }));
+        setCurrentTemplateData(data);
+    };
+
+    // Resolves the full data for any template title — user-created first, then
+    // hardcoded library defaults, then a generic fallback.
+    const resolveTemplateData = (title: string) =>
+        lookupTemplateData(title, createdTemplateDataByTitle);
+
+    // Marks the current template's card with "Pending approval" when the user
+    // submits it for approval on the Template page.
+    const handleTemplateApprovalSubmitted = () => {
+        if (!currentTemplateData) {
+            return;
+        }
+        setCreatedTemplates(prev => prev.map(t =>
+            t.title === currentTemplateData.name
+                ? { ...t, versionStatus: "Pending approval" }
+                : t
+        ));
+    };
+
+    // Clears the pending status when the user cancels the approval request.
+    const handleTemplateApprovalCancelled = () => {
+        if (!currentTemplateData) {
+            return;
+        }
+        setCreatedTemplates(prev => prev.map(t =>
+            t.title === currentTemplateData.name
+                ? { ...t, versionStatus: undefined, commentsCount: undefined }
+                : t
+        ));
+    };
+
+    // Track templates that have been resubmitted from the comments panel,
+    // so the Template page no longer shows the "View N comments" button
+    // and the card hides the comments pill.
+    const [resubmittedTemplateNames, setResubmittedTemplateNames] = useState<Set<string>>(new Set());
+
+    // When the user is at task 7 (idx 6 — "Sarah submitted feedback"), surface
+    // comments on the current template's card. Uses the same TOTAL_COMMENT_COUNT
+    // as the "View N comments in Studio" button so both numbers match.
+    // After the user resubmits from the comments panel, we suppress the comments
+    // pill on the card even if task 7 is still active.
+    useEffect(() => {
+        if (!currentTemplateData) {
+            return;
+        }
+        const hasResubmitted = resubmittedTemplateNames.has(currentTemplateData.name);
+        const isTaskSeven = currentTaskIdx === 6 && !hasResubmitted;
+        setCreatedTemplates(prev => prev.map(t =>
+            t.title === currentTemplateData.name
+                ? { ...t, commentsCount: isTaskSeven ? TOTAL_COMMENT_COUNT : undefined }
+                : t
+        ));
+    }, [currentTaskIdx, currentTemplateData, resubmittedTemplateNames]);
     const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
     const [videoStates, setVideoStates] = useState<Record<string, VideoState>>({});
     const [dialogStep, setDialogStep] = useState<"closed" | "form" | "confirmed">("closed");
@@ -63,6 +234,9 @@ export default function App() {
     const [cancelApprovalDialogOpen, setCancelApprovalDialogOpen] = useState(false);
     const [openCommentsOnStudio, setOpenCommentsOnStudio] = useState(false);
     const [openCommentsCounter, setOpenCommentsCounter] = useState(0);
+    const [openCommentsOnTemplateStudio, setOpenCommentsOnTemplateStudio] = useState(false);
+    // Snackbar shown after the user clicks "Resubmit for approval" in the comments panel
+    const [resubmittedSnackbarApprover, setResubmittedSnackbarApprover] = useState<string | null>(null);
     const [videoPermDialogOpen, setVideoPermDialogOpen] = useState(false);
     // Approval settings
     const [approvalsEnabled, setApprovalsEnabled] = useState(false);
@@ -199,8 +373,9 @@ export default function App() {
                         onEditVideo={handleEditVideo}
                         onNavigateToTemplate={() => setCurrentPage("template-library")}
                         onCreateTemplateFromScratch={(name) => {
-                            setTemplateStudioName(name); setCurrentPage("template-studio"); 
+                            setTemplateStudioName(name); setCurrentPage("template-studio");
                         }}
+                        onTemplateAdded={handleTemplateAdded}
                         notifications={notifications}
                         videoStates={videoStates}
                         onPermChange={(key, s) => updateVideoState(key, { permSettings: s })}
@@ -263,6 +438,10 @@ export default function App() {
                         onPermChange={(s) => updateVideoState(currentKey, { permSettings: s })}
                         awaitingApprovers={false}
                         onEditAttempt={videoPhase === 1 ? () => setCancelApprovalDialogOpen(true) : undefined}
+                        enabledLangs={enabledLangs}
+                        onEnabledLangsChange={setEnabledLangs}
+                        selectedLangs={selectedLangs}
+                        onSelectedLangsChange={setSelectedLangs}
                     />
 
                 ) : currentPage === "template-library" ? (
@@ -270,31 +449,84 @@ export default function App() {
                     <TemplateLibraryPage
                         onNavigateBack={() => setCurrentPage("library")}
                         onNavigateToTemplate={(name) => {
-                            setTemplateStudioName(name ?? "Template name");
-                            setCurrentPage("template-studio");
+                            const title = name ?? "Template name";
+                            setTemplateStudioName(title);
+                            setCurrentTemplateData(resolveTemplateData(title));
+                            setCurrentPage("template");
                         }}
                         onCreateTemplateFromScratch={(name) => {
-                            setTemplateStudioName(name); setCurrentPage("template-studio"); 
+                            setTemplateStudioName(name); setCurrentPage("template-studio");
                         }}
+                        onTemplateAdded={handleTemplateAdded}
+                        createdTemplates={createdTemplates}
                         notifications={notifications}
                     />
 
                 ) : currentPage === "template" ? (
                 /* ── Template page ────────────────────────────────────────────────── */
                     <TemplatePage
+                        template={currentTemplateData}
                         onNavigateBack={() => setCurrentPage("template-library")}
                         onNavigateToStudio={(name) => {
                             setTemplateStudioName(name ?? "Template name");
+                            setOpenCommentsOnTemplateStudio(false);
                             setCurrentPage("template-studio");
                         }}
+                        onViewComments={(name) => {
+                            setTemplateStudioName(name ?? currentTemplateData?.name ?? "Template name");
+                            setOpenCommentsOnTemplateStudio(true);
+                            setCurrentPage("template-studio");
+                        }}
+                        onApprovalSubmitted={handleTemplateApprovalSubmitted}
+                        onApprovalCancelled={handleTemplateApprovalCancelled}
+                        showApproverComments={currentTaskIdx === 6 && !(currentTemplateData && resubmittedTemplateNames.has(currentTemplateData.name))}
+                        approvalState={getTemplateApprovalState(currentTemplateData?.name)}
+                        onApprovalStateChange={(patch) => updateTemplateApprovalState(currentTemplateData?.name, patch)}
                     />
 
                 ) : currentPage === "template-studio" ? (
                 /* ── Template studio ──────────────────────────────────────────────── */
                     <TemplateStudioPage
+                        inputFormBuilderFilled={currentTaskIdx === 6}
                         templateName={templateStudioName}
-                        onNavigateToTemplatePage={() => setCurrentPage("template")}
+                        onNavigateToTemplatePage={() => {
+                            // Make sure the Template page reflects whichever template is in the studio.
+                            setCurrentTemplateData(resolveTemplateData(templateStudioName));
+                            setCurrentPage("template");
+                        }}
                         onNavigateToLibrary={() => setCurrentPage("library")}
+                        enabledLangs={enabledLangs}
+                        onEnabledLangsChange={setEnabledLangs}
+                        selectedLangs={selectedLangs}
+                        onSelectedLangsChange={setSelectedLangs}
+                        openCommentsOnMount={openCommentsOnTemplateStudio}
+                        onCommentsResubmitted={() => {
+                            const title = templateStudioName;
+                            // Default approver name when none is tracked yet
+                            const approverName = "Sarah Johnson";
+                            // 1) Mark as resubmitted so Template page hides the "View N comments" button
+                            setResubmittedTemplateNames(prev => {
+                                const next = new Set(prev);
+                                next.add(title);
+                                return next;
+                            });
+                            // 2) Reset approval state to phase 0 + pending so the page shows
+                            //    the "Pending approval" split button.
+                            updateTemplateApprovalState(title, {
+                                videoPhase: 0,
+                                pageState: "pending",
+                                approvers: ["sjohnson"]
+                            });
+                            // 3) Update the card: keep "Pending approval" pill, clear comments count
+                            setCreatedTemplates(prev => prev.map(t =>
+                                t.title === title
+                                    ? { ...t, versionStatus: "Pending approval", commentsCount: undefined }
+                                    : t
+                            ));
+                            // 4) Show success snackbar at bottom of viewport
+                            setResubmittedSnackbarApprover(approverName);
+                            setTimeout(() => setResubmittedSnackbarApprover(null), 6000);
+                        }}
                     />
 
                 ) : (
@@ -336,7 +568,22 @@ export default function App() {
                     updateVideoState(key, { phase: idx + 1 });
                     setCurrentPage("library");
                 }}
+                onCurrentTaskChange={setCurrentTaskIdx}
             />
+
+            {/* ── Resubmitted-from-comments snackbar (fixed bottom-center) ──────── */}
+            {resubmittedSnackbarApprover !== null && (
+                <Box sx={resubmittedSnackbarWrapperSx}>
+                    {/* @ts-expect-error TruffleAlert's typed Pick<HTMLAttributes> incorrectly requires React 18 placeholder/onPointer props; remove when the library switches to Omit. */}
+                    <TruffleAlert
+                        severity="success"
+                        variant="filled"
+                        CloseIconButtonProps={{ onClick: () => setResubmittedSnackbarApprover(null) }}
+                    >
+                        Video resubmitted to {resubmittedSnackbarApprover} for approval
+                    </TruffleAlert>
+                </Box>
+            )}
 
             {/* ── Video permission dialog (video page) ───────────────────────────── */}
             <VideoPermissionDialog
@@ -425,4 +672,13 @@ const dialogTitleSx: SxProps<Theme> = { color: "text.primary", pb: 1 };
 const dialogContentTopPaddingSx: SxProps<Theme> = { pt: 2 };
 const pendingApprovalsDescriptionSx: SxProps<Theme> = { color: "text.secondary", mb: 2 };
 const dialogActionsSx: SxProps<Theme> = { px: 3, py: 2 };
+
+// Bottom-center toast for the "Video resubmitted to X for approval" snackbar
+const resubmittedSnackbarWrapperSx: SxProps<Theme> = {
+    position: "fixed",
+    bottom: 24,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: (theme) => theme.zIndex.snackbar
+};
 

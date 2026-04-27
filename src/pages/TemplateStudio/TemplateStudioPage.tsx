@@ -2,8 +2,9 @@ import { useState } from "react";
 import {
     Box, AppBar, Toolbar, Typography, SvgIcon, IconButton, Button,
     List, ListSubheader, ListItemButton, ListItemIcon, ListItemText,
-    Divider, Accordion, AccordionSummary, AccordionDetails, TextField, Tooltip,
-    Popover, MenuList, MenuItem
+    Divider, Tooltip,
+    Popover, MenuList, MenuItem,
+    Accordion, AccordionSummary, AccordionDetails
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material";
@@ -13,28 +14,91 @@ import {
     faWaveformLines, faDatabase, faInputText, faCropSimple, faLanguage,
     faComment, faArrowTurnLeft, faArrowTurnRight, faCloudCheck,
     faChevronDown, faChevronRight, faChevronLeft, faCircleQuestion,
-    faMicrophone, faImages, faPlay as faPlayRegular,
-    faArrowsRotate, faCheck
+    faMicrophone, faImages, faImage,
+    faArrowsRotate, faCheck, faArrowRightToLine, faArrowLeftToLine
 } from "@fortawesome/pro-regular-svg-icons";
-import { faChevronRight as faChevronRightSolid, faPlay } from "@fortawesome/pro-solid-svg-icons";
+import { faChevronRight as faChevronRightSolid } from "@fortawesome/pro-solid-svg-icons";
 import {
-    TruffleAvatar, TruffleMenuPanel, combineSxProps
+    TruffleAvatar, TruffleMenuPanel, TruffleLink
 } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { NotificationBell } from "../../panels/NotificationsPanel";
 import { OWNER_USER } from "../../dialogs/ManageAccessDialog";
 import MediaLibraryPanel from "../../panels/MediaLibraryPanel";
 import AvatarLibraryPanel from "../../panels/AvatarLibraryPanel";
 import LanguagesPanel, { FLAG_BY_NAME, CODE_BY_NAME, MAX_LANGUAGES } from "../../panels/LanguagesPanel";
+import { SceneThumbnail } from "../Studio/SceneThumbnails";
+import CommentsPanel, { INITIAL_THREADS } from "../Studio/CommentsPanel";
 
 
 // ─── Fake scenes ──────────────────────────────────────────────────────────────
 const SCENES = ["Intro", "Feature 1", "Feature 2", "CTA"];
 
 // ─── Input Form Builder ───────────────────────────────────────────────────────
-const FORM_FIELDS = ["Hero message", "Supporting copy", "CTA text", "Brand color", "Speaker name"];
+const EMPTY_STATE_BULLETS = [
+    "Add Input Fields in the Input Field Library tab",
+    "Create personalized video content",
+    "Build the Input Form Contributors use to customize the template"
+];
 
-function InputFormBuilder() {
-    const [expanded, setExpanded] = useState<string | false>("Hero message");
+// Filled-state input fields shown in task 7 scenario
+const FILLED_INPUT_FIELDS: { label: string; type: "text" | "image" }[] = [
+    { label: "Customer first name", type: "text" },
+    { label: "Your first name", type: "text" },
+    { label: "Your phone number where you can be reached", type: "text" },
+    { label: "Your full name", type: "text" },
+    { label: "Add product image", type: "image" },
+    { label: "Add product description", type: "text" }
+];
+
+function InputFormBuilder({ filled = false }: { filled?: boolean }) {
+    if (filled) {
+        return (
+            <Box sx={formBuilderRootSx}>
+                <Box sx={formBuilderHeaderSx}>
+                    <Box sx={formBuilderHeaderLeftSx}>
+                        <Typography variant="h5" color="text.primary">Input Form Builder</Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <TruffleLink href="#" underline="hover" color="primary">
+                            Expand all ({FILLED_INPUT_FIELDS.length})
+                        </TruffleLink>
+                        <Tooltip title="Create an Input Form and set default response options for Contributors to customize this template">
+                            <SvgIcon sx={helpIconSx}><FontAwesomeIcon icon={faCircleQuestion} /></SvgIcon>
+                        </Tooltip>
+                    </Box>
+                </Box>
+                <Typography variant="body1" color="text.secondary" sx={{ px: 2, pb: 1.5 }}>
+                    Create an Input Form and set default response options for Contributors to customize this template
+                </Typography>
+                <Box sx={{ px: 1.5, pb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                    {FILLED_INPUT_FIELDS.map((field, i) => (
+                        <Accordion
+                            key={i}
+                            disableGutters
+                            elevation={0}
+                            sx={inputFieldAccordionSx}
+                        >
+                            <AccordionSummary
+                                expandIcon={<SvgIcon sx={chevronIconSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
+                                sx={inputFieldSummarySx}
+                            >
+                                <Box sx={inputFieldRowSx}>
+                                    <SvgIcon sx={inputFieldIconSx}>
+                                        <FontAwesomeIcon icon={field.type === "image" ? faImage : faInputText} />
+                                    </SvgIcon>
+                                    <Typography variant="body1" color="text.primary" sx={{ flex: 1 }}>
+                                        {field.label}
+                                        <Box component="span" sx={{ color: "primary.main", ml: "4px" }}>*</Box>
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails />
+                        </Accordion>
+                    ))}
+                </Box>
+            </Box>
+        );
+    }
     return (
         <Box sx={formBuilderRootSx}>
             <Box sx={formBuilderHeaderSx}>
@@ -45,33 +109,23 @@ function InputFormBuilder() {
                     </Tooltip>
                 </Box>
             </Box>
-            <Typography variant="body1" color="text.secondary" sx={formBuilderDescSx}>
-                Set default response options for Contributors to customize this template
-            </Typography>
-            <Divider />
-            {FORM_FIELDS.map((field) => (
-                <Accordion
-                    key={field}
-                    expanded={expanded === field}
-                    onChange={(_, isExpanded) => setExpanded(isExpanded ? field : false)}
-                    disableGutters
-                    elevation={0}
-                    sx={accordionSx}
-                >
-                    <AccordionSummary
-                        expandIcon={<SvgIcon sx={chevronIconSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
-                        sx={accordionSummarySx}
-                    >
-                        <Box sx={accordionSummaryContentSx}>
-                            <SvgIcon sx={inputFieldIconSx}><FontAwesomeIcon icon={faInputText} /></SvgIcon>
-                            <Typography variant="body1" color="text.primary">{field}</Typography>
+            <Box sx={emptyStateBodySx}>
+                {/* Illustration placeholder — Figma asset not yet shipped to /public */}
+                <Box sx={emptyStateIllustrationPlaceholderSx} />
+                <Typography variant="subtitle1" color="text.primary" sx={emptyStateTitleSx}>
+                    Give Contributors the ability to customize videos
+                </Typography>
+                <Box sx={emptyStateListSx}>
+                    {EMPTY_STATE_BULLETS.map((text, i) => (
+                        <Box key={i} sx={emptyStateListItemSx}>
+                            <TruffleAvatar size="small" text={String(i + 1)} />
+                            <Typography variant="body1" color="text.primary" sx={{ flex: 1 }}>
+                                {text}
+                            </Typography>
                         </Box>
-                    </AccordionSummary>
-                    <AccordionDetails sx={accordionDetailsSx}>
-                        <TextField size="small" fullWidth label="Default value" placeholder="Set a default response for contributors" />
-                    </AccordionDetails>
-                </Accordion>
-            ))}
+                    ))}
+                </Box>
+            </Box>
         </Box>
     );
 }
@@ -80,11 +134,30 @@ function InputFormBuilder() {
 export default function TemplateStudioPage({
     templateName = "Template name",
     onNavigateToTemplatePage,
-    onNavigateToLibrary
+    onNavigateToLibrary,
+    enabledLangs: enabledLangsProp,
+    onEnabledLangsChange,
+    selectedLangs,
+    onSelectedLangsChange,
+    openCommentsOnMount = false,
+    onCommentsResubmitted,
+    inputFormBuilderFilled = false
 }: {
     templateName?: string;
     onNavigateToTemplatePage?: () => void;
     onNavigateToLibrary?: () => void;
+    /** Controlled enabledLangs — lifted to App.tsx so selections persist between tasks. */
+    enabledLangs?: string[];
+    onEnabledLangsChange?: (langs: string[]) => void;
+    /** Controlled in-progress language selections — also lifted so picks persist. */
+    selectedLangs?: string[];
+    onSelectedLangsChange?: (langs: string[]) => void;
+    /** When true, render the comments panel open on first mount. */
+    openCommentsOnMount?: boolean;
+    /** Fired when the user clicks "Resubmit for approval" inside the comments panel. */
+    onCommentsResubmitted?: () => void;
+    /** When true (e.g. driven by task 7), render the Input Form Builder filled with sample fields. */
+    inputFormBuilderFilled?: boolean;
 }) {
     const [activeNav, setActiveNav] = useState<string | null>(null);
     const [selectedScene, setSelectedScene] = useState(0);
@@ -92,9 +165,22 @@ export default function TemplateStudioPage({
     const [avatarLibOpen, setAvatarLibOpen] = useState(false);
     const [langsOpen, setLangsOpen] = useState(false);
     const [mediaFolder, setMediaFolder] = useState<string | null>(null);
-    const [enabledLangs, setEnabledLangs] = useState<string[]>([]);
+    // Use controlled enabledLangs from App.tsx if provided, else local fallback.
+    const [internalEnabledLangs, setInternalEnabledLangs] = useState<string[]>([]);
+    const enabledLangs = enabledLangsProp ?? internalEnabledLangs;
+    const setEnabledLangs = (langs: string[]) => {
+        if (onEnabledLangsChange) {
+            onEnabledLangsChange(langs);
+        }
+        else {
+            setInternalEnabledLangs(langs);
+        }
+    };
     const [selectedDisplayLang, setSelectedDisplayLang] = useState("English");
+    const [formBuilderCollapsed, setFormBuilderCollapsed] = useState(false);
     const [langMenuAnchor, setLangMenuAnchor] = useState<HTMLElement | null>(null);
+    const [commentsOpen, setCommentsOpen] = useState(openCommentsOnMount);
+    const [commentThreads, setCommentThreads] = useState(INITIAL_THREADS);
 
     const closeAllPanels = () => {
         setMediaLibOpen(false);
@@ -152,7 +238,14 @@ export default function TemplateStudioPage({
         {
             section: "APPROVAL",
             items: [
-                { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faComment} /></SvgIcon>, label: "Comments" }
+                { icon: <SvgIcon fontSize="small"><FontAwesomeIcon icon={faComment} /></SvgIcon>, label: "Comments", onClickOverride: () => {
+                    if (activeNav === "Comments" && commentsOpen) {
+                        setCommentsOpen(false); setActiveNav(null);
+                    }
+                    else {
+                        closeAllPanels(); setCommentsOpen(true); setActiveNav("Comments");
+                    }
+                } }
             ]
         }
     ];
@@ -212,12 +305,19 @@ export default function TemplateStudioPage({
                                     </Button>
                                     <Divider sx={{ my: 1.5 }} />
                                     <Box sx={langInfoCardSx}>
-                                        <SvgIcon fontSize="small" sx={{ color: "text.secondary", flexShrink: 0, mt: "1px" }}>
+                                        <SvgIcon fontSize="small" sx={{ color: "primary.main", flexShrink: 0, mt: "1px" }}>
                                             <FontAwesomeIcon icon={faDatabase} />
                                         </SvgIcon>
-                                        <Typography variant="body1" color="text.secondary">
-                                            Select up to {MAX_LANGUAGES} additional languages to expand your video&apos;s reach
-                                        </Typography>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="body1" color="text.primary">
+                                                Select up to {MAX_LANGUAGES} additional languages to expand your video&apos;s reach
+                                            </Typography>
+                                            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+                                                <TruffleLink href="#" underline="hover" color="primary">
+                                                    Label
+                                                </TruffleLink>
+                                            </Box>
+                                        </Box>
                                     </Box>
                                 </Box>
                             ) : (
@@ -330,7 +430,7 @@ export default function TemplateStudioPage({
                 <LanguagesPanel
                     open={langsOpen}
                     onClose={() => {
-                        setLangsOpen(false); setActiveNav(null); 
+                        setLangsOpen(false); setActiveNav(null);
                     }}
                     enabledLangs={enabledLangs}
                     onEnabledLangsChange={(langs) => {
@@ -339,6 +439,8 @@ export default function TemplateStudioPage({
                             setSelectedDisplayLang("English");
                         }
                     }}
+                    selectedLangs={selectedLangs}
+                    onSelectedLangsChange={onSelectedLangsChange}
                 />
 
                 {/* Stage */}
@@ -415,48 +517,48 @@ export default function TemplateStudioPage({
                         </Typography>
                     </Box>
 
-                    {/* Scene timeline */}
+                    {/* Scene timeline — matches Studio page pattern */}
                     <Box sx={sceneLineupSx}>
-                        {/* Play bar */}
-                        <Box sx={playBarSx}>
-                            <Box sx={playBtnCircleSx}>
-                                <SvgIcon sx={{ fontSize: "22px !important", color: "primary.main" }}>
-                                    <FontAwesomeIcon icon={faPlay} />
-                                </SvgIcon>
-                            </Box>
-                            <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: "0.4px", ml: 1.5 }}>
-                                Scene {selectedScene + 1} / {SCENES.length}
-                            </Typography>
+                        {/* Play button straddling the top border */}
+                        <Box sx={previewPlayBtnWrapperSx}>
+                            <Tooltip title="Preview video" placement="top" arrow>
+                                <span>
+                                    <IconButton sx={previewPlayIconSx}>
+                                        <Box sx={previewPlayIconContentSx}>
+                                            <Box component="img" src="/newNavLogoTriangle.svg" alt="play" sx={previewPlayIconImgSx} />
+                                        </Box>
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
                         </Box>
 
+                        {/* Scene N/M counter */}
+                        <Box sx={sceneCounterRowSx}>
+                            <Box sx={{ flex: 1 }} />
+                            <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", color: "text.primary" }}>
+                                <Typography variant="body2">Scene {selectedScene + 1}/{SCENES.length}</Typography>
+                            </Box>
+                        </Box>
+                        <Divider />
+
                         {/* Thumbnails row */}
-                        <Box sx={thumbnailsRowSx}>
-                            {SCENES.map((scene, i) => (
-                                <Box
-                                    key={scene}
-                                    onClick={() => setSelectedScene(i)}
-                                    sx={i === selectedScene ? combineSxProps(sceneThumbSx, sceneThumbSelectedSx) : sceneThumbSx}
-                                >
-                                    <Box sx={sceneThumbImgSx}>
-                                        <Box sx={sceneThumbLeftSx}>
-                                            <Typography sx={sceneThumbHeadingSx}>HEADING<br />PLACEHOLDER</Typography>
+                        <Box sx={{ position: "relative" }}>
+                            <Box sx={thumbnailsInnerRowSx}>
+                                {SCENES.map((_scene, i) => (
+                                    <SceneThumbnail
+                                        key={i}
+                                        index={i}
+                                        selected={i === selectedScene}
+                                        onClick={() => setSelectedScene(i)}
+                                    />
+                                ))}
+                                {/* Add scene */}
+                                <Box sx={addSceneOuterSx}>
+                                    <Tooltip title="Add Scene" placement="top" arrow>
+                                        <Box sx={addSceneBtnSx}>
+                                            <Box component="img" src="/icons/plus.svg" sx={{ width: 20, height: 20 }} />
                                         </Box>
-                                        <Box sx={sceneThumbRightSx} />
-                                    </Box>
-                                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
-                                        {scene}
-                                    </Typography>
-                                    {i === 0 && (
-                                        <Box sx={scenePlayBadgeSx}>
-                                            <SvgIcon sx={scenePlayIconSx}><FontAwesomeIcon icon={faPlayRegular} /></SvgIcon>
-                                        </Box>
-                                    )}
-                                </Box>
-                            ))}
-                            {/* Add scene */}
-                            <Box sx={addSceneOuterSx}>
-                                <Box sx={addSceneBtnSx}>
-                                    <Typography variant="h4" color="primary.main">+</Typography>
+                                    </Tooltip>
                                 </Box>
                             </Box>
                         </Box>
@@ -464,10 +566,41 @@ export default function TemplateStudioPage({
                 </Box>
 
                 {/* Right: Input Form Builder */}
-                <Box sx={rightPanelSx}>
-                    <InputFormBuilder />
+                <Box sx={formBuilderWrapperSx}>
+                    <Box
+                        sx={collapseButtonSx}
+                        onClick={() => setFormBuilderCollapsed(c => !c)}
+                        role="button"
+                        aria-label={formBuilderCollapsed ? "Expand Input Form Builder" : "Collapse Input Form Builder"}
+                    >
+                        <SvgIcon sx={collapseIconSx}>
+                            <FontAwesomeIcon icon={formBuilderCollapsed ? faArrowLeftToLine : faArrowRightToLine} />
+                        </SvgIcon>
+                    </Box>
+                    <Box sx={formBuilderCollapsed
+                        ? { ...rightPanelSx, ...rightPanelCollapsedSx } as SxProps<Theme>
+                        : rightPanelSx}>
+                        <InputFormBuilder filled={inputFormBuilderFilled} />
+                    </Box>
                 </Box>
             </Box>
+
+            {/* Comments panel — slides over from the right when opened (e.g. from
+                the Template page's "View N comments in Studio" button) */}
+            <CommentsPanel
+                open={commentsOpen}
+                onClose={() => setCommentsOpen(false)}
+                threads={commentThreads}
+                setThreads={setCommentThreads}
+                onRequestApproval={() => {
+                    // Move all unresolved comments to resolved (they "moved" to History)
+                    setCommentThreads(prev => prev.map(t => ({
+                        ...t,
+                        comments: t.comments.map(c => ({ ...c, resolved: true, checkedNow: false }))
+                    })));
+                    onCommentsResubmitted?.();
+                }}
+            />
 
         </Box>
     );
@@ -704,123 +837,107 @@ const narrationAvatarSx: SxProps<Theme> = {
     flexShrink: 0
 };
 
-// ── Scene lineup — copy from StudioPage ───────────────────────────────────────
+// ── Scene lineup — matches StudioPage.tsx:1878-1947 ───────────────────────────
 const sceneLineupSx: SxProps<Theme> = {
-    flexShrink: 0,
     bgcolor: "background.paper",
     borderTop: 1,
     borderTopStyle: "solid",
     borderTopColor: "divider",
     px: 2,
     pt: 0,
-    pb: "13px"
+    pb: "13px",
+    flexShrink: 0,
+    position: "relative"
 };
 
-const playBarSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    mb: 1.5
+const previewPlayBtnWrapperSx: SxProps<Theme> = {
+    position: "absolute",
+    top: "-24px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 1
 };
 
-const playBtnCircleSx: SxProps<Theme> = {
-    width: 36,
-    height: 36,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const previewPlayIconSx: SxProps<Theme> = (theme: any) => ({
+    width: "48px",
+    height: "48px",
+    color: "other.editorBackground",
+    backgroundColor: "primary.dark",
+    borderColor: "other.editorBackground",
+    borderStyle: "solid",
+    borderWidth: "8px",
     borderRadius: "50%",
-    bgcolor: "other.editorBackground",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer"
+    padding: "8px 15px",
+    mb: "6px",
+    transition: "all .25s ease-out",
+    position: "relative",
+    backgroundClip: "padding-box",
+    "&::before": {
+        content: "''",
+        borderRadius: "32px",
+        position: "absolute",
+        left: 0, right: 0, top: 0, bottom: 0,
+        backgroundImage: `linear-gradient(135deg,${theme.palette.brand.gradientMagentaBlue})`,
+        opacity: 1,
+        transition: "all .25s ease-out"
+    },
+    "&:hover": {
+        backgroundColor: "primary.dark",
+        borderColor: "action.hover",
+        transform: "scale(1.1)",
+        "&::before": {
+            backgroundImage: "none",
+            backgroundColor: "primary.dark"
+        }
+    }
+});
+
+const previewPlayIconContentSx: SxProps<Theme> = {
+    ml: "4px",
+    width: "12px",
+    height: "15px",
+    backgroundColor: "common.white",
+    clipPath: "polygon(0 0, 0 100%, 100% 50%)",
+    transition: "all .25s ease-out"
 };
 
-const thumbnailsRowSx: SxProps<Theme> = {
+const previewPlayIconImgSx: SxProps<Theme> = {
+    width: "15px",
+    height: "17px",
+    transform: "rotate(180deg) scale(2) translateX(-6px)",
+    transition: "all .15s .15s ease-out"
+};
+
+const sceneCounterRowSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    height: "32px"
+};
+
+const thumbnailsInnerRowSx: SxProps<Theme> = {
     display: "flex",
     gap: "12px",
     overflowX: "auto",
-    px: 2,
-    pb: "2px"
-};
-
-const sceneThumbSx: SxProps<Theme> = {
-    position: "relative",
-    flexShrink: 0,
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px"
-};
-
-const sceneThumbSelectedSx: SxProps<Theme> = {
-    "& > *:first-of-type": {
-        outline: "2px solid",
-        outlineColor: "primary.main",
-        borderRadius: "4px"
-    }
-};
-
-const sceneThumbImgSx: SxProps<Theme> = {
-    width: 110,
-    height: 62,
-    borderRadius: "4px",
-    overflow: "hidden",
-    display: "flex",
-    bgcolor: "common.white"
-};
-
-const sceneThumbLeftSx: SxProps<Theme> = {
-    width: "50%",
-    bgcolor: "common.white",
-    p: "4px",
-    display: "flex",
-    alignItems: "flex-start"
-};
-
-const sceneThumbHeadingSx: SxProps<Theme> = {
-    fontFamily: "\"Inter\", sans-serif",
-    fontWeight: 700,
-    fontSize: "5px",
-    color: "secondary.main",
-    lineHeight: 1.2
-};
-
-const sceneThumbRightSx: SxProps<Theme> = { flex: 1, bgcolor: "grey.300" };
-
-const scenePlayBadgeSx: SxProps<Theme> = {
-    position: "absolute",
-    bottom: 20,
-    right: 4,
-    bgcolor: "primary.main",
-    borderRadius: "50%",
-    width: 16,
-    height: 16,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center"
-};
-
-const scenePlayIconSx: SxProps<Theme> = {
-    fontSize: "8px !important",
-    width: "8px !important",
-    height: "8px !important",
-    color: "common.white"
+    padding: "4px 6px 2px 4px"
 };
 
 const addSceneOuterSx: SxProps<Theme> = {
-    flexShrink: 0,
+    position: "sticky",
+    right: 0,
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    height: 62,
-    alignSelf: "flex-start"
+    bgcolor: "common.white",
+    zIndex: 20,
+    ml: "2px"
 };
 
 const addSceneBtnSx: SxProps<Theme> = {
     width: 40,
     height: 62,
-    border: "2px dashed",
-    borderColor: "primary.main",
-    borderRadius: "4px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -863,8 +980,11 @@ const langBtnIconSx: SxProps<Theme> = {
 };
 
 const langInfoCardSx: SxProps<Theme> = {
+    bgcolor: "primary.light",
+    borderRadius: 1,
+    p: 1.5,
     display: "flex",
-    gap: 1,
+    gap: 1.5,
     alignItems: "flex-start"
 };
 
@@ -902,7 +1022,13 @@ const rightPanelSx: SxProps<Theme> = {
     borderColor: "divider",
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden"
+    overflow: "hidden",
+    transition: "width 250ms ease"
+};
+
+const rightPanelCollapsedSx: SxProps<Theme> = {
+    width: 0,
+    borderLeft: 0
 };
 
 // ── Input Form Builder ─────────────────────────────────────────────────────────
@@ -937,31 +1063,30 @@ const helpIconSx: SxProps<Theme> = {
     cursor: "pointer"
 };
 
-const formBuilderDescSx: SxProps<Theme> = { px: 2, pb: 1.5, flexShrink: 0 };
-
-const accordionSx: SxProps<Theme> = {
-    borderBottom: "1px solid",
-    borderColor: "divider",
+// ── Filled-state input field accordions ───────────────────────────────────────
+const inputFieldAccordionSx: SxProps<Theme> = {
+    bgcolor: "action.hover",
+    borderRadius: 1,
     "&:before": { display: "none" }
 };
 
-const accordionSummarySx: SxProps<Theme> = {
+const inputFieldSummarySx: SxProps<Theme> = {
     px: 2,
-    minHeight: "44px !important",
-    "& .MuiAccordionSummary-content": { my: "10px !important" }
+    minHeight: "48px !important",
+    "& .MuiAccordionSummary-content": { my: "8px !important" }
 };
 
-const accordionSummaryContentSx: SxProps<Theme> = {
+const inputFieldRowSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    gap: 1,
+    gap: 1.5,
     flex: 1
 };
 
 const inputFieldIconSx: SxProps<Theme> = {
-    fontSize: "14px !important",
-    width: "14px !important",
-    height: "14px !important",
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
     color: "action.active",
     flexShrink: 0
 };
@@ -969,7 +1094,77 @@ const inputFieldIconSx: SxProps<Theme> = {
 const chevronIconSx: SxProps<Theme> = {
     fontSize: "14px !important",
     width: "14px !important",
-    height: "14px !important"
+    height: "14px !important",
+    color: "action.active"
 };
 
-const accordionDetailsSx: SxProps<Theme> = { px: 2, pb: 2 };
+// ── Empty state ────────────────────────────────────────────────────────────────
+const emptyStateBodySx: SxProps<Theme> = {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
+    px: 2,
+    py: 4
+};
+
+// Placeholder for the Figma illustration asset (Figma node "imgVector1" — not yet
+// shipped to /public). Sized to match the Figma design. Replace with <img src=... />
+// once the asset is added.
+const emptyStateIllustrationPlaceholderSx: SxProps<Theme> = {
+    width: 242,
+    height: 156,
+    bgcolor: "action.hover",
+    borderRadius: 2
+};
+
+const emptyStateTitleSx: SxProps<Theme> = {
+    textAlign: "center"
+};
+
+const emptyStateListSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%"
+};
+
+const emptyStateListItemSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    py: "4px"
+};
+
+// ── Collapse button (left-pill IconButton outside the right panel) ────────────
+const formBuilderWrapperSx: SxProps<Theme> = {
+    position: "relative",
+    display: "flex",
+    flexShrink: 0
+};
+
+const collapseButtonSx: SxProps<Theme> = {
+    position: "absolute",
+    top: 16,
+    left: -32,
+    width: 32,
+    height: 32,
+    bgcolor: "background.paper",
+    border: "1px solid",
+    borderColor: "divider",
+    borderRight: 0,
+    borderRadius: "100px 0 0 100px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    zIndex: 1,
+    "&:hover": { bgcolor: "action.hover" }
+};
+
+const collapseIconSx: SxProps<Theme> = {
+    fontSize: "16px !important",
+    width: "16px !important",
+    height: "16px !important",
+    color: "action.active"
+};

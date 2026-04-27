@@ -5,7 +5,7 @@ import {
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faArrowUpRightFromSquare, faBoxArchive, faCircleInfo, faComment, faCopy, faEllipsisVertical, faFolder,
+    faArrowUpRightFromSquare, faBoxArchive, faCircleInfo, faCopy, faEllipsisVertical, faFolder,
     faLayerGroup, faLock, faPen, faPlay, faShare, faTrash, faUsers
 } from "@fortawesome/pro-regular-svg-icons";
 import {
@@ -20,27 +20,6 @@ import StatusLabel from "./StatusLabel";
 import { type LiveVideoState, type VideoItem } from "./types";
 
 const IMG_THUMB = "/thumb.svg";
-
-const APPROVER_NAMES: Record<string, string> = {
-    sjohnson:   "Sarah Johnson",
-    mchen:      "Michael Chen",
-    erodriguez: "Emma Rodriguez",
-    jwilson:    "James Wilson"
-};
-
-function formatNames(keys: string[]) {
-    const names = keys.map(k => APPROVER_NAMES[k] ?? k);
-    if (names.length === 0) {
-        return "";
-    }
-    if (names.length === 1) {
-        return names[0];
-    }
-    if (names.length === 2) {
-        return `${names[0]} and ${names[1]}`;
-    }
-    return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
 
 function VideoThumbnail() {
     const [loaded, setLoaded] = useState(false);
@@ -57,47 +36,33 @@ function VideoThumbnail() {
     );
 }
 
-function ApprovalStatusIcon({ state, totalComments }: { state: LiveVideoState; totalComments: number }) {
+function versionStatusLabel(state: LiveVideoState | undefined, totalComments: number): string | null {
+    if (!state) {
+        return null;
+    }
     const { phase, pageState, sentApprovers } = state;
-    if (phase === 0 && pageState === "draft") {
+    // No version pill until the user has actually submitted for approval.
+    const submitted = sentApprovers.length > 0;
+    if (!submitted) {
         return null;
     }
-    if (phase >= 3) {
-        return null;
-    }
-
-    let icon: typeof faUsers | typeof faComment;
-    let color: string;
-    let tip: string;
-
     if (phase === 0 && pageState === "pending") {
-        icon = faUsers;
-        color = "success.main";
-        const names = sentApprovers.length > 0 ? formatNames(sentApprovers) : "approvers";
-        tip = `Awaiting response from ${names}`;
+        return "Pending approval";
     }
-    else if (phase === 1) {
-        icon = faUsers;
-        color = "warning.main";
+    if (phase === 1) {
         const total = sentApprovers.length;
-        const pending = sentApprovers.slice(1);
-        const remaining = pending.length > 0 ? formatNames(pending) : "remaining approver";
-        tip = `1 of ${total} approver${total !== 1 ? "s" : ""} responded. Waiting for ${remaining}`;
+        return `1 of ${total} approver${total !== 1 ? "s" : ""} responded`;
     }
-    else if (phase === 2) {
-        icon = faComment;
-        color = "primary.main";
-        tip = `${totalComments} comments from approvers ready to view`;
+    if (phase === 2) {
+        return `${totalComments} comments from approvers`;
     }
-    else {
-        return null;
-    }
+    return null;
+}
 
+function VersionStatusPill({ label }: { label: string }) {
     return (
-        <Box sx={approvalIconContainerSx} title={tip}>
-            <SvgIcon sx={{ fontSize: 16, color }}>
-                <FontAwesomeIcon icon={icon} />
-            </SvgIcon>
+        <Box sx={dashedLabelSx}>
+            <Typography variant="caption" color="text.secondary">{label}</Typography>
         </Box>
     );
 }
@@ -173,6 +138,19 @@ export default function VideoCard({
                         Edit
                     </Button>
                 </Box>
+                {/* Status + Personalized labels overlaid bottom-left on thumbnail */}
+                <Box sx={thumbnailLabelsOverlaySx}>
+                    {video.statuses.map(s => <StatusLabel key={s} status={s} />)}
+                    {video.personalized && (
+                        <Label
+                            label="Personalized"
+                            color="default"
+                            variant="outlined"
+                            startIcon={<SvgIcon sx={personalizedLabelIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
+                            sx={{ bgcolor: "background.paper" }}
+                        />
+                    )}
+                </Box>
             </CardMedia>
 
             {/* Card body */}
@@ -197,16 +175,15 @@ export default function VideoCard({
                     {video.editedBy}
                 </Typography>
 
-                {/* Status labels */}
-                <Box sx={statusRowSx}>
-                    {video.statuses.map(s => <StatusLabel key={s} status={s} />)}
-                    {video.personalized && (
-                        <Label label="Personalized" color="default" variant="outlined"
-                            startIcon={<SvgIcon sx={personalizedLabelIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
-                        />
-                    )}
-                    {liveState && <ApprovalStatusIcon state={liveState} totalComments={TOTAL_COMMENT_COUNT} />}
-                </Box>
+                {/* Version status pill (always rendered to keep card heights aligned) */}
+                {(() => {
+                    const versionLabel = versionStatusLabel(liveState, TOTAL_COMMENT_COUNT);
+                    return (
+                        <Box sx={{ visibility: versionLabel ? "visible" : "hidden" }}>
+                            <VersionStatusPill label={versionLabel ?? "—"} />
+                        </Box>
+                    );
+                })()}
             </Box>
 
             {/* 3-dots dropdown menu */}
@@ -417,18 +394,26 @@ const threeDotsBtnSx: SxProps<Theme> = {
     flexShrink: 0
 };
 
-const statusRowSx: SxProps<Theme> = {
+// Bottom-left overlay on the thumbnail — matches TemplateCard.tsx:195-203 pattern
+const thumbnailLabelsOverlaySx: SxProps<Theme> = {
+    position: "absolute",
+    bottom: "8px",
+    left: "8px",
     display: "flex",
+    gap: "4px",
     flexWrap: "wrap",
-    gap: "6px",
-    alignItems: "center"
+    zIndex: 1
 };
 
-const approvalIconContainerSx: SxProps<Theme> = {
-    display: "flex",
+// Dashed pill below editedBy — matches TemplateCard.tsx:204-212 pattern
+const dashedLabelSx: SxProps<Theme> = {
+    display: "inline-flex",
     alignItems: "center",
-    flexShrink: 0,
-    cursor: "default"
+    border: "1px dashed",
+    borderColor: "divider",
+    borderRadius: "4px",
+    px: 1,
+    py: "2px"
 };
 
 const editedByTextSx: SxProps<Theme> = {

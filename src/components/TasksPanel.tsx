@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, SvgIcon, TextField, Tooltip, Typography
 } from "@mui/material";
@@ -9,25 +9,36 @@ import { faArrowLeft, faArrowRight, faArrowsRotate, faCircleCheck, faXmark } fro
 interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
-    { id: 1, label: "You've finished a draft video and need formal approval, by Sarah and Emma from the Legal team, before it can be shared.", done: false },
-    { id: 2, label: ["You want to check and review any response to your approval request.", "You also realized the opening scene heading is missing 2026 and you want to add it at the end of the heading."], done: false },
-    { id: 3, label: "Sarah mentioned she submitted feedback for your approval", done: false },
-    { id: 4, label: "After completing all changes and receiving approval, the video is ready to go live.", done: false },
-    { id: 5, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
-    { id: 6, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false },
-    { id: 7, label: "You're preparing a video for approval, and your boss told you that Michelle Cohen from Legal needs to approve it.", done: false },
-    { id: 8, label: "Jarvis is no longer with the company", done: false },
-    { id: 9, label: "You are working on a new video for the new year and would like it to have 12 translations.", done: false },
-    { id: 10, label: "Your boss mentioned to you that you stopped working with Brazil and you would like to remove it from your videos.", done: false },
-    { id: 11, label: "You decided to use the same video for your far east clients.", done: false }
+    { id: 1, label: "You’re working on a safety video and need to set up 12 different versions for global audiences.", done: false },
+    { id: 2, label: "Your boss mentioned to you that you stopped working with Brazil and you would like to remove it from your videos.", done: false },
+    { id: 3, label: "You decided to use the same video for your far east clients.", done: false },
+    { id: 4, label: ["You learned there’s an option to organize users so you can assign permissions to multiple people at once.", "You want to create Sales and Marketing teams."], done: false },
+    { id: 5, label: "You want to create a new template for the Sales team about a new product launch.", done: false },
+    { id: 6, label: "You feel your template is ready and you need formal approval, by Sarah from the Legal team, before it can be shared.", done: false },
+    { id: 7, label: "Sarah mentioned she submitted feedback for your approval", done: false },
+    { id: 8, label: "After completing all changes and receiving approval, the video is ready to go live in Amplify", done: false },
+    { id: 9, label: "You are creating a video for a top-secret new product launching later this year. You and Eli Bogan are the only persons authorized to edit this video. No one else can view or access the video or its assets.", done: false },
+    { id: 10, label: "The privacy team at your company is concerned that employees might misuse the CEO, Chris's avatar to create deepfake content. They've asked you to ensure that other users in the organization cannot access or use this avatar.", done: false }
 ];
 
 type SessionState = "idle" | "active" | "survey" | "complete"
 
-export default function TasksPanel({ onTaskDone }: { onTaskDone?: (taskIdx: number) => void }) {
+export default function TasksPanel({
+    onTaskDone,
+    onCurrentTaskChange
+}: {
+    onTaskDone?: (taskIdx: number) => void
+    onCurrentTaskChange?: (taskIdx: number) => void
+}) {
     const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
     const [session, setSession] = useState<SessionState>("active");
     const [currentIdx, setCurrentIdx] = useState(0);
+
+    // Notify parent whenever the active task index changes (including via dot
+    // navigation, arrows, mark-done, or restart).
+    useEffect(() => {
+        onCurrentTaskChange?.(currentIdx);
+    }, [currentIdx, onCurrentTaskChange]);
     const [surveyStep, setSurveyStep] = useState<1 | 2>(1);
     const [surveyQ1, setSurveyQ1] = useState<number | null>(null);
     const [surveyQ2, setSurveyQ2] = useState<number | null>(null);
