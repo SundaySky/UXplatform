@@ -31,10 +31,22 @@ export interface PermissionUser {
   role: UserRole
 }
 
+export interface UserGroup {
+  id: string
+  name: string
+  members: User[]
+}
+
+export interface PermissionGroup {
+  group: UserGroup
+  role: UserRole
+}
+
 export interface PermissionSettings {
   tab: PermissionTab
   everyoneRole: EveryoneRole
   users: PermissionUser[]
+  groups: PermissionGroup[]
   ownerUsers: User[]
 }
 
@@ -64,6 +76,18 @@ export const ALL_USERS: User[] = [
     { id: "jj", initials: "JJ", name: "Jayson Jerde", email: "jerdej@Sundaysky.com", color: "#0277BD" },
     { id: "jc", initials: "JC", name: "Jeramy Crona", email: "cronaj@Sundaysky.com", color: "#6D4C41" }
 ];
+
+// ─── Groups ───────────────────────────────────────────────────────────────────
+export const ALL_GROUPS: UserGroup[] = [
+    { id: "legal", name: "Legal", members: ALL_USERS.filter(u => ["kw", "ke", "aj"].includes(u.id)) },
+    { id: "marketing", name: "Marketing", members: ALL_USERS.filter(u => ["jq", "bw", "jj"].includes(u.id)) },
+    { id: "sales", name: "Sales", members: ALL_USERS.filter(u => ["mr", "ss", "jc"].includes(u.id)) }
+];
+
+// ─── Add option union ─────────────────────────────────────────────────────────
+type AddOption =
+    | { kind: "user"; data: User }
+    | { kind: "group"; data: UserGroup }
 
 // ─── User avatar ──────────────────────────────────────────────────────────────
 function UserAvatar({ user, size = 32 }: { user: User; size?: number }) {
@@ -106,7 +130,32 @@ export function UserAvatarWithTooltip({
     );
 }
 
-// ─── Users autocomplete (kept for AvatarPermissionDialog + future "Add user" dialog) ──
+// ─── Group avatar with tooltip ────────────────────────────────────────────────
+export function GroupAvatarWithTooltip({ group, size = 32 }: { group: UserGroup; size?: number }) {
+    const titleNode = (
+        <Box>
+            <Typography variant="caption" sx={tooltipTitlePrimarySx}>{group.name}</Typography>
+            {group.members.map(m => (
+                <Typography key={m.id} variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.8), lineHeight: 1.5 }}>
+                    • {m.name}
+                </Typography>
+            ))}
+            <Typography variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.55), lineHeight: 1.5, mt: 0.5 }}>
+                Group members are managed by account owners
+            </Typography>
+        </Box>
+    );
+    const boxSize = size <= 32 ? 32 : 36;
+    return (
+        <Tooltip title={titleNode} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTooltipSx } }}>
+            <Box sx={{ ...groupIconBoxBaseSx, width: boxSize, height: boxSize }}>
+                <SvgIcon sx={groupIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+            </Box>
+        </Tooltip>
+    );
+}
+
+// ─── Users autocomplete (used by AvatarPermissionDialog + WorkflowApprovalStepper) ──
 export function UsersAutocomplete({
     value,
     onChange,
@@ -222,7 +271,7 @@ function RoleButton({ label, onClick }: { label: string; onClick: (e: React.Mous
             deleteIcon={<SvgIcon sx={roleButtonChevronIconSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
             onDelete={onClick}
             onClick={e => {
-                e.stopPropagation(); onClick(e); 
+                e.stopPropagation(); onClick(e);
             }}
             sx={roleButtonChipSx}
         />
@@ -254,31 +303,86 @@ function PersonRow({
     );
 }
 
-// ─── Add Users Autocomplete (with role pill inside input) ─────────────────────
-function AddUsersAutocomplete({
-    value, onChange, excludeIds, addRole, onRoleClick
+function GroupRow({
+    group, roleLabel, onRoleClick
 }: {
-  value: User[]
-  onChange: (v: User[]) => void
+  group: UserGroup
+  roleLabel: string
+  onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
+}) {
+    const tooltipContent = (
+        <Box>
+            <Typography variant="caption" sx={tooltipTitlePrimarySx}>{group.name}</Typography>
+            {group.members.map(m => (
+                <Typography key={m.id} variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.8), lineHeight: 1.5 }}>
+                    • {m.name}
+                </Typography>
+            ))}
+            <Typography variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.55), lineHeight: 1.5, mt: 0.5 }}>
+                Group members are managed by account owners
+            </Typography>
+        </Box>
+    );
+    return (
+        <Box sx={personRowContainerSx}>
+            <Tooltip title={tooltipContent} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTooltipSx } }}>
+                <Box sx={groupAvatarRowBoxSx}>
+                    <SvgIcon sx={groupAvatarRowIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                </Box>
+            </Tooltip>
+            <Box sx={flexMinWidthSx}>
+                <Typography variant="subtitle2" sx={personNameSx}>{group.name}</Typography>
+                <Typography variant="caption" sx={personEmailSx}>{group.members.length} members</Typography>
+            </Box>
+            <RoleButton label={roleLabel} onClick={onRoleClick} />
+        </Box>
+    );
+}
+
+// ─── Add Users+Groups Autocomplete ────────────────────────────────────────────
+function AddUsersAutocomplete({
+    value, onChange, excludeIds, excludeGroupIds, addRole, onRoleClick
+}: {
+  value: AddOption[]
+  onChange: (v: AddOption[]) => void
   excludeIds: string[]
+  excludeGroupIds: string[]
   addRole: UserRole
   onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
 }) {
-    const options = ALL_USERS.filter(u => !excludeIds.includes(u.id));
+    const userOptions: AddOption[] = ALL_USERS
+        .filter(u => !excludeIds.includes(u.id))
+        .map(u => ({ kind: "user", data: u }));
+    const groupOptions: AddOption[] = ALL_GROUPS
+        .filter(g => !excludeGroupIds.includes(g.id))
+        .map(g => ({ kind: "group", data: g }));
+    const options: AddOption[] = [...groupOptions, ...userOptions];
+
     return (
-        <Autocomplete<User, true>
+        <Autocomplete<AddOption, true>
             multiple
             value={value}
             onChange={(_, v) => onChange(v)}
             options={options}
-            getOptionLabel={u => u.name}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
+            groupBy={opt => opt.kind === "group" ? "User groups" : "Users"}
+            getOptionLabel={opt => opt.data.name}
+            isOptionEqualToValue={(a, b) => a.kind === b.kind && a.data.id === b.data.id}
             disableCloseOnSelect
             popupIcon={null}
+            renderGroup={params => (
+                <Box key={params.key}>
+                    <Box sx={autocompleteGroupHeaderSx}>
+                        <Typography variant="subtitle2" sx={autocompleteGroupLabelSx}>
+                            {params.group}
+                        </Typography>
+                    </Box>
+                    {params.children}
+                </Box>
+            )}
             renderInput={params => (
                 <TextField
                     {...params}
-                    placeholder={value.length === 0 ? "Add users" : ""}
+                    placeholder={value.length === 0 ? "Add users or groups" : ""}
                     inputProps={{ ...params.inputProps, autoComplete: "new-password" }}
                     InputProps={{
                         ...params.InputProps,
@@ -301,32 +405,63 @@ function AddUsersAutocomplete({
                 />
             )}
             renderTags={(tagValue, getTagProps) =>
-                tagValue.map((user, index) => (
-                    <Chip
-                        {...getTagProps({ index })}
-                        key={user.id}
-                        label={user.name}
-                        size="small"
-                        avatar={<TruffleAvatar text={user.initials} size="small" sx={{ bgcolor: user.color }} />}
-                        sx={{
-                            bgcolor: user.color, color: "common.white",
-                            "& .MuiChip-deleteIcon": { color: "common.white", opacity: 0.7, "&:hover": { opacity: 1 } }
-                        }}
-                    />
-                ))
+                tagValue.map((opt, index) => {
+                    if (opt.kind === "group") {
+                        const g = opt.data as UserGroup;
+                        return (
+                            <Chip
+                                {...getTagProps({ index })}
+                                key={g.id}
+                                label={g.name}
+                                size="small"
+                                avatar={
+                                    <Box sx={groupChipIconBoxSx}>
+                                        <SvgIcon sx={groupChipIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                    </Box>
+                                }
+                                sx={groupChipSx}
+                            />
+                        );
+                    }
+                    const u = opt.data as User;
+                    return (
+                        <Chip
+                            {...getTagProps({ index })}
+                            key={u.id}
+                            label={u.name}
+                            size="small"
+                            avatar={<TruffleAvatar text={u.initials} size="small" sx={{ bgcolor: u.color }} />}
+                            sx={{
+                                bgcolor: u.color, color: "common.white",
+                                "& .MuiChip-deleteIcon": { color: "common.white", opacity: 0.7, "&:hover": { opacity: 1 } }
+                            }}
+                        />
+                    );
+                })
             }
             renderOption={(props, option) => {
                 const { key, ...listProps } = props as typeof props & { key: string };
+                if (option.kind === "group") {
+                    const g = option.data as UserGroup;
+                    return (
+                        <Box key={key} component="li" {...listProps} sx={optionRowSx}>
+                            <Box sx={groupOptionIconBoxSx}>
+                                <SvgIcon sx={groupOptionIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                            </Box>
+                            <Box sx={flexMinWidthSx}>
+                                <Typography variant="subtitle2" sx={optionNameSx}>{g.name}</Typography>
+                                <Typography variant="caption" sx={optionEmailSx}>{g.members.length} members</Typography>
+                            </Box>
+                        </Box>
+                    );
+                }
+                const u = option.data as User;
                 return (
                     <Box key={key} component="li" {...listProps} sx={optionRowSx}>
-                        <UserAvatar user={option} size={36} />
+                        <UserAvatar user={u} size={36} />
                         <Box sx={flexMinWidthSx}>
-                            <Typography variant="subtitle2" sx={optionNameSx}>
-                                {option.name}
-                            </Typography>
-                            <Typography variant="caption" sx={optionEmailSx}>
-                                {option.email}
-                            </Typography>
+                            <Typography variant="subtitle2" sx={optionNameSx}>{u.name}</Typography>
+                            <Typography variant="caption" sx={optionEmailSx}>{u.email}</Typography>
                         </Box>
                     </Box>
                 );
@@ -352,20 +487,21 @@ export default function ManageAccessDialog({
   initialSettings?: PermissionSettings
 }) {
     const ownerRoleLabel = itemType === "folder" ? "Folder owner" : "Asset owner";
-    const dflt: PermissionSettings = { tab: "teams", everyoneRole: "viewer", users: [], ownerUsers: [OWNER_USER] };
+    const dflt: PermissionSettings = { tab: "teams", everyoneRole: "viewer", users: [], groups: [], ownerUsers: [OWNER_USER] };
 
     // Main view state
     const [tab, setTab] = useState<PermissionTab>(initialSettings?.tab ?? "teams");
     const [everyoneRole, setEveryoneRole] = useState<EveryoneRole>(initialSettings?.everyoneRole ?? "viewer");
     const [users, setUsers] = useState<PermissionUser[]>(initialSettings?.users ?? []);
+    const [groups, setGroups] = useState<PermissionGroup[]>(initialSettings?.groups ?? []);
     const [ownerUsers, setOwnerUsers] = useState<User[]>(initialSettings?.ownerUsers ?? [OWNER_USER]);
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const [menuTarget, setMenuTarget] = useState<"owner" | "everyone" | string | null>(null);
     const [showDiscard, setShowDiscard] = useState(false);
 
-    // Add users sub-view state
+    // Add users/groups sub-view state
     const [addOpen, setAddOpen] = useState(false);
-    const [addUsers, setAddUsers] = useState<User[]>([]);
+    const [addSelections, setAddSelections] = useState<AddOption[]>([]);
     const [addRole, setAddRole] = useState<UserRole>("editor");
     const [addNotify, setAddNotify] = useState(true);
     const [addAllowDup, setAddAllowDup] = useState(false);
@@ -377,12 +513,13 @@ export default function ManageAccessDialog({
             setTab(s.tab);
             setEveryoneRole(s.everyoneRole);
             setUsers(s.users);
+            setGroups(s.groups ?? []);
             setOwnerUsers(s.ownerUsers.length ? s.ownerUsers : [OWNER_USER]);
             setMenuAnchor(null);
             setMenuTarget(null);
             setShowDiscard(false);
             setAddOpen(false);
-            setAddUsers([]);
+            setAddSelections([]);
             setAddRole("editor");
             setAddNotify(true);
             setAddAllowDup(false);
@@ -404,41 +541,58 @@ export default function ManageAccessDialog({
         }
         return a.every((pu, i) => pu.user.id === b[i].user.id && pu.role === b[i].role);
     }
+    function sameGroups(a: PermissionGroup[], b: PermissionGroup[]) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        return a.every((pg, i) => pg.group.id === b[i].group.id && pg.role === b[i].role);
+    }
     const initS = initialSettings ?? dflt;
     const isDirty =
-    tab !== initS.tab ||
-    everyoneRole !== initS.everyoneRole ||
-    !sameUsers(users, initS.users) ||
-    !sameIds(ownerUsers, initS.ownerUsers);
+        tab !== initS.tab ||
+        everyoneRole !== initS.everyoneRole ||
+        !sameUsers(users, initS.users) ||
+        !sameGroups(groups, initS.groups ?? []) ||
+        !sameIds(ownerUsers, initS.ownerUsers);
 
     function handleClose() {
         if (addOpen) {
             setAddOpen(false); return; 
         }
         if (isDirty) {
-            setShowDiscard(true);
+            setShowDiscard(true); 
         }
         else {
-            onClose();
+            onClose(); 
         }
     }
     function handleSave() {
-        onSave({ tab, everyoneRole, users, ownerUsers }); 
+        onSave({ tab, everyoneRole, users, groups, ownerUsers });
     }
 
-    function handleAddUsers() {
-        if (addUsers.length === 0) {
+    function handleAdd() {
+        if (addSelections.length === 0) {
             return;
         }
-        const existingIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)]);
-        const newOnes = addUsers
-            .filter(u => !existingIds.has(u.id))
-            .map(u => ({ user: u, role: addRole }));
-        if (newOnes.length > 0) {
-            setUsers(prev => [...prev, ...newOnes]);
+        const existingUserIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)]);
+        const existingGroupIds = new Set(groups.map(pg => pg.group.id));
+
+        const newUsers = addSelections
+            .filter(s => s.kind === "user" && !existingUserIds.has((s.data as User).id))
+            .map(s => ({ user: s.data as User, role: addRole }));
+        const newGroups = addSelections
+            .filter(s => s.kind === "group" && !existingGroupIds.has((s.data as UserGroup).id))
+            .map(s => ({ group: s.data as UserGroup, role: addRole }));
+
+        if (newUsers.length > 0) {
+            setUsers(prev => [...prev, ...newUsers]);
         }
+        if (newGroups.length > 0) {
+            setGroups(prev => [...prev, ...newGroups]);
+        }
+
         setAddOpen(false);
-        setAddUsers([]);
+        setAddSelections([]);
         setAddRole("editor");
         setAddAllowDup(false);
     }
@@ -447,7 +601,7 @@ export default function ManageAccessDialog({
         setMenuAnchor(e.currentTarget); setMenuTarget(target);
     }
     function closeMenuFn() {
-        setMenuAnchor(null); setMenuTarget(null); 
+        setMenuAnchor(null); setMenuTarget(null);
     }
 
     function changeUserRole(userId: string, role: UserRole) {
@@ -456,12 +610,22 @@ export default function ManageAccessDialog({
     function removeUser(userId: string) {
         setUsers(prev => prev.filter(pu => pu.user.id !== userId));
     }
+    function changeGroupRole(groupId: string, role: UserRole) {
+        setGroups(prev => prev.map(pg => pg.group.id === groupId ? { ...pg, role } : pg));
+    }
+    function removeGroup(groupId: string) {
+        setGroups(prev => prev.filter(pg => pg.group.id !== groupId));
+    }
 
     const menuUser = (menuTarget && menuTarget !== "owner" && menuTarget !== "everyone")
         ? (users.find(pu => pu.user.id === menuTarget) ?? null)
         : null;
+    const menuGroup = (menuTarget && menuTarget !== "owner" && menuTarget !== "everyone" && !menuUser)
+        ? (groups.find(pg => pg.group.id === menuTarget) ?? null)
+        : null;
 
     const excludeIdsForAdd = [OWNER_USER.id, ...users.map(pu => pu.user.id)];
+    const excludeGroupIdsForAdd = groups.map(pg => pg.group.id);
 
     return (
         <>
@@ -482,7 +646,7 @@ export default function ManageAccessDialog({
                                 <SvgIcon><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                             </IconButton>
                         )}
-                        {addOpen ? "Add users" : "Manage access"}
+                        {addOpen ? "Add users or groups" : "Manage access"}
                     </Box>
                 </TruffleDialogTitle>
 
@@ -517,7 +681,7 @@ export default function ManageAccessDialog({
                             {/* Who can access */}
                             <Box>
                                 <Typography variant="h5" sx={sectionTitleSx}>
-                  Who can access
+                                    Who can access
                                 </Typography>
 
                                 <Box sx={accessListBoxSx}>
@@ -529,6 +693,18 @@ export default function ManageAccessDialog({
                                         roleLabel={ownerRoleLabel}
                                         onRoleClick={e => openMenuFn(e, "owner")}
                                     />
+
+                                    {/* Added groups — teams tab only */}
+                                    {tab === "teams" && groups.map(pg => (
+                                        <Box key={pg.group.id}>
+                                            <Divider />
+                                            <GroupRow
+                                                group={pg.group}
+                                                roleLabel={pg.role === "editor" ? "Can edit" : "Can view"}
+                                                onRoleClick={e => openMenuFn(e, pg.group.id)}
+                                            />
+                                        </Box>
+                                    ))}
 
                                     {/* Added users — teams tab only */}
                                     {tab === "teams" && users.map(pu => (
@@ -554,7 +730,7 @@ export default function ManageAccessDialog({
                                                 </Box>
                                                 <Box sx={flexMinWidthSx}>
                                                     <Typography variant="subtitle2" sx={everyoneNameSx}>
-                            Everyone in your account
+                                                        Everyone in your account
                                                     </Typography>
                                                 </Box>
                                                 <RoleButton
@@ -572,19 +748,20 @@ export default function ManageAccessDialog({
                                         sx={privateAlertSx}
                                     >
                                         {itemType === "folder"
-                                            ? "Only you can view this folder\u2019s media and all the folders inside it"
+                                            ? "Only you can view this folder’s media and all the folders inside it"
                                             : "Only you can view this media"}
                                     </Alert>
                                 )}
                             </Box>
                         </Box>
 
-                        {/* ── Panel 2: Add users ──────────────────────────────────────── */}
+                        {/* ── Panel 2: Add users or groups ────────────────────────────── */}
                         <Box sx={addUsersPanelSx}>
                             <AddUsersAutocomplete
-                                value={addUsers}
-                                onChange={setAddUsers}
+                                value={addSelections}
+                                onChange={setAddSelections}
                                 excludeIds={excludeIdsForAdd}
+                                excludeGroupIds={excludeGroupIdsForAdd}
                                 addRole={addRole}
                                 onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
                             />
@@ -618,7 +795,7 @@ export default function ManageAccessDialog({
                                     onClick={() => setAddOpen(true)}
                                     sx={addUserButtonSx}
                                 >
-                                    Add user
+                                    Add user and groups
                                 </Button>
                             )}
                             <Box sx={flexSpacerSx} />
@@ -633,8 +810,8 @@ export default function ManageAccessDialog({
                                 sx={notifyLabelSx}
                             />
                             <Button variant="text" size="large" onClick={() => setAddOpen(false)}>Cancel</Button>
-                            <Button variant="contained" size="large" disabled={addUsers.length === 0} onClick={handleAddUsers}>
-                                Add users
+                            <Button variant="contained" size="large" disabled={addSelections.length === 0} onClick={handleAdd}>
+                                Add
                             </Button>
                         </>
                     )}
@@ -682,6 +859,26 @@ export default function ManageAccessDialog({
                         <Divider key="d2" sx={menuDividerSx} />,
                         <TruffleMenuItem key="rm" error onClick={() => {
                             removeUser(menuTarget as string); closeMenuFn();
+                        }}>
+                            Remove permission
+                        </TruffleMenuItem>
+                    ]}
+
+                    {/* Added group menu */}
+                    {menuGroup && [
+                        <TruffleMenuItem key="ed" selected={menuGroup.role === "editor"} onClick={() => {
+                            changeGroupRole(menuTarget as string, "editor"); closeMenuFn();
+                        }}>
+                            Can edit
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="vi" selected={menuGroup.role === "viewer"} onClick={() => {
+                            changeGroupRole(menuTarget as string, "viewer"); closeMenuFn();
+                        }}>
+                            Can view
+                        </TruffleMenuItem>,
+                        <Divider key="d1" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="rm" error onClick={() => {
+                            removeGroup(menuTarget as string); closeMenuFn();
                         }}>
                             Remove permission
                         </TruffleMenuItem>
@@ -743,7 +940,7 @@ export default function ManageAccessDialog({
                 <TruffleDialogActions>
                     <Button variant="text" onClick={() => setShowDiscard(false)}>Keep editing</Button>
                     <Button variant="contained" color="error" onClick={() => {
-                        setShowDiscard(false); onClose(); 
+                        setShowDiscard(false); onClose();
                     }}>
                         Discard
                     </Button>
@@ -758,7 +955,8 @@ export default function ManageAccessDialog({
 const tooltipTitlePrimarySx: SxProps<Theme> = {
     fontWeight: 600,
     color: "common.white",
-    lineHeight: 1.5
+    lineHeight: 1.5,
+    display: "block"
 };
 
 const popupIconSx: SxProps<Theme> = { fontSize: 18 };
@@ -780,6 +978,77 @@ const autocompleteListboxSx: SxProps<Theme> = {
 };
 
 const autocompletePaperSx: SxProps<Theme> = { borderRadius: "8px", mt: "4px" };
+
+const autocompleteGroupHeaderSx: SxProps<Theme> = {
+    px: "12px",
+    py: "6px",
+    bgcolor: "grey.50",
+    borderBottom: 1,
+    borderColor: "divider"
+};
+
+const autocompleteGroupLabelSx: SxProps<Theme> = {
+    color: "text.secondary",
+    letterSpacing: "0.02em"
+};
+
+const groupIconBoxBaseSx: SxProps<Theme> = {
+    borderRadius: "8px",
+    bgcolor: "grey.100",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    cursor: "default"
+};
+
+const groupIconSx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
+
+const groupAvatarRowBoxSx: SxProps<Theme> = {
+    width: 36,
+    height: 36,
+    borderRadius: "8px",
+    bgcolor: "grey.100",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    cursor: "default"
+};
+
+const groupAvatarRowIconSx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
+
+const groupChipIconBoxSx: SxProps<Theme> = {
+    width: 18,
+    height: 18,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "4px",
+    bgcolor: "grey.300",
+    flexShrink: 0
+};
+
+const groupChipIconSx: SxProps<Theme> = { fontSize: 11, color: "text.secondary" };
+
+const groupChipSx: SxProps<Theme> = {
+    bgcolor: "grey.200",
+    color: "text.primary",
+    "& .MuiChip-deleteIcon": { color: "action.disabled", "&:hover": { color: "text.primary" } }
+};
+
+const groupOptionIconBoxSx: SxProps<Theme> = {
+    width: 36,
+    height: 36,
+    borderRadius: "8px",
+    bgcolor: "grey.100",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0
+};
+
+const groupOptionIconSx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
 
 const roleButtonChevronIconSx: SxProps<Theme> = { fontSize: 12 };
 

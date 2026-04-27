@@ -20,9 +20,12 @@ import {
     type EveryoneRole,
     type UserRole,
     type PermissionUser,
+    type PermissionGroup,
+    type UserGroup,
     type User,
     OWNER_USER,
-    ALL_USERS
+    ALL_USERS,
+    ALL_GROUPS
 } from "./ManageAccessDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,9 +35,15 @@ export interface VideoPermissionSettings {
   tab: PermissionTab
   everyoneRole: EveryoneRole
   users: PermissionUser[]
+  groups: PermissionGroup[]
   ownerUsers: User[]
   noDuplicate: boolean
 }
+
+// ─── Add option union ─────────────────────────────────────────────────────────
+type AddOption =
+    | { kind: "user"; data: User }
+    | { kind: "group"; data: UserGroup }
 
 // ─── VideoAccessBar ───────────────────────────────────────────────────────────
 export function VideoAccessBar({
@@ -50,17 +59,18 @@ export function VideoAccessBar({
         tab:          "teams" as const,
         everyoneRole: "viewer" as const,
         users:        [] as PermissionUser[],
+        groups:       [] as PermissionGroup[],
         ownerUsers:   [OWNER_USER],
         noDuplicate:  false
     };
-    const { tab, everyoneRole, users, ownerUsers } = s;
+    const { tab, everyoneRole, users, groups, ownerUsers } = s;
 
     const permLabel = tab === "private" ? "Only me" : "Teams and people";
     const PermIcon = tab === "private" ? faLock : faUsers;
     const permColor = tab === "private" ? "success.main" : "primary.main";
 
     const showEveryone = tab === "teams" && everyoneRole !== "restricted";
-    const rightUsers = tab === "teams" && everyoneRole === "restricted" ? users : [];
+    const restrictedMode = tab === "teams" && everyoneRole === "restricted";
 
     const UserChip = ({ bg, initials, tip }: { bg: string; initials: string; tip: React.ReactNode }) => (
         <Tooltip title={tip} placement="top" arrow slotProps={{ tooltip: { sx: navyTipSx } }}>
@@ -79,12 +89,35 @@ export function VideoAccessBar({
         </Box>
     );
 
+    const GroupChip = ({ group, desc }: { group: UserGroup; desc: string }) => {
+        const tooltipContent = (
+            <Box>
+                <Typography variant="caption" sx={tipContentNameSx}>{group.name}</Typography>
+                {group.members.map(m => (
+                    <Typography key={m.id} variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.8), lineHeight: 1.4 }}>
+                        • {m.name}
+                    </Typography>
+                ))}
+                <Typography variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.55), lineHeight: 1.4, mt: 0.5 }}>
+                    {desc}
+                </Typography>
+            </Box>
+        );
+        return (
+            <Tooltip title={tooltipContent} placement="top" arrow slotProps={{ tooltip: { sx: navyTipSx } }}>
+                <Box sx={groupChipBoxSx}>
+                    <SvgIcon sx={groupChipIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                </Box>
+            </Tooltip>
+        );
+    };
+
     return (
         <Box sx={accessBarRootSx}>
             {/* Visible [icon] [label] ▾ */}
             <Box sx={accessBarVisibleRowSx}>
                 <Typography variant="caption" sx={accessBarVisibleLabelSx}>
-          Visible
+                    Visible
                 </Typography>
                 <Box
                     onClick={onChangePermission}
@@ -113,7 +146,7 @@ export function VideoAccessBar({
                     />
                 ))}
 
-                {(showEveryone || rightUsers.length > 0) && (
+                {(showEveryone || restrictedMode) && (
                     <Box sx={avatarDividerLineSx} />
                 )}
 
@@ -128,7 +161,15 @@ export function VideoAccessBar({
                     </Tooltip>
                 )}
 
-                {rightUsers.map((pu, i) => (
+                {restrictedMode && groups.map(pg => (
+                    <GroupChip
+                        key={pg.group.id}
+                        group={pg.group}
+                        desc={pg.role === "editor" ? "Group members can edit the video" : "Group members can view the video"}
+                    />
+                ))}
+
+                {restrictedMode && users.map((pu, i) => (
                     <UserChip
                         key={pu.user.id + i}
                         bg={pu.user.color}
@@ -147,7 +188,7 @@ export function VideoAccessBar({
                 onClick={onManageAccess}
                 sx={manageAccessButtonSx}
             >
-        Manage access
+                Manage access
             </Button>
         </Box>
     );
@@ -195,13 +236,50 @@ function PersonRow({
     );
 }
 
-// ─── Inline Add Users Autocomplete ────────────────────────────────────────────
-function InlineAddUsers({
-    value, onChange, excludeIds, addRole, onRoleClick, onCancel, onAdd, noDuplicate, onNoDuplicateChange, notifyEmail, onNotifyEmailChange
+function GroupRow({
+    group, roleLabel, onRoleClick
 }: {
-  value: User[]
-  onChange: (v: User[]) => void
+  group: UserGroup
+  roleLabel: string
+  onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
+}) {
+    const tooltipContent = (
+        <Box>
+            <Typography variant="caption" sx={groupTooltipTitleSx}>{group.name}</Typography>
+            {group.members.map(m => (
+                <Typography key={m.id} variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.8), lineHeight: 1.5 }}>
+                    • {m.name}
+                </Typography>
+            ))}
+            <Typography variant="caption" sx={{ display: "block", color: (theme: Theme) => alpha(theme.palette.common.white, 0.55), lineHeight: 1.5, mt: 0.5 }}>
+                Group members are managed by account owners
+            </Typography>
+        </Box>
+    );
+    return (
+        <Box sx={personRowSx}>
+            <Tooltip title={tooltipContent} placement="bottom" arrow slotProps={{ tooltip: { sx: navyTipSxDialog } }}>
+                <Box sx={groupAvatarBoxSx}>
+                    <SvgIcon sx={groupAvatarIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                </Box>
+            </Tooltip>
+            <Box sx={personRowInfoSx}>
+                <Typography variant="subtitle2" sx={personRowNameSx}>{group.name}</Typography>
+                <Typography variant="caption" sx={personRowEmailSx}>{group.members.length} members</Typography>
+            </Box>
+            <RoleButton label={roleLabel} onClick={onRoleClick} />
+        </Box>
+    );
+}
+
+// ─── Inline Add Users+Groups Autocomplete ─────────────────────────────────────
+function InlineAddUsersGroups({
+    value, onChange, excludeIds, excludeGroupIds, addRole, onRoleClick, onCancel, onAdd, noDuplicate, onNoDuplicateChange, notifyEmail, onNotifyEmailChange
+}: {
+  value: AddOption[]
+  onChange: (v: AddOption[]) => void
   excludeIds: string[]
+  excludeGroupIds: string[]
   addRole: UserRole
   onRoleClick: (e: React.MouseEvent<HTMLElement>) => void
   onCancel: () => void
@@ -211,24 +289,42 @@ function InlineAddUsers({
   notifyEmail?: boolean
   onNotifyEmailChange?: (v: boolean) => void
 }) {
-    const options = ALL_USERS.filter(u => !excludeIds.includes(u.id));
+    const userOptions: AddOption[] = ALL_USERS
+        .filter(u => !excludeIds.includes(u.id))
+        .map(u => ({ kind: "user", data: u }));
+    const groupOptions: AddOption[] = ALL_GROUPS
+        .filter(g => !excludeGroupIds.includes(g.id))
+        .map(g => ({ kind: "group", data: g }));
+    const options: AddOption[] = [...groupOptions, ...userOptions];
+
     return (
         <Box sx={addUsersRootSx}>
-            <Autocomplete<User, true>
+            <Autocomplete<AddOption, true>
                 multiple
                 autoFocus
                 value={value}
                 onChange={(_, v) => onChange(v)}
                 options={options}
-                getOptionLabel={u => u.name}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
+                groupBy={opt => opt.kind === "group" ? "User groups" : "Users"}
+                getOptionLabel={opt => opt.data.name}
+                isOptionEqualToValue={(a, b) => a.kind === b.kind && a.data.id === b.data.id}
                 disableCloseOnSelect
                 popupIcon={null}
+                renderGroup={params => (
+                    <Box key={params.key}>
+                        <Box sx={groupHeaderBoxSx}>
+                            <Typography variant="subtitle2" sx={groupHeaderLabelSx}>
+                                {params.group}
+                            </Typography>
+                        </Box>
+                        {params.children}
+                    </Box>
+                )}
                 renderInput={params => (
                     <TextField
                         {...params}
                         autoFocus
-                        placeholder={value.length === 0 ? "Search users…" : ""}
+                        placeholder={value.length === 0 ? "Search users or groups…" : ""}
                         inputProps={{ ...params.inputProps, autoComplete: "new-password" }}
                         InputProps={{
                             ...params.InputProps,
@@ -251,31 +347,62 @@ function InlineAddUsers({
                     />
                 )}
                 renderTags={(tagValue, getTagProps) =>
-                    tagValue.map((user, index) => (
-                        <Chip
-                            {...getTagProps({ index })}
-                            key={user.id}
-                            label={user.name}
-                            size="small"
-                            avatar={<Avatar sx={chipAvatarSx}>{user.initials}</Avatar>}
-                            sx={chipSx}
-                        />
-                    ))
+                    tagValue.map((opt, index) => {
+                        if (opt.kind === "group") {
+                            const g = opt.data as UserGroup;
+                            return (
+                                <Chip
+                                    {...getTagProps({ index })}
+                                    key={g.id}
+                                    label={g.name}
+                                    size="small"
+                                    avatar={
+                                        <Box sx={tagGroupIconBoxSx}>
+                                            <SvgIcon sx={tagGroupIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                        </Box>
+                                    }
+                                    sx={groupTagChipSx}
+                                />
+                            );
+                        }
+                        const u = opt.data as User;
+                        return (
+                            <Chip
+                                {...getTagProps({ index })}
+                                key={u.id}
+                                label={u.name}
+                                size="small"
+                                avatar={<Avatar sx={chipAvatarSx}>{u.initials}</Avatar>}
+                                sx={chipSx}
+                            />
+                        );
+                    })
                 }
                 renderOption={(props, option) => {
                     const { key, ...listProps } = props as typeof props & { key: string };
+                    if (option.kind === "group") {
+                        const g = option.data as UserGroup;
+                        return (
+                            <Box key={key} component="li" {...listProps} sx={optionRowSx}>
+                                <Box sx={optionGroupIconBoxSx}>
+                                    <SvgIcon sx={optionGroupIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                </Box>
+                                <Box sx={optionInfoSx}>
+                                    <Typography variant="subtitle2" sx={optionNameSx}>{g.name}</Typography>
+                                    <Typography variant="caption" sx={optionEmailSx}>{g.members.length} members</Typography>
+                                </Box>
+                            </Box>
+                        );
+                    }
+                    const u = option.data as User;
                     return (
                         <Box key={key} component="li" {...listProps} sx={optionRowSx}>
                             <Avatar variant="rounded" sx={optionAvatarSx}>
-                                {option.initials}
+                                {u.initials}
                             </Avatar>
                             <Box sx={optionInfoSx}>
-                                <Typography variant="subtitle2" sx={optionNameSx}>
-                                    {option.name}
-                                </Typography>
-                                <Typography variant="caption" sx={optionEmailSx}>
-                                    {option.email}
-                                </Typography>
+                                <Typography variant="subtitle2" sx={optionNameSx}>{u.name}</Typography>
+                                <Typography variant="caption" sx={optionEmailSx}>{u.email}</Typography>
                             </Box>
                         </Box>
                     );
@@ -296,7 +423,7 @@ function InlineAddUsers({
                             sx={checkboxSx}
                         />
                         <Typography variant="body1" sx={checkboxLabelSx}>
-              Allow to duplicate videos
+                            Allow to duplicate videos
                         </Typography>
                     </Box>
                 </Box>
@@ -313,18 +440,17 @@ function InlineAddUsers({
                         sx={checkboxSx}
                     />
                     <Typography variant="body1" sx={checkboxLabelSx}>
-            Notify via email
+                        Notify via email
                     </Typography>
                 </Box>
             </Box>
 
             <Box sx={addUsersActionsRowSx}>
-                <Button size="small" onClick={onCancel}
-                    sx={cancelButtonSx}>
-          Cancel
+                <Button size="small" onClick={onCancel} sx={cancelButtonSx}>
+                    Cancel
                 </Button>
                 <Button size="small" variant="contained" disabled={value.length === 0} onClick={onAdd}>
-          Add
+                    Add
                 </Button>
             </Box>
         </Box>
@@ -344,21 +470,21 @@ export default function VideoPermissionDialog({
   initialSettings?: VideoPermissionSettings
 }) {
     const dflt: VideoPermissionSettings = {
-        tab: "teams", everyoneRole: "viewer", users: [], ownerUsers: [OWNER_USER], noDuplicate: false
+        tab: "teams", everyoneRole: "viewer", users: [], groups: [], ownerUsers: [OWNER_USER], noDuplicate: false
     };
 
     const [tab, setTab] = useState<PermissionTab>(initialSettings?.tab ?? "teams");
     const [everyoneRole, setEveryoneRole] = useState<EveryoneRole>(initialSettings?.everyoneRole ?? "viewer");
     const [users, setUsers] = useState<PermissionUser[]>(initialSettings?.users ?? []);
+    const [groups, setGroups] = useState<PermissionGroup[]>(initialSettings?.groups ?? []);
     const [ownerUsers, setOwnerUsers] = useState<User[]>(initialSettings?.ownerUsers ?? [OWNER_USER]);
     const [noDuplicate, setNoDuplicate] = useState(initialSettings?.noDuplicate ?? false);
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const [menuTarget, setMenuTarget] = useState<"owner" | "everyone" | string | null>(null);
     const [showDiscard, setShowDiscard] = useState(false);
 
-    // Add users dialog state (separate dialog that replaces main content)
     const [showAddDialog, setShowAddDialog] = useState(false);
-    const [addUsers, setAddUsers] = useState<User[]>([]);
+    const [addSelections, setAddSelections] = useState<AddOption[]>([]);
     const [addRole, setAddRole] = useState<UserRole>("editor");
     const [addRoleAnchor, setAddRoleAnchor] = useState<null | HTMLElement>(null);
     const [addNoDuplicate, setAddNoDuplicate] = useState(false);
@@ -370,13 +496,14 @@ export default function VideoPermissionDialog({
             setTab(s.tab);
             setEveryoneRole(s.everyoneRole);
             setUsers(s.users);
+            setGroups(s.groups ?? []);
             setOwnerUsers(s.ownerUsers.length ? s.ownerUsers : [OWNER_USER]);
             setNoDuplicate(s.noDuplicate);
             setMenuAnchor(null);
             setMenuTarget(null);
             setShowDiscard(false);
             setShowAddDialog(false);
-            setAddUsers([]);
+            setAddSelections([]);
             setAddRole("editor");
             setAddRoleAnchor(null);
             setAddNoDuplicate(false);
@@ -398,46 +525,64 @@ export default function VideoPermissionDialog({
         }
         return a.every((pu, i) => pu.user.id === b[i].user.id && pu.role === b[i].role);
     }
+    function sameGroups(a: PermissionGroup[], b: PermissionGroup[]) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        return a.every((pg, i) => pg.group.id === b[i].group.id && pg.role === b[i].role);
+    }
     const initS = initialSettings ?? dflt;
     const isDirty =
-    tab !== initS.tab ||
-    everyoneRole !== initS.everyoneRole ||
-    noDuplicate !== initS.noDuplicate ||
-    !sameUsers(users, initS.users) ||
-    !sameIds(ownerUsers, initS.ownerUsers);
+        tab !== initS.tab ||
+        everyoneRole !== initS.everyoneRole ||
+        noDuplicate !== initS.noDuplicate ||
+        !sameUsers(users, initS.users) ||
+        !sameGroups(groups, initS.groups ?? []) ||
+        !sameIds(ownerUsers, initS.ownerUsers);
 
     function handleClose() {
         if (showAddDialog) {
-            setShowAddDialog(false); return;
+            setShowAddDialog(false); return; 
         }
         if (isDirty) {
-            setShowDiscard(true);
+            setShowDiscard(true); 
         }
         else {
-            onClose();
+            onClose(); 
         }
     }
     function handleSave() {
-        onSave({ tab, everyoneRole, users, ownerUsers, noDuplicate });
+        onSave({ tab, everyoneRole, users, groups, ownerUsers, noDuplicate });
     }
 
-    function handleAddUsers() {
-        if (addUsers.length === 0) {
+    function handleAdd() {
+        if (addSelections.length === 0) {
             return;
         }
-        const existingIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)]);
-        const newOnes = addUsers
-            .filter(u => !existingIds.has(u.id))
-            .map(u => ({ user: u, role: addRole }));
-        if (newOnes.length > 0) {
-            setUsers(prev => [...prev, ...newOnes]);
+        const existingUserIds = new Set([OWNER_USER.id, ...users.map(pu => pu.user.id)]);
+        const existingGroupIds = new Set(groups.map(pg => pg.group.id));
+
+        const newUsers = addSelections
+            .filter(s => s.kind === "user" && !existingUserIds.has((s.data as User).id))
+            .map(s => ({ user: s.data as User, role: addRole }));
+        const newGroups = addSelections
+            .filter(s => s.kind === "group" && !existingGroupIds.has((s.data as UserGroup).id))
+            .map(s => ({ group: s.data as UserGroup, role: addRole }));
+
+        if (newUsers.length > 0) {
+            setUsers(prev => [...prev, ...newUsers]);
         }
+        if (newGroups.length > 0) {
+            setGroups(prev => [...prev, ...newGroups]);
+        }
+
         setShowAddDialog(false);
-        setAddUsers([]);
+        setAddSelections([]);
         setAddRole("editor");
     }
 
     const excludeIdsForAdd = [OWNER_USER.id, ...users.map(pu => pu.user.id)];
+    const excludeGroupIdsForAdd = groups.map(pg => pg.group.id);
 
     function openMenuFn(e: React.MouseEvent<HTMLElement>, target: "owner" | "everyone" | string) {
         setMenuAnchor(e.currentTarget); setMenuTarget(target);
@@ -452,12 +597,20 @@ export default function VideoPermissionDialog({
     function removeUser(userId: string) {
         setUsers(prev => prev.filter(pu => pu.user.id !== userId));
     }
+    function changeGroupRole(groupId: string, role: UserRole) {
+        setGroups(prev => prev.map(pg => pg.group.id === groupId ? { ...pg, role } : pg));
+    }
+    function removeGroup(groupId: string) {
+        setGroups(prev => prev.filter(pg => pg.group.id !== groupId));
+    }
 
     const menuUser = (menuTarget && menuTarget !== "owner" && menuTarget !== "everyone")
         ? (users.find(pu => pu.user.id === menuTarget) ?? null)
         : null;
+    const menuGroup = (menuTarget && menuTarget !== "owner" && menuTarget !== "everyone" && !menuUser)
+        ? (groups.find(pg => pg.group.id === menuTarget) ?? null)
+        : null;
 
-    // Everyone row icon: PersonOffIcon when restricted, GroupsIcon otherwise
     const EveryoneIcon = everyoneRole === "restricted" ? faUserSlash : faUsers;
 
     return (
@@ -483,13 +636,13 @@ export default function VideoPermissionDialog({
                             <IconButton
                                 size="small"
                                 onClick={() => {
-                                    setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null); 
+                                    setShowAddDialog(false); setAddSelections([]); setAddRoleAnchor(null);
                                 }}
                                 sx={backIconButtonSx}
                             >
                                 <SvgIcon><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                             </IconButton>
-                            Add users
+                            Add users or groups
                         </Box>
                     </TruffleDialogTitle>
                 )}
@@ -518,9 +671,8 @@ export default function VideoPermissionDialog({
 
                         {/* Access list */}
                         <Box sx={accessListSx}>
-                            {/* Who can access label */}
                             <Typography variant="h5" sx={whoCanAccessLabelSx}>
-                Who can access
+                                Who can access
                             </Typography>
 
                             <Box sx={accessListBorderSx}>
@@ -536,6 +688,18 @@ export default function VideoPermissionDialog({
                                     roleLabel="Video owner"
                                     onRoleClick={tab === "teams" ? e => openMenuFn(e, "owner") : () => {}}
                                 />
+
+                                {/* Group rows — only when teams tab */}
+                                {tab === "teams" && groups.map(pg => (
+                                    <Box key={pg.group.id}>
+                                        <Divider sx={greyDividerSx} />
+                                        <GroupRow
+                                            group={pg.group}
+                                            roleLabel={pg.role === "editor" ? "Can edit" : "Can view"}
+                                            onRoleClick={e => openMenuFn(e, pg.group.id)}
+                                        />
+                                    </Box>
+                                ))}
 
                                 {/* Specific users — only when teams tab */}
                                 {tab === "teams" && users.map(pu => (
@@ -565,7 +729,7 @@ export default function VideoPermissionDialog({
                                             </Box>
                                             <Box sx={everyoneRowInfoSx}>
                                                 <Typography variant="subtitle2" sx={everyoneRowNameSx}>
-                          Everyone in your account
+                                                    Everyone in your account
                                                 </Typography>
                                             </Box>
                                             <RoleButton
@@ -576,7 +740,7 @@ export default function VideoPermissionDialog({
                                     </>
                                 )}
 
-                                {/* Only-me state: owner row is already shown above; show info row */}
+                                {/* Only-me state */}
                                 {tab === "private" && (
                                     <>
                                         <Divider sx={greyDividerSx} />
@@ -586,7 +750,7 @@ export default function VideoPermissionDialog({
                                                 icon={<SvgIcon><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
                                                 sx={privateAlertSx}
                                             >
-                        Only you can see this video.
+                                                Only you can see this video.
                                             </Alert>
                                         </Box>
                                     </>
@@ -596,16 +760,17 @@ export default function VideoPermissionDialog({
                     </DialogContent>
                 ) : (
                     <DialogContent sx={addDialogContentSx}>
-                        <InlineAddUsers
-                            value={addUsers}
-                            onChange={setAddUsers}
+                        <InlineAddUsersGroups
+                            value={addSelections}
+                            onChange={setAddSelections}
                             excludeIds={excludeIdsForAdd}
+                            excludeGroupIds={excludeGroupIdsForAdd}
                             addRole={addRole}
                             onRoleClick={e => setAddRoleAnchor(e.currentTarget)}
                             onCancel={() => {
-                                setShowAddDialog(false); setAddUsers([]); setAddRoleAnchor(null); setAddNoDuplicate(false); setNotifyViaEmail(true);
+                                setShowAddDialog(false); setAddSelections([]); setAddRoleAnchor(null); setAddNoDuplicate(false); setNotifyViaEmail(true);
                             }}
-                            onAdd={handleAddUsers}
+                            onAdd={handleAdd}
                             noDuplicate={addNoDuplicate}
                             onNoDuplicateChange={setAddNoDuplicate}
                             notifyEmail={notifyViaEmail}
@@ -619,18 +784,16 @@ export default function VideoPermissionDialog({
                 {/* ── Actions ────────────────────────────────────────────────────────── */}
                 {!showAddDialog && (
                     <TruffleDialogActions sx={dialogActionsSx}>
-                        {/* Left side: + Add user button */}
                         {tab === "teams" ? (
                             <Button
                                 variant="text"
                                 startIcon={<SvgIcon sx={addUserIconSx}><FontAwesomeIcon icon={faUserPlus} /></SvgIcon>}
                                 onClick={() => setShowAddDialog(true)}
                             >
-                                Add user
+                                Add user and groups
                             </Button>
                         ) : <Box />}
 
-                        {/* Right side: Cancel and Save buttons */}
                         <Box sx={dialogActionsRightSx}>
                             <Button variant="outlined" color="primary" size="large" onClick={handleClose}>
                                 Cancel
@@ -642,7 +805,7 @@ export default function VideoPermissionDialog({
                     </TruffleDialogActions>
                 )}
 
-                {/* Role dropdown for add-user */}
+                {/* Role dropdown for add */}
                 <Menu
                     anchorEl={addRoleAnchor}
                     open={Boolean(addRoleAnchor)}
@@ -663,7 +826,7 @@ export default function VideoPermissionDialog({
                     </TruffleMenuItem>
                 </Menu>
 
-                {/* Role dropdown menu (for existing user rows) */}
+                {/* Role dropdown menu for existing rows */}
                 <Menu
                     anchorEl={menuAnchor}
                     open={Boolean(menuAnchor)}
@@ -716,6 +879,26 @@ export default function VideoPermissionDialog({
                         </TruffleMenuItem>
                     ]}
 
+                    {/* Added group menu */}
+                    {menuGroup && [
+                        <TruffleMenuItem key="ed" selected={menuGroup.role === "editor"} onClick={() => {
+                            changeGroupRole(menuTarget as string, "editor"); closeMenuFn();
+                        }}>
+                            Can edit
+                        </TruffleMenuItem>,
+                        <TruffleMenuItem key="vi" selected={menuGroup.role === "viewer"} onClick={() => {
+                            changeGroupRole(menuTarget as string, "viewer"); closeMenuFn();
+                        }}>
+                            Can view
+                        </TruffleMenuItem>,
+                        <Divider key="d1" sx={menuDividerSx} />,
+                        <TruffleMenuItem key="rm" error onClick={() => {
+                            removeGroup(menuTarget as string); closeMenuFn();
+                        }}>
+                            Remove permission
+                        </TruffleMenuItem>
+                    ]}
+
                     {/* Everyone menu */}
                     {menuTarget === "everyone" && [
                         <TruffleMenuItem key="ed" selected={everyoneRole === "editor"} onClick={() => {
@@ -751,7 +934,7 @@ export default function VideoPermissionDialog({
                 </TruffleDialogTitle>
                 <DialogContent sx={discardDialogContentSx}>
                     <Typography variant="body1" sx={discardDialogTextSx}>
-            All your changes will be lost and the permissions will remain unchanged.
+                        All your changes will be lost and the permissions will remain unchanged.
                     </Typography>
                 </DialogContent>
                 <TruffleDialogActions>
@@ -779,6 +962,18 @@ const navyTipSx: SxProps<Theme> = {
     "& .MuiTooltip-arrow": { color: "secondary.main" }
 };
 
+const navyTipSxDialog: SxProps<Theme> = {
+    bgcolor: "secondary.main",
+    borderRadius: "8px",
+    px: 1.5, py: 1,
+    maxWidth: 260,
+    "& .MuiTooltip-arrow": { color: "secondary.main" }
+};
+
+const groupTooltipTitleSx: SxProps<Theme> = {
+    fontWeight: 600, color: "common.white", lineHeight: 1.5, display: "block"
+};
+
 const userChipBoxSx: SxProps<Theme> = {
     width: 32, height: 32, borderRadius: "6px", flexShrink: 0,
     display: "flex", alignItems: "center", justifyContent: "center", cursor: "default"
@@ -789,7 +984,16 @@ const userChipInitialsSx: SxProps<Theme> = {
 };
 
 const tipContentNameSx: SxProps<Theme> = {
-    fontWeight: 600, color: "common.white", lineHeight: 1.4
+    fontWeight: 600, color: "common.white", lineHeight: 1.4, display: "block"
+};
+
+const groupChipBoxSx: SxProps<Theme> = {
+    width: 32, height: 32, borderRadius: "6px", bgcolor: "grey.200",
+    flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default"
+};
+
+const groupChipIconSx: SxProps<Theme> = {
+    fontSize: 16, color: "text.secondary"
 };
 
 const accessBarRootSx: SxProps<Theme> = {
@@ -875,6 +1079,13 @@ const personRowEmailSx: SxProps<Theme> = {
     color: "text.secondary", lineHeight: 1.3
 };
 
+const groupAvatarBoxSx: SxProps<Theme> = {
+    width: 36, height: 36, borderRadius: "8px", bgcolor: "grey.100",
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "default"
+};
+
+const groupAvatarIconSx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
+
 const addUsersRootSx: SxProps<Theme> = {
     display: "flex", flexDirection: "column", gap: "8px"
 };
@@ -899,6 +1110,26 @@ const autocompleteTextFieldSx: SxProps<Theme> = {
     "& .MuiInputBase-root": { flexWrap: "wrap", gap: "4px", p: "8px 12px" }
 };
 
+const groupHeaderBoxSx: SxProps<Theme> = {
+    px: "12px", py: "6px", bgcolor: "grey.50", borderBottom: 1, borderColor: "divider"
+};
+
+const groupHeaderLabelSx: SxProps<Theme> = {
+    color: "text.secondary", letterSpacing: "0.02em"
+};
+
+const tagGroupIconBoxSx: SxProps<Theme> = {
+    width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center",
+    borderRadius: "4px", bgcolor: "grey.300", flexShrink: 0
+};
+
+const tagGroupIconSx: SxProps<Theme> = { fontSize: 11, color: "text.secondary" };
+
+const groupTagChipSx: SxProps<Theme> = {
+    bgcolor: "grey.200", color: "text.primary",
+    "& .MuiChip-deleteIcon": { color: "action.disabled", "&:hover": { color: "text.primary" } }
+};
+
 const chipAvatarSx: SxProps<Theme> = {
     bgcolor: "divider", fontSize: "9px !important", fontWeight: 600, color: "text.primary"
 };
@@ -913,6 +1144,13 @@ const chipSx: SxProps<Theme> = {
 const optionRowSx: SxProps<Theme> = {
     display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1
 };
+
+const optionGroupIconBoxSx: SxProps<Theme> = {
+    width: 36, height: 36, borderRadius: "8px", bgcolor: "grey.100", flexShrink: 0,
+    display: "flex", alignItems: "center", justifyContent: "center"
+};
+
+const optionGroupIconSx: SxProps<Theme> = { fontSize: 18, color: "text.secondary" };
 
 const optionAvatarSx: SxProps<Theme> = {
     width: 36, height: 36, bgcolor: "divider", flexShrink: 0, color: "text.primary"
