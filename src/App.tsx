@@ -19,7 +19,7 @@ import TemplateStudioPage from "./pages/TemplateStudio/TemplateStudioPage";
 import { type NotificationItem } from "./panels/NotificationsPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./dialogs/VideoPermissionDialog";
 import VideoOverviewPage from "./pages/VideoOverview/VideoOverviewPage";
-import TasksPanel from "./components/TasksPanel";
+import TasksPanel, { type UserRole } from "./components/TasksPanel";
 
 // ─── Approver lookup ──────────────────────────────────────────────────────────
 const APPROVER_USERS: Record<string, string> = {
@@ -134,6 +134,9 @@ export default function App() {
     // In-progress language picks (before "Enable translations" applies them).
     // Also lifted so partial selections survive task switches.
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+
+    // User role selector in TasksPanel — determines permissions level
+    const [userRole, setUserRole] = useState<UserRole>("account-owner");
 
     // Per-template approval state — lifted out of TemplatePage so approval
     // selections (approvers, phase, etc.) persist across task switches.
@@ -445,6 +448,7 @@ export default function App() {
                         onUserDeletionBlocked={() => {
                             // User deletion blocked - dialog removed
                         }}
+                        userRole={userRole}
                     />
 
                 ) : currentPage === "studio" ? (
@@ -608,6 +612,8 @@ export default function App() {
                     setCurrentPage("library");
                 }}
                 onCurrentTaskChange={setCurrentTaskIdx}
+                userRole={userRole}
+                onUserRoleChange={setUserRole}
             />
 
             {/* ── Resubmitted-from-comments snackbar (fixed bottom-center) ──────── */}

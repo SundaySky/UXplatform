@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-    Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, SvgIcon, TextField, Tooltip, Typography
+    Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, SvgIcon, TextField, Tooltip, Typography,
+    Menu, MenuItem
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faArrowRight, faArrowsRotate, faCircleCheck, faXmark } from "@fortawesome/pro-regular-svg-icons";
+import { faArrowLeft, faArrowRight, faArrowsRotate, faCircleCheck, faXmark, faChevronDown } from "@fortawesome/pro-regular-svg-icons";
 
 interface Task { id: number; label: string | string[]; done: boolean }
 
@@ -23,16 +24,23 @@ const INITIAL_TASKS: Task[] = [
 
 type SessionState = "idle" | "active" | "survey" | "complete"
 
+export type UserRole = "account-owner" | "non-account-owner";
+
 export default function TasksPanel({
     onTaskDone,
-    onCurrentTaskChange
+    onCurrentTaskChange,
+    userRole = "account-owner",
+    onUserRoleChange
 }: {
     onTaskDone?: (taskIdx: number) => void
     onCurrentTaskChange?: (taskIdx: number) => void
+    userRole?: UserRole
+    onUserRoleChange?: (role: UserRole) => void
 }) {
     const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
     const [session, setSession] = useState<SessionState>("active");
     const [currentIdx, setCurrentIdx] = useState(0);
+    const [userRoleMenuAnchor, setUserRoleMenuAnchor] = useState<HTMLElement | null>(null);
 
     // Notify parent whenever the active task index changes (including via dot
     // navigation, arrows, mark-done, or restart).
@@ -309,6 +317,43 @@ export default function TasksPanel({
                     </Box>
                 </Box>
             )}
+
+            {/* User Role Button */}
+            <Box sx={userRoleButtonContainerSx}>
+                <Button
+                    size="small"
+                    variant="text"
+                    onClick={(e) => setUserRoleMenuAnchor(e.currentTarget)}
+                    endIcon={<SvgIcon sx={userRoleChevronSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
+                    sx={userRoleButtonSx}
+                >
+                    {userRole === "account-owner" ? "Account owner" : "Non account owner"}
+                </Button>
+                <Menu
+                    anchorEl={userRoleMenuAnchor}
+                    open={Boolean(userRoleMenuAnchor)}
+                    onClose={() => setUserRoleMenuAnchor(null)}
+                >
+                    <MenuItem
+                        selected={userRole === "account-owner"}
+                        onClick={() => {
+                            onUserRoleChange?.("account-owner");
+                            setUserRoleMenuAnchor(null);
+                        }}
+                    >
+                        Account owner
+                    </MenuItem>
+                    <MenuItem
+                        selected={userRole === "non-account-owner"}
+                        onClick={() => {
+                            onUserRoleChange?.("non-account-owner");
+                            setUserRoleMenuAnchor(null);
+                        }}
+                    >
+                        Non account owner
+                    </MenuItem>
+                </Menu>
+            </Box>
         </Box>
     );
 }
@@ -369,3 +414,14 @@ const tasksDotNavRowSx: SxProps<Theme> = {
     "&:hover .tasks-nav-arrow": { opacity: 1 }
 };
 const tasksDotsSx: SxProps<Theme> = { display: "flex", gap: "5px" };
+const userRoleButtonContainerSx: SxProps<Theme> = {
+    px: 2, py: 1.5, borderTop: 1, borderTopColor: "grey.400",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    flexShrink: 0
+};
+const userRoleButtonSx: SxProps<Theme> = {
+    fontSize: "0.875rem",
+    color: "text.primary",
+    "&:hover": { bgcolor: "action.hover" }
+};
+const userRoleChevronSx: SxProps<Theme> = { fontSize: "12px !important", width: "12px !important", height: "12px !important", ml: 0.5 };

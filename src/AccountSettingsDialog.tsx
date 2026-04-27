@@ -13,6 +13,7 @@ import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faSt
 import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
+import type { UserRole } from "./components/TasksPanel";
 
 
 // ─── Types & mock data ────────────────────────────────────────────────────────
@@ -1064,7 +1065,7 @@ function RemoveApproverDialog({
 
 
 // ─── Approvals Section ────────────────────────────────────────────────────────
-function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, onUserDeleted, pendingApprovalsCount }: {
+function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprovers, onAddUsers, onPermissionsChanged, onUserDeleted, pendingApprovalsCount, userRole = "account-owner" }: {
  users: AccountUser[]
  approverIds: Set<string>
  enabled: boolean
@@ -1075,6 +1076,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
  pendingApprovalsCount?: number
  videoStates?: Record<string, { sentApprovers?: string[]; sentAt?: string }>
  onUserDeleted?: (userId: string) => void
+ userRole?: UserRole
 }) {
     const [search, setSearch] = useState("");
     const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false);
@@ -1123,10 +1125,14 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     <SvgIcon sx={approvalStampIconSx}><FontAwesomeIcon icon={faStamp} /></SvgIcon>
                     <Box sx={{ flex: 1 }}>
                         <Typography variant="body1" sx={{ color: "text.primary" }}>
-                            Enable video approvals
+                            {userRole === "account-owner" ? "Enable video approvals" : "Enable"}
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.secondary", mt: "2px" }}>
-                            Only approvers can approve videos. Assign approver permissions in the Users tab.
+                            {userRole === "account-owner"
+                                ? "Only approvers can approve videos. Assign approver permissions in the Users tab."
+                                : enabled
+                                    ? "Only approvers can approve videos. Ask your account owner to add or remove approvers"
+                                    : "Only approvers can approve videos. Ask your account owner to enable approvals"}
                         </Typography>
                     </Box>
                     <Tooltip
@@ -1134,13 +1140,19 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                         placement="top"
                         arrow
                     >
-                        <Box sx={{ display: "flex" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <Switch
                                 checked={enabled}
                                 onChange={e => handleToggle(e.target.checked)}
-                                disabled={approvers.length === 0}
+                                disabled={approvers.length === 0 || userRole === "non-account-owner"}
                                 sx={switchSx}
                             />
+                            {userRole === "non-account-owner" && enabled && (
+                                <Label label="Success" color="success" size="medium" />
+                            )}
+                            {userRole === "non-account-owner" && !enabled && (
+                                <Label label="Disabled" color="default" size="medium" />
+                            )}
                         </Box>
                     </Tooltip>
                 </Box>
@@ -1426,7 +1438,8 @@ function UsersSection({
     approverIds = new Set(),
     onClose,
     onEnableApprovalsRequested,
-    onToggleApprovals
+    onToggleApprovals,
+    userRole = "account-owner"
 }: {
  users: AccountUser[]
  onInviteUser: (rows: InviteRow[]) => void
@@ -1438,6 +1451,7 @@ function UsersSection({
  onClose?: () => void
  onEnableApprovalsRequested?: () => void
  onToggleApprovals?: (enabled: boolean) => void
+ userRole?: UserRole
 }) {
     const [search, setSearch] = useState("");
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -1512,14 +1526,16 @@ function UsersSection({
 
             {/* Toolbar row */}
             <Box sx={usersToolbarRowSx}>
-                <Button
-                    startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
-                    variant="outlined"
-                    onClick={() => setDialogMode("add")}
-                    sx={addUserBtnSx}
-                >
-                    Add user
-                </Button>
+                {userRole === "account-owner" && (
+                    <Button
+                        startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
+                        variant="outlined"
+                        onClick={() => setDialogMode("add")}
+                        sx={addUserBtnSx}
+                    >
+                        Add user
+                    </Button>
+                )}
                 <Search
                     placeholder="Search..."
                     size="small"
@@ -1596,11 +1612,11 @@ function UsersSection({
                                             <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
                                                 {row.createdDate}
                                             </Typography>
-                                            {(isHovered || userMenuUser?.user.id === row.user.id) && !row.isOwner && (
+                                            {(isHovered || userMenuUser?.user.id === row.user.id) && !row.isOwner && userRole === "account-owner" && (
                                                 <IconButton
                                                     size="small"
                                                     onClick={e => {
-                                                        setUserMenuAnchor(e.currentTarget); setUserMenuUser(row); 
+                                                        setUserMenuAnchor(e.currentTarget); setUserMenuUser(row);
                                                     }}
                                                     sx={ellipsisButtonSx}
                                                 >
@@ -2654,6 +2670,7 @@ interface AccountSettingsDialogProps {
  videoStates?: Record<string, VideoStateForApprovals>
  pendingApprovalsCount?: number
  initialTab?: "users" | "permissions" | "approvals" | "access" | "groups" | NavKey
+ userRole?: UserRole
 }
 
 const DEFAULT_APPROVER_IDS = new Set<string>();
@@ -2673,7 +2690,8 @@ export default function AccountSettingsDialog({
     onCancelUserApprovals,
     videoStates = DEFAULT_VIDEO_STATES,
     pendingApprovalsCount = 0,
-    initialTab = "users"
+    initialTab = "users",
+    userRole = "account-owner"
 }: AccountSettingsDialogProps) {
     const resolveInitialTab = (t: string): NavKey => {
         if (t === "access" || t === "view-edit-permissions") {
@@ -2874,6 +2892,7 @@ export default function AccountSettingsDialog({
                                 setApprovalsEnabled(enabled);
                                 onApprovalsEnabledChange?.(enabled);
                             }}
+                            userRole={userRole}
                         />
                     )}
                     {nav === "groups" && (
@@ -2918,6 +2937,7 @@ export default function AccountSettingsDialog({
                             }}
                             pendingApprovalsCount={pendingApprovalsCount}
                             videoStates={videoStates}
+                            userRole={userRole}
                         />
                     )}
                 </Box>
