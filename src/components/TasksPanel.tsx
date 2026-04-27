@@ -9,9 +9,9 @@ import { faArrowLeft, faArrowRight, faArrowsRotate, faCircleCheck, faXmark } fro
 interface Task { id: number; label: string | string[]; done: boolean }
 
 const INITIAL_TASKS: Task[] = [
-    { id: 1, label: "You’re working on a safety video and need to set up 12 different versions for global audiences.", done: false },
+    { id: 1, label: "You’re working on a safety video and need to set up 12 different translations for global audiences.", done: false },
     { id: 2, label: "Your boss mentioned to you that you stopped working with Brazil and you would like to remove it from your videos.", done: false },
-    { id: 3, label: "You decided to use the same video for your far east clients.", done: false },
+    { id: 3, label: "Update this video so it can be used for audiences in Far East countries.", done: false },
     { id: 4, label: ["You learned there’s an option to organize users so you can assign permissions to multiple people at once.", "You want to create Sales and Marketing teams."], done: false },
     { id: 5, label: "You want to create a new template for the Sales team about a new product launch.", done: false },
     { id: 6, label: "You feel your template is ready and you need formal approval, by Sarah from the Legal team, before it can be shared.", done: false },
@@ -286,7 +286,7 @@ export default function TasksPanel({
 
                         {/* Dot navigation */}
                         <Box sx={tasksDotNavRowSx}>
-                            <IconButton size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={iconButtonActiveColorSx}>
+                            <IconButton className="tasks-nav-arrow" size="small" disabled={currentIdx === 0} onClick={() => setCurrentIdx(i => i - 1)} sx={iconButtonActiveColorSx}>
                                 <SvgIcon sx={tasksRestartIconSx}><FontAwesomeIcon icon={faArrowLeft} /></SvgIcon>
                             </IconButton>
                             <Box sx={tasksDotsSx}>
@@ -302,7 +302,7 @@ export default function TasksPanel({
                                     />
                                 ))}
                             </Box>
-                            <IconButton size="small" disabled={currentIdx === tasks.length - 1} onClick={() => setCurrentIdx(i => i + 1)} sx={iconButtonActiveColorSx}>
+                            <IconButton className="tasks-nav-arrow" size="small" disabled={currentIdx === tasks.length - 1} onClick={() => setCurrentIdx(i => i + 1)} sx={iconButtonActiveColorSx}>
                                 <SvgIcon sx={tasksRestartIconSx}><FontAwesomeIcon icon={faArrowRight} /></SvgIcon>
                             </IconButton>
                         </Box>
@@ -361,6 +361,11 @@ const taskDoneIndicatorRowSx: SxProps<Theme> = { display: "flex", alignItems: "c
 const taskDoneIndicatorIconSx: SxProps<Theme> = { fontSize: "16px !important", width: "16px !important", height: "16px !important", color: "success.main" };
 const taskDoneLabelSx: SxProps<Theme> = { color: "success.main", letterSpacing: "0.3px" };
 const tasksDotNavRowSx: SxProps<Theme> = {
-    display: "flex", alignItems: "center", justifyContent: "space-between", pt: "2px", mt: "4px"
+    display: "flex", alignItems: "center", justifyContent: "space-between", pt: "2px", mt: "4px",
+    // Arrows fade in on hover of this row (the area beneath the "I'm done" button).
+    // Matches the hover-reveal pattern in TemplatePage.tsx (templateDetailsHoverWrapperSx
+    // → .template-details-edit-icon).
+    "& .tasks-nav-arrow": { opacity: 0, transition: "opacity 150ms" },
+    "&:hover .tasks-nav-arrow": { opacity: 1 }
 };
 const tasksDotsSx: SxProps<Theme> = { display: "flex", gap: "5px" };
