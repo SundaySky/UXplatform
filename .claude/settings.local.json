@@ -49,7 +49,31 @@
       "Bash(./scripts/start-task.sh \"fix delete dialog for users with approver permission\")",
       "Bash(./scripts/start-task.sh \"fix delete dialog pending approvals check\")",
       "Bash(grep -v \"^$\")",
-      "Bash(grep -v \"^\\\\s*$\")"
+      "Bash(grep -v \"^\\\\s*$\")",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__firecrawl__firecrawl_browser_execute",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(curl -s \"http://localhost:5173/src/AccountSettingsDialog.tsx\")",
+      "Bash(curl -s \"http://localhost:5173/src/App.tsx\")",
+      "mcp__figma__upload_assets",
+      "Bash(mkdir -p /tmp/figma_uploads)",
+      "Read(//tmp/**)",
+      "mcp__figma__use_figma",
+      "mcp__figma__get_screenshot",
+      "Bash(screencapture -x /tmp/flow1.png)",
+      "Read(//private/tmp/**)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "Bash(npm list *)",
+      "Bash(npx playwright *)",
+      "Bash(node capture-flows.mjs)",
+      "Bash(node capture-flows2.mjs)",
+      "Bash(curl -s -o /tmp/figma-preview.png \"https://www.figma.com/api/mcp/asset/bb11341d-aeca-4b8e-91ba-e289eefc5feb\")",
+      "mcp__figma__get_metadata",
+      "Bash(awk 'NR>=1430 && NR<=1435' /Users/naor.daniel/Desktop/UXplatform/src/AccountSettingsDialog.tsx)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(awk -F: '$2 >= 1385 && $2 <= 1830')",
+      "Bash(awk 'NR>=1385 && NR<=1830' /Users/naor.daniel/Desktop/UXplatform/src/AccountSettingsDialog.tsx)"
     ]
   }
 }

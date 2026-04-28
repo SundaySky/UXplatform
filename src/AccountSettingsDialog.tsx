@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import type { SxProps, Theme } from "@mui/material";
 import {
-    Box, Typography, Dialog, IconButton, SvgIcon,
+    Box, Typography, Dialog, DialogContent, IconButton, SvgIcon,
     Button, OutlinedInput, Tabs, Tab, Popover,
     Table, TableBody, TableCell, TableHead, TableRow,
     Tooltip, Switch, Divider, Chip, Select,
@@ -10,10 +10,10 @@ import {
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup, faWandMagicSparkles } from "@fortawesome/pro-regular-svg-icons";
-import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
-import type { UserRole } from "./components/TasksPanel";
+import type { UserRole, AppVersion } from "./components/TasksPanel";
 
 
 // ─── Types & mock data ────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ type NavKey = "users" | "approvals" | "groups"
     | "permissions-ai" | "permissions-view-edit"
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
-    { key: "users", label: "All users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
+    { key: "users", label: "Users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
     { key: "groups", label: "Groups", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon> },
     { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> },
     { key: "permissions-view-edit", label: "Access Defaults", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
@@ -127,6 +127,8 @@ function countPrivilegedCreateSpaceSeats(users: AccountUser[]): number {
     ).length;
 }
 
+const MAX_CREATE_SEATS = 5;
+
 // ─── User Type Selector ────────────────────────────────────────────────────────
 const CREATE_OPTIONS = [
     { key: "Editor", label: "Editor", description: "Can edit videos and templates. Uses a seat." },
@@ -135,7 +137,7 @@ const CREATE_OPTIONS = [
 ];
 
 function UserTypeSelector({
-    createSelected, amplifyContributor, onCreateChange, onAmplifyChange, editorCount, contributorCount
+    createSelected, amplifyContributor, onCreateChange, onAmplifyChange, editorCount, contributorCount, seatLimitReached = false
 }: {
     createSelected: string[]
     amplifyContributor: boolean
@@ -143,6 +145,7 @@ function UserTypeSelector({
     onAmplifyChange: (v: boolean) => void
     editorCount: number
     contributorCount: number
+    seatLimitReached?: boolean
 }) {
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const allSelected = [...createSelected, ...(amplifyContributor ? ["Contributor"] : [])];
@@ -188,8 +191,8 @@ function UserTypeSelector({
                 <Box sx={userTypeSectionHeaderSx}>
                     <Typography variant="subtitle2" sx={textPrimarySx}>Create</Typography>
                     <Box sx={tabCountBadgeSx}>
-                        <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                        <Typography variant="caption">{editorCount}/5 seats</Typography>
+                        <SvgIcon sx={{ ...tabBadgeIconSx, ...(seatLimitReached && { color: "error.main" }) }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                        <Typography variant="caption" sx={seatLimitReached ? { color: "error.main" } : undefined}>{editorCount}/{MAX_CREATE_SEATS} seats</Typography>
                     </Box>
                 </Box>
                 {CREATE_OPTIONS.map(opt => {
@@ -265,6 +268,9 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
     const editorCount = countEditorSeats(users);
     const contributorCount = countContributorSeats(users);
     const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    const newSelectionNeedsASeat = createSelected.includes("Editor") || createSelected.includes("Approver");
+    const seatLimitReached = editorCount >= MAX_CREATE_SEATS;
+    const seatLimitExceeded = newSelectionNeedsASeat && seatLimitReached;
 
     React.useEffect(() => {
         if (open) {
@@ -303,47 +309,56 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}>
-            <Box sx={dialogBodySx}>
-                <Box sx={dialogTitleRowMb24Sx}>
-                    <Typography variant="h4" sx={textPrimarySx}>Add user</Typography>
-                    <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                </Box>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>Add user</TruffleDialogTitle>
 
-                {existingMode && existingUser ? (
-                    <>
+            {existingMode && existingUser ? (
+                <>
+                    <DialogContent sx={editUserContentSx}>
                         <OutlinedInput fullWidth disabled value={existingUser.user.email} sx={existingEmailInputSx} />
-                        <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "24px" }}>
+                        <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}>
                             <AttentionBoxContent>
                                 <Typography variant="subtitle2" sx={{ color: "text.primary", mb: "4px" }}>This email is already in use in this account.</Typography>
                                 <Typography variant="body1" sx={textPrimarySx}>You can edit the user type if necessary.</Typography>
                             </AttentionBoxContent>
                         </AttentionBox>
-                        <Box sx={dialogActionsRowSx}>
-                            <Button variant="outlined" onClick={() => setExistingMode(false)} sx={cancelButtonSx}>Cancel</Button>
-                            <Button variant="contained" onClick={() => {
-                                onEditExistingUser?.(existingUser); setExistingMode(false); 
-                            }}>Edit user type</Button>
-                        </Box>
-                    </>
-                ) : (
-                    <>
+                    </DialogContent>
+                    <TruffleDialogActions>
+                        <Button variant="outlined" size="large" onClick={() => setExistingMode(false)}>Cancel</Button>
+                        <Button variant="contained" size="large" onClick={() => {
+                            onEditExistingUser?.(existingUser); setExistingMode(false);
+                        }}>Edit user type</Button>
+                    </TruffleDialogActions>
+                </>
+            ) : (
+                <>
+                    <DialogContent sx={editUserContentSx}>
+                        {seatLimitExceeded && (
+                            <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "16px" }}>
+                                <AttentionBoxContent>
+                                    <Typography variant="body1" sx={{ color: "text.primary" }}>
+                                        Create seat limit reached. You can still add users with viewer permission to this account.
+                                    </Typography>
+                                </AttentionBoxContent>
+                            </AttentionBox>
+                        )}
                         <Box sx={{ mb: "16px" }}>
-                            <Typography variant="body2" sx={editUserFieldLabelSx}>Email</Typography>
-                            <OutlinedInput fullWidth placeholder="user@example.com" value={email} onChange={e => handleEmailChange(e.target.value)} error={!!emailError} sx={{ height: 40 }} />
+                            <Typography variant="body2" sx={seatLimitExceeded ? { ...editUserFieldLabelSx, color: "error.main" } : editUserFieldLabelSx}>Email</Typography>
+                            <OutlinedInput fullWidth placeholder="user@example.com" value={email} onChange={e => handleEmailChange(e.target.value)} error={!!emailError || seatLimitExceeded} sx={{ height: 40 }} />
                             {emailError && <Typography variant="caption" sx={{ color: "error.light", mt: "4px", display: "block" }}>{emailError}</Typography>}
+                            {!emailError && seatLimitExceeded && <Typography variant="caption" sx={{ color: "error.main", mt: "4px", display: "block" }}>Create seats limit reached.</Typography>}
                         </Box>
-                        <Box sx={{ mb: "24px" }}>
+                        <Box>
                             <Typography variant="body2" sx={editUserFieldLabelSx}>Permission</Typography>
-                            <UserTypeSelector createSelected={createSelected} amplifyContributor={amplifyContributor} onCreateChange={setCreateSelected} onAmplifyChange={setAmplifyContributor} editorCount={editorCount} contributorCount={contributorCount} />
+                            <UserTypeSelector createSelected={createSelected} amplifyContributor={amplifyContributor} onCreateChange={setCreateSelected} onAmplifyChange={setAmplifyContributor} editorCount={editorCount} contributorCount={contributorCount} seatLimitReached={seatLimitReached} />
                         </Box>
-                        <Box sx={dialogActionsRowSx}>
-                            <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                            <Button variant="contained" onClick={handleSend} disabled={!email.trim() || !!emailError} sx={disabledButtonSx}>Save</Button>
-                        </Box>
-                    </>
-                )}
-            </Box>
+                    </DialogContent>
+                    <TruffleDialogActions>
+                        <Button variant="text" size="large" onClick={onClose}>Cancel</Button>
+                        <Button variant="contained" size="large" onClick={handleSend} disabled={!email.trim() || !!emailError || seatLimitExceeded}>Save</Button>
+                    </TruffleDialogActions>
+                </>
+            )}
         </Dialog>
     );
 }
@@ -728,18 +743,32 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
         setAmplifyContributor(user?.amplifySpace === "Contributor");
     }, [user, open]);
 
+    const userCurrentlyHasSeat = user && (
+        user.createSpace.includes("Editor") || user.createSpace.includes("Approver") || user.createSpace === "Account owner"
+    );
+    const newSelectionNeedsASeat = createSelected.includes("Editor") || createSelected.includes("Approver");
+    const seatLimitReached = editorCount >= MAX_CREATE_SEATS;
+    const seatLimitExceeded = newSelectionNeedsASeat && !userCurrentlyHasSeat && seatLimitReached;
+
     return (
-        <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}>
-            <Box sx={dialogBodySx}>
-                <Box sx={dialogTitleRowMb24Sx}>
-                    <Typography variant="h4" sx={textPrimarySx}>Edit user</Typography>
-                    <IconButton size="small" onClick={onClose} sx={closeIconButtonSx}><SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon></IconButton>
-                </Box>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>Edit user</TruffleDialogTitle>
+            <DialogContent sx={editUserContentSx}>
+                {seatLimitExceeded && (
+                    <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "16px" }}>
+                        <AttentionBoxContent>
+                            <Typography variant="body1" sx={{ color: "text.primary" }}>
+                                Create seat limit reached. You can still add users with viewer permission to this account.
+                            </Typography>
+                        </AttentionBoxContent>
+                    </AttentionBox>
+                )}
                 <Box sx={{ mb: "16px" }}>
-                    <Typography variant="body2" sx={editUserFieldLabelSx}>Email</Typography>
-                    <OutlinedInput fullWidth disabled value={user?.user.email || ""} sx={{ height: 40 }} />
+                    <Typography variant="body2" sx={seatLimitExceeded ? { ...editUserFieldLabelSx, color: "error.main" } : editUserFieldLabelSx}>Email</Typography>
+                    <OutlinedInput fullWidth disabled value={user?.user.email || ""} error={seatLimitExceeded} sx={{ height: 40 }} />
+                    {seatLimitExceeded && <Typography variant="caption" sx={{ color: "error.main", mt: "4px", display: "block" }}>Create seats limit reached.</Typography>}
                 </Box>
-                <Box sx={{ mb: "24px" }}>
+                <Box>
                     <Typography variant="body2" sx={editUserFieldLabelSx}>User type</Typography>
                     <UserTypeSelector
                         createSelected={createSelected}
@@ -748,15 +777,16 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
                         onAmplifyChange={setAmplifyContributor}
                         editorCount={editorCount}
                         contributorCount={contributorCount}
+                        seatLimitReached={seatLimitReached}
                     />
                 </Box>
-                <Box sx={dialogActionsRowSx}>
-                    <Button onClick={onClose} sx={textCancelButtonSx}>Cancel</Button>
-                    <Button variant="contained" onClick={() => {
-                        onSave(createSelected.join(", ") || "No access", amplifyContributor ? "Contributor" : "No access"); onClose(); 
-                    }}>Save</Button>
-                </Box>
-            </Box>
+            </DialogContent>
+            <TruffleDialogActions>
+                <Button variant="text" size="large" onClick={onClose}>Cancel</Button>
+                <Button variant="contained" size="large" disabled={seatLimitExceeded} onClick={() => {
+                    onSave(createSelected.join(", ") || "No access", amplifyContributor ? "Contributor" : "No access"); onClose();
+                }}>Save</Button>
+            </TruffleDialogActions>
         </Dialog>
     );
 }
@@ -780,7 +810,7 @@ function DeleteUserDialog({
     user,
     onConfirm,
     onDisableApprovals,
-    remainingApproversAfterDelete = 0,
+    remainingApproversAfterDelete,
     hasPendingApprovals = false,
     isContributor = false,
     approvalsEnabledInAccount = false
@@ -791,58 +821,52 @@ function DeleteUserDialog({
         return null;
     }
 
-    const isLastApproverWithPermission = remainingApproversAfterDelete === 0 && approvalsEnabledInAccount;
+    // Only treat as approver-related if the user IS an approver (prop is explicitly provided)
+    const userIsApprover = remainingApproversAfterDelete !== undefined;
+    const isLastApprover = userIsApprover && remainingApproversAfterDelete === 0 && approvalsEnabledInAccount;
     const isConfirmed = inputValue === "Delete";
 
     let dialogTitle = "";
     let primaryButtonText = "";
     const bulletPoints: { text: React.ReactNode; show: boolean }[] = [];
-    let showContributorWarning = false;
 
-    // Determine dialog based on 4 scenarios
-    // Scenario 3: Last approver with pending approvals
-    if (isLastApproverWithPermission && hasPendingApprovals) {
-        dialogTitle = `Delete ${user.user.name} and disable approvals?`;
-        primaryButtonText = "Delete user and disable approvals";
-        bulletPoints.push({
-            text: "Approvals will be disabled until you enable them again.",
-            show: true
-        });
-        bulletPoints.push({
-            text: "This user will lose access to this account.",
-            show: true
-        });
+    // Approvals enabled + user is an approver scenarios
+    if (approvalsEnabledInAccount && userIsApprover) {
+        if (isLastApprover && hasPendingApprovals) {
+            // Last approver + pending approvals
+            dialogTitle = `Delete ${user.user.name} will disable approvals?`;
+            primaryButtonText = "Delete user and disable approvals";
+            bulletPoints.push({ text: "All pending approvals assigned to this user will be canceled.", show: true });
+            bulletPoints.push({ text: "The user who submitted these approvals will be notified by email.", show: true });
+            bulletPoints.push({ text: "This user will lose access to this account.", show: true });
+        }
+        else if (isLastApprover) {
+            // Last approver, no pending approvals
+            dialogTitle = `Delete ${user.user.name} and disable approvals?`;
+            primaryButtonText = "Delete user and disable approvals";
+            bulletPoints.push({ text: "Approvals will be disabled until you enable them again.", show: true });
+            bulletPoints.push({ text: "This user will lose access to this account.", show: true });
+        }
+        else if (hasPendingApprovals) {
+            // Not last approver, but has pending approvals
+            dialogTitle = `Delete ${user.user.name} and cancel approvals?`;
+            primaryButtonText = "Delete user and cancel approvals";
+            bulletPoints.push({ text: "All pending approvals assigned to this user will be canceled.", show: true });
+            bulletPoints.push({ text: "The user who submitted these approvals will be notified by email.", show: true });
+            bulletPoints.push({ text: "This user will lose access to this account.", show: true });
+        }
+        else {
+            // Approver but not last, no pending — regular delete
+            dialogTitle = `Delete ${user.user.name}?`;
+            primaryButtonText = "Delete user";
+            bulletPoints.push({ text: "This user will lose access to this account.", show: true });
+        }
     }
-    // Scenario 2: Has pending approvals (but not last approver)
-    else if (hasPendingApprovals) {
-        dialogTitle = `Delete ${user.user.name} and cancel approvals?`;
-        primaryButtonText = "Cancel all pending approvals";
-        bulletPoints.push({
-            text: "All pending approvals assigned to this user will be canceled.",
-            show: true
-        });
-        bulletPoints.push({
-            text: "The user who submitted these approvals will be notified by email.",
-            show: true
-        });
-        bulletPoints.push({
-            text: "This user will lose access to this account.",
-            show: true
-        });
-    }
-    // Scenario 1: Simple deletion (no pending approvals, not last approver)
     else {
+        // Approvals disabled or user is not an approver — regular delete
         dialogTitle = `Delete ${user.user.name}?`;
         primaryButtonText = "Delete user";
-        bulletPoints.push({
-            text: "This user will lose access to this account.",
-            show: true
-        });
-    }
-
-    // Scenario 4: Contributor warning
-    if (isContributor) {
-        showContributorWarning = true;
+        bulletPoints.push({ text: "This user will lose access to this account.", show: true });
     }
 
     const visibleBulletPoints = bulletPoints.filter(bp => bp.show);
@@ -858,7 +882,7 @@ function DeleteUserDialog({
                     ))}
                 </Box>
             )}
-            {showContributorWarning && (
+            {isContributor && (
                 <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
                     <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                     <Typography variant="body1" sx={{ color: "text.primary" }}>
@@ -870,12 +894,9 @@ function DeleteUserDialog({
     );
 
     const handleConfirm = () => {
-        if (isLastApproverWithPermission) {
-            onConfirm();
+        onConfirm();
+        if (isLastApprover) {
             onDisableApprovals?.();
-        }
-        else {
-            onConfirm();
         }
         onClose();
         setInputValue("");
@@ -941,6 +962,7 @@ interface RemoveApproverDialogProps {
     remainingApproversAfterRemove?: number
     hasPendingApprovals?: boolean
     approvalsEnabledInAccount?: boolean
+    pendingCount?: number
 }
 
 function RemoveApproverDialog({
@@ -951,7 +973,8 @@ function RemoveApproverDialog({
     onDisableApprovals,
     remainingApproversAfterRemove = 0,
     hasPendingApprovals = false,
-    approvalsEnabledInAccount = false
+    approvalsEnabledInAccount = false,
+    pendingCount = 1
 }: RemoveApproverDialogProps) {
     if (!user) {
         return null;
@@ -961,61 +984,37 @@ function RemoveApproverDialog({
     const isLastApprover = remainingApproversAfterRemove === 0 && approvalsEnabledInAccount;
 
     let dialogTitle = "";
-    let primaryButtonText = "";
-    let secondaryButtonText = "Keep approver role";
-    const bulletPoints: { text: React.ReactNode; show: boolean }[] = [];
+    let bodyLines: string[] = [];
+    let primaryBtnText = "Remove approver permission";
+    let secondaryBtnText = "Keep approver role";
 
     // Scenario 3: Last approver with pending approvals
     if (isLastApproverWithPending) {
-        dialogTitle = `Remove ${user.user.name} from approver and disable approvals?`;
-        primaryButtonText = "Remove approver and disable approvals";
-        bulletPoints.push({
-            text: "All pending approvals assigned to this user will be canceled.",
-            show: true
-        });
-        bulletPoints.push({
-            text: "Approvals will be disabled until you enable them again.",
-            show: true
-        });
+        dialogTitle = `Removing ${user.user.name} approver permission will disable approvals for all the account`;
+        bodyLines = [
+            `All ${pendingCount} pending ${pendingCount === 1 ? "approval" : "approvals"} assigned to this user will be canceled.`,
+            "The user who submitted these approvals will be notified by email."
+        ];
+        primaryBtnText = "Disable approvals";
+        secondaryBtnText = "Keep approver permission";
     }
     // Scenario 2: Last approver (but no pending approvals)
     else if (isLastApprover) {
-        dialogTitle = `Remove ${user.user.name} from approver and disable approvals?`;
-        primaryButtonText = "Remove approver and disable approvals";
-        bulletPoints.push({
-            text: "Approvals will be disabled until you enable them again.",
-            show: true
-        });
+        dialogTitle = `Removing ${user.user.name} approver permission will disable approvals`;
+        bodyLines = ["Approvals must have at least 1 approver."];
+        primaryBtnText = "Disable approvals";
+        secondaryBtnText = "Keep approver permission";
     }
     // Scenario 1: Has pending approvals (but not last approver)
     else if (hasPendingApprovals) {
-        dialogTitle = `Remove ${user.user.name} from approver and cancel approvals?`;
-        primaryButtonText = "Remove approver and cancel pending approvals";
-        bulletPoints.push({
-            text: "All pending approvals assigned to this user will be canceled.",
-            show: true
-        });
-        bulletPoints.push({
-            text: "The user who submitted these approvals will be notified by email.",
-            show: true
-        });
+        dialogTitle = `Removing ${user.user.name} approver permission will cancel all ${pendingCount} pending ${pendingCount === 1 ? "approval" : "approvals"}`;
+        bodyLines = ["The user who submitted these approvals will be notified by email."];
+        primaryBtnText = `Cancel ${pendingCount} pending ${pendingCount === 1 ? "approval" : "approvals"}`;
     }
-
-    const visibleBulletPoints = bulletPoints.filter(bp => bp.show);
-
-    const bodyContent = (
-        <Box>
-            {visibleBulletPoints.length > 0 && (
-                <Box sx={{ mb: "16px" }}>
-                    {visibleBulletPoints.map((bp, idx) => (
-                        <Typography key={idx} variant="body1" sx={{ color: "text.primary", mb: idx < visibleBulletPoints.length - 1 ? "8px" : "0px" }}>
-                            • {bp.text}
-                        </Typography>
-                    ))}
-                </Box>
-            )}
-        </Box>
-    );
+    // Default: Just removing approver role
+    else {
+        dialogTitle = `Remove ${user.user.name} from approver role?`;
+    }
 
     const handleConfirm = () => {
         if (isLastApproverWithPending || isLastApprover) {
@@ -1032,33 +1031,31 @@ function RemoveApproverDialog({
         <Dialog
             open={open}
             onClose={onClose}
-            maxWidth={false}
-            PaperProps={{ sx: { width: 440, borderRadius: "12px", p: 0 } }}
+            maxWidth="sm"
+            fullWidth
         >
-            <Box sx={{ p: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>
-                <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>{dialogTitle}</TruffleDialogTitle>
-                <Box sx={{ px: "24px" }}>
-                    {bodyContent}
-                </Box>
-                <Box sx={{ px: "24px", display: "flex", gap: "12px", flexDirection: "column" }}>
-                    <Button
-                        variant="contained"
-                        size="large"
-                        fullWidth
-                        onClick={handleConfirm}
-                    >
-                        {primaryButtonText}
-                    </Button>
-                    <Button
-                        variant="text"
-                        size="large"
-                        fullWidth
-                        onClick={onClose}
-                    >
-                        {secondaryButtonText}
-                    </Button>
-                </Box>
-            </Box>
+            <TruffleDialogTitle multiline CloseIconButtonProps={{ onClick: onClose }}>
+                {dialogTitle}
+            </TruffleDialogTitle>
+            {bodyLines.length > 0 && (
+                <DialogContent sx={removeApproverContentSx}>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                        {bodyLines.map((line, i) => (
+                            <Typography key={i} variant="body1" color="text.primary">
+                                {line}
+                            </Typography>
+                        ))}
+                    </Box>
+                </DialogContent>
+            )}
+            <TruffleDialogActions>
+                <Button variant="text" size="large" onClick={onClose}>
+                    {secondaryBtnText}
+                </Button>
+                <Button variant="contained" size="large" onClick={handleConfirm}>
+                    {primaryBtnText}
+                </Button>
+            </TruffleDialogActions>
         </Dialog>
     );
 }
@@ -1082,9 +1079,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
     const [addApproverDialogOpen, setAddApproverDialogOpen] = useState(false);
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteAsApprover, setInviteAsApprover] = useState(false);
-    const [hoveredRow, setHoveredRow] = useState<string | null>(null);
-    const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-    const [selectedUserForMenu, setSelectedUserForMenu] = useState<AccountUser | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<AccountUser | null>(null);
     const [disableConfirmOpen, setDisableConfirmOpen] = useState(false);
@@ -1125,7 +1119,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     <SvgIcon sx={approvalStampIconSx}><FontAwesomeIcon icon={faStamp} /></SvgIcon>
                     <Box sx={{ flex: 1 }}>
                         <Typography variant="body1" sx={{ color: "text.primary" }}>
-                            {userRole === "account-owner" ? "Enable video approvals" : "Enable"}
+                            {userRole === "account-owner" ? "Enable video approvals" : "Video approvals"}
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.secondary", mt: "2px" }}>
                             {userRole === "account-owner"
@@ -1135,26 +1129,31 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                     : "Only approvers can approve videos. Ask your account owner to enable approvals"}
                         </Typography>
                     </Box>
-                    <Tooltip
-                        title={approvers.length === 0 ? "Add at least one user with approver permission to enable approvals." : ""}
-                        placement="top"
-                        arrow
-                    >
+                    {userRole === "account-owner" ? (
+                        <Tooltip
+                            title={approvers.length === 0 ? "Add at least one user with approver permission to enable approvals." : ""}
+                            placement="top"
+                            arrow
+                        >
+                            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <Switch
+                                    checked={enabled}
+                                    onChange={e => handleToggle(e.target.checked)}
+                                    disabled={approvers.length === 0}
+                                    sx={switchSx}
+                                />
+                            </Box>
+                        </Tooltip>
+                    ) : (
                         <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <Switch
-                                checked={enabled}
-                                onChange={e => handleToggle(e.target.checked)}
-                                disabled={approvers.length === 0 || userRole === "non-account-owner"}
-                                sx={switchSx}
-                            />
-                            {userRole === "non-account-owner" && enabled && (
-                                <Label label="Success" color="success" size="medium" />
+                            {enabled && (
+                                <Label label="Enabled" color="success" size="medium" />
                             )}
-                            {userRole === "non-account-owner" && !enabled && (
+                            {!enabled && (
                                 <Label label="Disabled" color="default" size="medium" />
                             )}
                         </Box>
-                    </Tooltip>
+                    )}
                 </Box>
 
                 {enabled && (
@@ -1194,20 +1193,13 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                         <TableCell sx={{ ...headCellSx, width: 160 }}>
                                             <Typography variant="subtitle2" sx={textPrimarySx}>Creation date</Typography>
                                         </TableCell>
-                                        <TableCell sx={{ ...headCellSx, width: 44 }} />
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {filtered.map(row => {
-                                        const isHovered = hoveredRow === row.user.id;
                                         return (
-                                            <TableRow
-                                                key={row.user.id}
-                                                onMouseEnter={() => setHoveredRow(row.user.id)}
-                                                onMouseLeave={() => setHoveredRow(null)}
-                                                sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
-                                            >
-                                                <TableCell sx={{ ...bodyCellSx, position: "sticky", left: 0, zIndex: 1, bgcolor: isHovered ? "grey.100" : "background.paper" }}>
+                                            <TableRow key={row.user.id}>
+                                                <TableCell sx={{ ...bodyCellSx, position: "sticky", left: 0, zIndex: 1, bgcolor: "background.paper" }}>
                                                     <UserCell row={row} />
                                                 </TableCell>
                                                 <TableCell sx={bodyCellSx}>
@@ -1238,18 +1230,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                                         {row.createdDate}
                                                     </Typography>
                                                 </TableCell>
-                                                <TableCell sx={{ ...bodyCellSx, width: 44, textAlign: "center" }}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={(e) => {
-                                                            setMenuAnchorEl(e.currentTarget);
-                                                            setSelectedUserForMenu(row);
-                                                        }}
-                                                        sx={{ color: "text.primary" }}
-                                                    >
-                                                        <SvgIcon sx={{ fontSize: 18 }}><FontAwesomeIcon icon={faEllipsis} /></SvgIcon>
-                                                    </IconButton>
-                                                </TableCell>
                                             </TableRow>
                                         );
                                     })}
@@ -1259,30 +1239,6 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     </Box>
                 )}
 
-                {/* Menu for approver actions */}
-                <Menu
-                    anchorEl={menuAnchorEl}
-                    open={Boolean(menuAnchorEl)}
-                    onClose={() => {
-                        setMenuAnchorEl(null);
-                        setSelectedUserForMenu(null);
-                    }}
-                >
-                    <MenuItem
-                        onClick={() => {
-                            if (selectedUserForMenu) {
-                                setUserToDelete(selectedUserForMenu);
-                                setDeleteOpen(true);
-                                setMenuAnchorEl(null);
-                                setSelectedUserForMenu(null);
-                            }
-                        }}
-                        sx={{ color: "error.main" }}
-                    >
-                        <SvgIcon sx={{ fontSize: 16, mr: "8px" }}><FontAwesomeIcon icon={faTrash} /></SvgIcon>
-                        Delete
-                    </MenuItem>
-                </Menu>
             </Box>
 
             {/* Add Approver Dialog */}
@@ -1398,17 +1354,17 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
             >
                 <Box sx={dialogBodySx}>
                     <Typography variant="h4" sx={dialogTitleSx}>
-                        Cancel all {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"}?
+                        Cancel all pending approvals?
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "8px" }}>
+                    <Typography variant="body1" sx={{ color: "text.primary", mb: "8px" }}>
                         Disabling approvals will cancel all {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"} in this account.
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px" }}>
+                    <Typography variant="body1" sx={{ color: "text.primary", mb: "24px" }}>
                         The user who submitted them will be notified by email.
                     </Typography>
                     <Box sx={dialogActionsRowSx}>
                         <Button onClick={() => setDisableConfirmOpen(false)} sx={textCancelButtonSx}>
-                            Cancel
+                            Close
                         </Button>
                         <Button
                             variant="contained"
@@ -1418,7 +1374,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                 onToggle(false);
                             }}
                         >
-                            Cancel all {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"}
+                            Cancel all pending approvals
                         </Button>
                     </Box>
                 </Box>
@@ -1435,11 +1391,11 @@ function UsersSection({
     onUserDeleted,
     onPermissionsChanged,
     approvalsEnabled = false,
-    approverIds = new Set(),
-    onClose,
     onEnableApprovalsRequested,
     onToggleApprovals,
-    userRole = "account-owner"
+    userRole = "account-owner",
+    pendingApprovalsCount = 0,
+    videoStates = {}
 }: {
  users: AccountUser[]
  onInviteUser: (rows: InviteRow[]) => void
@@ -1452,6 +1408,7 @@ function UsersSection({
  onEnableApprovalsRequested?: () => void
  onToggleApprovals?: (enabled: boolean) => void
  userRole?: UserRole
+ pendingApprovalsCount?: number
 }) {
     const [search, setSearch] = useState("");
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -1469,6 +1426,16 @@ function UsersSection({
     const [userToRemoveApprover, setUserToRemoveApprover] = useState<AccountUser | null>(null);
     const [pendingApproverRemoval, setPendingApproverRemoval] = useState<{ user: AccountUser; createSpace: string; amplifySpace: string } | null>(null);
 
+    function getUserPendingApprovals(userId: string) {
+        const videoTitles: string[] = [];
+        Object.entries(videoStates).forEach(([videoTitle, state]) => {
+            if (state.sentApprovers?.includes(userId)) {
+                videoTitles.push(videoTitle);
+            }
+        });
+        return videoTitles;
+    }
+
     const filtered = search
         ? usersList.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
         : usersList;
@@ -1480,6 +1447,7 @@ function UsersSection({
 
     const editorCount = countEditorSeats(usersList);
     const contributorCount = countContributorSeats(usersList);
+    const seatLimitReached = editorCount >= MAX_CREATE_SEATS;
 
     const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
     const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
@@ -1489,9 +1457,6 @@ function UsersSection({
             {/* Title row */}
             <Box sx={usersTitleRowSx}>
                 <Typography variant="h3" sx={textPrimarySx}>Users</Typography>
-                <IconButton size="small" sx={closeIconButtonSx} onClick={onClose}>
-                    <SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
-                </IconButton>
             </Box>
 
             {/* Workspace tabs */}
@@ -1503,8 +1468,8 @@ function UsersSection({
                         <Box sx={tabLabelBoxSx}>
                             <Typography variant="subtitle2" component="span">Create</Typography>
                             <Box sx={tabCountBadgeSx}>
-                                <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                                <Typography variant="caption">{editorCount}/5 seats</Typography>
+                                <SvgIcon sx={{ ...tabBadgeIconSx, ...(seatLimitReached && { color: "error.main" }) }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
+                                <Typography variant="caption" sx={seatLimitReached ? { color: "error.main" } : undefined}>{editorCount}/{MAX_CREATE_SEATS} seats</Typography>
                             </Box>
                         </Box>
                     }
@@ -1517,7 +1482,7 @@ function UsersSection({
                             <Typography variant="subtitle2" component="span">Amplify</Typography>
                             <Box sx={tabCountBadgeSx}>
                                 <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
-                                <Typography variant="caption">{contributorCount}/10</Typography>
+                                <Typography variant="caption">{contributorCount}/10 seats</Typography>
                             </Box>
                         </Box>
                     }
@@ -1546,6 +1511,17 @@ function UsersSection({
                     sx={{ width: 240 }}
                 />
             </Box>
+
+            {/* Seat limit banner */}
+            {seatLimitReached && activeTab === "create" && (
+                <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "16px", flexShrink: 0 }}>
+                    <AttentionBoxContent>
+                        <Typography variant="body1" sx={{ color: "text.primary" }}>
+                            Create seat limit reached. You can still add users with viewer permission to this account.
+                        </Typography>
+                    </AttentionBoxContent>
+                </AttentionBox>
+            )}
 
             {/* Table */}
             <Box sx={usersTableContainerSx}>
@@ -1658,13 +1634,20 @@ function UsersSection({
                         const becameApprover = !hadApprover && hasApprover;
                         const lostApprover = hadApprover && !hasApprover;
 
-                        // Show remove approver dialog if user is being removed from approver role
+                        // Show remove approver dialog only when needed
                         if (lostApprover) {
-                            setUserToRemoveApprover(editingUser);
-                            setPendingApproverRemoval({ user: editingUser, createSpace, amplifySpace });
-                            setRemoveApproverOpen(true);
-                            setDialogMode("closed");
-                            return;
+                            const remainingAfterRemove = usersList.filter(u => u.user.id !== editingUser.user.id && u.createSpace.includes("Approver")).length;
+                            const isLastApprover = remainingAfterRemove === 0 && approvalsEnabled;
+                            const hasPending = getUserPendingApprovals(editingUser.user.id).length > 0;
+
+                            if (isLastApprover || hasPending) {
+                                setUserToRemoveApprover(editingUser);
+                                setPendingApproverRemoval({ user: editingUser, createSpace, amplifySpace });
+                                setRemoveApproverOpen(true);
+                                setDialogMode("closed");
+                                return;
+                            }
+                            // Not last approver and no pending approvals — just save silently
                         }
 
                         setUsersList(prev => prev.map(u => u.user.id === editingUser.user.id ? { ...u, createSpace, amplifySpace } : u));
@@ -1688,8 +1671,8 @@ function UsersSection({
                     setUserMenuAnchor(null);
                 }}
                 user={userToDelete}
-                remainingApproversAfterDelete={userToDelete && userToDelete.createSpace.includes("Approver") ? Array.from(approverIds).filter(id => id !== userToDelete.user.id).length : undefined}
-                hasPendingApprovals={!!userToDelete?.addedAsApprover}
+                remainingApproversAfterDelete={userToDelete && userToDelete.createSpace.includes("Approver") ? usersList.filter(u => u.user.id !== userToDelete.user.id && u.createSpace.includes("Approver")).length : undefined}
+                hasPendingApprovals={userToDelete ? getUserPendingApprovals(userToDelete.user.id).length > 0 : false}
                 isContributor={userToDelete?.amplifySpace === "Contributor"}
                 approvalsEnabledInAccount={approvalsEnabled}
                 onConfirm={() => {
@@ -1710,9 +1693,10 @@ function UsersSection({
                     setPendingApproverRemoval(null);
                 }}
                 user={userToRemoveApprover}
-                remainingApproversAfterRemove={userToRemoveApprover ? Array.from(approverIds).filter(id => id !== userToRemoveApprover.user.id).length : 0}
-                hasPendingApprovals={!!userToRemoveApprover?.addedAsApprover}
+                remainingApproversAfterRemove={userToRemoveApprover ? usersList.filter(u => u.user.id !== userToRemoveApprover.user.id && u.createSpace.includes("Approver")).length : 0}
+                hasPendingApprovals={userToRemoveApprover ? getUserPendingApprovals(userToRemoveApprover.user.id).length > 0 : false}
                 approvalsEnabledInAccount={approvalsEnabled}
+                pendingCount={userToRemoveApprover ? getUserPendingApprovals(userToRemoveApprover.user.id).length : pendingApprovalsCount}
                 onConfirm={() => {
                     if (pendingApproverRemoval) {
                         setUsersList(prev => prev.map(u =>
@@ -2661,7 +2645,6 @@ interface AccountSettingsDialogProps {
  onClose: () => void
  approvalsEnabled?: boolean
  approverIds?: Set<string>
- approversList?: { value: string; label: string }[]
  onApprovalsEnabledChange?: (enabled: boolean, hasPendingApprovals?: boolean) => void
  onApproversChange?: (approverIds: Set<string>) => void
  onApproversListChange?: (approvers: { value: string; label: string }[]) => void
@@ -2671,10 +2654,10 @@ interface AccountSettingsDialogProps {
  pendingApprovalsCount?: number
  initialTab?: "users" | "permissions" | "approvals" | "access" | "groups" | NavKey
  userRole?: UserRole
+ appVersion?: AppVersion
 }
 
 const DEFAULT_APPROVER_IDS = new Set<string>();
-const DEFAULT_APPROVERS_LIST: { value: string; label: string }[] = [];
 const DEFAULT_VIDEO_STATES: Record<string, VideoStateForApprovals> = {};
 
 export default function AccountSettingsDialog({
@@ -2682,7 +2665,6 @@ export default function AccountSettingsDialog({
     onClose,
     approvalsEnabled: externalApprovalsEnabled = false,
     approverIds: externalApproverIds = DEFAULT_APPROVER_IDS,
-    approversList: externalApproversList = DEFAULT_APPROVERS_LIST,
     onApprovalsEnabledChange,
     onApproversChange,
     onApproversListChange,
@@ -2691,7 +2673,8 @@ export default function AccountSettingsDialog({
     videoStates = DEFAULT_VIDEO_STATES,
     pendingApprovalsCount = 0,
     initialTab = "users",
-    userRole = "account-owner"
+    userRole = "account-owner",
+    appVersion = "v2"
 }: AccountSettingsDialogProps) {
     const resolveInitialTab = (t: string): NavKey => {
         if (t === "access" || t === "view-edit-permissions") {
@@ -2703,6 +2686,23 @@ export default function AccountSettingsDialog({
         return t as NavKey;
     };
     const [nav, setNav] = useState<NavKey>(resolveInitialTab(initialTab));
+
+    // Filter NAV based on appVersion
+    const filteredNav = useMemo(() => {
+        let filtered = NAV;
+        if (appVersion === "v2") {
+            // Hide Groups and Access Defaults in v2
+            filtered = filtered.filter(item => item.key !== "groups" && item.key !== "permissions-view-edit");
+            // In v2, change "AI features" to "Permissions" with lock icon
+            filtered = filtered.map(item =>
+                item.key === "permissions-ai"
+                    ? { ...item, label: "Permissions", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> }
+                    : item
+            );
+        }
+        // v1 shows all tabs with original names
+        return filtered;
+    }, [appVersion]);
     const [users, setUsers] = useState<AccountUser[]>(INITIAL_USERS);
     const [approverIds, setApproverIds] = useState<Set<string>>(externalApproverIds);
     const [approvalsEnabled, setApprovalsEnabled] = useState(externalApprovalsEnabled);
@@ -2776,20 +2776,22 @@ export default function AccountSettingsDialog({
         }
     }
 
-    // Whenever the users list or approver IDs change, push the filtered approver list to parent
+    const lastApproversListRef = React.useRef<string>("");
+
+    // Whenever the users list or approver IDs change, push the filtered approver list to parent.
+    // NOTE: externalApproversList is intentionally excluded from deps — including it creates a circular
+    // dependency (effect → onApproversListChange → setApproversList → new externalApproversList ref → effect).
     React.useEffect(() => {
-        const localUserIds = new Set(users.map(u => u.user.id));
-        const usersWithApproverRole = users
+        const computedApprovers = users
             .filter(u => u.createSpace.includes("Approver") || approverIds.has(u.user.id))
             .map(u => ({ value: u.user.id, label: `${u.user.name} (${u.user.email})` }));
-
-        // Add external approvers not already in local list, but only if they still exist in local users
-        const localIds = new Set(usersWithApproverRole.map(u => u.value));
-        const externalApprovers = externalApproversList.filter(u => !localIds.has(u.value) && localUserIds.has(u.value));
-
-        const allApprovers = [...usersWithApproverRole, ...externalApprovers];
-        onApproversListChange?.(allApprovers);
-    }, [users, approverIds, externalApproversList]);
+        const serialized = JSON.stringify(computedApprovers);
+        if (serialized !== lastApproversListRef.current) {
+            lastApproversListRef.current = serialized;
+            onApproversListChange?.(computedApprovers);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [users, approverIds]);
 
     // Helper function to check if a user has pending approvals
     function getUserPendingApprovals(userId: string) {
@@ -2824,7 +2826,7 @@ export default function AccountSettingsDialog({
             <Box sx={dialogFlexBodySx}>
                 {/* Sidebar */}
                 <Box sx={sidebarSx}>
-                    {NAV.map(item => (
+                    {filteredNav.map(item => (
                         <Box
                             key={item.key}
                             onClick={() => setNav(item.key)}
@@ -2893,6 +2895,7 @@ export default function AccountSettingsDialog({
                                 onApprovalsEnabledChange?.(enabled);
                             }}
                             userRole={userRole}
+                            pendingApprovalsCount={pendingApprovalsCount}
                         />
                     )}
                     {nav === "groups" && (
@@ -3065,6 +3068,7 @@ const userTypeSectionHeaderSx: SxProps<Theme> = { display: "flex", alignItems: "
 const userTypeOptionSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px", transition: "background 0.1s" };
 
 // Edit/Add user dialog fields
+const editUserContentSx: SxProps<Theme> = { px: "24px", py: "20px" };
 const editUserFieldLabelSx: SxProps<Theme> = { color: "text.secondary", mb: "6px", display: "block" };
 
 // GroupDialog
@@ -3090,3 +3094,4 @@ const permAutocompleteGroupListSx: SxProps<Theme> = { p: 0, m: 0, listStyle: "no
 const permDropdownSectionSx: SxProps<Theme> = {};
 const permDropdownSectionLabelSx: SxProps<Theme> = { color: "text.secondary", px: 2, display: "block", py: 0.75, bgcolor: (theme) => theme.palette.grey[50] };
 const permFixedChipSx: SxProps<Theme> = { color: "text.primary", px: 0.5, lineHeight: 1 };
+const removeApproverContentSx: SxProps<Theme> = { px: "32px", pt: "0 !important", pb: "8px" };

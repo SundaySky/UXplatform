@@ -19,7 +19,7 @@ import TemplateStudioPage from "./pages/TemplateStudio/TemplateStudioPage";
 import { type NotificationItem } from "./panels/NotificationsPanel";
 import VideoPermissionDialog, { type VideoPermissionSettings } from "./dialogs/VideoPermissionDialog";
 import VideoOverviewPage from "./pages/VideoOverview/VideoOverviewPage";
-import TasksPanel, { type UserRole } from "./components/TasksPanel";
+import TasksPanel, { type UserRole, type AppVersion } from "./components/TasksPanel";
 
 // ─── Approver lookup ──────────────────────────────────────────────────────────
 const APPROVER_USERS: Record<string, string> = {
@@ -137,6 +137,12 @@ export default function App() {
 
     // User role selector in TasksPanel — determines permissions level
     const [userRole, setUserRole] = useState<UserRole>("account-owner");
+
+    // Version selector in TasksPanel — switches between UI versions
+    const [appVersion, setAppVersion] = useState<AppVersion>("v2");
+
+    // Task panel visibility
+    const [isPanelHidden, setIsPanelHidden] = useState(false);
 
     // Per-template approval state — lifted out of TemplatePage so approval
     // selections (approvers, phase, etc.) persist across task switches.
@@ -449,6 +455,7 @@ export default function App() {
                             // User deletion blocked - dialog removed
                         }}
                         userRole={userRole}
+                        appVersion={appVersion}
                     />
 
                 ) : currentPage === "studio" ? (
@@ -605,16 +612,38 @@ export default function App() {
             </Box>
 
             {/* ── Tasks panel — always visible, outside the app ──────────────────── */}
-            <TasksPanel
-                onTaskDone={(idx) => {
-                    const key = currentKey || "Stay Safe During Missile Threats";
-                    updateVideoState(key, { phase: idx + 1 });
-                    setCurrentPage("library");
-                }}
-                onCurrentTaskChange={setCurrentTaskIdx}
-                userRole={userRole}
-                onUserRoleChange={setUserRole}
-            />
+            {!isPanelHidden && (
+                <TasksPanel
+                    onTaskDone={(idx) => {
+                        const key = currentKey || "Stay Safe During Missile Threats";
+                        updateVideoState(key, { phase: idx + 1 });
+                        setCurrentPage("library");
+                    }}
+                    onCurrentTaskChange={setCurrentTaskIdx}
+                    userRole={userRole}
+                    onUserRoleChange={setUserRole}
+                    appVersion={appVersion}
+                    onAppVersionChange={setAppVersion}
+                    onHidePanel={() => setIsPanelHidden(true)}
+                />
+            )}
+
+            {/* ── Show panel button — visible when panel is hidden ──────────────── */}
+            {isPanelHidden && (
+                <Button
+                    onClick={() => setIsPanelHidden(false)}
+                    sx={{
+                        position: "fixed",
+                        bottom: 16,
+                        right: 16,
+                        zIndex: 1200,
+                        borderRadius: "8px"
+                    }}
+                    variant="contained"
+                >
+                    Show Tasks
+                </Button>
+            )}
 
             {/* ── Resubmitted-from-comments snackbar (fixed bottom-center) ──────── */}
             {resubmittedSnackbarApprover !== null && (

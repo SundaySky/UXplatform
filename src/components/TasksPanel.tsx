@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faArrowRight, faArrowsRotate, faCircleCheck, faXmark, faChevronDown } from "@fortawesome/pro-regular-svg-icons";
+import { faArrowLeft, faArrowRight, faArrowsRotate, faCircleCheck, faXmark, faChevronDown, faChevronRight } from "@fortawesome/pro-regular-svg-icons";
 
 interface Task { id: number; label: string | string[]; done: boolean }
 
@@ -25,22 +25,30 @@ const INITIAL_TASKS: Task[] = [
 type SessionState = "idle" | "active" | "survey" | "complete"
 
 export type UserRole = "account-owner" | "non-account-owner";
+export type AppVersion = "v1" | "v2";
 
 export default function TasksPanel({
     onTaskDone,
     onCurrentTaskChange,
     userRole = "account-owner",
-    onUserRoleChange
+    onUserRoleChange,
+    appVersion = "v2",
+    onAppVersionChange,
+    onHidePanel
 }: {
     onTaskDone?: (taskIdx: number) => void
     onCurrentTaskChange?: (taskIdx: number) => void
     userRole?: UserRole
     onUserRoleChange?: (role: UserRole) => void
+    appVersion?: AppVersion
+    onAppVersionChange?: (version: AppVersion) => void
+    onHidePanel?: () => void
 }) {
     const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
     const [session, setSession] = useState<SessionState>("active");
     const [currentIdx, setCurrentIdx] = useState(0);
     const [userRoleMenuAnchor, setUserRoleMenuAnchor] = useState<HTMLElement | null>(null);
+    const [versionMenuAnchor, setVersionMenuAnchor] = useState<HTMLElement | null>(null);
 
     // Notify parent whenever the active task index changes (including via dot
     // navigation, arrows, mark-done, or restart).
@@ -318,41 +326,87 @@ export default function TasksPanel({
                 </Box>
             )}
 
-            {/* User Role Button */}
-            <Box sx={userRoleButtonContainerSx}>
-                <Button
-                    size="small"
-                    variant="text"
-                    onClick={(e) => setUserRoleMenuAnchor(e.currentTarget)}
-                    endIcon={<SvgIcon sx={userRoleChevronSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
-                    sx={userRoleButtonSx}
-                >
-                    {userRole === "account-owner" ? "Account owner" : "Non account owner"}
-                </Button>
-                <Menu
-                    anchorEl={userRoleMenuAnchor}
-                    open={Boolean(userRoleMenuAnchor)}
-                    onClose={() => setUserRoleMenuAnchor(null)}
-                >
-                    <MenuItem
-                        selected={userRole === "account-owner"}
-                        onClick={() => {
-                            onUserRoleChange?.("account-owner");
-                            setUserRoleMenuAnchor(null);
-                        }}
+            {/* Controls Row - User Role, Version, and Hide Panel */}
+            <Box sx={controlsRowSx}>
+                <Box sx={buttonsGroupSx}>
+                    <Button
+                        size="small"
+                        variant="text"
+                        onClick={(e) => setUserRoleMenuAnchor(e.currentTarget)}
+                        endIcon={<SvgIcon sx={chevronSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
+                        sx={selectorButtonSx}
                     >
-                        Account owner
-                    </MenuItem>
-                    <MenuItem
-                        selected={userRole === "non-account-owner"}
-                        onClick={() => {
-                            onUserRoleChange?.("non-account-owner");
-                            setUserRoleMenuAnchor(null);
-                        }}
+                        {userRole === "account-owner" ? "Account owner" : "Non account owner"}
+                    </Button>
+                    <Menu
+                        anchorEl={userRoleMenuAnchor}
+                        open={Boolean(userRoleMenuAnchor)}
+                        onClose={() => setUserRoleMenuAnchor(null)}
                     >
-                        Non account owner
-                    </MenuItem>
-                </Menu>
+                        <MenuItem
+                            selected={userRole === "account-owner"}
+                            onClick={() => {
+                                onUserRoleChange?.("account-owner");
+                                setUserRoleMenuAnchor(null);
+                            }}
+                        >
+                            Account owner
+                        </MenuItem>
+                        <MenuItem
+                            selected={userRole === "non-account-owner"}
+                            onClick={() => {
+                                onUserRoleChange?.("non-account-owner");
+                                setUserRoleMenuAnchor(null);
+                            }}
+                        >
+                            Non account owner
+                        </MenuItem>
+                    </Menu>
+
+                    <Button
+                        size="small"
+                        variant="text"
+                        onClick={(e) => setVersionMenuAnchor(e.currentTarget)}
+                        endIcon={<SvgIcon sx={chevronSx}><FontAwesomeIcon icon={faChevronDown} /></SvgIcon>}
+                        sx={selectorButtonSx}
+                    >
+                        {appVersion}
+                    </Button>
+                    <Menu
+                        anchorEl={versionMenuAnchor}
+                        open={Boolean(versionMenuAnchor)}
+                        onClose={() => setVersionMenuAnchor(null)}
+                    >
+                        <MenuItem
+                            selected={appVersion === "v1"}
+                            onClick={() => {
+                                onAppVersionChange?.("v1");
+                                setVersionMenuAnchor(null);
+                            }}
+                        >
+                            v1
+                        </MenuItem>
+                        <MenuItem
+                            selected={appVersion === "v2"}
+                            onClick={() => {
+                                onAppVersionChange?.("v2");
+                                setVersionMenuAnchor(null);
+                            }}
+                        >
+                            v2
+                        </MenuItem>
+                    </Menu>
+                </Box>
+
+                <Tooltip title="Hide tasks panel">
+                    <IconButton
+                        size="small"
+                        onClick={onHidePanel}
+                        sx={{ color: "text.secondary" }}
+                    >
+                        <SvgIcon><FontAwesomeIcon icon={faChevronRight} /></SvgIcon>
+                    </IconButton>
+                </Tooltip>
             </Box>
         </Box>
     );
@@ -414,14 +468,19 @@ const tasksDotNavRowSx: SxProps<Theme> = {
     "&:hover .tasks-nav-arrow": { opacity: 1 }
 };
 const tasksDotsSx: SxProps<Theme> = { display: "flex", gap: "5px" };
-const userRoleButtonContainerSx: SxProps<Theme> = {
+const controlsRowSx: SxProps<Theme> = {
     px: 2, py: 1.5, borderTop: 1, borderTopColor: "grey.400",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    flexShrink: 0
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    flexShrink: 0, gap: 1
 };
-const userRoleButtonSx: SxProps<Theme> = {
-    fontSize: "0.875rem",
+const buttonsGroupSx: SxProps<Theme> = {
+    display: "flex", alignItems: "center", gap: 0.5, flex: 1
+};
+const selectorButtonSx: SxProps<Theme> = {
+    fontSize: "0.75rem",
     color: "text.primary",
-    "&:hover": { bgcolor: "action.hover" }
+    "&:hover": { bgcolor: "action.hover" },
+    flex: 1,
+    minWidth: 0
 };
-const userRoleChevronSx: SxProps<Theme> = { fontSize: "12px !important", width: "12px !important", height: "12px !important", ml: 0.5 };
+const chevronSx: SxProps<Theme> = { fontSize: "12px !important", width: "12px !important", height: "12px !important", ml: 0.5 };
