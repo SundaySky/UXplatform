@@ -6,11 +6,11 @@ import {
     Table, TableBody, TableCell, TableHead, TableRow,
     Tooltip, Switch, Divider, Chip, Select,
     MenuItem, Menu,
-    Autocomplete, TextField
+    Autocomplete, TextField, alpha
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faArrowDown, faCircleInfo, faUsers, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup, faWandMagicSparkles } from "@fortawesome/pro-regular-svg-icons";
-import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle, TruffleDialogActions } from "@sundaysky/smartvideo-hub-truffle-component-library";
+import { faPlus, faArrowDown, faCircleInfo, faUsers, faUserGroup, faLock, faCircleCheck, faStamp, faPenToSquare, faTrash, faEllipsis, faXmark, faLayerGroup, faChevronDown, faCheck, faPeopleGroup, faWandMagicSparkles } from "@fortawesome/pro-regular-svg-icons";
+import { AttentionBox, AttentionBoxContent, TruffleAvatar, Search, Label, TruffleDialogTitle, TruffleDialogActions, combineSxProps, TruffleSvgGradientId } from "@sundaysky/smartvideo-hub-truffle-component-library";
 
 import { ALL_USERS, OWNER_USER } from "./dialogs/ManageAccessDialog";
 import type { UserRole, AppVersion } from "./components/TasksPanel";
@@ -57,12 +57,12 @@ function findAccountUser(userId: string, accountUsers: AccountUser[]): AccountUs
 }
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
-const navIconSx: SxProps<Theme> = { fontSize: 18 };
+const navIconSx: SxProps<Theme> = { fontSize: 16 };
 type NavKey = "users" | "approvals" | "groups"
     | "permissions-ai" | "permissions-view-edit"
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
-    { key: "users", label: "Users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon> },
+    { key: "users", label: "Users", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faUserGroup} /></SvgIcon> },
     { key: "groups", label: "Groups", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faPeopleGroup} /></SvgIcon> },
     { key: "approvals", label: "Approvals", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faCircleCheck} /></SvgIcon> },
     { key: "permissions-view-edit", label: "Access Defaults", icon: <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faLock} /></SvgIcon> },
@@ -80,11 +80,11 @@ function UserCell({ row }: { row: AccountUser }) {
             <TruffleAvatar text={row.user.initials} size="medium" sx={userCellAvatarSx} />
             <Box sx={userCellTextBoxSx}>
                 {showName && (
-                    <Typography variant="subtitle2" sx={userCellNameSx}>
+                    <Typography variant="body2" sx={userCellNameSx}>
                         {row.user.name}
                     </Typography>
                 )}
-                <Typography variant="caption" sx={userCellRoleSx}>
+                <Typography variant="body2" sx={userCellRoleSx}>
                     {row.user.email}
                 </Typography>
             </Box>
@@ -173,7 +173,7 @@ function UserTypeSelector({
                 {allSelected.length > 0 && (
                     <IconButton size="small" onClick={e => {
                         e.stopPropagation(); onCreateChange([]); onAmplifyChange(false); 
-                    }} sx={{ p: "2px", color: "action.active" }}>
+                    }} sx={{ p: 0.25, color: "action.active" }}>
                         <SvgIcon sx={{ fontSize: 14 }}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                     </IconButton>
                 )}
@@ -190,10 +190,12 @@ function UserTypeSelector({
                 {/* Create section */}
                 <Box sx={userTypeSectionHeaderSx}>
                     <Typography variant="subtitle2" sx={textPrimarySx}>Create</Typography>
-                    <Box sx={tabCountBadgeSx}>
-                        <SvgIcon sx={{ ...tabBadgeIconSx, ...(seatLimitReached && { color: "error.main" }) }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                        <Typography variant="caption" sx={seatLimitReached ? { color: "error.main" } : undefined}>{editorCount}/{MAX_CREATE_SEATS} seats</Typography>
-                    </Box>
+                    <Label
+                        color={seatLimitReached ? "error" : "info"}
+                        size="small"
+                        startIcon={<SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
+                        label={`${editorCount}/${MAX_CREATE_SEATS} seats`}
+                    />
                 </Box>
                 {CREATE_OPTIONS.map(opt => {
                     const isSelected = createSelected.includes(opt.key);
@@ -219,14 +221,16 @@ function UserTypeSelector({
                         <React.Fragment key={opt.key}>{optionBox}</React.Fragment>
                     );
                 })}
-                <Divider sx={{ my: "4px" }} />
+                <Divider sx={{ my: 0.5 }} />
                 {/* Amplify section */}
                 <Box sx={userTypeSectionHeaderSx}>
                     <Typography variant="subtitle2" sx={textPrimarySx}>Amplify</Typography>
-                    <Box sx={tabCountBadgeSx}>
-                        <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
-                        <Typography variant="caption">{contributorCount}/10 seats</Typography>
-                    </Box>
+                    <Label
+                        color="info"
+                        size="small"
+                        startIcon={<SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>}
+                        label={`${contributorCount}/10 seats`}
+                    />
                 </Box>
                 <Box
                     onClick={() => onAmplifyChange(!amplifyContributor)}
@@ -318,7 +322,7 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
                         <OutlinedInput fullWidth disabled value={existingUser.user.email} sx={existingEmailInputSx} />
                         <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}>
                             <AttentionBoxContent>
-                                <Typography variant="subtitle2" sx={{ color: "text.primary", mb: "4px" }}>This email is already in use in this account.</Typography>
+                                <Typography variant="subtitle2" sx={{ color: "text.primary", mb: 0.5 }}>This email is already in use in this account.</Typography>
                                 <Typography variant="body1" sx={textPrimarySx}>You can edit the user type if necessary.</Typography>
                             </AttentionBoxContent>
                         </AttentionBox>
@@ -334,7 +338,7 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
                 <>
                     <DialogContent sx={editUserContentSx}>
                         {seatLimitExceeded && (
-                            <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "16px" }}>
+                            <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: 2 }}>
                                 <AttentionBoxContent>
                                     <Typography variant="body1" sx={{ color: "text.primary" }}>
                                         Create seat limit reached. You can still add users with viewer permission to this account.
@@ -342,11 +346,11 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
                                 </AttentionBoxContent>
                             </AttentionBox>
                         )}
-                        <Box sx={{ mb: "16px" }}>
+                        <Box sx={{ mb: 2 }}>
                             <Typography variant="body2" sx={seatLimitExceeded ? { ...editUserFieldLabelSx, color: "error.main" } : editUserFieldLabelSx}>Email</Typography>
                             <OutlinedInput fullWidth placeholder="user@example.com" value={email} onChange={e => handleEmailChange(e.target.value)} error={!!emailError || seatLimitExceeded} sx={{ height: 40 }} />
-                            {emailError && <Typography variant="caption" sx={{ color: "error.light", mt: "4px", display: "block" }}>{emailError}</Typography>}
-                            {!emailError && seatLimitExceeded && <Typography variant="caption" sx={{ color: "error.main", mt: "4px", display: "block" }}>Create seats limit reached.</Typography>}
+                            {emailError && <Typography variant="caption" sx={{ color: "error.light", mt: 0.5, display: "block" }}>{emailError}</Typography>}
+                            {!emailError && seatLimitExceeded && <Typography variant="caption" sx={{ color: "error.main", mt: 0.5, display: "block" }}>Create seats limit reached.</Typography>}
                         </Box>
                         <Box>
                             <Typography variant="body2" sx={editUserFieldLabelSx}>Permission</Typography>
@@ -474,8 +478,8 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                     </Box>
 
                     {/* ── User autocomplete (always visible) ── */}
-                    <Box sx={{ mb: "20px" }}>
-                        <Typography variant="subtitle2" sx={{ color: "text.primary", mb: "6px" }}>
+                    <Box sx={{ mb: 2.5 }}>
+                        <Typography variant="subtitle2" sx={{ color: "text.primary", mb: 0.75 }}>
  Select or add user
                         </Typography>
                         <Autocomplete
@@ -533,10 +537,10 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                                             pointerEvents: disabled ? "none" : "auto"
                                         }}
                                     >
-                                        <Typography variant="body1" sx={{ color: "text.primary", lineHeight: 1.4 }}>
+                                        <Typography variant="body1" sx={{ color: "text.primary" }}>
                                             {opt.user.name}
                                         </Typography>
-                                        <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
+                                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
                                             {opt.user.email}
                                         </Typography>
                                     </Box>
@@ -577,7 +581,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                         <AttentionBox
                             color="warning"
                             icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>}
-                            sx={{ mb: "20px" }}
+                            sx={{ mb: 2.5 }}
                         >
                             <AttentionBoxContent>
                                 <Typography variant="subtitle2" sx={cardTitleSx}>
@@ -607,7 +611,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
  Add new user
                         </Button>
 
-                        <Box sx={{ display: "flex", gap: "12px" }}>
+                        <Box sx={{ display: "flex", gap: 1.5 }}>
                             <Button
                                 variant="outlined"
                                 onClick={onClose}
@@ -647,7 +651,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                             </IconButton>
                         </Box>
 
-                        <Typography variant="body1" sx={{ color: "text.primary", mb: "24px", lineHeight: 1.6 }}>
+                        <Typography variant="body1" sx={{ color: "text.primary", mb: 3 }}>
                             <strong>{selectedUser.user.name}</strong> currently has{" "}
                             <strong>{selectedUser.createSpace === "No access" ? "no access" : "Viewer access"}</strong>{" "}
  to Create access. Adding them as an approver will give them Create access and use{" "}
@@ -690,7 +694,7 @@ function AddApproverDialog({ open, onClose, onAdd, allUsers, existingApproverIds
                         </IconButton>
                     </Box>
 
-                    <Typography variant="body1" sx={{ color: "text.primary", mb: "24px", lineHeight: 1.6 }}>
+                    <Typography variant="body1" sx={{ color: "text.primary", mb: 3 }}>
                         <strong>{trimmed}</strong> is not yet a SundaySky user. They will receive an email invitation to SundaySky. Adding them as an approver will use 1 create access seat ({privilegedSeats + 1}/10 used after this action).
                     </Typography>
 
@@ -755,7 +759,7 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
             <TruffleDialogTitle CloseIconButtonProps={{ onClick: onClose }}>Edit user</TruffleDialogTitle>
             <DialogContent sx={editUserContentSx}>
                 {seatLimitExceeded && (
-                    <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "16px" }}>
+                    <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: 2 }}>
                         <AttentionBoxContent>
                             <Typography variant="body1" sx={{ color: "text.primary" }}>
                                 Create seat limit reached. You can still add users with viewer permission to this account.
@@ -763,10 +767,10 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
                         </AttentionBoxContent>
                     </AttentionBox>
                 )}
-                <Box sx={{ mb: "16px" }}>
+                <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" sx={seatLimitExceeded ? { ...editUserFieldLabelSx, color: "error.main" } : editUserFieldLabelSx}>Email</Typography>
                     <OutlinedInput fullWidth disabled value={user?.user.email || ""} error={seatLimitExceeded} sx={{ height: 40 }} />
-                    {seatLimitExceeded && <Typography variant="caption" sx={{ color: "error.main", mt: "4px", display: "block" }}>Create seats limit reached.</Typography>}
+                    {seatLimitExceeded && <Typography variant="caption" sx={{ color: "error.main", mt: 0.5, display: "block" }}>Create seats limit reached.</Typography>}
                 </Box>
                 <Box>
                     <Typography variant="body2" sx={editUserFieldLabelSx}>User type</Typography>
@@ -874,7 +878,7 @@ function DeleteUserDialog({
     const bodyContent = (
         <Box>
             {visibleBulletPoints.length > 0 && (
-                <Box sx={{ mb: "16px" }}>
+                <Box sx={{ mb: 2 }}>
                     {visibleBulletPoints.map((bp, idx) => (
                         <Typography key={idx} variant="body1" sx={{ color: "text.primary", mb: idx < visibleBulletPoints.length - 1 ? "8px" : "0px" }}>
                             • {bp.text}
@@ -883,7 +887,7 @@ function DeleteUserDialog({
                 </Box>
             )}
             {isContributor && (
-                <Box sx={{ bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: "12px", mb: "24px", display: "flex", gap: "12px" }}>
+                <Box sx={deleteUserWarningBoxSx}>
                     <SvgIcon sx={{ fontSize: 20, color: "warning.main", flexShrink: 0 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                     <Typography variant="body1" sx={{ color: "text.primary" }}>
                         Deleting this user will also delete all Amplify videos and analytics for Contributors. Previously shared links will remain viewable.
@@ -931,7 +935,7 @@ function DeleteUserDialog({
                     placeholder='Type "Delete" to confirm'
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    sx={{ height: 40, mb: "24px" }}
+                    sx={{ height: 40, mb: 3 }}
                 />
 
                 <Box sx={dialogActionsRowSx}>
@@ -1089,8 +1093,8 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
         ? approvers.filter(r => r.user.name.toLowerCase().includes(search.toLowerCase()) || r.user.email.toLowerCase().includes(search.toLowerCase()))
         : approvers;
 
-    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
-    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: 1.25, px: 2, whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: 1.25, px: 2 };
 
     function handleAddApprovers(newIds: string[]) {
         const trulyNew = newIds.filter(id => !approverIds.has(id));
@@ -1109,7 +1113,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
 
     return (
         <Box sx={sectionContainerSx}>
-            <Typography variant="h3" sx={{ color: "text.primary", mb: "16px", flexShrink: 0 }}>
+            <Typography variant="h3" sx={{ color: "text.primary", mb: 2, flexShrink: 0 }}>
  Approvals
             </Typography>
 
@@ -1121,7 +1125,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                         <Typography variant="body1" sx={{ color: "text.primary" }}>
                             {userRole === "account-owner" ? "Enable video approvals" : "Video approvals"}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: "text.secondary", mt: "2px" }}>
+                        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.25 }}>
                             {userRole === "account-owner"
                                 ? "Only approvers can approve videos. Assign approver permissions in the Users tab."
                                 : enabled
@@ -1135,7 +1139,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                             placement="top"
                             arrow
                         >
-                            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                 <Switch
                                     checked={enabled}
                                     onChange={e => handleToggle(e.target.checked)}
@@ -1145,7 +1149,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                             </Box>
                         </Tooltip>
                     ) : (
-                        <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             {enabled && (
                                 <Label label="Enabled" color="success" size="medium" />
                             )}
@@ -1157,7 +1161,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                 </Box>
 
                 {enabled && (
-                    <Box sx={{ px: "16px", pb: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <Box sx={{ px: 2, pb: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
                         {/* Search */}
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
                             <Search
@@ -1177,7 +1181,7 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                 <TableHead>
                                     <TableRow>
                                         <TableCell sx={{ ...headCellSx, width: 220, position: "sticky", left: 0, zIndex: 4 }}>
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}>
                                                     User <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
                                             </Box>
                                         </TableCell>
@@ -1205,28 +1209,28 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                                                 <TableCell sx={bodyCellSx}>
                                                     <Box sx={userTypeCellSx}>
                                                         {row.isOwner && <Label label="Account owner" color="info" size="small" />}
-                                                        <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                                                            <Typography variant="body1" sx={textPrimarySx}>
+                                                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                                            <Typography variant="body2" sx={textPrimarySx}>
                                                                 {getUserTypeRoles(row)}
                                                             </Typography>
                                                             {row.isOwner && (
                                                                 <Tooltip title="Account owners have full access to the account" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                                                                    <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                                                    <SvgIcon sx={{ fontSize: 15, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                                                                 </Tooltip>
                                                             )}
                                                         </Box>
                                                     </Box>
                                                 </TableCell>
                                                 <TableCell sx={bodyCellSx}>
-                                                    <Typography variant="body1" sx={textPrimarySx}>{row.jobRole}</Typography>
+                                                    <Typography variant="body2" sx={textPrimarySx}>{row.jobRole}</Typography>
                                                 </TableCell>
                                                 <TableCell sx={{ ...bodyCellSx, width: 160 }}>
-                                                    <Typography variant="body1" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
+                                                    <Typography variant="body2" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
                                                         {row.pending ? "Pending" : row.lastLogin}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell sx={{ ...bodyCellSx, width: 160 }}>
-                                                    <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
+                                                    <Typography variant="body2" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
                                                         {row.createdDate}
                                                     </Typography>
                                                 </TableCell>
@@ -1356,10 +1360,10 @@ function ApprovalsSection({ users, approverIds, enabled, onToggle, onSetApprover
                     <Typography variant="h4" sx={dialogTitleSx}>
                         Cancel all pending approvals?
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.primary", mb: "8px" }}>
+                    <Typography variant="body1" sx={{ color: "text.primary", mb: 1 }}>
                         Disabling approvals will cancel all {pendingApprovalsCount} pending {pendingApprovalsCount === 1 ? "approval" : "approvals"} in this account.
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.primary", mb: "24px" }}>
+                    <Typography variant="body1" sx={{ color: "text.primary", mb: 3 }}>
                         The user who submitted them will be notified by email.
                     </Typography>
                     <Box sx={dialogActionsRowSx}>
@@ -1449,8 +1453,8 @@ function UsersSection({
     const contributorCount = countContributorSeats(usersList);
     const seatLimitReached = editorCount >= MAX_CREATE_SEATS;
 
-    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
-    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: 1.25, px: 2, whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: 1.25, px: 2 };
 
     return (
         <Box sx={sectionContainerSx}>
@@ -1466,11 +1470,13 @@ function UsersSection({
                     sx={tabItemSx}
                     label={
                         <Box sx={tabLabelBoxSx}>
-                            <Typography variant="subtitle2" component="span">Create</Typography>
-                            <Box sx={tabCountBadgeSx}>
-                                <SvgIcon sx={{ ...tabBadgeIconSx, ...(seatLimitReached && { color: "error.main" }) }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                                <Typography variant="caption" sx={seatLimitReached ? { color: "error.main" } : undefined}>{editorCount}/{MAX_CREATE_SEATS} seats</Typography>
-                            </Box>
+                            <Typography variant={activeTab === "create" ? "h5" : "subtitle2"} component="span">Create</Typography>
+                            <Label
+                                color={seatLimitReached ? "error" : "info"}
+                                size="small"
+                                startIcon={<SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
+                                label={`${editorCount}/${MAX_CREATE_SEATS} seats`}
+                            />
                         </Box>
                     }
                 />
@@ -1479,11 +1485,13 @@ function UsersSection({
                     sx={tabItemSx}
                     label={
                         <Box sx={tabLabelBoxSx}>
-                            <Typography variant="subtitle2" component="span">Amplify</Typography>
-                            <Box sx={tabCountBadgeSx}>
-                                <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
-                                <Typography variant="caption">{contributorCount}/10 seats</Typography>
-                            </Box>
+                            <Typography variant={activeTab === "amplify" ? "h5" : "subtitle2"} component="span">Amplify</Typography>
+                            <Label
+                                color="info"
+                                size="small"
+                                startIcon={<SvgIcon sx={{ fontSize: 12 }}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>}
+                                label={`${contributorCount}/10 seats`}
+                            />
                         </Box>
                     }
                 />
@@ -1493,10 +1501,10 @@ function UsersSection({
             <Box sx={usersToolbarRowSx}>
                 {userRole === "account-owner" && (
                     <Button
-                        startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
+                        startIcon={<SvgIcon sx={{ fontSize: "13px !important", "& path": { fill: `url(#${TruffleSvgGradientId})` } }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
                         variant="outlined"
+                        size="medium"
                         onClick={() => setDialogMode("add")}
-                        sx={addUserBtnSx}
                     >
                         Add user
                     </Button>
@@ -1514,7 +1522,7 @@ function UsersSection({
 
             {/* Seat limit banner */}
             {seatLimitReached && activeTab === "create" && (
-                <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: "16px", flexShrink: 0 }}>
+                <AttentionBox color="warning" icon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>} sx={{ mb: 2, flexShrink: 0 }}>
                     <AttentionBoxContent>
                         <Typography variant="body1" sx={{ color: "text.primary" }}>
                             Create seat limit reached. You can still add users with viewer permission to this account.
@@ -1529,8 +1537,8 @@ function UsersSection({
                     <TableHead>
                         <TableRow>
                             <TableCell sx={{ ...headCellSx, width: 220, position: "sticky", left: 0, zIndex: 4 }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
-                                    User <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}>
+                                    User <SvgIcon sx={{ fontSize: 12, color: "text.secondary" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
                                 </Box>
                             </TableCell>
                             <TableCell sx={headCellSx}>
@@ -1563,29 +1571,29 @@ function UsersSection({
                                     <TableCell sx={bodyCellSx}>
                                         <Box sx={userTypeCellSx}>
                                             {row.isOwner && <Label label="Account owner" color="info" size="small" />}
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                                                <Typography variant="body1" sx={textPrimarySx}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                                <Typography variant="body2" sx={textPrimarySx}>
                                                     {getUserTypeRoles(row)}
                                                 </Typography>
                                                 {row.isOwner && (
                                                     <Tooltip title="Account owners have full access to the account" placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
-                                                        <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
+                                                        <SvgIcon sx={{ fontSize: 15, color: "action.active" }}><FontAwesomeIcon icon={faCircleInfo} /></SvgIcon>
                                                     </Tooltip>
                                                 )}
                                             </Box>
                                         </Box>
                                     </TableCell>
                                     <TableCell sx={bodyCellSx}>
-                                        <Typography variant="body1" sx={textPrimarySx}>{row.jobRole}</Typography>
+                                        <Typography variant="body2" sx={textPrimarySx}>{row.jobRole}</Typography>
                                     </TableCell>
                                     <TableCell sx={{ ...bodyCellSx, width: 160 }}>
-                                        <Typography variant="body1" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
+                                        <Typography variant="body2" sx={{ color: row.pending ? "text.secondary" : "text.primary", fontStyle: row.pending ? "italic" : "normal", whiteSpace: "nowrap" }}>
                                             {row.pending ? "Pending" : row.lastLogin}
                                         </Typography>
                                     </TableCell>
                                     <TableCell sx={{ ...bodyCellSx, width: 160 }}>
-                                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px" }}>
-                                            <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
+                                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0.5 }}>
+                                            <Typography variant="body2" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
                                                 {row.createdDate}
                                             </Typography>
                                             {(isHovered || userMenuUser?.user.id === row.user.id) && !row.isOwner && userRole === "account-owner" && (
@@ -1876,7 +1884,7 @@ function GroupDialog({ open, onClose, onSave, mode, group, accountUsers, existin
                             disableCloseOnSelect
                             popupIcon={null}
                             renderTags={(tagValue, getTagProps) => (
-                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                                     {tagValue.map((user, index) => (
                                         <Chip
                                             {...getTagProps({ index })}
@@ -1898,7 +1906,7 @@ function GroupDialog({ open, onClose, onSave, mode, group, accountUsers, existin
                                 const au = findAccountUser(option.id, accountUsers);
                                 return (
                                     <Box component="li" {...props} key={option.id}
-                                        sx={{ display: "flex", alignItems: "center", gap: "10px", px: "12px", py: "8px" }}>
+                                        sx={{ display: "flex", alignItems: "center", gap: 1.25, px: 1.5, py: 1 }}>
                                         <TruffleAvatar text={option.initials} size="small" sx={{ flexShrink: 0 }} />
                                         <Box>
                                             <Typography variant="subtitle2" sx={textPrimarySx}>{option.name}</Typography>
@@ -1938,10 +1946,10 @@ function GroupDialog({ open, onClose, onSave, mode, group, accountUsers, existin
             <Dialog open={discardOpen} onClose={() => setDiscardOpen(false)} maxWidth={false}
                 PaperProps={{ sx: { width: 420, borderRadius: "12px", p: 0 } }}>
                 <Box sx={dialogBodySx}>
-                    <Typography variant="h4" sx={{ ...textPrimarySx, mb: "8px" }}>
+                    <Typography variant="h4" sx={{ ...textPrimarySx, mb: 1 }}>
                     Discard changes?
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px", lineHeight: 1.6 }}>
+                    <Typography variant="body1" sx={{ color: "text.secondary", mb: 3 }}>
                     You have unsaved changes. If you leave now, your changes will be lost.
                     </Typography>
                     <Box sx={dialogActionsRowSx}>
@@ -1986,11 +1994,11 @@ function RemoveGroupDialog({ open, onClose, group, onConfirm }: {
                         <SvgIcon sx={navIconSx}><FontAwesomeIcon icon={faXmark} /></SvgIcon>
                     </IconButton>
                 </Box>
-                <Typography variant="body1" sx={{ color: "text.primary", mb: "8px", lineHeight: 1.6 }}>
+                <Typography variant="body1" sx={{ color: "text.primary", mb: 1 }}>
                     This will remove the <strong>{group.name}</strong> group
                     ({group.userIds.length} {group.userIds.length === 1 ? "user" : "users"}).
                 </Typography>
-                <Typography variant="body1" sx={{ color: "text.secondary", mb: "24px", lineHeight: 1.6 }}>
+                <Typography variant="body1" sx={{ color: "text.secondary", mb: 3 }}>
                     Do you also want to remove the permissions that were assigned to users through this group?
                     If you keep them, users will retain the group&rsquo;s permission individually.
                 </Typography>
@@ -2046,8 +2054,8 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
         return known ? known.name : id; // fall back to email string for new users
     }
 
-    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px", whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
-    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: "10px", px: "16px" };
+    const headCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: 1.25, px: 2, whiteSpace: "nowrap" as const, bgcolor: "background.paper", position: "sticky", top: 0, zIndex: 3 };
+    const bodyCellSx = { color: "text.primary", borderBottom: 1, borderBottomColor: "grey.300", py: 1.25, px: 2 };
 
     function openCreate() {
         setEditingGroup(null);
@@ -2078,9 +2086,9 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
                 <Box sx={usersToolbarRowSx}>
                     <Button
                         variant="outlined"
+                        size="medium"
                         startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
                         onClick={openCreate}
-                        sx={addUserBtnSx}
                     >
                         Create group
                     </Button>
@@ -2105,7 +2113,7 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
                     <Typography variant="h4" sx={{ color: "text.primary", textAlign: "center" }}>
                         No groups yet
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", maxWidth: 380, lineHeight: 1.7 }}>
+                    <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", maxWidth: 380 }}>
                         Groups let you publish templates for specific users, build approval teams, and control who gets mentioned when creating videos.
                     </Typography>
                     <Button
@@ -2124,7 +2132,7 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
                         <TableHead>
                             <TableRow>
                                 <TableCell sx={headCellSx}>
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}>
                                         Name <SvgIcon sx={{ fontSize: 14, color: "action.active" }}><FontAwesomeIcon icon={faArrowDown} /></SvgIcon>
                                     </Box>
                                 </TableCell>
@@ -2142,7 +2150,7 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
                                 const isHovered = hoveredRow === group.id;
                                 const isMenuOpen = rowMenuGroup?.id === group.id && Boolean(rowMenuAnchor);
                                 const userListTooltip = group.userIds.length > 0 ? (
-                                    <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
                                         {group.userIds.map(id => (
                                             <Typography key={id} variant="caption" sx={{ color: "common.white" }}>
                                                 {resolveUserName(id)}
@@ -2158,7 +2166,7 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
                                         sx={{ bgcolor: isHovered ? "grey.100" : "background.paper", transition: "background 0.1s" }}
                                     >
                                         <TableCell sx={bodyCellSx}>
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                                 <SvgIcon sx={{ fontSize: 16, color: "action.active", flexShrink: 0 }}>
                                                     <FontAwesomeIcon icon={faPeopleGroup} />
                                                 </SvgIcon>
@@ -2180,7 +2188,7 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
                                                         arrow
                                                         componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main", "& .MuiTooltip-arrow": { color: "secondary.main" } } } }}
                                                     >
-                                                        <Typography variant="body1" sx={{ ...textPrimarySx, display: "inline" }}>
+                                                        <Typography variant="body2" sx={{ ...textPrimarySx, display: "inline" }}>
                                                             {displayText}
                                                         </Typography>
                                                     </Tooltip>
@@ -2188,8 +2196,8 @@ function GroupsSection({ accountUsers, groups, onGroupsChange }: {
                                             })()}
                                         </TableCell>
                                         <TableCell sx={{ ...bodyCellSx, width: 160 }}>
-                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px" }}>
-                                                <Typography variant="body1" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0.5 }}>
+                                                <Typography variant="body2" sx={{ color: "text.primary", whiteSpace: "nowrap" }}>
                                                     {group.createdAt}
                                                 </Typography>
                                                 {(isHovered || isMenuOpen) && (
@@ -2324,7 +2332,7 @@ function PermRow({
     return (
         <Box sx={permRowSx}>
             <Box sx={permLabelBoxSx}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
                     {info && (
                         <Tooltip title={info} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
@@ -2433,7 +2441,7 @@ function PermRowWithUsers({
 
     const labelCol = (
         <Box sx={permLabelBoxSx}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="body1" sx={textPrimarySx}>{label}</Typography>
                 {info && (
                     <Tooltip title={info} placement="top" arrow componentsProps={{ tooltip: { sx: { bgcolor: "secondary.main" } } }}>
@@ -2557,12 +2565,12 @@ function ViewEditPermissionsSection({ groups = [] }: { groups?: UserGroup[] }) {
 
     return (
         <Box sx={sectionContainerSx}>
-            <Typography variant="h3" sx={{ color: "text.primary", mb: "12px", flexShrink: 0 }}>
+            <Typography variant="h3" sx={{ color: "text.primary", mb: 1.5, flexShrink: 0 }}>
                 Access Defaults
             </Typography>
 
             {/* Explanation */}
-            <AttentionBox sx={{ mb: "16px", flexShrink: 0 }}>
+            <AttentionBox sx={{ mb: 2, flexShrink: 0 }}>
                 <AttentionBoxContent>
                     These are the default permissions you set as the account owner.
                     Individual owners can still change permissions on their own content.
@@ -2819,7 +2827,7 @@ export default function AccountSettingsDialog({
                     onClick: onClose
                 }}
             >
- Account settings
+                <Typography variant="h3">Account settings</Typography>
             </TruffleDialogTitle>
 
             {/* Body */}
@@ -2830,10 +2838,10 @@ export default function AccountSettingsDialog({
                         <Box
                             key={item.key}
                             onClick={() => setNav(item.key)}
-                            sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
+                            sx={combineSxProps(sidebarNavItemSx, nav === item.key ? sidebarNavItemActiveSx : sidebarNavItemInactiveSx)}
                         >
                             <Box sx={{ color: nav === item.key ? "primary.main" : "action.active", display: "flex", flexShrink: 0 }}>{item.icon}</Box>
-                            <Typography variant="body1" sx={{ fontWeight: nav === item.key ? 600 : 400, color: "inherit" }}>
+                            <Typography variant={nav === item.key ? "h5" : "body1"} sx={{ color: "inherit" }}>
                                 {item.label}
                             </Typography>
                         </Box>
@@ -2997,41 +3005,41 @@ const disabledButtonSx: SxProps<Theme> = { "&.Mui-disabled": { bgcolor: "grey.30
 const textLinkButtonSx: SxProps<Theme> = { color: "primary.main", p: 0, "&:hover": { bgcolor: "transparent", textDecoration: "underline" } };
 const contactSalesLinkSx: SxProps<Theme> = { color: "primary.main", cursor: "pointer", textDecoration: "underline" };
 const closeIconButtonSx: SxProps<Theme> = { color: "action.active" };
-const ellipsisButtonSx: SxProps<Theme> = { color: "text.primary", p: "4px", "&:hover": { bgcolor: "grey.100" } };
+const ellipsisButtonSx: SxProps<Theme> = { color: "text.primary", p: 0.5, "&:hover": { bgcolor: "grey.100" } };
 
 // Icons
-const infoBoxIconSx: SxProps<Theme> = { fontSize: 16, color: "primary.main", mt: "1px", flexShrink: 0 };
+const infoBoxIconSx: SxProps<Theme> = { fontSize: 16, color: "primary.main", mt: 0.125, flexShrink: 0 };
 
 // SeatHeader
 // CreateSpaceSelector
 
 // UserCell
-const userCellContainerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "10px", cursor: "default" };
-const userCellAvatarSx: SxProps<Theme> = { bgcolor: "secondary.main", borderRadius: "8px", flexShrink: 0 };
+const userCellContainerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1.25, cursor: "default" };
+const userCellAvatarSx: SxProps<Theme> = { bgcolor: "secondary.main", color: "common.white", flexShrink: 0 };
 const userCellTextBoxSx: SxProps<Theme> = { minWidth: 0 };
-const userCellNameSx: SxProps<Theme> = { color: "text.primary", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
-const userCellRoleSx: SxProps<Theme> = { color: "text.secondary", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+const userCellNameSx: SxProps<Theme> = { color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+const userCellRoleSx: SxProps<Theme> = { color: "text.secondary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 
 // Dialogs (shared layout)
-const dialogBodySx: SxProps<Theme> = { px: "24px", py: "20px" };
-const dialogTitleRowMb16Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px" };
-const dialogTitleRowMb24Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "24px" };
-const dialogTitleSx: SxProps<Theme> = { color: "text.primary", mb: "12px" };
-const dialogBodyTextSx: SxProps<Theme> = { color: "text.secondary", mb: "24px", lineHeight: 1.6 };
-const dialogActionsRowSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", gap: "12px" };
+const dialogBodySx: SxProps<Theme> = { px: 3, py: 2.5 };
+const dialogTitleRowMb16Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 };
+const dialogTitleRowMb24Sx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 };
+const dialogTitleSx: SxProps<Theme> = { color: "text.primary", mb: 1.5 };
+const dialogBodyTextSx: SxProps<Theme> = { color: "text.secondary", mb: 3 };
+const dialogActionsRowSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", gap: 1.5 };
 const dialogFlexBodySx: SxProps<Theme> = { display: "flex", flex: 1, overflow: "hidden" };
 
 // Info box
-const infoBoxSx: SxProps<Theme> = { display: "flex", alignItems: "flex-start", gap: "8px", bgcolor: "action.hover", borderRadius: "8px", px: "14px", py: "12px", mb: "20px" };
-const existingEmailInputSx: SxProps<Theme> = { height: 40, mb: "16px", "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" } };
+const infoBoxSx: SxProps<Theme> = { display: "flex", alignItems: "flex-start", gap: 1, bgcolor: "action.hover", borderRadius: "8px", px: 1.75, py: 1.5, mb: 2.5 };
+const existingEmailInputSx: SxProps<Theme> = { height: 40, mb: 2, "& .MuiOutlinedInput-notchedOutline": { borderColor: "grey.300" } };
 
 // Context menus
-const contextMenuPaperSx: SxProps<Theme> = { borderRadius: "10px", minWidth: 240, boxShadow: "0px 4px 20px rgba(3,25,79,0.15)", py: "8px" };
-const menuItemEditSx: SxProps<Theme> = { color: "text.primary", px: "16px", py: "8px", gap: "10px" };
-const menuItemRemoveSx: SxProps<Theme> = { color: "error.main", px: "16px", py: "8px", gap: "10px" };
+const contextMenuPaperSx: SxProps<Theme> = { borderRadius: "10px", minWidth: 240, boxShadow: (theme) => `0px 4px 20px ${alpha(theme.palette.secondary.main, 0.15)}`, py: 1 };
+const menuItemEditSx: SxProps<Theme> = { color: "text.primary", px: 2, py: 1, gap: 1.25 };
+const menuItemRemoveSx: SxProps<Theme> = { color: "error.main", px: 2, py: 1, gap: 1.25 };
 
 // Card
-const cardTitleSx: SxProps<Theme> = { color: "text.primary", mb: "2px" };
+const cardTitleSx: SxProps<Theme> = { color: "text.primary", mb: 0.25 };
 
 // Tables
 const tableFullWidthSx: SxProps<Theme> = { width: "100%" };
@@ -3041,57 +3049,62 @@ const usersTableContainerSx: SxProps<Theme> = { flex: 1, overflowX: "auto", over
 // ApprovalsSection
 const sectionContainerSx: SxProps<Theme> = { display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" };
 const approvalToggleContainerSx: SxProps<Theme> = { border: 1, borderColor: "grey.300", borderRadius: "10px", overflow: "hidden", flexShrink: 0 };
-const approvalToggleInnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "14px" };
+const approvalToggleInnerSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.75 };
 const approvalStampIconSx: SxProps<Theme> = { fontSize: 22, color: "primary.main", flexShrink: 0 };
 const switchSx: SxProps<Theme> = { "& .MuiSwitch-switchBase.Mui-checked": { color: "common.white" }, "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "primary.main" } };
 
 // Main dialog layout
-const sidebarSx: SxProps<Theme> = { width: 226, flexShrink: 0, borderRight: 1, borderRightColor: "grey.300", py: "12px", px: "8px", display: "flex", flexDirection: "column", gap: "2px", bgcolor: "grey.50" };
-const contentAreaSx: SxProps<Theme> = { flex: 1, overflow: "hidden", px: "24px", py: "20px", display: "flex", flexDirection: "column" };
+const sidebarSx: SxProps<Theme> = { width: 226, flexShrink: 0, borderRight: 1, borderRightColor: "grey.300", py: 1.5, px: 1, display: "flex", flexDirection: "column", gap: 0.25, bgcolor: "grey.50" };
+const contentAreaSx: SxProps<Theme> = { flex: 1, overflow: "hidden", px: 3, py: 2.5, display: "flex", flexDirection: "column" };
 const placeholderContainerSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" };
 
 // UsersSection
-const usersTitleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px", flexShrink: 0 };
-const userTabsSx: SxProps<Theme> = { mb: "16px", borderBottom: 1, borderBottomColor: "grey.300", minHeight: 42, flexShrink: 0 };
-const tabItemSx: SxProps<Theme> = { textTransform: "none", minHeight: 42, py: 0, px: "12px" };
-const tabLabelBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "8px" };
-const tabCountBadgeSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px", bgcolor: "action.hover", borderRadius: "6px", px: "6px", py: "2px" };
-const tabBadgeIconSx: SxProps<Theme> = { fontSize: 12, color: "action.active" };
-const usersToolbarRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px", flexShrink: 0 };
-const addUserBtnSx: SxProps<Theme> = { color: "primary.main", borderColor: "grey.300", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } };
-const userTypeCellSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" };
+const usersTitleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexShrink: 0 };
+const userTabsSx: SxProps<Theme> = { mb: 2, minHeight: 42, flexShrink: 0 };
+const tabItemSx: SxProps<Theme> = { textTransform: "none", minHeight: 42, py: 0, px: 1.5 };
+const tabLabelBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1 };
+const usersToolbarRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexShrink: 0 };
+const userTypeCellSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: 0.5, alignItems: "flex-start" };
 
 // UserTypeSelector
-const userTypeSelectorFieldSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "8px", border: 1, borderColor: "grey.300", borderRadius: "4px", px: "12px", height: 40, cursor: "pointer", "&:hover": { borderColor: "primary.main" } };
+const userTypeSelectorFieldSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1, border: 1, borderColor: "grey.300", borderRadius: "4px", px: 1.5, height: 40, cursor: "pointer", "&:hover": { borderColor: "primary.main" } };
 const userTypePopoverPaperSx: SxProps<Theme> = { borderRadius: "8px", width: 360 };
-const userTypeSectionHeaderSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", px: "16px", py: "10px", bgcolor: "background.default" };
-const userTypeOptionSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "12px", px: "16px", py: "10px", transition: "background 0.1s" };
+const userTypeSectionHeaderSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.25, bgcolor: "background.default" };
+const userTypeOptionSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.25, transition: "background 0.1s" };
 
 // Edit/Add user dialog fields
-const editUserContentSx: SxProps<Theme> = { px: "24px", py: "20px" };
-const editUserFieldLabelSx: SxProps<Theme> = { color: "text.secondary", mb: "6px", display: "block" };
+const editUserContentSx: SxProps<Theme> = { px: 3, py: 2.5 };
+const editUserFieldLabelSx: SxProps<Theme> = { color: "text.secondary", mb: 0.75, display: "block" };
 
 // GroupDialog
-const groupDialogScrollSx: SxProps<Theme> = { px: "24px", py: "20px", overflowY: "auto", flex: 1 };
-const groupFieldWrapSx: SxProps<Theme> = { mb: "20px" };
-const removeGroupActionsRowSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", gap: "8px", flexWrap: "wrap" };
+const groupDialogScrollSx: SxProps<Theme> = { px: 3, py: 2.5, overflowY: "auto", flex: 1 };
+const groupFieldWrapSx: SxProps<Theme> = { mb: 2.5 };
+const removeGroupActionsRowSx: SxProps<Theme> = { display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" };
 
 // GroupsSection — empty state
-const groupEmptyStateSx: SxProps<Theme> = { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", py: 4 };
-const groupEmptyIconWrapSx: SxProps<Theme> = { width: 64, height: 64, borderRadius: "16px", bgcolor: "primary.light", display: "flex", alignItems: "center", justifyContent: "center", mb: "4px" };
+const groupEmptyStateSx: SxProps<Theme> = { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, py: 4 };
+const groupEmptyIconWrapSx: SxProps<Theme> = { width: 64, height: 64, borderRadius: "16px", bgcolor: "primary.light", display: "flex", alignItems: "center", justifyContent: "center", mb: 0.5 };
 const groupEmptyIconSx: SxProps<Theme> = { fontSize: "28px !important", width: "28px !important", height: "28px !important", color: "primary.main" };
 
 // ViewEditPermissionsSection
-const permGroupSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0 };
+const permGroupSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 };
 const permGroupTitleSx: SxProps<Theme> = { color: "text.primary" };
 const permGroupCardSx: SxProps<Theme> = { border: 1, borderColor: "divider", borderRadius: "10px", overflow: "hidden", bgcolor: "background.paper" };
-const permGroupsScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "48px", pb: "8px" };
-const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "flex-start", px: "16px", py: "10px", gap: "16px" };
-const permLabelBoxSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "2px", width: 260, flexShrink: 0 };
-const permSelectSx: SxProps<Theme> = { flex: 1, minWidth: 180, "& .MuiSelect-select": { py: "4px" } };
+const permGroupsScrollSx: SxProps<Theme> = { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, pb: 1 };
+const permRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "flex-start", px: 2, py: 1.25, gap: 2 };
+const permLabelBoxSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: 0.25, width: 260, flexShrink: 0 };
+const permSelectSx: SxProps<Theme> = { flex: 1, minWidth: 180, "& .MuiSelect-select": { py: 0.5 } };
 const permAutocompleteSx: SxProps<Theme> = { flex: 1 };
 const permAutocompleteGroupListSx: SxProps<Theme> = { p: 0, m: 0, listStyle: "none" };
 const permDropdownSectionSx: SxProps<Theme> = {};
 const permDropdownSectionLabelSx: SxProps<Theme> = { color: "text.secondary", px: 2, display: "block", py: 0.75, bgcolor: (theme) => theme.palette.grey[50] };
-const permFixedChipSx: SxProps<Theme> = { color: "text.primary", px: 0.5, lineHeight: 1 };
-const removeApproverContentSx: SxProps<Theme> = { px: "32px", pt: "0 !important", pb: "8px" };
+const permFixedChipSx: SxProps<Theme> = { color: "text.primary", px: 0.5 };
+const removeApproverContentSx: SxProps<Theme> = { px: 4, pt: "0 !important", pb: 1 };
+
+// Sidebar nav item
+const sidebarNavItemSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: 1, px: 1.5, py: 1, borderRadius: "8px", cursor: "pointer", "&:hover": { bgcolor: "action.hover" } };
+const sidebarNavItemActiveSx: SxProps<Theme> = { bgcolor: "action.hover", color: "primary.main" };
+const sidebarNavItemInactiveSx: SxProps<Theme> = { bgcolor: "transparent", color: "text.primary" };
+
+// Delete user warning
+const deleteUserWarningBoxSx: SxProps<Theme> = { bgcolor: "warning.light", border: 1, borderColor: "warning.main", borderRadius: "8px", p: 1.5, mb: 3, display: "flex", gap: 1.5 };
