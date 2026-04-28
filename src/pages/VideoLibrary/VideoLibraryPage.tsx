@@ -17,7 +17,7 @@ import AccountSettingsDialog from "../../AccountSettingsDialog";
 import AppSidebar from "../../components/AppSidebar";
 import type { NewTemplateData } from "../../components/AppSidebar";
 import { NotificationBell, type NotificationItem } from "../../panels/NotificationsPanel";
-import type { UserRole } from "../../components/TasksPanel";
+import type { UserRole, AppVersion } from "../../components/TasksPanel";
 import { type VideoPermissionSettings } from "../../dialogs/VideoPermissionDialog";
 import VideoCard from "./VideoCard";
 import FolderCard from "./FolderCard";
@@ -73,7 +73,8 @@ export default function VideoLibraryPage({
     accountSettingsOpen: externalAccountSettingsOpen = false,
     accountSettingsInitialTab: externalAccountSettingsInitialTab = "users",
     onAccountSettingsOpen,
-    userRole
+    userRole,
+    appVersion = "v2"
 }: {
   onSelectVideo: (v: VideoItem) => void
   onEditVideo?: (v: VideoItem) => void
@@ -96,6 +97,7 @@ export default function VideoLibraryPage({
   accountSettingsInitialTab?: "users" | "permissions" | "approvals" | "access"
   onAccountSettingsOpen?: (open: boolean) => void
   userRole?: UserRole
+  appVersion?: AppVersion
 }) {
     const [_accountSettingsOpen, setAccountSettingsOpen] = useState(false);
     const [_accountSettingsInitialTab, setAccountSettingsInitialTab] = useState<"users" | "permissions" | "approvals" | "access">("users");
@@ -137,7 +139,6 @@ export default function VideoLibraryPage({
                 }}
                 approvalsEnabled={approvalsEnabled}
                 approverIds={approverIds}
-                approversList={approversList}
                 videoStates={videoStates}
                 onApprovalsEnabledChange={handleApprovalsEnabledChange}
                 onApproversChange={handleApproversChange}
@@ -146,6 +147,7 @@ export default function VideoLibraryPage({
                 onUserDeletionBlocked={handleUserDeletionBlocked}
                 pendingApprovalsCount={pendingApprovalsCount}
                 userRole={userRole}
+                appVersion={appVersion}
             />
             <AppSidebar onTemplateLibraryClick={onNavigateToTemplate} onTemplateCreated={onCreateTemplateFromScratch} onTemplateAdded={onTemplateAdded} />
 
