@@ -73,7 +73,10 @@
       "Bash(echo \"Exit code: $?\")",
       "Bash(echo \"Exit: $?\")",
       "Bash(awk -F: '$2 >= 1385 && $2 <= 1830')",
-      "Bash(awk 'NR>=1385 && NR<=1830' /Users/naor.daniel/Desktop/UXplatform/src/AccountSettingsDialog.tsx)"
+      "Bash(awk 'NR>=1385 && NR<=1830' /Users/naor.daniel/Desktop/UXplatform/src/AccountSettingsDialog.tsx)",
+      "Bash(git log *)",
+      "mcp__figma__get_design_context",
+      "mcp__figma__whoami"
     ]
   }
 }

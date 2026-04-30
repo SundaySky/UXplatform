@@ -5,7 +5,7 @@ import {
     Button, OutlinedInput, Tabs, Tab, Popover,
     Table, TableBody, TableCell, TableHead, TableRow,
     Tooltip, Switch, Divider, Chip, Select,
-    MenuItem, Menu,
+    MenuItem, Menu, List, ListItemButton, ListItemIcon, ListItemText,
     Autocomplete, TextField
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -137,7 +137,7 @@ const CREATE_OPTIONS = [
 ];
 
 function UserTypeSelector({
-    createSelected, amplifyContributor, onCreateChange, onAmplifyChange, editorCount, contributorCount, seatLimitReached = false
+    createSelected, amplifyContributor, onCreateChange, onAmplifyChange, editorCount, contributorCount
 }: {
     createSelected: string[]
     amplifyContributor: boolean
@@ -145,7 +145,6 @@ function UserTypeSelector({
     onAmplifyChange: (v: boolean) => void
     editorCount: number
     contributorCount: number
-    seatLimitReached?: boolean
 }) {
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const allSelected = [...createSelected, ...(amplifyContributor ? ["Contributor"] : [])];
@@ -190,10 +189,7 @@ function UserTypeSelector({
                 {/* Create section */}
                 <Box sx={userTypeSectionHeaderSx}>
                     <Typography variant="subtitle2" sx={textPrimarySx}>Create</Typography>
-                    <Box sx={tabCountBadgeSx}>
-                        <SvgIcon sx={{ ...tabBadgeIconSx, ...(seatLimitReached && { color: "error.main" }) }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                        <Typography variant="caption" sx={seatLimitReached ? { color: "error.main" } : undefined}>{editorCount}/{MAX_CREATE_SEATS} seats</Typography>
-                    </Box>
+                    <Label label={`${editorCount}/${MAX_CREATE_SEATS} seats`} color="info" size="small" startIcon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>} />
                 </Box>
                 {CREATE_OPTIONS.map(opt => {
                     const isSelected = createSelected.includes(opt.key);
@@ -223,10 +219,7 @@ function UserTypeSelector({
                 {/* Amplify section */}
                 <Box sx={userTypeSectionHeaderSx}>
                     <Typography variant="subtitle2" sx={textPrimarySx}>Amplify</Typography>
-                    <Box sx={tabCountBadgeSx}>
-                        <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
-                        <Typography variant="caption">{contributorCount}/10 seats</Typography>
-                    </Box>
+                    <Label label={`${contributorCount}/10 seats`} color="info" size="small" startIcon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>} />
                 </Box>
                 <Box
                     onClick={() => onAmplifyChange(!amplifyContributor)}
@@ -350,7 +343,7 @@ function AddUserDialog({ open, onClose, onSend, users, asApprover = false, onEdi
                         </Box>
                         <Box>
                             <Typography variant="body2" sx={editUserFieldLabelSx}>Permission</Typography>
-                            <UserTypeSelector createSelected={createSelected} amplifyContributor={amplifyContributor} onCreateChange={setCreateSelected} onAmplifyChange={setAmplifyContributor} editorCount={editorCount} contributorCount={contributorCount} seatLimitReached={seatLimitReached} />
+                            <UserTypeSelector createSelected={createSelected} amplifyContributor={amplifyContributor} onCreateChange={setCreateSelected} onAmplifyChange={setAmplifyContributor} editorCount={editorCount} contributorCount={contributorCount} />
                         </Box>
                     </DialogContent>
                     <TruffleDialogActions>
@@ -777,7 +770,6 @@ function EditPermissionsDialog({ open, onClose, user, users, onSave }: {
                         onAmplifyChange={setAmplifyContributor}
                         editorCount={editorCount}
                         contributorCount={contributorCount}
-                        seatLimitReached={seatLimitReached}
                     />
                 </Box>
             </DialogContent>
@@ -1052,7 +1044,7 @@ function RemoveApproverDialog({
                 <Button variant="text" size="large" onClick={onClose}>
                     {secondaryBtnText}
                 </Button>
-                <Button variant="contained" size="large" onClick={handleConfirm}>
+                <Button variant="contained" size="large" color="error" onClick={handleConfirm}>
                     {primaryBtnText}
                 </Button>
             </TruffleDialogActions>
@@ -1467,10 +1459,7 @@ function UsersSection({
                     label={
                         <Box sx={tabLabelBoxSx}>
                             <Typography variant="subtitle2" component="span">Create</Typography>
-                            <Box sx={tabCountBadgeSx}>
-                                <SvgIcon sx={{ ...tabBadgeIconSx, ...(seatLimitReached && { color: "error.main" }) }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>
-                                <Typography variant="caption" sx={seatLimitReached ? { color: "error.main" } : undefined}>{editorCount}/{MAX_CREATE_SEATS} seats</Typography>
-                            </Box>
+                            <Label label={`${editorCount}/${MAX_CREATE_SEATS} seats`} color="info" size="small" startIcon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faUsers} /></SvgIcon>} />
                         </Box>
                     }
                 />
@@ -1480,10 +1469,7 @@ function UsersSection({
                     label={
                         <Box sx={tabLabelBoxSx}>
                             <Typography variant="subtitle2" component="span">Amplify</Typography>
-                            <Box sx={tabCountBadgeSx}>
-                                <SvgIcon sx={tabBadgeIconSx}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>
-                                <Typography variant="caption">{contributorCount}/10 seats</Typography>
-                            </Box>
+                            <Label label={`${contributorCount}/10 seats`} color="info" size="small" startIcon={<SvgIcon sx={{ fontSize: 16 }}><FontAwesomeIcon icon={faLayerGroup} /></SvgIcon>} />
                         </Box>
                     }
                 />
@@ -1493,8 +1479,9 @@ function UsersSection({
             <Box sx={usersToolbarRowSx}>
                 {userRole === "account-owner" && (
                     <Button
-                        startIcon={<SvgIcon sx={{ fontSize: "16px !important" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
+                        size="medium"
                         variant="outlined"
+                        startIcon={<SvgIcon sx={{ fontSize: "24px" }}><FontAwesomeIcon icon={faPlus} /></SvgIcon>}
                         onClick={() => setDialogMode("add")}
                         sx={addUserBtnSx}
                     >
@@ -2825,21 +2812,60 @@ export default function AccountSettingsDialog({
             {/* Body */}
             <Box sx={dialogFlexBodySx}>
                 {/* Sidebar */}
-                <Box sx={sidebarSx}>
+                <List sx={{ ...sidebarSx, gap: "0px" }}>
                     {filteredNav.map(item => (
-                        <Box
+                        <ListItemButton
                             key={item.key}
+                            selected={nav === item.key}
                             onClick={() => setNav(item.key)}
-                            sx={{ display: "flex", alignItems: "center", gap: "8px", px: "12px", py: "8px", borderRadius: "8px", cursor: "pointer", bgcolor: nav === item.key ? "action.hover" : "transparent", color: nav === item.key ? "primary.main" : "text.primary", "&:hover": { bgcolor: "action.hover" } }}
+                            disableRipple
+                            sx={{
+                                px: "12px",
+                                py: "0px",
+                                borderRadius: "8px",
+                                minHeight: "45px",
+                                height: "45px",
+                                gap: "8px",
+                                color: nav === item.key ? "primary.main" : "text.primary",
+                                "&:hover": {
+                                    bgcolor: "action.hover"
+                                },
+                                "&.Mui-selected": {
+                                    bgcolor: "action.hover",
+                                    color: "primary.main",
+                                    "& .MuiListItemIcon-root": {
+                                        color: "primary.main"
+                                    }
+                                },
+                                "& .MuiListItemIcon-root": {
+                                    color: nav === item.key ? "primary.main" : "action.active",
+                                    minWidth: 28,
+                                    margin: 0,
+                                    fontSize: "18px"
+                                },
+                                "& .MuiListItemText-root": {
+                                    margin: 0,
+                                    "& .MuiTypography-root": {
+                                        lineHeight: 1,
+                                        fontSize: "14px"
+                                    }
+                                }
+                            }}
                         >
-                            <Box sx={{ color: nav === item.key ? "primary.main" : "action.active", display: "flex", flexShrink: 0 }}>{item.icon}</Box>
-                            <Typography variant="body1" sx={{ fontWeight: nav === item.key ? 600 : 400, color: "inherit" }}>
-                                {item.label}
-                            </Typography>
-                        </Box>
+                            <ListItemIcon>
+                                {item.icon}
+                            </ListItemIcon>
+                            <ListItemText
+                                primary={item.label}
+                                primaryTypographyProps={{
+                                    variant: "body1",
+                                    sx: { fontWeight: nav === item.key ? 600 : 400 }
+                                }}
+                            />
+                        </ListItemButton>
                     ))}
 
-                </Box>
+                </List>
 
                 {/* Content */}
                 <Box sx={contentAreaSx}>
@@ -3052,11 +3078,9 @@ const placeholderContainerSx: SxProps<Theme> = { display: "flex", alignItems: "c
 
 // UsersSection
 const usersTitleRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px", flexShrink: 0 };
-const userTabsSx: SxProps<Theme> = { mb: "16px", borderBottom: 1, borderBottomColor: "grey.300", minHeight: 42, flexShrink: 0 };
+const userTabsSx: SxProps<Theme> = { mb: "16px", minHeight: 42, flexShrink: 0 };
 const tabItemSx: SxProps<Theme> = { textTransform: "none", minHeight: 42, py: 0, px: "12px" };
 const tabLabelBoxSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "8px" };
-const tabCountBadgeSx: SxProps<Theme> = { display: "flex", alignItems: "center", gap: "4px", bgcolor: "action.hover", borderRadius: "6px", px: "6px", py: "2px" };
-const tabBadgeIconSx: SxProps<Theme> = { fontSize: 12, color: "action.active" };
 const usersToolbarRowSx: SxProps<Theme> = { display: "flex", alignItems: "center", justifyContent: "space-between", mb: "16px", flexShrink: 0 };
 const addUserBtnSx: SxProps<Theme> = { color: "primary.main", borderColor: "grey.300", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } };
 const userTypeCellSx: SxProps<Theme> = { display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" };
