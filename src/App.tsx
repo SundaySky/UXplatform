@@ -409,6 +409,7 @@ export default function App() {
                     <VideoLibraryPage
                         onSelectVideo={handleSelectVideo}
                         onEditVideo={handleEditVideo}
+                        enabledLangs={enabledLangs}
                         onNavigateToTemplate={() => setCurrentPage("template-library")}
                         onCreateTemplateFromScratch={(name) => {
                             setTemplateStudioName(name); setCurrentPage("template-studio");
@@ -605,6 +606,7 @@ export default function App() {
                                 onApproveVideo={() => setApproveDialogOpen(true)}
                                 approvalsEnabled={isLanguagesTask ? false : approvalsEnabled}
                                 videoPermSettings={videoPermSettings}
+                                enabledLangs={enabledLangs}
                             />
                         );
                     })()

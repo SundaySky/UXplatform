@@ -1,9 +1,11 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { Box, Button, Divider, Paper, SvgIcon, Tooltip, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faCircleCheck, faFileExport, faGlobe, faImages, faPen, faUsers } from "@fortawesome/pro-regular-svg-icons";
 import { TruffleAvatar } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { TOTAL_COMMENT_COUNT } from "../Studio/CommentsPanel";
+import { FLAG_BY_NAME } from "../../panels/LanguagesPanel";
 
 const imgVideoPreview = "/thumb.svg";
 
@@ -22,6 +24,127 @@ function CircularIconAvatar({ icon }: { icon: React.ReactNode }) {
     );
 }
 
+// Renders up to 2 lines of language chips. When chips can't all fit in 2
+// lines, the trailing ones collapse into a "+N" chip whose tooltip lists the
+// hidden languages. Measurement uses a hidden ghost row of all chips so each
+// chip's natural width is known regardless of which chips are currently shown.
+const CHIP_MAX_LINES = 2;
+const CHIP_GAP = 4;
+
+function LanguagesChipRow({ langs }: { langs: { name: string; flag: string }[] }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const measureRef = useRef<HTMLDivElement>(null);
+    const [visibleCount, setVisibleCount] = useState(langs.length);
+
+    useLayoutEffect(() => {
+        const compute = () => {
+            const container = containerRef.current;
+            const measure = measureRef.current;
+            if (!container || !measure) {
+                return;
+            }
+            const containerWidth = container.clientWidth;
+            const children = Array.from(measure.children) as HTMLElement[];
+            const overflowChip = children[children.length - 1];
+            const chipWidths = children.slice(0, -1).map(c => c.offsetWidth);
+            const overflowWidth = overflowChip ? overflowChip.offsetWidth : 0;
+
+            // Walk chips and place them in up to CHIP_MAX_LINES, reserving room
+            // on the last line for the "+N" chip if any chips would be hidden.
+            let line = 0;
+            let xInLine = 0;
+            let placed = 0;
+            for (let i = 0; i < chipWidths.length; i++) {
+                const w = chipWidths[i];
+                const gapBefore = xInLine > 0 ? CHIP_GAP : 0;
+                // If the chip doesn't fit on the current line, try the next.
+                if (xInLine + gapBefore + w > containerWidth) {
+                    if (line + 1 >= CHIP_MAX_LINES) {
+                        break;
+                    }
+                    line++;
+                    xInLine = 0;
+                }
+                const finalGap = xInLine > 0 ? CHIP_GAP : 0;
+                if (xInLine + finalGap + w > containerWidth) {
+                    break;
+                }
+                // On the last allowed line, leave room for "+N" if more chips remain.
+                const isLastChip = i === chipWidths.length - 1;
+                const isLastLine = line === CHIP_MAX_LINES - 1;
+                if (!isLastChip && isLastLine
+                    && xInLine + finalGap + w + CHIP_GAP + overflowWidth > containerWidth) {
+                    break;
+                }
+                xInLine += finalGap + w;
+                placed++;
+            }
+            setVisibleCount(placed);
+        };
+        compute();
+        const ro = new ResizeObserver(compute);
+        if (containerRef.current) {
+            ro.observe(containerRef.current);
+        }
+        return () => ro.disconnect();
+    }, [langs]);
+
+    const hidden = langs.slice(visibleCount);
+    const showOverflow = hidden.length > 0;
+
+    return (
+        <Box sx={chipRowOuterSx}>
+            {/* Hidden measurement row — same content as visible row + overflow chip,
+                used only to read each chip's natural width. */}
+            <Box ref={measureRef} sx={chipRowMeasureSx} aria-hidden>
+                {langs.map(({ name, flag }) => (
+                    <Box key={`m-${name}`} sx={languageChipSx}>
+                        <Box component="span" sx={languageFlagSx}>{flag}</Box>
+                        <Typography variant="caption" sx={textSecondaryColorSx}>{name}</Typography>
+                    </Box>
+                ))}
+                <Box sx={languageChipSx}>
+                    <Typography variant="caption" sx={textSecondaryColorSx}>+{langs.length}</Typography>
+                </Box>
+            </Box>
+
+            {/* Visible row */}
+            <Box ref={containerRef} sx={chipRowVisibleSx}>
+                {langs.slice(0, visibleCount).map(({ name, flag }) => (
+                    <Box key={name} sx={languageChipSx}>
+                        <Box component="span" sx={languageFlagSx}>{flag}</Box>
+                        <Typography variant="caption" sx={textSecondaryColorSx}>{name}</Typography>
+                    </Box>
+                ))}
+                {showOverflow && (
+                    <Tooltip
+                        placement="top"
+                        arrow
+                        componentsProps={{
+                            tooltip: { sx: chipOverflowTooltipSx },
+                            arrow: { sx: darkTooltipArrowSx }
+                        }}
+                        title={
+                            <Box sx={chipOverflowTooltipGridSx(hidden.length > 5)}>
+                                {hidden.map(({ name, flag }) => (
+                                    <Box key={name} sx={chipOverflowTooltipItemSx}>
+                                        <Box component="span" sx={languageFlagSx}>{flag}</Box>
+                                        <Typography variant="caption" sx={chipOverflowTooltipTextSx}>{name}</Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        }
+                    >
+                        <Box sx={languageChipSx}>
+                            <Typography variant="caption" sx={textSecondaryColorSx}>+{hidden.length}</Typography>
+                        </Box>
+                    </Tooltip>
+                )}
+            </Box>
+        </Box>
+    );
+}
+
 export default function VideoPreviewCard({
     videoPhase,
     effectiveStatus,
@@ -33,7 +156,8 @@ export default function VideoPreviewCard({
     onSentForApproval,
     onEdit,
     onApproveVideo,
-    approvalsEnabled = false
+    approvalsEnabled = false,
+    enabledLangs = []
 }: {
   videoPhase: number
   effectiveStatus: "draft" | "pending" | "approved"
@@ -46,6 +170,7 @@ export default function VideoPreviewCard({
   onEdit: (fromComments?: boolean) => void
   onApproveVideo: () => void
   approvalsEnabled?: boolean
+  enabledLangs?: string[]
 }) {
     function ActionButton() {
         // Phase 0 + pending: after approval dialog sent
@@ -273,16 +398,16 @@ export default function VideoPreviewCard({
             {/* Languages */}
             <Box sx={cardMetaRowSx}>
                 <CircularIconAvatar icon={<SvgIcon sx={globeIconSx}><FontAwesomeIcon icon={faGlobe} /></SvgIcon>} />
-                <Box>
+                <Box sx={languagesColumnSx}>
                     <Typography variant="caption" sx={captionBlockWithMb2Sx}>
-            Languages
+                        Languages
                     </Typography>
-                    <Box sx={languageChipSx}>
-                        <Box component="span" sx={languageFlagSx}>🇺🇸</Box>
-                        <Typography variant="caption" sx={textSecondaryColorSx}>
-              English
-                        </Typography>
-                    </Box>
+                    <LanguagesChipRow
+                        langs={[
+                            { name: "English", flag: "🇺🇸" },
+                            ...enabledLangs.map(name => ({ name, flag: FLAG_BY_NAME[name] ?? "" }))
+                        ]}
+                    />
                 </Box>
             </Box>
 
@@ -383,6 +508,50 @@ const captionBlockWithMb2Sx: SxProps<Theme> = { color: "text.secondary", display
 const globeIconSx: SxProps<Theme> = { fontSize: "19px !important", width: "19px !important", height: "19px !important", color: "action.active" };
 const languageChipSx: SxProps<Theme> = {
     display: "inline-flex", alignItems: "baseline", gap: "4px",
-    bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px"
+    bgcolor: "grey.200", borderRadius: "4px", px: "6px", pt: "2px", pb: "3px",
+    flexShrink: 0
 };
 const languageFlagSx: SxProps<Theme> = { fontSize: 12, lineHeight: 1 };
+
+const languagesColumnSx: SxProps<Theme> = { minWidth: 0, flex: 1 };
+
+const chipRowOuterSx: SxProps<Theme> = { position: "relative", width: "100%" };
+
+const chipRowMeasureSx: SxProps<Theme> = {
+    position: "absolute", top: 0, left: 0,
+    visibility: "hidden", pointerEvents: "none",
+    display: "flex", flexWrap: "nowrap", gap: "4px",
+    width: "max-content"
+};
+
+const chipRowVisibleSx: SxProps<Theme> = {
+    display: "flex", flexWrap: "wrap", gap: "4px",
+    maxWidth: "100%"
+};
+
+const chipOverflowTooltipSx = {
+    bgcolor: "secondary.main",
+    borderRadius: 2,
+    px: "12px",
+    py: "10px",
+    color: "common.white",
+    maxWidth: 320
+};
+
+const chipOverflowTooltipGridSx = (twoCols: boolean): SxProps<Theme> => ({
+    display: "grid",
+    gridTemplateColumns: twoCols ? "auto auto" : "auto",
+    columnGap: 2,
+    rowGap: "4px"
+});
+
+const chipOverflowTooltipItemSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px"
+};
+
+const chipOverflowTooltipTextSx: SxProps<Theme> = {
+    color: "common.white",
+    whiteSpace: "nowrap"
+};

@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
 import {
-    Box, Button, Card, CardMedia, Divider, Menu, Skeleton, SvgIcon, Typography
+    Box, Button, Card, CardMedia, Divider, Menu, Skeleton, SvgIcon, Tooltip, Typography
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faArrowUpRightFromSquare, faBoxArchive, faCircleInfo, faCopy, faEllipsisVertical, faFolder,
-    faLayerGroup, faLock, faPen, faPlay, faShare, faTrash, faUsers
+    faLanguage, faLayerGroup, faLock, faPen, faPlay, faShare, faTrash, faUsers
 } from "@fortawesome/pro-regular-svg-icons";
 import {
     Label, ToggleIconButton, TruffleIconButton, TruffleMenuItem, TypographyWithTooltipOnOverflow
@@ -69,7 +69,7 @@ function VersionStatusPill({ label }: { label: string }) {
 
 export default function VideoCard({
     video, onClick, onEdit, liveState, onPermChange, onSubmitForApproval,
-    approversList, approvalsEnabled = false
+    approversList, approvalsEnabled = false, enabledLangs = []
 }: {
   video: VideoItem
   onClick?: () => void
@@ -79,6 +79,7 @@ export default function VideoCard({
   onSubmitForApproval?: (videoKey: string, approvers: string[]) => void
   approversList?: { value: string; label: string }[]
   approvalsEnabled?: boolean
+  enabledLangs?: string[]
 }) {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
     const [videoPermOpen, setVideoPermOpen] = useState(false);
@@ -138,7 +139,7 @@ export default function VideoCard({
                         Edit
                     </Button>
                 </Box>
-                {/* Status + Personalized labels overlaid bottom-left on thumbnail */}
+                {/* Status + Personalized + Languages labels overlaid bottom-left on thumbnail */}
                 <Box sx={thumbnailLabelsOverlaySx}>
                     {video.statuses.map(s => <StatusLabel key={s} status={s} />)}
                     {video.personalized && (
@@ -150,6 +151,19 @@ export default function VideoCard({
                             startIcon={<SvgIcon sx={personalizedLabelIconSx}><FontAwesomeIcon icon={faUsers} /></SvgIcon>}
                             sx={{ bgcolor: "background.paper" }}
                         />
+                    )}
+                    {enabledLangs.length > 0 && (
+                        <Tooltip
+                            title={`This video is available in ${enabledLangs.length + 1} languages`}
+                            placement="top"
+                            arrow
+                        >
+                            <Box sx={languagesIconChipSx}>
+                                <SvgIcon sx={languagesIconChipGlyphSx}>
+                                    <FontAwesomeIcon icon={faLanguage} />
+                                </SvgIcon>
+                            </Box>
+                        </Tooltip>
                     )}
                 </Box>
             </CardMedia>
@@ -425,6 +439,28 @@ const personalizedLabelIconSx: SxProps<Theme> = {
     fontSize: "12px !important",
     width: "12px !important",
     height: "12px !important"
+};
+
+// Icon-only chip matching the "Personalized" Label's outlined-on-white look
+// for the languages indicator on a VideoCard.
+const languagesIconChipSx: SxProps<Theme> = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    bgcolor: "background.paper",
+    border: "1px solid",
+    borderColor: "divider",
+    borderRadius: "4px",
+    height: 22,
+    minWidth: 22,
+    px: "4px"
+};
+
+// SvgIcon fontSize controls the icon size; explicit width/height would crop
+// non-square FontAwesome glyphs like faLanguage (640x512 viewBox).
+const languagesIconChipGlyphSx: SxProps<Theme> = {
+    fontSize: "14px !important",
+    color: "text.secondary"
 };
 
 const menuPaperSx: SxProps<Theme> = {

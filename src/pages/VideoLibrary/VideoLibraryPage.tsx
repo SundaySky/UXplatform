@@ -74,7 +74,8 @@ export default function VideoLibraryPage({
     accountSettingsInitialTab: externalAccountSettingsInitialTab = "users",
     onAccountSettingsOpen,
     userRole,
-    appVersion = "v2"
+    appVersion = "v2",
+    enabledLangs = []
 }: {
   onSelectVideo: (v: VideoItem) => void
   onEditVideo?: (v: VideoItem) => void
@@ -98,6 +99,7 @@ export default function VideoLibraryPage({
   onAccountSettingsOpen?: (open: boolean) => void
   userRole?: UserRole
   appVersion?: AppVersion
+  enabledLangs?: string[]
 }) {
     const [_accountSettingsOpen, setAccountSettingsOpen] = useState(false);
     const [_accountSettingsInitialTab, setAccountSettingsInitialTab] = useState<"users" | "permissions" | "approvals" | "access">("users");
@@ -294,6 +296,7 @@ export default function VideoLibraryPage({
                                             onSubmitForApproval={onSubmitForApproval}
                                             approversList={approversList}
                                             approvalsEnabled={approvalsEnabled}
+                                            enabledLangs={enabledLangs}
                                         />
                                     </Box>
                                 ))}
