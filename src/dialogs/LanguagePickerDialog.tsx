@@ -1,13 +1,13 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import {
     Box, Dialog, DialogContent, DialogActions,
-    Typography, SvgIcon, TextField, InputAdornment,
+    Typography, SvgIcon, TextField, InputAdornment, IconButton,
     Checkbox, Button, Tooltip
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMagnifyingGlass } from "@fortawesome/pro-regular-svg-icons";
+import { faMagnifyingGlass, faXmark } from "@fortawesome/pro-regular-svg-icons";
 import { TruffleDialogTitle, Label } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import { LANGUAGE_OPTIONS, MAX_LANGUAGES } from "../panels/LanguagesPanel";
 
@@ -70,6 +70,10 @@ export default function LanguagePickerDialog({
 }: LanguagePickerDialogProps) {
     const [search, setSearch] = useState("");
     const [pending, setPending] = useState<string[]>([]);
+    const [showSearch, setShowSearch] = useState(false);
+
+    const contentRef = useRef<HTMLDivElement>(null);
+    const gridRef = useRef<HTMLDivElement>(null);
 
     // Reset pending + search every time the dialog opens
     useEffect(() => {
@@ -78,6 +82,34 @@ export default function LanguagePickerDialog({
             setSearch("");
         }
     }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Show the search field only if the dialog actually has a scroll — i.e.
+    // when the language grid alone would overflow the content area. Measured
+    // once on open and on container resize; filter-driven grid shrinkage
+    // doesn't re-trigger, so the user keeps the search while typing.
+    useLayoutEffect(() => {
+        if (!open) {
+            setShowSearch(false);
+            return;
+        }
+        const measure = () => {
+            if (!gridRef.current || !contentRef.current) {
+                return;
+            }
+            const gridHeight = gridRef.current.scrollHeight;
+            const available = contentRef.current.clientHeight;
+            setShowSearch(gridHeight > available);
+        };
+        const id = requestAnimationFrame(measure);
+        const ro = new ResizeObserver(measure);
+        if (contentRef.current) {
+            ro.observe(contentRef.current);
+        }
+        return () => {
+            cancelAnimationFrame(id);
+            ro.disconnect();
+        };
+    }, [open]);
 
     const GRID_COLS = 3;
 
@@ -132,37 +164,49 @@ export default function LanguagePickerDialog({
             fullWidth
         >
             <TruffleDialogTitle CloseIconButtonProps={{ onClick: handleClose }}>
-                <Box sx={dialogTitleRowSx}>
-                    Additional languages
-                    <Label label={`${selectedCount} / ${maxLanguages} selected`} color="default" size="small" />
-                </Box>
+                Additional languages
             </TruffleDialogTitle>
 
-            <DialogContent sx={dialogContentSx}>
-                {/* ── Search ── */}
-                <TextField
-                    fullWidth
-                    size="medium"
-                    placeholder="Search languages..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    autoFocus
-                    slotProps={{
-                        input: {
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SvgIcon sx={searchIconSx}>
-                                        <FontAwesomeIcon icon={faMagnifyingGlass} />
-                                    </SvgIcon>
-                                </InputAdornment>
-                            )
-                        }
-                    }}
-                    sx={{ mb: 2 }}
-                />
+            <DialogContent ref={contentRef} sx={dialogContentSx}>
+                {/* ── Search (only when grid would overflow) ── */}
+                {showSearch && (
+                    <TextField
+                        fullWidth
+                        size="medium"
+                        placeholder="Search languages..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        autoFocus
+                        slotProps={{
+                            input: {
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SvgIcon sx={searchIconSx}>
+                                            <FontAwesomeIcon icon={faMagnifyingGlass} />
+                                        </SvgIcon>
+                                    </InputAdornment>
+                                ),
+                                endAdornment: search.length > 0 ? (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            size="small"
+                                            aria-label="Clear search"
+                                            onClick={() => setSearch("")}
+                                        >
+                                            <SvgIcon sx={searchIconSx}>
+                                                <FontAwesomeIcon icon={faXmark} />
+                                            </SvgIcon>
+                                        </IconButton>
+                                    </InputAdornment>
+                                ) : null
+                            }
+                        }}
+                        sx={{ mb: 2 }}
+                    />
+                )}
 
                 {/* ── Language grid ── */}
-                <Box sx={gridSx(rowsPerCol)}>
+                <Box ref={gridRef} sx={gridSx(rowsPerCol)}>
                     {filtered.map(({ name, flag }) => {
                         const checked = pending.includes(name);
                         const atMaxDisabled = !checked && atMax;
@@ -223,9 +267,7 @@ export default function LanguagePickerDialog({
                     onClick={handleConfirm}
                 >
                     Select languages
-                    {selectedCount > 0 && (
-                        <Label label={String(selectedCount)} color="default" size="small" sx={{ ml: 1 }} />
-                    )}
+                    <Label label={`${selectedCount}/${maxLanguages}`} color="default" size="small" sx={{ ml: 1 }} />
                 </Button>
             </DialogActions>
         </Dialog>
@@ -233,12 +275,6 @@ export default function LanguagePickerDialog({
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-
-const dialogTitleRowSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    gap: 1.5
-};
 
 const dialogPaperSx: SxProps<Theme> = {
     width: 752,
@@ -310,5 +346,6 @@ const dialogActionsSx: SxProps<Theme> = {
     py: 2,
     borderTop: "1px solid",
     borderColor: "divider",
-    gap: 1
+    gap: 1,
+    justifyContent: "flex-end"
 };

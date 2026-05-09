@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-    Box, Typography, IconButton, SvgIcon, Button,
+    Box, Typography, IconButton, SvgIcon, Button, Tooltip,
     Select, MenuItem, FormControl, Divider,
     Autocomplete, TextField, InputAdornment
 } from "@mui/material";
@@ -32,7 +32,7 @@ type PanelState =
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PANEL_WIDTH = 366;
-export const MAX_LANGUAGES = 14;
+export const MAX_LANGUAGES = 15;
 const APPLYING_DELAY_MS = 1500;
 
 export const LANGUAGE_OPTIONS: { name: string; flag: string; code: string }[] = [
@@ -231,6 +231,7 @@ export default function LanguagesPanel({
     function handleEdit() {
         setSelectedLangs([...enabledLangs]);
         setPanelState("selector");
+        setShowPicker(true);
     }
 
     // Header is hidden during transient (applying / success / error / removing) states
@@ -350,9 +351,11 @@ export default function LanguagesPanel({
                                     </Typography>
                                 </Box>
                                 <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
-                                <IconButton size="small" color="primary">
-                                    <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                </IconButton>
+                                <Tooltip title="Play voice sample" placement="top" arrow>
+                                    <IconButton size="small" color="primary">
+                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                    </IconButton>
+                                </Tooltip>
                             </Box>
                         )}
                     </Box>
@@ -396,11 +399,9 @@ export default function LanguagesPanel({
                                     color="primary"
                                     size="medium"
                                     fullWidth
-                                    onClick={() => {
-                                        setPanelState("picker"); setShowPicker(true);
-                                    }}
+                                    onClick={() => setShowPicker(true)}
                                 >
-                                    Add up to {MAX_LANGUAGES} languages
+                                    Add up to {MAX_LANGUAGES} additional languages
                                 </Button>
                                 <Box sx={{ display: "flex", justifyContent: "center", mt: 0.5 }}>
                                     <TruffleLink href="#" underline="hover" color="primary">
@@ -435,9 +436,11 @@ export default function LanguagesPanel({
                                         </Typography>
                                     </Box>
                                     <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
-                                    <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                    </IconButton>
+                                    <Tooltip title="Play voice sample" placement="top" arrow>
+                                        <IconButton size="small" color="primary">
+                                            <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                        </IconButton>
+                                    </Tooltip>
                                     <IconButton size="small" color="primary">
                                         <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>
                                     </IconButton>
@@ -448,9 +451,7 @@ export default function LanguagesPanel({
                             <Box sx={selectorCardSx}>
                                 <Box sx={selectorCardHeadingSx}>
                                     <Typography variant="h5" sx={{ flex: 1 }}>
-                                        {isEditMode
-                                            ? `Edit ${selectedCount} additional language${selectedCount !== 1 ? "s" : ""}`
-                                            : `Select up to ${MAX_LANGUAGES} languages`}
+                                        {`${selectedCount} additional language${selectedCount !== 1 ? "s" : ""}`}
                                     </Typography>
                                     {selectedCount > 0 && (
                                         <Button
@@ -460,69 +461,30 @@ export default function LanguagesPanel({
                                             onClick={() => setShowPicker(true)}
                                             sx={addBtnSx}
                                         >
-                                            {isEditMode || selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
+                                            Edit
                                         </Button>
                                     )}
                                 </Box>
 
-                                {/* ── Language rows: read-only display of selected languages.
-                                    Adding/removing happens via the picker dialog (Manage / + Add). */}
-                                <Box sx={langRowsContainerSx}>
+                                {/* ── Language rows: read-only list of selected languages.
+                                    All add/remove happens via the picker dialog (Edit button). */}
+                                <Box sx={selectorListSx}>
                                     {selectedLangs.map((lang, idx) => (
-                                        <Box key={idx} sx={slotRowSx}>
-                                            <Autocomplete
-                                                value={lang ? LANGUAGE_OPTIONS.find(l => l.name === lang) ?? null : null}
-                                                onChange={(_, newValue) => {
-                                                    handleSetLangAt(idx, newValue?.name ?? "");
-                                                    setOpenSlotIdx(newValue ? null : idx);
-                                                }}
-                                                open={openSlotIdx === idx}
-                                                onOpen={() => setOpenSlotIdx(idx)}
-                                                onClose={() => setOpenSlotIdx(null)}
-                                                options={LANGUAGE_OPTIONS.filter(l => l.name === lang || !filledLangs.includes(l.name))}
-                                                getOptionLabel={(opt) => opt.name}
-                                                isOptionEqualToValue={(opt, val) => opt.name === val.name}
-                                                popupIcon={<SvgIcon sx={autocompleteChevronSx}><FontAwesomeIcon icon={faAngleDown} /></SvgIcon>}
-                                                renderInput={(params) => (
-                                                    <TextField
-                                                        {...params}
-                                                        size="medium"
-                                                        placeholder={lang ? undefined : "Choose or type language"}
-                                                        InputProps={{
-                                                            ...params.InputProps,
-                                                            startAdornment: lang ? (
-                                                                <InputAdornment position="start">
-                                                                    <Box sx={flagCircleSmSx}>
-                                                                        <Typography sx={{ fontSize: 13, lineHeight: 1 }}>
-                                                                            {FLAG_BY_NAME[lang]}
-                                                                        </Typography>
-                                                                    </Box>
-                                                                </InputAdornment>
-                                                            ) : null
-                                                        }}
-                                                    />
-                                                )}
-                                                renderOption={({ key, ...optionProps }, option) => (
-                                                    <MenuItem key={key} {...optionProps}>
-                                                        <Box sx={menuItemInnerSx}>
-                                                            <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{option.flag}</Typography>
-                                                            <Typography variant="body1">{option.name}</Typography>
-                                                        </Box>
-                                                    </MenuItem>
-                                                )}
-                                                ListboxProps={{ sx: { maxHeight: 320 } }}
-                                                sx={{ flex: 1, minWidth: 0 }}
-                                            />
-                                            <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
-                                                <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                            </IconButton>
-                                            <ToggleIconButton
-                                                size="small"
-                                                color="error"
-                                                value="remove"
-                                                onClick={() => handleRemoveAt(idx)}
-                                                icon={<FontAwesomeIcon icon={faTrashCan} />}
-                                            />
+                                        <Box key={lang || idx}>
+                                            {idx > 0 && <Divider />}
+                                            <Box sx={langListItemSx}>
+                                                <Box sx={flagCircleMdSx}>
+                                                    <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
+                                                        {FLAG_BY_NAME[lang] ?? ""}
+                                                    </Typography>
+                                                </Box>
+                                                <Typography variant="body1" sx={{ flex: 1 }}>{lang}</Typography>
+                                                <Tooltip title="Play voice sample" placement="top" arrow>
+                                                    <IconButton size="small" color="primary">
+                                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                         </Box>
                                     ))}
                                 </Box>
@@ -586,12 +548,12 @@ export default function LanguagesPanel({
                                 })()}
                             </Button>
 
-                            <Box sx={{ textAlign: "center", mt: 1.5 }}>
+                            <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}>
                                 <TruffleLink
                                     href="#"
                                     underline="hover"
                                     onClick={(e) => {
-                                        e.preventDefault(); handleCancel(); 
+                                        e.preventDefault(); handleCancel();
                                     }}
                                 >
                                     Cancel
@@ -625,9 +587,11 @@ export default function LanguagesPanel({
                                         </Typography>
                                     </Box>
                                     <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
-                                    <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                    </IconButton>
+                                    <Tooltip title="Play voice sample" placement="top" arrow>
+                                        <IconButton size="small" color="primary">
+                                            <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                        </IconButton>
+                                    </Tooltip>
                                     {selectedCount === 0 && (
                                         <IconButton size="small" color="primary">
                                             <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faCheck} /></SvgIcon>
@@ -656,7 +620,7 @@ export default function LanguagesPanel({
                                         >
                                             Select languages
                                         </Button>
-                                        <Box sx={{ textAlign: "center", mt: 1.5 }}>
+                                        <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}>
                                             <TruffleLink
                                                 href="#"
                                                 underline="hover"
@@ -682,7 +646,7 @@ export default function LanguagesPanel({
                                                 onClick={() => setShowPicker(true)}
                                                 sx={addBtnSx}
                                             >
-                                                {isEditMode || selectedCount >= MAX_LANGUAGES ? "Manage" : "+ Add"}
+                                                {isEditMode || selectedCount >= MAX_LANGUAGES ? "Edit" : "+ Add"}
                                             </Button>
                                         </Box>
 
@@ -732,9 +696,11 @@ export default function LanguagesPanel({
                                                         ListboxProps={{ sx: { maxHeight: 320 } }}
                                                         sx={{ flex: 1, minWidth: 0 }}
                                                     />
-                                                    <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
-                                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                                    </IconButton>
+                                                    <Tooltip title="Play voice sample" placement="top" arrow>
+                                                        <IconButton size="small" color="primary" sx={{ flexShrink: 0 }}>
+                                                            <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                                        </IconButton>
+                                                    </Tooltip>
                                                     <ToggleIconButton
                                                         size="small"
                                                         color="error"
@@ -789,12 +755,12 @@ export default function LanguagesPanel({
                                     <Label label={String(selectedCount)} color="default" size="small" sx={{ ml: 1 }} />
                                 </Button>
 
-                                <Box sx={{ textAlign: "center" }}>
+                                <Box sx={{ display: "flex", justifyContent: "center" }}>
                                     <TruffleLink
                                         href="#"
                                         underline="hover"
                                         onClick={(e) => {
-                                            e.preventDefault(); handleCancel(); 
+                                            e.preventDefault(); handleCancel();
                                         }}
                                     >
                                         Cancel
@@ -935,9 +901,11 @@ export default function LanguagesPanel({
                                     </Typography>
                                 </Box>
                                 <Typography variant="body1" sx={{ flex: 1 }}>{sourceLanguage}</Typography>
-                                <IconButton size="small" color="primary">
-                                    <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                </IconButton>
+                                <Tooltip title="Play voice sample" placement="top" arrow>
+                                    <IconButton size="small" color="primary">
+                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                    </IconButton>
+                                </Tooltip>
                             </Box>
                         </Box>
 
@@ -967,9 +935,11 @@ export default function LanguagesPanel({
                                         </Typography>
                                     </Box>
                                     <Typography variant="body1" sx={{ flex: 1 }}>{lang}</Typography>
-                                    <IconButton size="small" color="primary">
-                                        <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
-                                    </IconButton>
+                                    <Tooltip title="Play voice sample" placement="top" arrow>
+                                        <IconButton size="small" color="primary">
+                                            <SvgIcon sx={iconSmSx}><FontAwesomeIcon icon={faPlay} /></SvgIcon>
+                                        </IconButton>
+                                    </Tooltip>
                                 </Box>
                             </Box>
                         ))}
@@ -990,19 +960,8 @@ export default function LanguagesPanel({
                         setPanelState("selector");
                         return;
                     }
-                    // Otherwise (cancel/X/Esc), revert from the picker state to the
-                    // appropriate panel view so the user isn't left on a blank picker.
-                    if (panelState === "picker") {
-                        if (enabledLangs.length > 0 && filledLangs.length > 0 && !isEditMode) {
-                            setPanelState("settled");
-                        }
-                        else if (isEditMode) {
-                            setPanelState("selector");
-                        }
-                        else {
-                            setPanelState("promo");
-                        }
-                    }
+                    // On cancel/X/Esc the panel state is left as-is so the user
+                    // stays where they were when they opened the dialog.
                 }}
                 currentLangs={filledLangs}
                 onConfirm={handlePickerConfirm}
@@ -1251,11 +1210,22 @@ const trashIconCircleSx: SxProps<Theme> = {
 
 // ─── Settled (language list) ───────────────────────────────────────────────────
 
+// Sticky to the top of the bodyScrollSx container so it stays visible while
+// the language list scrolls beneath. `top: -16px` matches bodyScrollSx's
+// `pt: 2` so the header sits flush with the scroll container's border-top
+// edge when stuck (otherwise rows scroll through the 16px pt gap above).
 const additionalLangsHeaderSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    mt: 4,
-    mb: 1
+    position: "sticky",
+    top: "-16px",
+    zIndex: 1,
+    bgcolor: "background.paper",
+    mt: 2,
+    pt: 2,
+    pb: 1,
+    mx: -2,
+    px: 2
 };
 
 const langListItemSx: SxProps<Theme> = {
@@ -1304,6 +1274,13 @@ const langRowsContainerSx: SxProps<Theme> = {
     gap: 1
 };
 
+// Container for the selector view's read-only list of selected languages.
+// Uses Dividers between items rather than gap so list items sit flush.
+const selectorListSx: SxProps<Theme> = {
+    display: "flex",
+    flexDirection: "column"
+};
+
 const sourceLangRenderValueSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
@@ -1329,22 +1306,42 @@ const selectorSourceSectionSx: SxProps<Theme> = {
     borderColor: "divider"
 };
 
-// Heading row inside the selector card (h5 + optional "+ Add" button)
+// Heading row inside the selector card (h5 + optional "+ Add" button).
+// Sticky to the top of the scroll container; bleeds through the card's padding
+// so its background covers the card's top edges and rounded corners cleanly.
+// `top: -2` matches selectorScrollSx's `pt: 2` so the sticky position lands at
+// the scroll container's border edge — otherwise rows scroll through the
+// scroller's padding-top area and become visible above the heading.
 const selectorCardHeadingSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
-    gap: 1
+    gap: 1,
+    position: "sticky",
+    top: "-16px",
+    zIndex: 1,
+    bgcolor: "background.paper",
+    mx: -2,
+    mt: -2,
+    px: 2,
+    pt: 2,
+    pb: 1.5,
+    borderTopLeftRadius: "10px",
+    borderTopRightRadius: "10px"
 };
+
 
 const addBtnSx: SxProps<Theme> = {
     flexShrink: 0
 };
 
-// Card wrapping the heading, language slots, and actions
+// Card wrapping the heading, language slots, and actions.
+// gap: 0 so the sticky heading's bottom padding alone separates the heading
+// from the rows — otherwise rows would scroll through the visible card-gap
+// before reaching the heading's bg-covered area.
 const selectorCardSx: SxProps<Theme> = {
     display: "flex",
     flexDirection: "column",
-    gap: 1.5,
+    gap: 0,
     p: 2,
     mt: 2,
     border: "1px solid",

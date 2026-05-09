@@ -24,7 +24,8 @@ export default function VideoOverviewPage({
     onEdit,
     onApproveVideo,
     approvalsEnabled = false,
-    videoPermSettings
+    videoPermSettings,
+    enabledLangs = []
 }: {
   effectiveStatus: "draft" | "pending" | "approved"
   videoTitle: string
@@ -43,6 +44,7 @@ export default function VideoOverviewPage({
   onApproveVideo: () => void
   approvalsEnabled?: boolean
   videoPermSettings?: VideoPermissionSettings
+  enabledLangs?: string[]
 }) {
     return (
         <Box sx={videoPageLayoutSx}>
@@ -104,6 +106,7 @@ export default function VideoOverviewPage({
                                     onEdit={onEdit}
                                     onApproveVideo={onApproveVideo}
                                     approvalsEnabled={approvalsEnabled}
+                                    enabledLangs={enabledLangs}
                                 />
                             </Box>
                             <ReviewOptionsPanel isPending={isPending} />
