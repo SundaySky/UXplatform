@@ -1,22 +1,22 @@
 ---
 name: figma-walkthrough-markers
-description: Maintains a shared ID taxonomy on a Figma page so that recorded walkthroughs can be cross-referenced by Claude after transcription. Three modes — inventory (read-only audit), rename (assign hierarchical/alpha prefixes to layers), mark (add or sync visible chip badges on prefixed layers) — plus verify (post-write sanity check). Use whenever a user provides a Figma URL and wants to prep a page for a walkthrough recording, audit chip status, renumber sections, mark layers with chips, or sync chips after layer renames. Supports FRAME, INSTANCE, SECTION, COMPONENT, COMPONENT_SET, and GROUP candidates. Triggers on phrases like "walkthrough markers", "prep this figma for a walkthrough recording", "audit / inventory chips", "renumber section X", "add chips/badges/markers to figma frames", "give these layers prefixes", "sync chips after renames". Always triggers when a Figma URL appears alongside any of: chip, marker, badge, label, audit, prefix, rename, renumber, walkthrough, recording.
+description: Maintains a shared ID taxonomy on a Figma page so that recorded walkthroughs can be cross-referenced by Claude after transcription. Three modes — inventory (read-only audit), rename (assign hierarchical/alpha prefixes to layers), mark (add or sync native Figma annotations on prefixed layers) — plus verify (post-write sanity check). Use whenever a user provides a Figma URL and wants to prep a page for a walkthrough recording, audit annotation status, renumber sections, mark layers with annotations, or sync annotations after layer renames. Supports FRAME, INSTANCE, COMPONENT, and COMPONENT_SET candidates (SECTION and GROUP are walked through for context but the Figma API does not expose annotations on those node types). Triggers on phrases like "walkthrough markers", "prep this figma for a walkthrough recording", "audit / inventory annotations", "renumber section X", "add annotations/markers/badges to figma frames", "give these layers prefixes", "sync annotations after renames". Always triggers when a Figma URL appears alongside any of: annotation, chip, marker, badge, label, audit, prefix, rename, renumber, walkthrough, recording.
 ---
 
 # Figma Walkthrough Markers
 
-Skill for maintaining a stable ID taxonomy on a Figma page so a recorded walkthrough (designer narrating over the canvas) can be paired with a transcript and resolved by Claude later. Each referenceable frame gets a short pronounceable identifier (`1.1.2`, `A2`, `B3`, `A1.initial`) and a visible indigo chip placed against its left edge. When you watch the recording you read the chip; when Claude reads the transcript it greps the layer name (or, for variant slugs, looks up the COMPONENT_SET's variantProperties).
+Skill for maintaining a stable ID taxonomy on a Figma page so a recorded walkthrough (designer narrating over the canvas) can be paired with a transcript and resolved by Claude later. Each referenceable frame gets a short pronounceable identifier (`1.1.2`, `A2`, `B3`, `A1.initial`) and a **native Figma annotation** carrying that identifier as its label. When you watch the recording you read the annotation pin; when Claude reads the transcript it either greps the layer name or — for variant slugs — looks up the COMPONENT_SET's variantProperties.
 
 **Companion reference:** `docs/figma-walkthrough-id-resolution.md` is the canonical guide for **resolving IDs back to Figma nodes** from a transcript. Hand it to whichever Claude session is consuming the walkthrough recording.
 
 ## When to invoke
 
-Trigger this skill whenever the user supplies a Figma URL and asks anything in the chip / taxonomy / walkthrough family. Specifically:
+Trigger this skill whenever the user supplies a Figma URL and asks anything in the annotation / taxonomy / walkthrough family. Specifically:
 
-- "audit / inventory / show chips for this page" → **inventory**
+- "audit / inventory / show annotations for this page" → **inventory**
 - "give these layers prefixes" / "renumber section X" / "add an ID to this layer" → **rename**
-- "add chips / mark / badge this page" / "sync chips after renames" → **mark**
-- "verify / sanity check chips on this page" (or after a `Figma:use_figma` timeout) → **verify**
+- "add annotations / mark / badge this page" / "sync annotations after renames" → **mark**
+- "verify / sanity check annotations on this page" (or after a `Figma:use_figma` timeout) → **verify**
 
 If the user drops a Figma URL with no verb, default to **inventory** and report what's there — that's the safe first move.
 
@@ -29,15 +29,60 @@ If the user drops a Figma URL with no verb, default to **inventory** and report 
 - **The Figma file must be writable by the connected Figma account.** The Figma plugin runtime treats *any* plugin invocation — including read-only inventory — as a write attempt and refuses to run on view-only files. If the user shares a handoff URL they only have view access to, ask them to duplicate the file or have the owner share edit access.
 - Figma Make URLs (`figma.com/make/...`) are not supported.
 
+## Annotations replace the previous chip mechanism
+
+This skill used to add visible indigo "Position Marker" pill chips as child layers on every prefixed candidate. The current version uses **Figma annotations** instead — native handoff metadata that:
+
+- Are NOT layers, so they don't shift auto-layouts or appear in exported assets.
+- Show up on the canvas as colored pins with the identifier as a label next to the pin (visible in both Design Mode and Dev Mode when annotation view is on — `View → Show annotations` in Design Mode).
+- Round-trip through Figma's Dev Mode handoff: when a future Claude session calls `get_design_context` on an annotated frame, the annotation surfaces as `data-<category>-annotations="<label>"`, e.g. `data-position-annotations="B3"`.
+- Carry a category that color-codes the marker (Position blue / Suspicious red / Missing info orange) — see "Categories" below.
+
+The first `mark` run on a page that was previously chipped removes all legacy `Position Marker / *` and `Suspicion / *` child-layer chips automatically; the count is reported as `legacyChipsRemovedCount` in the response.
+
+### Node types — annotations don't cover everything
+
+The Figma Plugin API exposes annotations on FRAME, INSTANCE, COMPONENT, COMPONENT_SET, RECTANGLE, TEXT, and a few shape types. **It does NOT expose annotations on SECTION or GROUP nodes** (`TypeError: no such property 'annotations'`). The Figma REST API has the same restriction at the schema level.
+
+Consequence for this skill:
+
+- **SECTION and GROUP are no longer markable candidates.** They don't appear as rows in `inventory`. `mark` does not attempt to put an annotation on them.
+- The walker still **descends through** sections and groups so their FRAME/INSTANCE/COMPONENT/COMPONENT_SET children get marked normally.
+- Section prefixes still serve as **base prefixes** for path-extension classification of children (a SECTION named `A1. Foo` is the base prefix for child FRAMEs that should be named `A1.1`, `A1.2`, etc.).
+- For walkthrough recording: a section's name renders as a label at the top of the section on the Figma canvas, so the recorder can read the section's prefix directly without a marker. The section's name also reaches downstream Claude via `data-name="A1. Foo"` in `get_design_context`.
+- If you have prefixed GROUPs you need marked, convert them to FRAMEs.
+
+## Categories
+
+The skill creates three Figma annotation categories on first run (idempotent by label — re-creating across re-runs is a no-op):
+
+| Label          | Color  | Default use                                                                                                                          |
+|----------------|--------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `Position`     | blue   | Default for every prefixed candidate.                                                                                                |
+| `Suspicious`   | red    | Used by the skill for `image-only` suspicions on FRAME/RECTANGLE. Also available for the user to manually flag a frame for review.   |
+| `Missing info` | orange | Created but unused by the skill itself. Available in Figma's category dropdown for the user to flag frames that need more design work. |
+
+When `mark` runs, every prefixed candidate gets a Position-category annotation by default. To flag a specific frame as suspicious or missing-info: in Figma, click its annotation pin and change its category from the dropdown. The skill **preserves the chosen category on every subsequent re-run** — it will only update the label if the frame is renumbered, never the category.
+
+Because Figma normalizes category names when emitting them as data attributes (lowercase, spaces → dashes), the round-trip attribute key is:
+
+- `data-position-annotations="B3"`
+- `data-suspicious-annotations="B3"`
+- `data-missing-info-annotations="B3"`
+
+A downstream Claude reading the design via `get_design_context` will see all three forms. The category portion of the attribute key is the signal that lets downstream Claude treat suspicious or missing-info frames differently from plain position references.
+
+> **Caveat about category lifetime:** the Figma Plugin API has no method to delete or rename an annotation category, so any category ever created on the file is permanent. The skill is careful to look up by label before creating, so re-runs never produce duplicates.
+
 ## The skill's contract — important
 
-**The skill never auto-decides what's "leaf enough" to mark. You decide via naming.** If a layer name starts with a recognized prefix, the skill chips it. If it doesn't, the skill leaves it alone. Inventory helps you see candidate layers and decide which deserve a prefix; rename writes the prefix; mark turns prefixes into chips.
+**The skill never auto-decides what's "leaf enough" to mark. You decide via naming.** If a layer name starts with a recognized prefix, the skill annotates it. If it doesn't, the skill leaves it alone. Inventory helps you see candidate layers and decide which deserve a prefix; rename writes the prefix; mark turns prefixes into annotations.
 
 This means the depth question reduces to "where did the user put prefixes?" — which is the same as "which layers will Claude be able to grep by ID later?" Same answer, two purposes.
 
 ## The naming convention — STRICT
 
-The chip-to-layer link only works if **every prefix is a strict extension of its parent's prefix, and every prefix is globally unique on the page.** The reason: Claude resolves an ID from the transcript by walking the page and finding the layer whose name *starts with that ID*. If two layers share a prefix, lookup is ambiguous. If a chip says `2` inside section `B`, there's no way to tell whether the speaker meant that specific instance or any other `2`-prefixed layer elsewhere.
+The annotation-to-layer link only works if **every prefix is a strict extension of its parent's prefix, and every prefix is globally unique on the page.** The reason: Claude resolves an ID from the transcript by walking the page and finding the layer whose name *starts with that ID*. If two layers share a prefix, lookup is ambiguous.
 
 Concretely:
 
@@ -45,7 +90,7 @@ Concretely:
 - Children of a section with prefix `B` must extend it: `B1`, `B2`, `B.1`, `B1.2`. Not `1`, not `2`, not `X1`.
 - Children of `B1` (a deeper level) must extend that: `B1.1`, `B1.2`. Not `B2.x` (collides with sibling `B2`), not bare `1` (ambiguous).
 
-Letter-only parents join children without a dot (`B` + `1` = `B1`), matching the file-2 convention. Numeric or letter+digit parents join with a dot (`1.2` + `3` = `1.2.3`, `B1` + `2` = `B1.2`).
+Letter-only parents join children without a dot (`B` + `1` = `B1`). Numeric or letter+digit parents join with a dot (`1.2` + `3` = `1.2.3`, `B1` + `2` = `B1.2`).
 
 ### Prefix classifications (used by inventory and rename)
 
@@ -59,25 +104,21 @@ For each prefixed candidate, the skill classifies its prefix relative to its nea
 | `weak-other` | Has a prefix that doesn't fit either case (e.g., a different letter). | `X1` under `B` |
 | `unprefixed` | No prefix detected. | `Bulletpiont toolbar` |
 
-`weak-numeric` is the case the skill can fix automatically (see `promoteWeak` below). `weak-other` requires human judgement — the user resolves it via an explicit rename. Inventory surfaces both in a dedicated `weakRows` list so the user sees what needs attention before recording.
+`weak-numeric` is the case the skill can fix automatically (see `promoteWeak` below). `weak-other` requires human judgement — the user resolves it via an explicit rename.
 
-## Why Claude can resolve a chip ID to a layer
+## Why Claude can resolve an ID to a layer
 
-Just to be unambiguous about the lookup contract:
-
-- The **plugin data** on a chip (`wt_markers.targetId`) is for the *skill's* bookkeeping — it lets re-sync find the right chip even if its text drifted.
-- Claude doesn't read plugin data. Claude resolves an ID from the transcript by walking the page and matching `name.startsWith(<ID> + separator)`.
-- So **the contract is enforced on layer names, not on chips.** Chips are a visual rendering of the convention for the person recording.
-
-If a chip text disagrees with its target's name prefix, mark will fix the chip on next run. But if two layers share a name prefix, Claude has no way to disambiguate — that's the convention's job.
+- Position annotations are **metadata on the target layer**, not separate child nodes. There's no separate "find the chip, follow the pointer" step.
+- Claude resolves an ID from the transcript by walking the page and matching `name.startsWith(<ID> + separator)` — same as before. **The contract is enforced on layer names, not on annotations.** Annotations are the visible rendering of the convention for the person recording.
+- For variants (COMPONENT children of a COMPONENT_SET), the annotation's label carries the sub-ID slug that the variant's name can't (Figma derives `variantProperties` from the variant name, so renaming breaks the variant system). Claude resolves variant slugs via the COMPONENT_SET's variantProperties — see `docs/figma-walkthrough-id-resolution.md`.
 
 ## The workflow arc
 
 ```
-1. inventory      see what's there and what's chipped
-2. rename         add prefixes to anything that should get a chip   (optional, dry-run by default)
-3. mark           add or sync the chips
-4. record         the designer walks through the canvas
+1. inventory      see what's there and what's annotated
+2. rename         add prefixes to anything that should get an annotation   (optional, dry-run by default)
+3. mark           add or sync the annotations
+4. record         the designer walks through the canvas (with View → Show annotations enabled)
 5. send to Claude transcript + Figma URL — Claude resolves IDs by layer-name match
 ```
 
@@ -87,10 +128,10 @@ Re-run mark whenever layers are renamed, moved, or added — it's idempotent.
 
 | Mode | Effect | When to use |
 |---|---|---|
-| `inventory` | Reports the candidate tree + per-candidate chip status + suspicion list. **Read-only.** | First pass on any new page; whenever you want to see what would change. |
+| `inventory` | Reports the candidate tree + per-candidate marker status + suspicion list. **Read-only.** | First pass on any new page; whenever you want to see what would change. |
 | `rename` | Renames layers to add prefixes. **Dry-run by default**, applies only when `apply: true`. | When candidates are unprefixed and you want IDs assigned. |
-| `mark` | Adds, updates, or de-dups indigo position chips. Also drops/syncs amber **suspicion markers** on problematic layers (image-only rects, empty prefixed sections). Idempotent. | After numbering is settled, before recording. |
-| `verify` | Read-only summary of chip counts (correct/missing/wrong/duplicate). | After a `Figma:use_figma` MCP timeout on `mark`, to check whether the write actually finished without risking a concurrent re-run. |
+| `mark` | Adds, updates, or de-dups Position-category annotations. Migrates away from legacy chip layers on first run. Also adds Suspicious-category annotations on `image-only` FRAMEs/RECTANGLEs. Idempotent. | After numbering is settled, before recording. |
+| `verify` | Read-only summary of annotation counts (correct/missing/wrong/duplicate). | After a `Figma:use_figma` MCP timeout on `mark`, to check whether the write actually finished without risking a concurrent re-run. |
 
 ## How to run any mode
 
@@ -106,7 +147,7 @@ The skill's executable is `scripts/walkthrough.js`. For every invocation:
    - `{{APPLY}}` → JS boolean literal `true` or `false` (no quotes)
    - `{{PROMOTE_WEAK}}` → JS boolean literal `true` or `false` (rename + auto only; default `false`)
    - `{{VARIANT_NAMING}}` → `"slug"` (default) or `"numeric"` — used by inventory and mark when enumerating COMPONENT_SET variants
-   - `{{FLAG_SUSPICIONS}}` → JS boolean literal `true` (default) or `false` — when true, inventory reports suspicious layers and mark adds amber suspicion markers
+   - `{{FLAG_SUSPICIONS}}` → JS boolean literal `true` (default) or `false` — when true, inventory reports suspicious layers and mark adds Suspicious-category annotations on the ones that support annotations
 3. Call `Figma:use_figma` with:
    - `fileKey` → extracted from URL
    - `code` → the substituted script
@@ -116,32 +157,34 @@ The script returns JSON. Summarize for the user; don't dump the raw tree unless 
 
 ## Mode: inventory
 
-Read-only walk. Returns a flat tree of candidate nodes (FRAME, INSTANCE, SECTION, COMPONENT, COMPONENT_SET, GROUP) with their detected prefix and chip status. Walks the page per this depth contract:
+Read-only walk. Returns a flat list of candidate nodes (FRAME, INSTANCE, COMPONENT, COMPONENT_SET) with their detected prefix and marker status. Walks the page per this depth contract:
 
-- Descend through SECTIONs without limit (organizational, never the boundary).
-- At the first non-section node, list it and stop descending — unless that node has a prefix, in which case descend one more level so sub-numbering is visible.
+- Descend through SECTIONs and GROUPs without limit (they're transparent — never candidates).
+- At the first non-section, non-group MARKABLE node, list it and stop descending — unless that node has a prefix, in which case descend one more level so sub-numbering is visible.
 - Never descend into an INSTANCE. Its internals belong to the component definition, not to the user's layers.
 
 What to report back to the user:
 
 - **Total candidates** + breakdown by type
 - **Prefixed vs unprefixed** counts
-- **Chip status** counts: correct / missing / wrong / duplicate
-- **Orphan chips** (chips whose linked node no longer exists) — flag them
-- The full row list is in the JSON; mention specific anomalies but don't dump everything unless asked
+- **Marker status** counts: correct / missing / wrong / duplicate
+- **Marker category** for each prefixed candidate (Position by default; Suspicious / Missing info if the user has re-categorized)
+- **Legacy chips remaining** (`legacyChipsRemaining` + `legacySuspicionChipsRemaining` in the summary) — if non-zero, the page has not yet been migrated away from the old chip mechanism. Recommend running `mark` to clean them up.
+- **`weakRows`** — prefixes that don't strictly extend their parent. Surface these explicitly.
+- **`suspicions`** — see "Suspicions" below. Each entry has a `markable` flag — `false` means the suspicion was detected but cannot be marked because the suspicious node is a SECTION (annotations not supported).
 
-Common phrasings that map here: "audit", "inventory", "what's chipped", "show me the IDs on this page", or just a bare URL.
+Common phrasings that map here: "audit", "inventory", "what's annotated", "show me the IDs on this page", or just a bare URL.
 
 ## Mode: rename
 
-Adds a prefix to the start of a layer's name. Always dry-runs first — the user reviews the proposed renames, then confirms with `apply: true`. Two flavors:
+Unchanged from the previous version. Annotations live in metadata, independent of names — `rename` just edits layer names. (After a rename, run `mark` to resync the annotation labels.)
 
 ### rename + auto (one section at a time)
 
-Most common. Given a SECTION node, enumerate its non-section children, sort them visually (top-to-bottom, then left-to-right), and assign next-available prefixes inheriting the section's scheme:
+Most common. Given a SECTION node, enumerate its non-section, non-group children (children of types `FRAME`, `INSTANCE`, `COMPONENT`, `COMPONENT_SET`), sort them visually (top-to-bottom, then left-to-right), and assign next-available prefixes inheriting the section's scheme:
 
 - Section prefix `1.2` → children `1.2.1`, `1.2.2`, ...
-- Section prefix `B` → children `B1`, `B2`, ... (letter-only base joins without a dot)
+- Section prefix `B` → children `B1`, `B2`, ...
 - Section prefix `A1` → children `A1.1`, `A1.2`, ...
 - Section has no prefix → children `1`, `2`, ...
 
@@ -150,13 +193,13 @@ Each child is classified before action is taken:
 | Classification | Action (default) | Action (`promoteWeak: true`) |
 |---|---|---|
 | `strong` / `root` | Skip — prefix is correct. | Same. |
-| `weak-numeric` | **Skip** — leave the bare integer alone, but report it so the user can decide. | **Promote** — rewrite as `<basePrefix><n>` (or `<basePrefix>.<n>` for non-letter bases) preserving the trailing number, and reserve that slot. |
+| `weak-numeric` | **Skip** — leave the bare integer alone, but report it so the user can decide. | **Promote** — rewrite as `<basePrefix><n>` (or `<basePrefix>.<n>` for non-letter bases). |
 | `weak-other` | Skip — too ambiguous to fix automatically; the user should resolve via explicit rename. | Same. |
 | `unprefixed` | Rename to next-available extension. | Same — but the slot set has `weak-numeric` reservations baked in. |
 
-Why promotion is opt-in: it modifies a name the user typed. The default is conservative — `weak-numeric` is flagged in the dry-run output (`action: "skip-weak-numeric"`, `hint: "Run with promoteWeak: true to rewrite this as a strong prefix."`) so the user can review before opting in.
+Why promotion is opt-in: it modifies a name the user typed. The default is conservative — `weak-numeric` is flagged in the dry-run output (`action: "skip-weak-numeric"`, `hint: "Run with promoteWeak: true to rewrite this as a strong prefix."`).
 
-To invoke: pass `renameMode: "auto"`, `renameTargetId: <section-id>`, and `apply: false` (default). Show the user the proposed list (including which actions would happen), then re-run with `apply: true` if they approve. If the dry-run shows weak-numeric children and the user wants them fixed in the same pass, re-run with `promoteWeak: true, apply: true`.
+To invoke: pass `renameMode: "auto"`, `renameTargetId: <section-id>`, and `apply: false` (default). Show the user the proposed list, then re-run with `apply: true` if they approve.
 
 ### rename + explicit (hand-built list)
 
@@ -166,63 +209,59 @@ If an explicit target already has a prefix, it's replaced (action `"replace"` in
 
 ### Reporting
 
-For dry-runs, present the proposed list as a short table: `oldName → newName`. Skipped-already-prefixed entries are usually noise — mention the count, not each one, unless something looks off (e.g., one of them has a numbering that conflicts with what the user expected).
+For dry-runs, present the proposed list as a short table: `oldName → newName`. Skipped-already-prefixed entries are usually noise — mention the count, not each one, unless something looks off.
 
 ## Mode: mark
 
-Idempotent chip sync. For each prefixed candidate the script ensures exactly one correctly-named chip exists and is correctly anchored. Walks the same candidate tree as inventory.
+Idempotent annotation sync. For each prefixed candidate the script ensures exactly one Position-category annotation exists whose label equals the candidate's prefix. The legacy chip migration runs first: every `Position Marker / *` and `Suspicion / *` child-layer chip is removed from the page so chips and annotations don't coexist.
 
-### Placement rules
+### Ownership rule
 
-| Candidate type | Where the chip lives | How it's anchored |
-|---|---|---|
-| SECTION / FRAME / COMPONENT / COMPONENT_SET / GROUP | Child of the candidate | `chip.x = -(chip.width + gap)`, `chip.y = 0` (just outside left edge) |
-| **INSTANCE** | Sibling — child of nearest writable ancestor (walks up past nested INSTANCEs) | `chip.x = node.x - chip.width - gap`, `chip.y = node.y` (in the host's coordinate space) |
+An annotation is treated as **skill-owned** if BOTH:
 
-**Why instances are different:** the Figma Plugin API rejects `appendChild` on INSTANCE nodes with "Cannot move node. New parent is an instance or is inside of an instance." There's no way to nest the chip inside the instance, so the chip becomes a sibling in the nearest writable ancestor — almost always the enclosing SECTION.
+1. Its `categoryId` is one of `Position` / `Suspicious` / `Missing info`, AND
+2. Either:
+   - It's a **position annotation**: its `label` is exactly a prefix-shaped string (e.g. `B3`, `1.1.2`, `A1.initial`), OR
+   - It's a **suspicion annotation**: its `label` starts with `Suspicion / ` and the remainder is one of the skill's known reasons (`image-only`, `empty-section`).
 
-If a frame's parent uses auto-layout, the chip is set to `layoutPositioning: "ABSOLUTE"` so it doesn't get arranged by the flow.
+Anything else on the same layer — a user note, a custom-labeled Suspicious annotation like `"this needs a redesign"` — is left alone. The skill never clobbers user content.
 
-### Plugin-data tracking
+### Category preservation
 
-Every chip stores a `targetId` in shared plugin data under namespace `wt_markers`. This is how re-sync finds the chip even if its name drifted or its candidate moved. A chip without plugin data is matched by text fallback and adopted (plugin data stamped) on first successful sync.
+When `mark` finds an existing skill-owned position annotation on a candidate:
+
+- If the label matches the candidate's prefix → leave it alone (this includes user-changed categories — a Suspicious-category position annotation with label `B3` is left as Suspicious if `B3` is still its frame's prefix).
+- If the label is wrong (the frame was renumbered) → update the label, **preserve the existing category**.
+- If there are multiple → keep the first, remove duplicates (reported as `dedupedCount`).
+
+### Variants
+
+Component variants get their annotations directly on the variant `COMPONENT` node — annotations work on COMPONENT nodes, so no special placement is required (unlike the old chip mechanism, which had to put variant chips in the enclosing section). The annotation's label is the computed variant slug (e.g. `A1.initial`, `B2.editor-video.template`).
+
+**Sub-ID naming** is controlled by `{{VARIANT_NAMING}}`:
+
+- `"slug"` (default) — derive sub-IDs from `variantProperties` values. The slugger is *adaptive*: it picks the smallest word count (1, 2, or 3 per property value) that keeps every variant's slug unique within the set. Multi-property sets get joined slugs like `editor-video.template`. If the budget is exceeded (any slug > 30 chars, collision at 3 words) the set downgrades to numeric for that set only.
+- `"numeric"` — force `<basePrefix>.1`, `<basePrefix>.2`, ... in document order across all sets.
 
 ### Idempotency + the fast path
 
-If every prefixed candidate has a single correctly-named chip wired up via plugin data, mark returns immediately with `inSync: true` and writes nothing. The first run after upgrading from the legacy skill will still write (to adopt existing chips and stamp plugin data); subsequent runs are cheap.
+If every prefixed candidate has a single correctly-labeled skill-owned annotation AND no legacy chips remain on the page AND the categories already exist, `mark` returns immediately with `inSync: true` and writes nothing.
 
-### Variants in COMPONENT_SETs
+## Suspicions
 
-Component variants are first-class candidates. When the walker encounters a `COMPONENT_SET`, it enumerates the set's `COMPONENT` children (the variants) and computes a sub-ID for each. The sub-ID is appended to the COMPONENT_SET's effective prefix — either the set's own name prefix, or the nearest prefixed ancestor's prefix if the set itself is unprefixed. So a variant inside an unprefixed COMPONENT_SET sitting in section `A1` gets a prefix like `A1.initial`.
+A walkthrough is only as good as the structural data behind it. Two recurring failure modes produce empty answers when Claude tries to introspect what an ID points at:
 
-**Variant prefixes are not stored in the variant's layer name.** Renaming a variant breaks Figma's variant-property system (Figma derives `variantProperties` from the name following the `Property=Value` pattern). The chip therefore carries the only visible representation of the sub-ID, and the resolution path differs from regular prefixes — see `docs/figma-walkthrough-id-resolution.md` for the contract Claude uses to map variant sub-IDs back to specific COMPONENTs.
-
-**Sub-ID naming** is controlled by the `{{VARIANT_NAMING}}` config:
-
-- `"slug"` (default) — derive sub-IDs from `variantProperties` values. The slugger is *adaptive*: it picks the smallest word count (1, 2, or 3 per property value) that keeps every variant's slug unique within the set. The user's `Personalization status` variants slug to `initial`, `message`, `personalization`, `choose` — short and pronounceable. Multi-property sets get joined slugs like `editor-video.template`. If the budget is exceeded (any slug > 30 chars, collision at 3 words) the set downgrades to numeric for that set only.
-- `"numeric"` — force `<basePrefix>.1`, `<basePrefix>.2`, ... in document order across all sets. Use this when slugs would be unreadable or you want consistency with other sub-numbered children.
-
-**Chip placement for variants.** A `COMPONENT_SET` only accepts `COMPONENT` children — it rejects any other node type. And modifying the variant master would propagate the chip to every instance of that component. So the variant chip is placed in the nearest writable ancestor *outside* the COMPONENT_SET (typically the enclosing SECTION), positioned at the variant's accumulated offset relative to that ancestor. It still looks visually anchored to the variant; structurally it's a sibling-of-the-COMPONENT_SET.
-
-If the COMPONENT_SET's only writable ancestor is the PAGE, the chip goes on the page at the variant's absolute position.
-
-**Inventory output for variants.** Each enumerated variant appears as a row with `isVariant: true` and its computed `prefix`. The `componentSetId` field links back to the parent set. Variant rows count toward `prefixed` (they all have a prefix by construction).
-
-## Suspicions — flagging things Claude can't see
-
-A walkthrough is only as good as the structural data behind it. Two recurring failure modes don't produce ID-resolution errors but *do* produce empty answers when Claude tries to introspect what a chip points at:
-
-1. **Image-only layers posing as UI** — a RECTANGLE or FRAME with an IMAGE fill, named like a UI element (e.g. `Tooltip on the fallback i icon`). To a human glancing at the canvas it looks like a real screen; to Claude it's an opaque raster with no children, no text content, no interaction structure. Recording a walkthrough that points at one of these means you're pointing at content Claude can't read.
-2. **Prefixed but empty sections** — `E3. Scale to` exists as a labeled grouping but contains no children. The chip works, the ID resolves, but the resolved node yields nothing. Same class of problem: the chip is making a promise the data doesn't keep.
+1. **Image-only layers posing as UI** — a RECTANGLE or FRAME with an IMAGE fill, named like a UI element (e.g. `Tooltip on the fallback i icon`). To Claude it's an opaque raster with no children, no text content, no interaction structure.
+2. **Prefixed but empty sections** — `E3. Scale to` exists as a labeled grouping but contains no children. The ID resolves, but the resolved node yields nothing.
 
 When `flagSuspicions: true` (the default), the skill detects these and surfaces them two ways:
 
-- **Inventory** returns a `suspicions` array per layer, with `reason` (`image-only` or `empty-section`) and a short human-readable `message`.
-- **Mark** drops a distinctive **amber** marker on each suspicious layer — `Suspicion / image-only` or `Suspicion / empty-section`. The marker is a different shape and color from position chips so they're never confused on the canvas: rounded rectangle with a 2px border, `⚠` glyph, larger text. Positioned at the suspicious layer's top-left corner, overlapping the layer itself (specifically chosen to be hard to miss).
+- **Inventory** returns a `suspicions` array. Each entry includes a `markable` flag: `true` for image-only FRAMEs/RECTANGLEs (which support annotations), `false` for SECTIONs (which don't).
+- **Mark**:
+  - For `image-only` on a FRAME or RECTANGLE: adds a Suspicious-category annotation with label `Suspicion / image-only` directly on the target node. Visible as a red pin on the canvas.
+  - For `empty-section` on a SECTION: detection still runs and surfaces in inventory, but **the skill cannot annotate sections**. The suspicion is reported (in `mark`'s `suspicions.skipped` list) but not visually marked. To fix the underlying issue, add content to the section or remove the prefix.
 
-Suspicion markers are tracked separately under shared-plugin-data namespace `wt_susp` (vs. `wt_markers` for position chips). They're **not** walkthrough IDs and Claude should ignore them when resolving transcripts — see `docs/figma-walkthrough-id-resolution.md`.
-
-Re-running `mark` is idempotent for suspicions too: existing markers are left alone, new suspicions get markers, and **orphan markers whose target is no longer suspicious are automatically removed** (so fixing the underlying issue and re-running mark cleans up the warning).
+Re-running `mark` is idempotent for suspicions too: existing suspicion annotations are left alone, new suspicions get annotations, and **orphan suspicion annotations whose target is no longer suspicious are automatically removed** (so fixing the underlying issue and re-running `mark` cleans up the warning).
 
 To turn off suspicion detection entirely (e.g., on a page where image-only mocks are intentional), pass `flagSuspicions: false`. The skill defaults to `true` because letting these slide is the failure mode worth catching by default.
 
@@ -232,13 +271,13 @@ Returns counts only — no per-row detail. Use it after a `Figma:use_figma` MCP-
 
 ## Timeouts — CRITICAL
 
-`Figma:use_figma` enforces a client-side timeout on the MCP transport. **A timeout response from `mark` is NOT a failure signal.** The script keeps running on Figma's side after MCP gives up. On a fresh page with ~40 prefixed candidates the first mark pass routinely takes longer than the MCP timeout. The work usually completes; only the result message is lost.
+`Figma:use_figma` enforces a client-side timeout on the MCP transport. **A timeout response from `mark` is NOT a failure signal.** The script keeps running on Figma's side after MCP gives up. The work usually completes; only the result message is lost.
 
-**Do NOT re-run `mark` after a timeout.** Concurrent runs can race past each other's "no chip exists" check and create duplicate chips. The next clean mark run will dedup, but only after the damage is visible.
+**Do NOT re-run `mark` after a timeout.** Concurrent runs can race past each other's checks and create duplicate annotations. The next clean `mark` run will dedup, but only after the damage is visible.
 
 After a timeout, do one of these:
 
-1. Ask the user to look at the canvas. The chips are almost certainly already there.
+1. Ask the user to look at the canvas. The annotation pins are almost certainly already there (toggle `View → Show annotations` if needed).
 2. Run **verify** — it's read-only and safe to repeat. Re-run mark only if verify shows missing/wrong/duplicate.
 
 ## What counts as a valid prefix
@@ -248,41 +287,47 @@ The detector matches at the start of a layer name, terminated by `.`, `-`, `:`, 
 - **Numeric**: `1`, `1.2`, `1.2.3`, `12.45.7`
 - **Letter+digit (optionally dotted)**: `A1`, `A1.2`, `A1.2.3`
 - **Letter.digit**: `A.1`, `A.1.2`
-- **Bare single letter** — only when followed by a structural separator (`.` `-` `:`). So `A. Foo` matches (`A`), but `A quick fix` does *not* — a space alone is too weak a signal.
+- **Bare single letter** — only when followed by a structural separator (`.` `-` `:`). So `A. Foo` matches (`A`), but `A quick fix` does *not*.
 
 Non-matches: `v1.2 release`, `Frame 1`, `<Button>`, `Bulletpiont toolbar`, ` Text style <Menu>` (leading space).
 
-If a user wants something to be referenceable but it doesn't currently match, run rename to add a prefix.
+## Canvas visibility for recordings
+
+Figma annotations appear on the canvas as colored pins with the label rendered inline. In **Design Mode**, annotation view is OFF by default — toggle it on via `View → Show annotations` before recording a walkthrough. In **Dev Mode**, annotation view is on by default.
+
+`Figma:get_screenshot` from the MCP server does NOT render annotation pins (they're an editor-only overlay, like comments). Don't try to verify visibility via screenshot; verify either by asking the user to look at the page directly, or by calling `get_design_context` and checking that the `data-<category>-annotations` attribute is present.
 
 ## Reporting style
 
 Keep summaries short. The user almost always cares about counts + anomalies, not the full per-frame list. Surface these things explicitly when present:
 
-- **`errors`** — verbatim. Most common cause is a font-load failure.
-- **`clippedFrames`** — chips inside `clipsContent: true` frames are clipped out of view. Offer to disable clipping as a follow-up; don't change it automatically since clip can affect how other content renders.
-- **`dedupedFrames`** — extras removed; mention that the dedup happened.
-- **`orphans`** (inventory) — chips whose target node was deleted or moved out of scope.
-- **Duplicate prefixes** in the source — two candidates with the same prefix. Inventory will report `duplicate` chip status under each. Flag for the user to resolve by renaming.
+- **`errors`** — verbatim.
+- **`legacyChipsRemovedCount` / `legacyChipsRemaining`** — non-zero on the first migration run (or in inventory before migrating). Mention them so the user knows the chip-to-annotation migration is happening.
+- **`categoriesCreated`** — only non-empty on the first run that creates the Position/Suspicious/Missing info categories. Mention which categories were freshly created so the user knows they're now part of their file's annotation category palette.
+- **`dedupedCount`** — extras removed; mention that the dedup happened.
+- **`skippedCount`** (and per-row `skipped`) — node-type doesn't support annotations. Currently this only fires for SECTION/GROUP candidates that slip through (the walker shouldn't produce these, so a non-zero count is a bug signal).
+- **`suspicions.skipped`** — suspicions detected on SECTIONs. Surface them so the user knows the issues exist even though the skill can't mark them.
+- **Duplicate prefixes** in the source — two candidates with the same prefix. Inventory will report `duplicate` marker status under each. Flag for the user to resolve by renaming.
 
 If nothing changed (`createdCount` and `updatedCount` both zero, no errors), say so plainly. The page is in sync.
 
 ## Style customization
 
-Chip appearance constants live at the top of `scripts/walkthrough.js`:
+Annotation appearance is owned by Figma — the pin color comes from the category color, and the label is the annotation's `label` field. There's no "chip styling" to customize anymore. If you want different category colors, edit the `SKILL_CATEGORIES` constant at the top of `scripts/walkthrough.js`:
 
-- `BG = { r: 0.310, g: 0.275, b: 0.898 }` — indigo `#4F46E5`
-- `FONT = { family: "Inter", style: "Bold" }`, `FONT_SIZE = 20`
-- `PADDING_X = 14`, `PADDING_Y = 8`, `CORNER_RADIUS = 999`, `GAP = 4`
-- `MARKER_PREFIX = "Position Marker / "` — the chip layer name prefix; do not change without migrating existing chips.
+- `{ key: "position",   label: "Position",     color: "blue"   }`
+- `{ key: "suspicious", label: "Suspicious",   color: "red"    }`
+- `{ key: "missing",    label: "Missing info", color: "orange" }`
 
-Project-specific overrides (different color, different font) belong in this file, not in a parallel skill.
+Valid colors per the Figma Plugin API: `blue`, `red`, `pink`, `orange`, `yellow`, `green`, `purple`, `gray`. Note that categories cannot be renamed or deleted via the Plugin API, so changing the `label` of an existing category creates a parallel category — the old one lingers in the file.
 
 ## Known limitations
 
 - **Read-only files.** Any plugin invocation fails on view-only files, even inventory. Ask the user for edit access.
-- **Component variants (SYMBOLs)** inside a `COMPONENT_SET` are not enumerated as candidates. The variant set itself is. If you need per-variant chips, that's a future feature.
-- **Duplicate prefixes** confuse plugin-data adoption. The first run after the upgrade will likely match two candidates to the same legacy chip via text fallback; mark will create a second chip for one of them. Re-runs are clean. If the page has many duplicates, surface them in inventory and renaming them is the fix.
-- **Sub-element references within an instance** (e.g., "the OK button inside `1.1.2`") are *not* chipped. The instance gets the chip; the sub-reference happens in spoken language during the recording, and Claude resolves it from the instance's structured children at transcript-processing time. If the same sub-element keeps coming up, promote it: detach the instance, copy out the sub-piece, or give it its own number under a new container.
+- **SECTION/GROUP candidates.** Figma doesn't expose annotations on SECTION or GROUP nodes. SECTIONs are walked through for context (their prefixes still serve as base for child path-extension) and their names render on the canvas / round-trip via `data-name`. GROUPs that need to be markable should be converted to FRAMEs.
+- **Annotation pin position.** The Plugin API doesn't expose a position/anchor field for annotations — Figma chooses where the pin sits. Manually dragging a pin in Figma is not reliably supported either (the position isn't persisted in the Plugin API representation). If precise on-canvas placement matters, this is the wrong mechanism — use a different visual cue.
+- **Category lifetime.** The Plugin API has no method to delete or rename annotation categories. Once `mark` has created `Position`, `Suspicious`, and `Missing info` on a file, they're permanent in that file. Renaming the constants in the script doesn't remove the old categories — they accumulate.
+- **Sub-element references within an instance.** The instance gets the annotation; the sub-reference happens in spoken language during the recording, and Claude resolves it from the instance's structured children at transcript-processing time.
 
 ## Example invocations
 
@@ -293,17 +338,17 @@ Default to mark (they said "add walkthrough markers"):
 
 1. Extract `fileKey="zv2AOoz7CqCdmyauhpEymM"` and `nodeId="26498:5349"`.
 2. Read `scripts/walkthrough.js`, substitute `{{NODE_ID}}=26498:5349`, `{{MODE}}=mark`, others default.
-3. Call `Figma:use_figma`. Summarize counts.
+3. Call `Figma:use_figma`. Summarize counts (created/updated/unchanged + any legacy chips removed + any categories created).
 
 ---
 
 User says:
-> Audit the chips on https://www.figma.com/design/xsCOGY7tDR8qc0GcYEonH2/Workflow?node-id=20226-113394
+> Audit the annotations on https://www.figma.com/design/xsCOGY7tDR8qc0GcYEonH2/Workflow?node-id=20226-113394
 
 Inventory:
 
 1. Same extraction. `{{MODE}}=inventory`.
-2. Report: total candidates by type, prefixed/unprefixed, chip statuses, any orphans or duplicate-prefixed candidates.
+2. Report: total candidates by type, prefixed/unprefixed, marker statuses (with category breakdown), any legacy chips still on the page, any unmarkable suspicions on sections.
 
 ---
 
@@ -312,10 +357,10 @@ User says:
 
 Rename auto, dry-run:
 
-1. Find section B's node id (either from the URL `node-id` if pointing at B, or by reading the page if needed).
+1. Find section B's node id.
 2. `{{MODE}}=rename`, `{{RENAME_MODE}}=auto`, `{{RENAME_TARGET_ID}}=<B-id>`, `{{APPLY}}=false`.
-3. Show the proposed list: "Here's what would change…". Wait for confirmation.
-4. On confirmation, re-run with `{{APPLY}}=true`.
+3. Show the proposed list. Wait for confirmation.
+4. On confirmation, re-run with `{{APPLY}}=true`. Then run mark to resync annotations.
 
 ---
 
@@ -326,4 +371,4 @@ Rename explicit, dry-run:
 
 1. `{{MODE}}=rename`, `{{RENAME_MODE}}=explicit`, `{{RENAME_LIST_JSON}}=[{"nodeId":"26498:5543","newPrefix":"B1"}]`, `{{APPLY}}=false`.
 2. Show: "would rename `Bulletpiont toolbar` → `B1. Bulletpiont toolbar`". Confirm.
-3. Re-run with `apply: true`. Then run mark to add the chip.
+3. Re-run with `apply: true`. Then run mark to add the annotation.

@@ -35,8 +35,8 @@ const CONFIG = {
   // inventory + mark. When true (default), also detect layers that look UI-ish
   // to a human but carry no resolvable structure for Claude (e.g., a raster
   // image labelled "Tooltip on the fallback i icon", or a prefixed but empty
-  // SECTION). Surfaces them in inventory and, in mark, drops a distinctive
-  // amber "Suspicion" marker on each so a human can review before recording.
+  // SECTION). Surfaces them in inventory and, in mark, drops a Suspicious-
+  // category annotation on each one that supports annotations.
   flagSuspicions: {{FLAG_SUSPICIONS}},
 };
 
@@ -106,13 +106,14 @@ function buildStrongPrefix(basePrefix, n) {
 }
 
 // ─── Variant slug generation ───────────────────────────────────────────────
-// Variant chips reference COMPONENT children of a COMPONENT_SET, identified by
-// their variantProperties values (e.g. {"Personalization status":"Initial"}).
+// Variant annotations reference COMPONENT children of a COMPONENT_SET,
+// identified by their variantProperties values (e.g. {"Personalization status":
+// "Initial"}).
 //
 // We don't rename variants — Figma derives their variantProperties from the
-// name, so a rename can break the variant system. Instead the chip carries the
-// sub-ID as its visible label, and Claude resolves transcripts → variants by
-// matching the slug back to a variant's property values. See
+// name, so a rename can break the variant system. Instead the annotation on
+// the variant carries the sub-ID as its label, and Claude resolves transcripts
+// → variants by matching the slug back to a variant's property values. See
 // docs/figma-walkthrough-id-resolution.md.
 
 // Lowercase, hyphenate, keep first 3 words, cap at 25 chars.
@@ -145,7 +146,6 @@ function computeVariantSlugs(variants, scheme) {
     variants.forEach((v, i) => result.set(v.id, String(i + 1)));
     return result;
   }
-  // scheme === "slug": build adaptive property-value slugs
   function buildSlugsAt(wordCount, maxLen) {
     return variants.map(v => {
       let props = null;
@@ -164,26 +164,97 @@ function computeVariantSlugs(variants, scheme) {
     variants.forEach((v, i) => result.set(v.id, slugs[i]));
     return result;
   }
-  // Fallback to numeric
   variants.forEach((v, i) => result.set(v.id, String(i + 1)));
   return result;
 }
 
+// ─── Annotation categories ─────────────────────────────────────────────────
+// Three skill-managed categories. They're created on first run if absent and
+// reused on subsequent runs (idempotent by label — the Figma Plugin API has
+// no method to delete or rename a category, so we always check before adding).
+//
+//   "Position"     blue   — default for every prefixed candidate
+//   "Suspicious"   red    — for the skill's suspicion annotations, and for
+//                            user-flagged frames (manual re-categorization)
+//   "Missing info" orange — created but unused by the skill itself; available
+//                            in Figma's category dropdown for the user to flag
+//                            frames that need more design work
+//
+// When Claude later reads the design via `get_design_context`, each annotation
+// surfaces as `data-<category-label-lowercased-with-spaces-as-dashes>-annotations="<label>"`,
+// e.g. `data-position-annotations="B3"`, `data-suspicious-annotations="B3"`,
+// `data-missing-info-annotations="B3"`. The category half of the attribute key
+// is the visible signal that lets downstream Claude treat suspicious or missing-
+// info frames differently from plain position references.
+
+const SKILL_CATEGORIES = [
+  { key: "position",   label: "Position",     color: "blue"   },
+  { key: "suspicious", label: "Suspicious",   color: "red"    },
+  { key: "missing",    label: "Missing info", color: "orange" }
+];
+
+// Label prefix used by THIS SKILL on annotations that flag a layer as
+// suspicious. Distinct from a position-marker label (which is just the
+// prefix string like "B3" or "A1.initial"). The label after the slash is one
+// of the known reasons in SUSP_REASONS.
+const SUSP_LABEL_PREFIX = "Suspicion / ";
+const SUSP_REASONS = new Set(["image-only", "empty-section"]);
+
+// Legacy on-canvas chip layer-name prefix from the previous chip-based version
+// of this skill. The script removes any chip layer with these prefixes during
+// the migration so annotations don't coexist with leftover chips.
+const LEGACY_POSITION_CHIP_PREFIX = "Position Marker / ";
+const LEGACY_SUSPICION_CHIP_PREFIX = "Suspicion / ";
+// Legacy plugin-data namespaces used by the chip-based version. We don't
+// actively clear them — the chip nodes that carried them get removed entirely,
+// which orphans the plugin data into nothingness.
+// "wt_markers" — position chip targetId pointers
+// "wt_susp"    — suspicion marker targetId/reason pointers
+
 // ─── Page traversal ────────────────────────────────────────────────────────
-// "Markable" node types — the ones whose names we treat as the taxonomy. We
-// deliberately exclude SYMBOL (variant defs inside a component set) — those
-// proliferate by combinatorics and aren't the user's own layers.
-const MARKABLE_TYPES = new Set(["FRAME", "INSTANCE", "SECTION", "COMPONENT", "COMPONENT_SET", "GROUP"]);
+// "Markable" node types — the ones whose names we treat as the taxonomy AND
+// that support Figma annotations.
+//
+// SECTION and GROUP nodes are NOT in this set because the Figma API does not
+// expose `annotations` on those types ("no such property 'annotations' on
+// SECTION/GROUP node"). The walker still descends THROUGH sections so their
+// FRAME/INSTANCE/etc. children get marked, and section prefixes still serve
+// as the "base" for child path-extension; sections just don't get markers of
+// their own. (Their names render on the canvas above the section header and
+// surface to `get_design_context` as `data-name="..."`, which is enough for
+// both the recorder and downstream Claude.)
+//
+// COMPONENT children of a COMPONENT_SET (variants) are handled separately in
+// the walker — they take annotations directly on the variant node, so the
+// chip-placement gymnastics from the previous version are no longer needed.
+const MARKABLE_TYPES = new Set(["FRAME", "INSTANCE", "COMPONENT", "COMPONENT_SET"]);
+
+// Leaf node types (RECTANGLE, VECTOR, TEXT, ELLIPSE, ...) throw on `.children`
+// access. Only container types expose children safely.
+const CONTAINER_TYPES = new Set([
+  "PAGE", "FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE", "GROUP",
+  "SECTION", "BOOLEAN_OPERATION",
+]);
+function safeChildren(n) {
+  if (!n || !CONTAINER_TYPES.has(n.type)) return [];
+  try { return n.children || []; } catch (e) { return []; }
+}
+function safeFills(n) {
+  try { return Array.isArray(n.fills) ? n.fills : []; } catch (e) { return []; }
+}
+function safeLayoutMode(n) {
+  try { return n.layoutMode || null; } catch (e) { return null; }
+}
 
 // Walk the page collecting candidates per the depth contract:
-//   - Descend through SECTIONs without limit (organizational).
-//   - At the first non-section node, list it and stop descending unless it has
-//     a prefix (in which case descend one more level so sub-numbering shows).
+//   - Descend through SECTIONs without limit (organizational, never a candidate).
+//   - At the first non-section MARKABLE node, list it and stop descending
+//     unless it has a prefix (in which case descend one more level so sub-
+//     numbering shows).
+//   - GROUPs are walked through (to find FRAMEs inside) but never listed.
 //   - Never descend into an INSTANCE — its internals belong to the component.
-async function collectCandidates(page) {
+function collectCandidates(page) {
   const out = [];
-  // Walk up `node` to find the nearest prefixed ancestor's prefix, used as
-  // the base for variant chip IDs when the COMPONENT_SET itself is unprefixed.
   function findBasePrefix(n) {
     let p = n.parent;
     while (p && p.type !== "PAGE") {
@@ -194,28 +265,33 @@ async function collectCandidates(page) {
     return "";
   }
   const variantScheme = CONFIG.variantNaming || "slug";
+
   function visit(node, depth, descendOverride) {
     for (const child of safeChildren(node)) {
+      // SECTION: transparent — walk through, never a candidate.
+      if (child.type === "SECTION") { visit(child, depth, false); continue; }
+      // GROUP: transparent — walk through, never a candidate.
+      if (child.type === "GROUP") { visit(child, depth, false); continue; }
+      // Skip anything else not in the markable set.
       if (!MARKABLE_TYPES.has(child.type)) continue;
-      if (isChip(child) || isSuspicionMarker(child)) continue;
+      // Skip legacy chip layers — they're FRAMEs but represent the previous
+      // marker mechanism, not user content.
+      if (isLegacyChip(child) || isLegacySuspicionChip(child)) continue;
+
       const prefix = detectPrefix(child.name);
       out.push({ node: child, prefix, depth });
 
-      // Special case: a COMPONENT_SET's children are its variants. Enumerate
-      // them, give them computed prefixes, then DON'T fall through to the
-      // generic descent (we don't want to walk inside the variants themselves).
+      // COMPONENT_SET: enumerate variants as their own candidates, but don't
+      // descend with the generic rule below (variants aren't "inside" for our
+      // purposes — they're enumerated and stopped at).
       if (child.type === "COMPONENT_SET") {
         const variants = safeChildren(child).filter(c => c.type === "COMPONENT");
         if (variants.length > 0) {
-          // Effective base: COMPONENT_SET's own prefix if it has one, else the
-          // nearest prefixed ancestor's prefix.
           const csPrefix = prefix || findBasePrefix(child);
           const slugs = computeVariantSlugs(variants, variantScheme);
           for (const v of variants) {
             const slug = slugs.get(v.id);
             if (!slug) continue;
-            // Variant prefix = base + "." + slug. (Always dot-separated because
-            // slugs are alphanumeric and can't be confused with letter+digit.)
             const variantPrefix = csPrefix ? `${csPrefix}.${slug}` : slug;
             out.push({
               node: v, prefix: variantPrefix, depth: depth + 1,
@@ -223,98 +299,54 @@ async function collectCandidates(page) {
             });
           }
         }
-        continue; // skip the generic-descent rule below
+        continue;
       }
 
-      const canDescend = child.type === "SECTION"
-        || (descendOverride && child.type !== "INSTANCE")
+      const canDescend = (descendOverride && child.type !== "INSTANCE")
         || (!!prefix && child.type !== "INSTANCE");
-      if (canDescend) visit(child, depth + 1, /*descendOverride*/ false);
+      if (canDescend) visit(child, depth + 1, false);
     }
   }
   visit(page, 0, false);
   return out;
 }
 
-// ─── Chip styling + plugin-data namespace ──────────────────────────────────
-const BG = { r: 0.310, g: 0.275, b: 0.898 }; // #4F46E5 indigo
-const FG = { r: 1, g: 1, b: 1 };
-const FONT = { family: "Inter", style: "Bold" };
-const FONT_SIZE = 20;
-const PADDING_X = 14;
-const PADDING_Y = 8;
-const CORNER_RADIUS = 999;
-const GAP = 4;
-const MARKER_PREFIX = "Position Marker / ";
-const NS = "wt_markers"; // shared-plugin-data namespace (>=3 chars, alphanum/_/.)
-
-function chipDisplayName(prefix) { return MARKER_PREFIX + prefix; }
-
-function isChip(node) {
-  return node.name && node.name.startsWith(MARKER_PREFIX);
-}
-
-// ─── Suspicion markers ─────────────────────────────────────────────────────
-// A separate visual class from position chips. These mark layers that *look*
-// like content to a human but offer nothing for Claude to resolve — a raster
-// image labelled like a UI element, or a prefixed-but-empty section. The
-// marker color and shape are intentionally different so the two never get
-// confused on the canvas or in inventory.
-const SUSP_BG = { r: 0.961, g: 0.620, b: 0.043 }; // #F59E0B amber
-const SUSP_BORDER = { r: 0.722, g: 0.420, b: 0.000 }; // #B86B00
-const SUSP_FG = { r: 1, g: 1, b: 1 };
-const SUSP_FONT_SIZE = 18;
-const SUSP_PADDING_X = 20;
-const SUSP_PADDING_Y = 12;
-const SUSP_CORNER = 8;
-const SUSP_PREFIX = "Suspicion / ";
-const SUSP_NS = "wt_susp";
-
-function isSuspicionMarker(node) {
-  return node.name && node.name.startsWith(SUSP_PREFIX);
-}
-
-function safeFills(n) {
-  try { return Array.isArray(n.fills) ? n.fills : []; } catch (e) { return []; }
-}
-
-// Categorize a node as suspicious if any of the rules below hits. Returns
-// null when the node is fine.
+// ─── Suspicion detection ───────────────────────────────────────────────────
+// Two recurring "looks UI-ish but has nothing for Claude to resolve" cases:
+//   1. image-only: a RECTANGLE/FRAME with an IMAGE fill, named like a UI
+//      element (e.g. "Tooltip on the fallback i icon"). To Claude this is
+//      an opaque raster — no text, no children, no interaction structure.
+//   2. empty-section: a prefixed SECTION with no real children. The chip
+//      works, the ID resolves, but the resolved node yields nothing.
+//
+// Detection is unchanged from the chip-based version. What's different is
+// HOW we mark them: image-only suspicions get an annotation directly on the
+// suspicious FRAME/RECTANGLE; empty-section suspicions are reported in
+// inventory but NOT marked, because SECTIONs don't support annotations.
 function detectSuspicion(node) {
-  // Rule: image-fill rectangle or frame masquerading as content
   if (node.type === "RECTANGLE" || node.type === "FRAME") {
     const fills = safeFills(node);
     if (fills.some(f => f.type === "IMAGE")) {
-      return {
-        reason: "image-only",
-        message: "IMAGE — no structure",
-      };
+      return { reason: "image-only", message: "IMAGE — no structure" };
     }
   }
-  // Rule: prefixed section with no real children
   if (node.type === "SECTION") {
     const prefix = detectPrefix(node.name);
     if (prefix) {
-      const real = safeChildren(node).filter(c => !isChip(c) && !isSuspicionMarker(c));
+      const real = safeChildren(node).filter(c => !isLegacyChip(c) && !isLegacySuspicionChip(c));
       if (real.length === 0) {
-        return {
-          reason: "empty-section",
-          message: "EMPTY SECTION — no content",
-        };
+        return { reason: "empty-section", message: "EMPTY SECTION — no content" };
       }
     }
   }
   return null;
 }
 
-// Walk the page collecting suspicions. We descend through SECTIONs and
-// COMPONENT_SETs (and FRAMEs only at shallow depth) but never into INSTANCEs
-// (those internals are the component definition, not user-authored layers).
 function collectSuspicions(page) {
   const out = [];
   function visit(node, depth) {
     for (const child of safeChildren(node)) {
-      if (isChip(child) || isSuspicionMarker(child)) continue;
+      if (isLegacyChip(child) || isLegacySuspicionChip(child)) continue;
       const s = detectSuspicion(child);
       if (s) out.push({ node: child, ...s });
       const shouldDescend = child.type === "SECTION"
@@ -327,71 +359,83 @@ function collectSuspicions(page) {
   return out;
 }
 
-function createSuspicionMarker(reason, message) {
-  const m = figma.createFrame();
-  m.name = SUSP_PREFIX + reason;
-  m.layoutMode = "HORIZONTAL";
-  m.primaryAxisSizingMode = "AUTO";
-  m.counterAxisSizingMode = "AUTO";
-  m.paddingLeft = SUSP_PADDING_X;
-  m.paddingRight = SUSP_PADDING_X;
-  m.paddingTop = SUSP_PADDING_Y;
-  m.paddingBottom = SUSP_PADDING_Y;
-  m.cornerRadius = SUSP_CORNER;
-  m.fills = [{ type: "SOLID", color: SUSP_BG }];
-  m.strokes = [{ type: "SOLID", color: SUSP_BORDER }];
-  m.strokeWeight = 2;
-  const t = figma.createText();
-  t.fontName = FONT;
-  t.characters = `⚠  ${message}`;
-  t.fontSize = SUSP_FONT_SIZE;
-  t.fills = [{ type: "SOLID", color: SUSP_FG }];
-  m.appendChild(t);
-  return m;
+// ─── Legacy chip detection (for migration cleanup) ─────────────────────────
+function isLegacyChip(node) {
+  return node && node.name && node.name.startsWith(LEGACY_POSITION_CHIP_PREFIX);
+}
+function isLegacySuspicionChip(node) {
+  return node && node.name && node.name.startsWith(LEGACY_SUSPICION_CHIP_PREFIX);
 }
 
-// Suspicion markers can't live inside a RECTANGLE (no children) or a
-// COMPONENT_SET (only COMPONENT children). Walk up past those to find the
-// nearest writable ancestor — usually the enclosing SECTION.
-function suspicionHostFor(node) {
-  let host = node.parent;
-  while (host && (
-    host.type === "INSTANCE" ||
-    host.type === "COMPONENT_SET" ||
-    !CONTAINER_TYPES.has(host.type)
-  )) {
-    host = host.parent;
+// Walk the page removing every legacy chip layer (Position Marker / *) and
+// every legacy chip-style suspicion marker (Suspicion / *). Returns the
+// number of nodes removed. Safe to run repeatedly — the recursive walk skips
+// containers it can't read into.
+function removeLegacyChips(page) {
+  let removed = 0;
+  // Collect first, then remove (don't mutate while iterating).
+  const toRemove = [];
+  function visit(node) {
+    for (const child of safeChildren(node)) {
+      if (isLegacyChip(child) || isLegacySuspicionChip(child)) {
+        toRemove.push(child);
+        continue; // don't descend into chips
+      }
+      if (child.type !== "INSTANCE") visit(child);
+    }
   }
-  return host || null;
-}
-
-function findSuspicionMarkerFor(node) {
-  const host = suspicionHostFor(node);
-  if (!host) return null;
-  for (const c of safeChildren(host)) {
-    if (!isSuspicionMarker(c)) continue;
-    if (c.getSharedPluginData(SUSP_NS, "targetId") === node.id) return c;
+  visit(page);
+  for (const n of toRemove) {
+    try { n.remove(); removed++; } catch (e) { /* swallow */ }
   }
-  return null;
+  return removed;
 }
 
-// Some node types throw on property access rather than returning undefined.
-// Wrap any potentially-unsupported read behind a try/catch.
-function safeLayoutMode(n) {
-  try { return n.layoutMode || null; } catch (e) { return null; }
+// ─── Annotation helpers ────────────────────────────────────────────────────
+
+// Figma fills BOTH `label` and `labelMarkdown` on read but rejects both on
+// write. When re-passing existing annotations through a frame.annotations = []
+// reset, strip down to whichever was the source of truth.
+function preserveAnnotation(a) {
+  const out = {};
+  if (a.labelMarkdown && a.labelMarkdown.length > 0) out.labelMarkdown = a.labelMarkdown;
+  else out.label = (a.label || "");
+  if (a.categoryId) out.categoryId = a.categoryId;
+  if (a.properties && a.properties.length > 0) out.properties = a.properties;
+  return out;
 }
-function safeClipsContent(n) {
-  try { return !!n.clipsContent; } catch (e) { return false; }
+
+function nodeSupportsAnnotations(node) {
+  return node && "annotations" in node;
 }
-// Leaf node types (RECTANGLE, VECTOR, TEXT, ELLIPSE, ...) throw on `.children`
-// access. Only container types expose children safely.
-const CONTAINER_TYPES = new Set([
-  "PAGE", "FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE", "GROUP",
-  "SECTION", "BOOLEAN_OPERATION",
-]);
-function safeChildren(n) {
-  if (!n || !CONTAINER_TYPES.has(n.type)) return [];
-  try { return n.children || []; } catch (e) { return []; }
+
+// Position-annotation label test: is THIS label one our skill owns as a
+// position marker? Rule: not a suspicion label, and is exactly a valid
+// prefix-like string (regular prefix OR variant slug).
+function isPositionLabel(label) {
+  if (!label) return false;
+  const trimmed = label.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith(SUSP_LABEL_PREFIX)) return false;
+  // Variant slug: <base>.<slug>[.<slug>]*  where slug starts with [a-z]
+  // and is followed by [a-z0-9-]
+  // Example: "A1.initial", "B2.editor-video.template"
+  if (/^([A-Za-z]?\d+(?:\.\d+)*|[A-Za-z](?:\.\d+)+|[A-Za-z])(?:\.[a-z][a-z0-9-]*)+$/.test(trimmed)) return true;
+  // Plain prefix: A, B3, 1, 1.2, A1.2, A.1, A.1.2 etc.
+  if (/^([A-Za-z]?\d+(?:\.\d+)*|[A-Za-z](?:\.\d+)+|[A-Za-z])$/.test(trimmed)) return true;
+  return false;
+}
+
+// Suspicion-annotation label test: starts with "Suspicion / " AND the trailing
+// reason is one of the skill's known reasons. (User-created annotations in
+// the Suspicious category with custom labels are left alone.)
+function parseSuspicionLabel(label) {
+  if (!label) return null;
+  const trimmed = label.trim();
+  if (!trimmed.startsWith(SUSP_LABEL_PREFIX)) return null;
+  const reason = trimmed.slice(SUSP_LABEL_PREFIX.length).trim();
+  if (!SUSP_REASONS.has(reason)) return null;
+  return reason;
 }
 
 // ─── Resolve the starting page ─────────────────────────────────────────────
@@ -401,35 +445,42 @@ let page = startNode;
 while (page && page.type !== "PAGE") page = page.parent;
 if (!page) return { error: "Could not find a parent page from the provided node" };
 
-// Inventory and verify are read-only; mark and rename mutate.
-const writeModes = new Set(["mark", "rename"]);
-const needsFont = new Set(["mark"]);
-if (needsFont.has(CONFIG.mode)) {
-  try { await figma.loadFontAsync(FONT); }
-  catch (e) { return { error: `Could not load font ${FONT.family} ${FONT.style}: ${String(e)}` }; }
+// ─── Ensure skill categories exist (only when writing) ─────────────────────
+async function ensureSkillCategories() {
+  const cats = await figma.annotations.getAnnotationCategoriesAsync();
+  const byLabel = {};
+  const created = [];
+  for (const spec of SKILL_CATEGORIES) {
+    let cat = cats.find(c => c.label === spec.label);
+    if (!cat) {
+      cat = await figma.annotations.addAnnotationCategoryAsync({
+        label: spec.label, color: spec.color
+      });
+      created.push({ label: spec.label, color: spec.color, id: cat.id });
+    }
+    byLabel[spec.label] = cat.id;
+  }
+  return { byLabel, created };
+}
+
+// Read-only equivalent for inventory/verify — just look up which of our
+// categories already exist; don't create.
+async function readSkillCategories() {
+  const cats = await figma.annotations.getAnnotationCategoriesAsync();
+  const byLabel = {};
+  for (const spec of SKILL_CATEGORIES) {
+    const cat = cats.find(c => c.label === spec.label);
+    byLabel[spec.label] = cat ? cat.id : null;
+  }
+  return { byLabel };
 }
 
 // ─── Mode: inventory ───────────────────────────────────────────────────────
-// Read-only audit. Returns a tree-like list of candidates with prefix + chip
-// status so the user can decide which layers need renaming or chipping.
 if (CONFIG.mode === "inventory") {
-  const candidates = await collectCandidates(page);
+  const candidates = collectCandidates(page);
+  const { byLabel: catByLabel } = await readSkillCategories();
+  const skillCategoryIds = new Set(Object.values(catByLabel).filter(Boolean));
 
-  // Index chips so we can report on already-chipped candidates.
-  // We collect chips from the whole page tree so orphan chips surface too.
-  const allChips = [];
-  (function collect(n) {
-    for (const c of safeChildren(n)) {
-      if (isChip(c)) {
-        const targetId = c.getSharedPluginData(NS, "targetId") || null;
-        allChips.push({ chip: c, targetId, prefixOnChip: c.name.slice(MARKER_PREFIX.length).trim() });
-      }
-      if (c.type !== "INSTANCE") collect(c);
-    }
-  })(page);
-
-  // For each candidate determine chip status + classification relative to its
-  // nearest *prefixed* ancestor (the "base" for path-extension comparison).
   function findBasePrefix(node) {
     let p = node.parent;
     while (p && p.type !== "PAGE") {
@@ -439,35 +490,53 @@ if (CONFIG.mode === "inventory") {
     }
     return "";
   }
-  const rows = candidates.map(({ node, prefix, depth }) => {
-    let chipStatus = "n/a";
-    let chipsForThis = [];
-    if (prefix) {
-      chipsForThis = allChips.filter(ch => ch.targetId === node.id);
-      if (chipsForThis.length === 0) {
-        const insideChips = safeChildren(node).filter(isChip);
-        const sibChips = safeChildren(node.parent).filter(isChip);
-        const matchByText = (chips) => chips.filter(c => c.name.slice(MARKER_PREFIX.length).trim() === prefix);
-        chipsForThis = matchByText(insideChips).concat(matchByText(sibChips));
+
+  // Compute marker status for each prefixed candidate. With annotations there
+  // are no separate "chip" layers — the marker is the annotation on the node
+  // itself, so there's no concept of "orphan markers" (a missing target node
+  // means the annotation is gone too).
+  const rows = candidates.map(({ node, prefix, depth, isVariant, componentSetId, slug }) => {
+    let markerStatus = "n/a";
+    let markerCategory = null;
+    if (prefix && nodeSupportsAnnotations(node)) {
+      const anns = (node.annotations || []).filter(a => skillCategoryIds.has(a.categoryId));
+      const owned = anns.filter(a => {
+        const lbl = (a.label || "").trim();
+        return isPositionLabel(lbl);
+      });
+      if (owned.length === 0) markerStatus = "missing";
+      else if (owned.length > 1) markerStatus = "duplicate";
+      else {
+        const lbl = (owned[0].label || "").trim();
+        markerStatus = (lbl === prefix) ? "correct" : "wrong";
+        // Figure out which of our categories holds this annotation.
+        for (const [label, id] of Object.entries(catByLabel)) {
+          if (id && owned[0].categoryId === id) { markerCategory = label; break; }
+        }
       }
-      if (chipsForThis.length === 0) chipStatus = "missing";
-      else if (chipsForThis.length > 1) chipStatus = "duplicate";
-      else if (chipsForThis[0].prefixOnChip === prefix) chipStatus = "correct";
-      else chipStatus = "wrong";
     }
     const basePrefix = findBasePrefix(node);
     const classification = classifyPrefix(prefix, basePrefix);
     return {
       id: node.id, type: node.type, name: node.name, depth,
-      prefix, basePrefix: basePrefix || null, classification, chipStatus,
+      prefix, basePrefix: basePrefix || null, classification,
+      markerStatus, markerCategory,
+      ...(isVariant ? { isVariant: true, componentSetId, slug } : {}),
     };
   });
 
-  // Orphan chips: chips whose targetId no longer resolves to a candidate.
-  const candidateIds = new Set(candidates.map(c => c.node.id));
-  const orphans = allChips
-    .filter(ch => ch.targetId && !candidateIds.has(ch.targetId))
-    .map(ch => ({ id: ch.chip.id, name: ch.chip.name, parentName: ch.chip.parent ? ch.chip.parent.name : null }));
+  // Count any legacy chip layers still lingering on the page so the user
+  // knows a migration is pending. Don't actually remove them in inventory —
+  // inventory is read-only.
+  let legacyChipsRemaining = 0;
+  let legacySuspicionChipsRemaining = 0;
+  (function walk(n) {
+    for (const c of safeChildren(n)) {
+      if (isLegacyChip(c)) { legacyChipsRemaining++; continue; }
+      if (isLegacySuspicionChip(c)) { legacySuspicionChipsRemaining++; continue; }
+      if (c.type !== "INSTANCE") walk(c);
+    }
+  })(page);
 
   const summary = {
     candidates: candidates.length,
@@ -476,18 +545,19 @@ if (CONFIG.mode === "inventory") {
     strong: rows.filter(r => r.classification === "strong" || r.classification === "root").length,
     weakNumeric: rows.filter(r => r.classification === "weak-numeric").length,
     weakOther: rows.filter(r => r.classification === "weak-other").length,
-    chipMissing: rows.filter(r => r.chipStatus === "missing").length,
-    chipCorrect: rows.filter(r => r.chipStatus === "correct").length,
-    chipWrong: rows.filter(r => r.chipStatus === "wrong").length,
-    chipDuplicate: rows.filter(r => r.chipStatus === "duplicate").length,
-    orphanChips: orphans.length,
+    markerMissing: rows.filter(r => r.markerStatus === "missing").length,
+    markerCorrect: rows.filter(r => r.markerStatus === "correct").length,
+    markerWrong: rows.filter(r => r.markerStatus === "wrong").length,
+    markerDuplicate: rows.filter(r => r.markerStatus === "duplicate").length,
+    legacyChipsRemaining,
+    legacySuspicionChipsRemaining,
+    skillCategoriesPresent: Object.fromEntries(
+      Object.entries(catByLabel).map(([k, v]) => [k, !!v])
+    ),
   };
 
-  // Surface weak prefixes explicitly — these are the cases most likely to
-  // cause walkthrough-time ambiguity.
   const weakRows = rows.filter(r => r.classification === "weak-numeric" || r.classification === "weak-other");
 
-  // Surface suspicions (image-only layers, empty prefixed sections, etc.).
   let suspicions = [];
   if (CONFIG.flagSuspicions !== false) {
     suspicions = collectSuspicions(page).map(s => ({
@@ -495,29 +565,30 @@ if (CONFIG.mode === "inventory") {
       reason: s.reason, message: s.message,
       parentId: s.node.parent ? s.node.parent.id : null,
       parentName: s.node.parent ? s.node.parent.name : null,
+      markable: nodeSupportsAnnotations(s.node),
     }));
     summary.suspicions = suspicions.length;
+    summary.suspicionsUnmarkable = suspicions.filter(s => !s.markable).length;
   }
 
-  return { mode: "inventory", pageName: page.name, summary, rows, weakRows, suspicions, orphans };
+  return { mode: "inventory", pageName: page.name, summary, rows, weakRows, suspicions };
 }
 
 // ─── Mode: verify ──────────────────────────────────────────────────────────
-// Lightweight summary used after a mark-mode timeout to confirm state without
-// risking a concurrent write run.
 if (CONFIG.mode === "verify") {
-  const candidates = await collectCandidates(page);
+  const candidates = collectCandidates(page);
+  const { byLabel: catByLabel } = await readSkillCategories();
+  const skillCategoryIds = new Set(Object.values(catByLabel).filter(Boolean));
   let correct = 0, missing = 0, wrong = 0, duplicate = 0, unprefixed = 0;
   for (const { node, prefix } of candidates) {
     if (!prefix) { unprefixed++; continue; }
-    const insideChips = safeChildren(node).filter(isChip);
-    const sibChips = safeChildren(node.parent).filter(isChip);
-    const linked = insideChips.concat(sibChips).filter(c => c.getSharedPluginData(NS, "targetId") === node.id);
-    const byText = insideChips.concat(sibChips).filter(c => c.name.slice(MARKER_PREFIX.length).trim() === prefix);
-    const chips = linked.length ? linked : byText;
-    if (chips.length === 0) missing++;
-    else if (chips.length > 1) duplicate++;
-    else if (chips[0].name.slice(MARKER_PREFIX.length).trim() === prefix) correct++;
+    if (!nodeSupportsAnnotations(node)) { missing++; continue; }
+    const owned = (node.annotations || []).filter(a =>
+      skillCategoryIds.has(a.categoryId) && isPositionLabel(a.label || "")
+    );
+    if (owned.length === 0) missing++;
+    else if (owned.length > 1) duplicate++;
+    else if ((owned[0].label || "").trim() === prefix) correct++;
     else wrong++;
   }
   return {
@@ -527,25 +598,19 @@ if (CONFIG.mode === "verify") {
 }
 
 // ─── Mode: rename ──────────────────────────────────────────────────────────
-// Two flavors:
-//   auto:     given a SECTION, enumerate its unprefixed non-section children
-//             and assign each a next-available prefix inheriting the section's
-//             scheme (e.g. section "1.2" → children "1.2.1", "1.2.2", ...).
-//             If the section has no prefix and its parent does, inherit from
-//             the parent and start a new level.
-//   explicit: rename each (nodeId, newPrefix) pair in renameList.
-// Default dry-run (apply=false) returns the proposed renames without writing.
+// Unchanged from the previous version — annotations are independent of names,
+// and renames just edit the underlying layer name. (After a rename, run `mark`
+// to resync annotations.)
 if (CONFIG.mode === "rename") {
   if (CONFIG.renameMode === "auto") {
     const target = await figma.getNodeByIdAsync(CONFIG.renameTargetId);
     if (!target) return { error: "rename target not found", id: CONFIG.renameTargetId };
     const targetPrefix = detectPrefix(target.name);
-    // Children to consider: direct non-section children of `target`, excluding
-    // any chips the skill owns. We don't recurse — auto-rename is intentionally
-    // one-section-at-a-time so the user stays in control of where numbering happens.
+    // Direct non-section children of `target`. We exclude SECTION as before
+    // (auto-rename is one-section-at-a-time), and we now also exclude GROUP
+    // since it's no longer a markable type.
     const children = safeChildren(target)
-      .filter(c => MARKABLE_TYPES.has(c.type) && c.type !== "SECTION" && !isChip(c));
-    // Visual order: top-to-bottom, then left-to-right.
+      .filter(c => MARKABLE_TYPES.has(c.type) && c.type !== "SECTION" && !isLegacyChip(c));
     children.sort((a, b) => {
       const dy = (a.y ?? 0) - (b.y ?? 0);
       if (Math.abs(dy) > 1) return dy;
@@ -555,8 +620,6 @@ if (CONFIG.mode === "rename") {
     });
 
     const basePrefix = targetPrefix || "";
-    // Classify each child, build a slot-reservation set from prefixes that are
-    // (or will become) strong extensions of basePrefix.
     function trailingNumber(childPrefix) {
       if (!childPrefix) return null;
       if (basePrefix && childPrefix.startsWith(basePrefix)) {
@@ -564,12 +627,10 @@ if (CONFIG.mode === "rename") {
         const n = parseInt(rest, 10);
         return Number.isFinite(n) ? n : null;
       }
-      if (/^\d+$/.test(childPrefix)) return parseInt(childPrefix, 10); // bare numeric
+      if (/^\d+$/.test(childPrefix)) return parseInt(childPrefix, 10);
       return null;
     }
 
-    // Two-pass approach: first reserve trailing numbers from strong + (if
-    // promoting) weak-numeric children, then assign next-available to the rest.
     const annotated = children.map(c => {
       const existing = detectPrefix(c.name);
       const cls = classifyPrefix(existing, basePrefix);
@@ -600,49 +661,29 @@ if (CONFIG.mode === "rename") {
     for (const a of annotated) {
       const { node, existing, cls } = a;
       if (cls === "strong" || cls === "root") {
-        proposed.push({
-          id: node.id, type: node.type, oldName: node.name, newName: node.name,
-          prefix: existing, action: "skip-strong", classification: cls,
-        });
+        proposed.push({ id: node.id, type: node.type, oldName: node.name, newName: node.name, prefix: existing, action: "skip-strong", classification: cls });
         continue;
       }
       if (cls === "weak-numeric" && CONFIG.promoteWeak) {
-        const n = trailingNumber(existing); // already in taken
+        const n = trailingNumber(existing);
         const newPrefix = buildStrongPrefix(basePrefix, n);
         const stripped = stripPrefix(node.name, existing);
         const newName = `${newPrefix}. ${stripped}`.trim();
-        proposed.push({
-          id: node.id, type: node.type, oldName: node.name, newName,
-          prefix: newPrefix, action: "promote", classification: cls,
-        });
+        proposed.push({ id: node.id, type: node.type, oldName: node.name, newName, prefix: newPrefix, action: "promote", classification: cls });
         continue;
       }
       if (cls === "weak-numeric" && !CONFIG.promoteWeak) {
-        proposed.push({
-          id: node.id, type: node.type, oldName: node.name, newName: node.name,
-          prefix: existing, action: "skip-weak-numeric",
-          classification: cls,
-          hint: "Run with promoteWeak: true to rewrite this as a strong prefix.",
-        });
+        proposed.push({ id: node.id, type: node.type, oldName: node.name, newName: node.name, prefix: existing, action: "skip-weak-numeric", classification: cls, hint: "Run with promoteWeak: true to rewrite this as a strong prefix." });
         continue;
       }
       if (cls === "weak-other") {
-        proposed.push({
-          id: node.id, type: node.type, oldName: node.name, newName: node.name,
-          prefix: existing, action: "skip-weak-other",
-          classification: cls,
-          hint: "Prefix doesn't extend parent. Resolve via explicit rename.",
-        });
+        proposed.push({ id: node.id, type: node.type, oldName: node.name, newName: node.name, prefix: existing, action: "skip-weak-other", classification: cls, hint: "Prefix doesn't extend parent. Resolve via explicit rename." });
         continue;
       }
-      // unprefixed → assign next available
       const n = nextNumber();
       const newPrefix = buildStrongPrefix(basePrefix, n);
       const newName = `${newPrefix}. ${node.name}`.trim();
-      proposed.push({
-        id: node.id, type: node.type, oldName: node.name, newName,
-        prefix: newPrefix, action: "rename", classification: cls,
-      });
+      proposed.push({ id: node.id, type: node.type, oldName: node.name, newName, prefix: newPrefix, action: "rename", classification: cls });
     }
 
     if (!CONFIG.apply) {
@@ -675,9 +716,7 @@ if (CONFIG.mode === "rename") {
       const newName = `${entry.newPrefix}. ${stripped}`.trim();
       proposed.push({ id: node.id, type: node.type, oldName: node.name, newName, prefix: entry.newPrefix, action: existing ? "replace" : "rename" });
     }
-    if (!CONFIG.apply) {
-      return { mode: "rename", dryRun: true, mode2: "explicit", proposed };
-    }
+    if (!CONFIG.apply) return { mode: "rename", dryRun: true, mode2: "explicit", proposed };
     const applied = [];
     const errors = [];
     for (const p of proposed) {
@@ -697,169 +736,155 @@ if (CONFIG.mode === "rename") {
 }
 
 // ─── Mode: mark ────────────────────────────────────────────────────────────
-// Idempotent chip sync. For each prefixed candidate, ensure exactly one chip
-// is present, correctly named, and correctly anchored.
-//
-// Placement strategy by candidate type:
-//   - SECTION / FRAME / COMPONENT / COMPONENT_SET / GROUP → chip is CHILD of
-//     the candidate, positioned just outside its left edge at y=0.
-//   - INSTANCE → chip is a SIBLING (child of nearest writable ancestor),
-//     positioned at (candidate.x - chipW - gap, candidate.y) in parent coords.
-//     Instances reject appendChild, so child placement is impossible there.
-//
-// Tracking: every chip stores `targetId` in shared plugin data (namespace
-// "wt_markers") pointing back to the candidate. This lets re-sync find the
-// chip even if its name went out of date or the candidate moved.
-
 if (CONFIG.mode === "mark") {
-  const candidates = await collectCandidates(page);
+  const { byLabel: catByLabel, created: categoriesCreated } = await ensureSkillCategories();
+  const skillCategoryIds = new Set(Object.values(catByLabel));
+  const positionCategoryId = catByLabel.Position;
+  const suspiciousCategoryId = catByLabel.Suspicious;
+
+  // Migrate: remove every legacy chip layer (Position Marker / *) and chip-
+  // style suspicion marker (Suspicion / *) from the page. Annotations replace
+  // them.
+  const legacyChipsRemoved = removeLegacyChips(page);
+
+  const candidates = collectCandidates(page);
   const prefixed = candidates.filter(c => c.prefix);
 
-  // Fast-path: every prefixed candidate already has a single correctly-named
-  // chip wired up via plugin data → return without writing.
-  let allInSync = prefixed.length > 0;
+  // Fast-path. Every prefixed, annotation-supporting candidate already has a
+  // single skill-owned annotation whose label matches its prefix → no writes.
+  // (Categories may have just been created on this run, in which case we
+  // can't possibly be in sync — categoriesCreated.length > 0 breaks the fast
+  // path.)
+  let allInSync = prefixed.length > 0
+    && legacyChipsRemoved === 0
+    && categoriesCreated.length === 0;
   for (const { node, prefix } of prefixed) {
-    const chips = findChipsForCandidate(node);
-    if (chips.length !== 1) { allInSync = false; break; }
-    if (chips[0].name.slice(MARKER_PREFIX.length).trim() !== prefix) { allInSync = false; break; }
-  }
-  if (allInSync) {
-    return {
-      mode: "mark", pageName: page.name,
-      totalCandidates: prefixed.length,
-      createdCount: 0, updatedCount: 0, unchangedCount: prefixed.length,
-      dedupedCount: 0, clippedCount: 0, errorCount: 0, inSync: true,
-    };
+    if (!nodeSupportsAnnotations(node)) continue; // SECTION/GROUP — not markable
+    const owned = (node.annotations || []).filter(a =>
+      skillCategoryIds.has(a.categoryId) && isPositionLabel(a.label || "")
+    );
+    if (owned.length !== 1) { allInSync = false; break; }
+    const lbl = (owned[0].label || "").trim();
+    if (lbl !== prefix) { allInSync = false; break; }
   }
 
   const created = [];
   const updated = [];
   const unchanged = [];
-  const dedupedFrames = [];
-  const clippedFrames = [];
+  const deduped = [];
+  const skipped = []; // node-type doesn't support annotations
   const errors = [];
 
-  for (const { node, prefix } of prefixed) {
-    try {
-      let chips = findChipsForCandidate(node);
-      // Dedup: keep the first, remove the rest.
-      if (chips.length > 1) {
-        for (let i = 1; i < chips.length; i++) chips[i].remove();
-        dedupedFrames.push({ frame: node.name, removed: chips.length - 1 });
-        chips = chips.slice(0, 1);
-      }
-      const existing = chips[0];
-
-      const placement = chipPlacementFor(node);
-      if (!placement) {
-        errors.push({ frame: node.name, error: "no writable ancestor for chip placement" });
-        continue;
-      }
-
-      if (existing) {
-        const currentText = existing.name.slice(MARKER_PREFIX.length).trim();
-        if (currentText === prefix) {
-          // Re-anchor in case the candidate moved.
-          reanchor(existing, node, placement);
-          unchanged.push({ frame: node.name, prefix });
+  if (!allInSync) {
+    for (const { node, prefix } of prefixed) {
+      try {
+        if (!nodeSupportsAnnotations(node)) {
+          skipped.push({ id: node.id, type: node.type, name: node.name, prefix, reason: "annotations not supported on this node type" });
           continue;
         }
-        existing.name = chipDisplayName(prefix);
-        const txt = safeChildren(existing).find(c => c.type === "TEXT");
-        if (txt) txt.characters = prefix;
-        existing.setSharedPluginData(NS, "targetId", node.id);
-        reanchor(existing, node, placement);
-        updated.push({ frame: node.name, from: currentText, to: prefix });
-      } else {
-        const chip = createChip(prefix);
-        placement.host.appendChild(chip);
-        chip.setSharedPluginData(NS, "targetId", node.id);
-        const hostLM = safeLayoutMode(placement.host);
-        if (hostLM && hostLM !== "NONE") chip.layoutPositioning = "ABSOLUTE";
-        reanchor(chip, node, placement);
-        if (safeClipsContent(placement.host)) clippedFrames.push(placement.host.name);
-        created.push({ frame: node.name, prefix, placement: placement.kind });
+        const all = node.annotations || [];
+        const owned = all.filter(a =>
+          skillCategoryIds.has(a.categoryId) && isPositionLabel(a.label || "")
+        );
+        const others = all.filter(a => !owned.includes(a)).map(preserveAnnotation);
+
+        if (owned.length === 0) {
+          node.annotations = [...others, { label: prefix, categoryId: positionCategoryId }];
+          created.push({ name: node.name, prefix, category: "Position" });
+          continue;
+        }
+        // Keep first owned; remove duplicates.
+        const ours = owned[0];
+        const ourCategory = ours.categoryId;
+        const ourCurrentLabel = (ours.label || "").trim();
+        if (owned.length > 1) {
+          deduped.push({ name: node.name, removed: owned.length - 1 });
+        }
+        if (ourCurrentLabel === prefix && owned.length === 1) {
+          unchanged.push({ name: node.name, prefix });
+          continue;
+        }
+        // Replace owned: keep first slot with correct label + preserved category.
+        node.annotations = [...others, { label: prefix, categoryId: ourCategory }];
+        if (ourCurrentLabel !== prefix) {
+          updated.push({ name: node.name, from: ourCurrentLabel, to: prefix });
+        }
+      } catch (e) {
+        errors.push({ name: node.name, error: String(e) });
       }
-    } catch (e) {
-      errors.push({ frame: node.name, error: String(e) });
     }
   }
 
-  // ─── Suspicion markers ───────────────────────────────────────────────
-  // Same idempotency model: find existing by plugin-data targetId, create
-  // missing, update if the reason changed, remove orphan markers whose target
-  // is no longer suspicious.
+  // ─── Suspicion annotations ──────────────────────────────────────────────
   const suspCreated = [];
   const suspUpdated = [];
   const suspUnchanged = [];
   const suspRemoved = [];
+  const suspSkipped = [];
   const suspErrors = [];
+
   if (CONFIG.flagSuspicions !== false) {
     const suspicions = collectSuspicions(page);
-    const stillSuspiciousIds = new Set(suspicions.map(s => s.node.id));
+    const stillSuspiciousIds = new Map(suspicions.map(s => [s.node.id, s.reason]));
 
-    // Walk page for ALL existing suspicion markers, so we can remove orphans
-    // whose targets are no longer suspicious (or no longer exist).
-    const allMarkers = [];
+    // Orphan cleanup: walk all annotation-supporting nodes; if any have a
+    // skill-owned suspicion annotation but the node is no longer suspicious,
+    // remove that annotation (preserve other annotations on the same node).
     (function walk(n) {
       for (const c of safeChildren(n)) {
-        if (isSuspicionMarker(c)) {
-          const tid = c.getSharedPluginData(SUSP_NS, "targetId");
-          allMarkers.push({ marker: c, targetId: tid });
+        if (isLegacyChip(c) || isLegacySuspicionChip(c)) continue;
+        if (nodeSupportsAnnotations(c)) {
+          const anns = c.annotations || [];
+          const ourSusp = anns.filter(a =>
+            a.categoryId === suspiciousCategoryId &&
+            parseSuspicionLabel(a.label || "") !== null
+          );
+          if (ourSusp.length > 0) {
+            const stillReason = stillSuspiciousIds.get(c.id);
+            if (!stillReason) {
+              try {
+                const remaining = anns.filter(a => !ourSusp.includes(a)).map(preserveAnnotation);
+                c.annotations = remaining;
+                suspRemoved.push({ name: c.name, removed: ourSusp.length });
+              } catch (e) {
+                suspErrors.push({ name: c.name, error: "orphan remove failed: " + String(e) });
+              }
+            }
+          }
         }
         if (c.type !== "INSTANCE") walk(c);
       }
     })(page);
 
-    for (const m of allMarkers) {
-      if (!m.targetId || !stillSuspiciousIds.has(m.targetId)) {
-        try {
-          const name = m.marker.name;
-          m.marker.remove();
-          suspRemoved.push({ markerName: name, targetId: m.targetId || null });
-        } catch (e) {
-          suspErrors.push({ id: m.marker.id, error: "remove failed: " + String(e) });
-        }
-      }
-    }
-
+    // Apply suspicions to currently-suspicious nodes that support annotations.
     for (const s of suspicions) {
       try {
-        const host = suspicionHostFor(s.node);
-        if (!host) { suspErrors.push({ id: s.node.id, error: "no writable host for marker" }); continue; }
-        const existing = findSuspicionMarkerFor(s.node);
-        if (existing) {
-          const currentReason = existing.getSharedPluginData(SUSP_NS, "reason");
-          if (currentReason === s.reason) {
-            // Re-anchor in case the target moved
-            const pos = positionRelativeTo(s.node, host);
-            if (pos) { existing.x = pos.x; existing.y = pos.y; }
-            suspUnchanged.push({ targetName: s.node.name, reason: s.reason });
-            continue;
-          }
-          // Reason changed → update name + plugin data + text
-          existing.name = SUSP_PREFIX + s.reason;
-          existing.setSharedPluginData(SUSP_NS, "reason", s.reason);
-          const txt = safeChildren(existing).find(c => c.type === "TEXT");
-          if (txt) txt.characters = `⚠  ${s.message}`;
-          const pos = positionRelativeTo(s.node, host);
-          if (pos) { existing.x = pos.x; existing.y = pos.y; }
-          suspUpdated.push({ targetName: s.node.name, reason: s.reason });
+        if (!nodeSupportsAnnotations(s.node)) {
+          suspSkipped.push({ id: s.node.id, type: s.node.type, name: s.node.name, reason: s.reason, message: "annotations not supported on this node type" });
           continue;
         }
-        const marker = createSuspicionMarker(s.reason, s.message);
-        host.appendChild(marker);
-        marker.setSharedPluginData(SUSP_NS, "targetId", s.node.id);
-        marker.setSharedPluginData(SUSP_NS, "reason", s.reason);
-        const lm = safeLayoutMode(host);
-        if (lm && lm !== "NONE") marker.layoutPositioning = "ABSOLUTE";
-        const pos = positionRelativeTo(s.node, host);
-        if (!pos) { suspErrors.push({ id: s.node.id, error: "could not compute position" }); continue; }
-        marker.x = pos.x;
-        marker.y = pos.y;
-        suspCreated.push({ targetName: s.node.name, reason: s.reason });
+        const targetLabel = SUSP_LABEL_PREFIX + s.reason;
+        const all = s.node.annotations || [];
+        const ourSusp = all.filter(a =>
+          a.categoryId === suspiciousCategoryId &&
+          parseSuspicionLabel(a.label || "") !== null
+        );
+        const others = all.filter(a => !ourSusp.includes(a)).map(preserveAnnotation);
+        if (ourSusp.length === 0) {
+          s.node.annotations = [...others, { label: targetLabel, categoryId: suspiciousCategoryId }];
+          suspCreated.push({ name: s.node.name, reason: s.reason });
+          continue;
+        }
+        const ours = ourSusp[0];
+        const ourLabel = (ours.label || "").trim();
+        if (ourLabel === targetLabel && ourSusp.length === 1) {
+          suspUnchanged.push({ name: s.node.name, reason: s.reason });
+          continue;
+        }
+        s.node.annotations = [...others, { label: targetLabel, categoryId: suspiciousCategoryId }];
+        suspUpdated.push({ name: s.node.name, reason: s.reason });
       } catch (e) {
-        suspErrors.push({ id: s.node.id, error: String(e) });
+        suspErrors.push({ name: s.node.name, error: String(e) });
       }
     }
   }
@@ -870,148 +895,24 @@ if (CONFIG.mode === "mark") {
     createdCount: created.length,
     updatedCount: updated.length,
     unchangedCount: unchanged.length,
-    dedupedCount: dedupedFrames.length,
-    clippedCount: clippedFrames.length,
+    dedupedCount: deduped.length,
+    skippedCount: skipped.length,
+    legacyChipsRemovedCount: legacyChipsRemoved,
+    categoriesCreated,
     errorCount: errors.length,
-    created, updated, unchanged, dedupedFrames, clippedFrames, errors,
+    created, updated, unchanged, deduped, skipped, errors,
     suspicions: {
       createdCount: suspCreated.length,
       updatedCount: suspUpdated.length,
       unchangedCount: suspUnchanged.length,
       removedCount: suspRemoved.length,
+      skippedCount: suspSkipped.length,
       errorCount: suspErrors.length,
       created: suspCreated, updated: suspUpdated, unchanged: suspUnchanged,
-      removed: suspRemoved, errors: suspErrors,
+      removed: suspRemoved, skipped: suspSkipped, errors: suspErrors,
     },
+    ...(allInSync ? { inSync: true } : {}),
   };
 }
 
 return { error: "unknown mode", mode: CONFIG.mode };
-
-// ─── Helpers used by mark + (read-only) inventory/verify ───────────────────
-
-// Find all chips that belong to `node` — first by plugin-data link, falling
-// back to a name match within the same logical area (children for non-instance
-// candidates, siblings for instances).
-function findChipsForCandidate(node) {
-  const out = [];
-  // Where to look depends on placement kind for this node type.
-  const placement = chipPlacementFor(node);
-  const searchHost = placement ? placement.host : node.parent;
-  const isSelfHost = placement && placement.kind === "child";
-  for (const c of safeChildren(searchHost)) {
-    if (!isChip(c)) continue;
-    if (c.getSharedPluginData(NS, "targetId") === node.id) out.push(c);
-  }
-  // For child-placement, also check inside the node (in case a previous run
-  // put the chip there — same case in practice, since host === node).
-  if (isSelfHost && searchHost !== node) {
-    for (const c of safeChildren(node)) {
-      if (!isChip(c)) continue;
-      if (c.getSharedPluginData(NS, "targetId") === node.id) out.push(c);
-    }
-  }
-  if (out.length > 0) return out;
-  // Plugin-data fallback by text match. Variants don't go through this path —
-  // their chip text is a slug that the variant's name doesn't carry.
-  const expected = detectPrefix(node.name);
-  if (!expected) return out;
-  const sameTextChips = (parent) => safeChildren(parent).filter(c => isChip(c) && c.name.slice(MARKER_PREFIX.length).trim() === expected);
-  const candidates = sameTextChips(searchHost);
-  for (const c of candidates) {
-    c.setSharedPluginData(NS, "targetId", node.id);
-    out.push(c);
-  }
-  return out;
-}
-
-// Decide where a chip for `node` should live and how it should be anchored.
-// Returns { host, kind } where host is the node we'll appendChild on, plus
-// (for sibling-style placements) any intermediate ancestors whose offsets
-// must be accumulated when computing the chip's absolute position.
-function chipPlacementFor(node) {
-  if (node.type === "INSTANCE") {
-    let host = node.parent;
-    while (host && host.type === "INSTANCE") host = host.parent;
-    if (!host) return null;
-    return { host, kind: "sibling" };
-  }
-  // Variant component inside a COMPONENT_SET. Two facts force the placement:
-  //   1. Modifying the variant (the master COMPONENT) propagates to all instances
-  //      of that component — chips inside the variant are a non-starter.
-  //   2. COMPONENT_SET rejects any child that isn't a COMPONENT — chips can't
-  //      live inside the set either.
-  // So the chip is placed in the *enclosing* writable ancestor (the SECTION
-  // or FRAME above the COMPONENT_SET). Its position is offset by the set's
-  // own coordinates within that ancestor.
-  if (node.type === "COMPONENT" && node.parent && node.parent.type === "COMPONENT_SET") {
-    let host = node.parent.parent;
-    while (host && (host.type === "INSTANCE" || host.type === "COMPONENT_SET")) {
-      host = host.parent;
-    }
-    if (!host) return null;
-    return { host, kind: "variant-sibling" };
-  }
-  // Default: child placement.
-  return { host: node, kind: "child" };
-}
-
-// Sum positions from `node` up to (but not including) `ancestor`. Lets us put
-// a chip in `ancestor`'s coordinate space at the visual location of `node`.
-function positionRelativeTo(node, ancestor) {
-  let x = 0, y = 0;
-  let cur = node;
-  while (cur && cur !== ancestor) {
-    x += cur.x ?? 0;
-    y += cur.y ?? 0;
-    cur = cur.parent;
-  }
-  if (cur !== ancestor) return null;
-  return { x, y };
-}
-
-function reanchor(chip, node, placement) {
-  const lm = placement.kind === "child" ? safeLayoutMode(node) : safeLayoutMode(placement.host);
-  if (lm && lm !== "NONE" && chip.layoutPositioning !== "ABSOLUTE") {
-    chip.layoutPositioning = "ABSOLUTE";
-  }
-  if (placement.kind === "child") {
-    chip.x = -(chip.width + GAP);
-    chip.y = 0;
-    return;
-  }
-  if (placement.kind === "sibling") {
-    chip.x = (node.x ?? 0) - chip.width - GAP;
-    chip.y = (node.y ?? 0);
-    return;
-  }
-  if (placement.kind === "variant-sibling") {
-    const pos = positionRelativeTo(node, placement.host);
-    if (!pos) return;
-    chip.x = pos.x - chip.width - GAP;
-    chip.y = pos.y;
-    return;
-  }
-}
-
-function createChip(prefix) {
-  const chip = figma.createFrame();
-  chip.name = chipDisplayName(prefix);
-  chip.layoutMode = "HORIZONTAL";
-  chip.primaryAxisSizingMode = "AUTO";
-  chip.counterAxisSizingMode = "AUTO";
-  chip.paddingLeft = PADDING_X;
-  chip.paddingRight = PADDING_X;
-  chip.paddingTop = PADDING_Y;
-  chip.paddingBottom = PADDING_Y;
-  chip.cornerRadius = CORNER_RADIUS;
-  chip.fills = [{ type: "SOLID", color: BG }];
-  const text = figma.createText();
-  text.fontName = FONT;
-  text.characters = prefix;
-  text.fontSize = FONT_SIZE;
-  text.fills = [{ type: "SOLID", color: FG }];
-  text.letterSpacing = { value: 2, unit: "PERCENT" };
-  chip.appendChild(text);
-  return chip;
-}

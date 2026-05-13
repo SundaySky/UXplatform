@@ -4,7 +4,7 @@ This guide tells Claude how to resolve **walkthrough IDs** (pronounced on camera
 
 You are reading this because someone has handed you (a) a transcript of a Figma walkthrough recording, and (b) a Figma file URL. The walkthrough refers to things on the canvas by short IDs like `B2`, `A1.message`, `1.2.3`. Your job is to translate those references back to specific layers in the Figma file so you can answer questions or perform tasks anchored to them.
 
-The taxonomy and chips you see on the canvas come from the `figma-walkthrough-markers` skill in this project. The contract below is what makes recordings cross-referenceable.
+The taxonomy and on-canvas annotations you see come from the `figma-walkthrough-markers` skill in this project. The contract below is what makes recordings cross-referenceable.
 
 ---
 
@@ -66,7 +66,6 @@ Used for every layer that has a name starting with `<ID>` followed by `.`, space
 function resolveByName(rootNode, fullId):
     candidates = []
     walk every descendant of rootNode (depth-first or breadth-first; order doesn't matter)
-        if isPositionMarkerChip(node): continue        # skip chips themselves
         prefix = detectPrefix(node.name)               # see "What counts as a prefix" below
         if prefix == fullId:
             candidates.push(node)
@@ -78,7 +77,7 @@ function resolveByName(rootNode, fullId):
         return AmbiguityError(candidates)
 ```
 
-**Position Marker chips** (layers named `Position Marker / *`) are *not* the resolution target — they are the visible label only. The target is the layer the chip points to. Skip chips during the walk.
+The name-prefix path works uniformly for SECTIONs, FRAMEs, INSTANCEs, COMPONENTs, and COMPONENT_SETs — anything whose layer name carries the prefix. SECTIONs in particular: the section's own name is the source of truth (e.g. `"A1. Bullet placholder <DialogContent>"`), so an ID like `A1` resolves directly via name-prefix match.
 
 ### Path B — variant slug resolution
 
@@ -128,15 +127,30 @@ If the slug is purely numeric (e.g., `A1.3`), it's a **numeric fallback slug** �
 
 ---
 
-## How the skill arranges chips on the canvas (FYI — not needed for resolution)
+## How the markers appear on the canvas (FYI — not needed for resolution)
 
-The visual placement is consistent enough that you can describe what the recording shows without seeing the canvas:
+The skill marks prefixed layers with **native Figma annotations** rather than separate child layers. The annotation pin sits next to the layer (Figma chooses the exact position; the skill can't override it). The pin color comes from the annotation's category:
 
-- A chip whose ID names a SECTION sits **outside the section's left edge**, in the gutter.
-- A chip whose ID names an INSTANCE (or any non-section element) sits **next to that element's left edge**, inside the enclosing section.
-- A chip whose ID names a VARIANT sits **next to that variant's left edge**, inside the COMPONENT_SET's enclosing section/frame (because COMPONENT_SETs reject non-COMPONENT children, so chips can't live inside the set).
+- **Blue** — `Position` category. Default for every prefixed candidate.
+- **Red** — `Suspicious` category. Used by the skill for `image-only` suspicions on FRAME/RECTANGLE, and available for the user to manually flag any frame.
+- **Orange** — `Missing info` category. Available for the user to flag frames that need more design work.
 
-Chip styling: indigo `#4F46E5` rounded pill, white Inter Bold text. Layer name: `Position Marker / <ID>`. Plugin data: `wt_markers.targetId = <linked-node-id>` (used by the skill for re-sync; you don't need to read this).
+**SECTIONs are not annotated** (the Figma API doesn't expose annotations on SECTION/GROUP nodes). The section's own name renders as a label at the top of the section on the canvas, which serves the same purpose for a recorder.
+
+---
+
+## The data-attribute round-trip
+
+When you call `get_design_context` on an annotated frame, each annotation surfaces as a data attribute:
+
+- `data-position-annotations="B3"` — a regular position marker
+- `data-suspicious-annotations="B3"` — a position marker the user (or the skill) categorized as suspicious
+- `data-missing-info-annotations="B3"` — a position marker categorized as needing more design work
+- `data-suspicious-annotations="Suspicion / image-only"` — a suspicion annotation added automatically by the skill
+
+The attribute key tells you the category (and therefore the visual state); the attribute value is the label.
+
+For resolution, the data attribute is a *hint*, not the authoritative source. **The authoritative source remains the layer's name** — `data-name="A1. Bullet placeholder..."` matched by prefix. Use the annotation data attribute when you want extra context (e.g. "this frame was flagged Suspicious — there may be quality issues here").
 
 ---
 
@@ -165,7 +179,6 @@ Matches (this is what counts as a prefix):
 
 Does *not* match:
 - `Frame 1` (the leading letter is not followed by `.`, `-`, or `:`)
-- `v1.2 release` (lowercase `v` is allowed but the regex requires the prefix start with a digit or be a single bare letter — `v1` only matches if the rest works; here `release` after a space would qualify, but the case is just to illustrate "common names that look prefix-y but aren't")
 - `<Button>` (starts with `<`)
 - `Bulletpiont toolbar` (no leading digit/single letter+separator)
 
@@ -198,12 +211,12 @@ ID: `B`. Resolution: name-prefix match → the SECTION named `B. Bullet toolbar`
 
 ### Example 2: `"In B1, the icon-size button."`
 
-ID: `B1`. Resolution: name-prefix match → INSTANCE `B1. Bulletpiont toolbar`. The "icon-size button" is a *sub-element reference* — describe it from the instance's structured children rather than expecting a chip.
+ID: `B1`. Resolution: name-prefix match → INSTANCE `B1. Bulletpiont toolbar`. The "icon-size button" is a *sub-element reference* — describe it from the instance's structured children rather than expecting a marker.
 
 ### Example 3: `"Now look at A1 in the initial state."`
 
 ID: `A1.initial`. Resolution path:
-1. Name-prefix match for `A1.initial` across the page → no layer matches.
+1. Name-prefix match for `A1.initial` across the page → no layer matches (variant names carry their `variantProperties=Initial` style, not `A1.initial`).
 2. Fall back to variant-slug interpretation. Parent ID = `A1`; resolveByName(`A1`) → SECTION `A1. Bullet placholder <DialogContent>`.
 3. Parent is a SECTION, not a COMPONENT_SET. Look for COMPONENT_SET descendants of A1 → exactly one (`Bullet point placeholder- <DialogContent>`).
 4. Walk the COMPONENT_SET's COMPONENT children. Build 1-word slugs from `variantProperties`. Match `initial` → the variant with `variantProperties: {Personalization status: "Initial"}`. Return that COMPONENT node.
@@ -213,11 +226,11 @@ ID: `A1.initial`. Resolution path:
 ID: `A1.message-by-audience` (the user may also pronounce it as just `A1.message` and intend the same thing). Resolution:
 1. Try name-prefix match → no layer named `A1.message-by-audience.*`.
 2. Variant-slug fallback. Parent ID `A1` → SECTION. One COMPONENT_SET inside. Slug `message-by-audience` matches the 3-word slug of `Message by audience selected`. Return that variant.
-3. **Adaptive note:** the skill's slugger picks the shortest unique form, so it might have chosen `message` (1 word) over `message-by-audience` (3 words). Try both — the 1-word slug is the canonical chip text in the canvas, but the speaker may use either.
+3. **Adaptive note:** the skill's slugger picks the shortest unique form, so it might have chosen `message` (1 word) over `message-by-audience` (3 words). Try both — the 1-word slug is the canonical annotation label, but the speaker may use either.
 
 ### Example 5: `"In B2, the third button from the left."`
 
-ID: `B2`. Resolution: name-prefix match → INSTANCE `B2. Bulletpiont toolbar- view only`. "The third button from the left" is a sub-element — read the instance's structured children, identify buttons by their layer-tree order or by their content (e.g., text node `"View content"`).
+ID: `B2`. Resolution: name-prefix match → INSTANCE `B2. Bulletpiont toolbar- view only`. "The third button from the left" is a sub-element — read the instance's structured children, identify buttons by their layer-tree order or by their content.
 
 ### Example 6: `"E dot six video duration"` (pronounced)
 
@@ -238,8 +251,8 @@ E.g., speaker says `A1.draft` but no variant slugs to `draft`. Try slug variatio
 ### Speaker drops the parent prefix
 E.g., speaker is "inside" B and says "look at three" instead of "B3". Resolve via context — if the surrounding transcript established a parent, prepend it. Otherwise ask.
 
-### Speaker says a chip name that doesn't follow the convention
-E.g., speaker says `A2.7` but variant numbering uses slugs in this set (so the chip is `A2.editor-video`, not `A2.7`). Try both interpretations:
+### Speaker says a number that doesn't follow the convention
+E.g., speaker says `A2.7` but variant numbering uses slugs in this set (so the annotation label is `A2.editor-video`, not `A2.7`). Try both interpretations:
 - Numeric → if `A2` is a COMPONENT_SET, take the 7th variant in document order.
 - If that fails, look for an INSTANCE/FRAME named `A2.7. *` (the user might be referring to a future element they planned to add).
 
@@ -248,25 +261,15 @@ Rare but possible: a child of section A1 has the actual name `A1.message. Foo` (
 
 ---
 
-## What you can and can't infer from a chip alone
+## Suspicion annotations — what to do with them
 
-A chip is just a visual label on the canvas. It carries:
-
-- A **layer name** (`Position Marker / <ID>`) — this is the canonical ID for the speaker to pronounce.
-- A **plugin-data targetId** (namespace `wt_markers`, key `targetId`) — the linked node's id. *You don't normally need to read this.* It's for the skill's own bookkeeping. If you do read it, treat it as a hint — if it conflicts with the name-match result, prefer the name-match.
-
-A chip *does not* tell you what the underlying element "is" (button, dialog, menu). For that, resolve the chip to its target layer and read the target's structured properties (type, children, variantProperties, etc.).
-
-## Suspicion markers — what to do with them
-
-In addition to position chips (indigo, namespace `wt_markers`), the page may contain **amber suspicion markers** (namespace `wt_susp`, layer-name prefix `Suspicion / <reason>`). These look very different on the canvas — bigger amber rounded rectangles with a `⚠` glyph — and they are **not walkthrough IDs**. The speaker should not be referring to them.
+In addition to position annotations (blue), the page may contain **Suspicious-category annotations** whose labels start with `Suspicion / ` followed by a reason (`image-only` or `empty-section`). They are **not walkthrough IDs**. The speaker should not be referring to them.
 
 Treat them as follows when resolving a transcript:
 
-- **Never** resolve a transcript reference as if it were a suspicion marker. Suspicion markers have no pronounceable ID; they're notes-to-self for the human recording.
-- **Ignore them** when walking the page for candidates, just as you'd ignore position chips. They have layer names that look like prefixes but are not — skip any node whose name starts with `Suspicion /`.
-- **Read them as a hint** about the underlying page health. If you read the page's suspicion markers and discover the section that the speaker just referred to is flagged `empty-section` or `image-only`, that *explains* why structured introspection of that section returned no content. Surface this to the user: "the speaker said `E3` but section E3 is flagged as empty — there's no structured content there, only the section label."
-- **Each suspicion marker has plugin data** (namespace `wt_susp`, key `targetId`) pointing to the layer it warns about, and (key `reason`) one of `image-only` or `empty-section`. Use this when you want to enumerate the page's known issues, but it's not part of the ID-resolution flow.
+- **Never** resolve a transcript reference as if it were a suspicion annotation. Suspicion annotations have no pronounceable ID.
+- **Read them as a hint** about the underlying page health. If the section the speaker referred to has a Suspicious-category annotation labeled `Suspicion / empty-section`, that *explains* why structured introspection of that section returned no content. Surface this to the user: "the speaker said `E3` but section E3 is flagged as empty — there's no structured content there, only the section label."
+- Note that `empty-section` suspicions appear in the skill's inventory output but are NOT visually marked on the canvas (SECTIONs don't support annotations). Image-only suspicions on FRAMEs/RECTANGLEs DO get a red annotation pin.
 
 A speaker saying something like "as you can see in this tooltip" while pointing at an `image-only` layer is asking you to introspect a raster image. Don't try; tell the user the layer is a flat image and the underlying structure isn't represented in the file.
 
