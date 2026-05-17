@@ -4,6 +4,7 @@ import { StyledEngineProvider } from "@mui/material";
 import { TruffleThemeProvider, TruffleGradientDefinitions } from "@sundaysky/smartvideo-hub-truffle-component-library";
 import App from "./App";
 import RecorderOverlay from "./recorder/RecorderOverlay";
+import PlayerOverlay from "./recorder/PlayerOverlay";
 import "./index.css";
 import "@fortawesome/fontawesome-pro/css/all.css";
 
@@ -20,6 +21,7 @@ createRoot(document.getElementById("root")!).render(
                 <TruffleGradientDefinitions />
                 <App />
                 {isDev && <RecorderOverlay />}
+                {isDev && <PlayerOverlay />}
             </ThemeProvider>
         </StyledEngineProvider>
     </StrictMode>

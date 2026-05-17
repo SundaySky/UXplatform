@@ -6,6 +6,7 @@ import {
     recordCustomEvent,
     startRecording,
     stopRecording,
+    suggestedFilename,
     type RecordingLog
 } from "./recorder";
 
@@ -147,5 +148,78 @@ describe("recorder", () => {
         expect(isRecording()).toBe(true);
         withStubbedDownload(() => stopRecording());
         expect(isRecording()).toBe(false);
+    });
+
+    it("embeds git info in the log when supplied at start", () => {
+        startRecording({
+            branch: "main",
+            sha: "abcdef1234567890abcdef1234567890abcdef12",
+            tag: "v1.2.0"
+        });
+        const log = withStubbedDownload(() => stopRecording()) as RecordingLog;
+        expect(log.git).toEqual({
+            branch: "main",
+            sha: "abcdef1234567890abcdef1234567890abcdef12",
+            tag: "v1.2.0"
+        });
+    });
+
+    it("omits git info when not supplied", () => {
+        startRecording();
+        const log = withStubbedDownload(() => stopRecording()) as RecordingLog;
+        expect(log.git).toBeUndefined();
+    });
+
+    it("includes tag and short sha in the suggested filename", () => {
+        const log: RecordingLog = {
+            startedAt: "2026-05-17T10:00:00.000Z",
+            endedAt: "2026-05-17T10:00:30.000Z",
+            durationMs: 30000,
+            eventCount: 0,
+            initialUrl: "http://localhost/",
+            userAgent: "test",
+            git: {
+                branch: "main",
+                sha: "abcdef1234567890abcdef1234567890abcdef12",
+                tag: "v1.2.0"
+            },
+            events: []
+        };
+        expect(suggestedFilename(log)).toBe(
+            "recording-2026-05-17T10-00-00-000Z-v1.2.0-abcdef1.json"
+        );
+    });
+
+    it("falls back to timestamp-only filename when git info is absent", () => {
+        const log: RecordingLog = {
+            startedAt: "2026-05-17T10:00:00.000Z",
+            endedAt: "2026-05-17T10:00:30.000Z",
+            durationMs: 30000,
+            eventCount: 0,
+            initialUrl: "http://localhost/",
+            userAgent: "test",
+            events: []
+        };
+        expect(suggestedFilename(log)).toBe("recording-2026-05-17T10-00-00-000Z.json");
+    });
+
+    it("includes short sha without tag when commit isn't tagged", () => {
+        const log: RecordingLog = {
+            startedAt: "2026-05-17T10:00:00.000Z",
+            endedAt: "2026-05-17T10:00:30.000Z",
+            durationMs: 30000,
+            eventCount: 0,
+            initialUrl: "http://localhost/",
+            userAgent: "test",
+            git: {
+                branch: "main",
+                sha: "abcdef1234567890abcdef1234567890abcdef12",
+                tag: null
+            },
+            events: []
+        };
+        expect(suggestedFilename(log)).toBe(
+            "recording-2026-05-17T10-00-00-000Z-abcdef1.json"
+        );
     });
 });

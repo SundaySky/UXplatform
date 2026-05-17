@@ -11,6 +11,8 @@ export type RecordedEvent = {
     /** ISO timestamp */
     timestamp: string;
     type: EventType;
+    /** Route at the moment of the event: pathname + search + hash. Captured per event so in-app navigation is visible in the log. */
+    url?: string;
     target: EventTarget;
     /** Up to 5 ancestor user components, closest first */
     chain?: ComponentRef[];
@@ -30,8 +32,10 @@ export type EventTarget = {
     tag?: string;
     /** Short CSS path (up to 4 levels) for debugging */
     selector?: string;
-    /** Whitelisted UI props pulled off the fiber */
+    /** JSON-safe snapshot of the matched component's props. */
     props?: Record<string, unknown>;
+    /** Best-effort positional snapshot of useState/useReducer values on the matched component. Hooks have no names — order matches declaration order in the component source. */
+    hooks?: unknown[];
     /** Value of any data-rec-* attributes found on the element or an ancestor */
     dataAttrs?: Record<string, string>;
 };
@@ -42,6 +46,15 @@ export type ComponentRef = {
     line?: number;
 };
 
+export type GitInfo = {
+    /** Branch HEAD was on at recording start */
+    branch: string;
+    /** Full SHA of HEAD at recording start */
+    sha: string;
+    /** Exact tag at HEAD, if any */
+    tag: string | null;
+};
+
 export type RecordingLog = {
     startedAt: string;
     endedAt: string;
@@ -49,23 +62,26 @@ export type RecordingLog = {
     eventCount: number;
     initialUrl: string;
     userAgent: string;
+    /** Git snapshot at recording start. Lets consumers map the log back to a specific commit. */
+    git?: GitInfo;
     events: RecordedEvent[];
 };
 
 // ─── Module state ───────────────────────────────────────────────────────────
-type Session = { startedAt: number; events: RecordedEvent[]; initialUrl: string };
+type Session = { startedAt: number; events: RecordedEvent[]; initialUrl: string; git?: GitInfo };
 let session: Session | null = null;
 const listeners = new Set<() => void>();
 
 // ─── Public API ─────────────────────────────────────────────────────────────
-export function startRecording(): void {
+export function startRecording(git?: GitInfo): void {
     if (session) {
         return;
     }
     session = {
         startedAt: Date.now(),
         events: [],
-        initialUrl: window.location.href
+        initialUrl: window.location.href,
+        git
     };
     attachListeners();
     pushEvent({
@@ -127,12 +143,19 @@ function detachListeners(): void {
     document.removeEventListener("keydown", onKeydown, true);
 }
 
+function isOwnUI(el: Element): boolean {
+    return el.closest("[data-rec-player]") !== null;
+}
+
 function onClick(e: Event): void {
     if (!session) {
         return;
     }
     const el = e.target;
     if (!(el instanceof Element)) {
+        return;
+    }
+    if (isOwnUI(el)) {
         return;
     }
     const actionable = findActionable(el);
@@ -150,6 +173,9 @@ function onInput(e: Event): void {
     if (!isFormControl(el)) {
         return;
     }
+    if (isOwnUI(el)) {
+        return;
+    }
     pushEvent({
         type: "input",
         ...describeElement(el),
@@ -163,6 +189,9 @@ function onChange(e: Event): void {
     }
     const el = e.target;
     if (!isFormControl(el)) {
+        return;
+    }
+    if (isOwnUI(el)) {
         return;
     }
     // Avoid duplicating `input` for text fields. `change` is useful for selects,
@@ -191,6 +220,9 @@ function onKeydown(e: KeyboardEvent): void {
     }
     const el = e.target instanceof Element ? e.target : null;
     if (!el) {
+        return;
+    }
+    if (isOwnUI(el)) {
         return;
     }
     pushEvent({
@@ -226,6 +258,7 @@ function describeElement(el: Element): { target: EventTarget; chain?: ComponentR
             tag: el.tagName.toLowerCase(),
             selector: cssPath(el),
             props: primary?.props,
+            hooks: primary?.hooks,
             dataAttrs: Object.keys(dataAttrs).length ? dataAttrs : undefined
         },
         chain: chain.length > 1 ? chain.slice(0, 5).map(c => ({ component: c.name, file: c.callSite?.file, line: c.callSite?.line })) : undefined
@@ -237,10 +270,12 @@ function describeElement(el: Element): { target: EventTarget; chain?: ComponentR
 // `__reactFiber$<random>`. We walk the fiber's `return` chain to find the
 // nearest user-owned component (one whose JSX was written inside /src/).
 
-type FiberInfo = {
+export type FiberInfo = {
     name: string;
     callSite?: { file: string; line?: number; column?: number };
     props?: Record<string, unknown>;
+    /** Populated only for the closest (chain[0]) user-component. Positional. */
+    hooks?: unknown[];
 };
 
 const INTERNAL_NAMES = new Set([
@@ -290,9 +325,10 @@ type FiberNode = {
     return?: FiberNode | null;
     _debugSource?: { fileName: string; lineNumber?: number; columnNumber?: number };
     memoizedProps?: unknown;
+    memoizedState?: unknown;
 };
 
-function findComponentChain(el: Element, maxDepth = 30): FiberInfo[] {
+export function findComponentChain(el: Element, maxDepth = 30): FiberInfo[] {
     const fiber = getFiber(el) as FiberNode | null;
     if (!fiber) {
         return [];
@@ -305,6 +341,9 @@ function findComponentChain(el: Element, maxDepth = 30): FiberInfo[] {
         const name = fiberTypeName(current.type);
         const source = current._debugSource;
         if (name && !INTERNAL_NAMES.has(name) && isAppSource(source)) {
+            // Only walk hooks for the closest match — that's the component the
+            // user actually interacted with. Walking every ancestor is noisy.
+            const isPrimary = chain.length === 0;
             chain.push({
                 name,
                 callSite: source
@@ -314,7 +353,8 @@ function findComponentChain(el: Element, maxDepth = 30): FiberInfo[] {
                         column: source.columnNumber
                     }
                     : undefined,
-                props: extractKeyProps(current.memoizedProps)
+                props: extractProps(current.memoizedProps),
+                hooks: isPrimary ? extractHookState(current) : undefined
             });
         }
         current = current.return;
@@ -338,40 +378,209 @@ function normalizeSourcePath(p: string): string {
     return idx >= 0 ? "src/" + p.slice(idx + 5) : p;
 }
 
-const KEY_PROPS = [
-    "variant",
-    "color",
-    "size",
-    "severity",
-    "open",
-    "selected",
-    "checked",
-    "disabled",
-    "fullWidth",
-    "type",
-    "label",
-    "title",
-    "name",
-    "placeholder",
-    "aria-label"
-];
+// ─── Prop & hook serialization ──────────────────────────────────────────────
+// Soft caps. Logs are intended to be human-readable JSON, not full DOM dumps.
+const MAX_STRING_LENGTH = 200;
+const MAX_PROPS_BYTES = 2048;
+const MAX_ARRAY_ITEMS = 10;
+const SKIPPED_PROP_KEYS = new Set(["children", "key", "ref", "className", "style", "sx", "classes"]);
 
-function extractKeyProps(props: unknown): Record<string, unknown> | undefined {
+function isReactElement(v: unknown): boolean {
+    if (!v || typeof v !== "object") {
+        return false;
+    }
+    const t = (v as { $$typeof?: unknown }).$$typeof;
+    // React 18 marks elements with a symbol $$typeof of Symbol.for("react.element")
+    return typeof t === "symbol";
+}
+
+/**
+ * Convert a value into a JSON-safe shallow snapshot. Returns undefined when the
+ * value is something we want to drop (function, React element, DOM node, deep
+ * nested object, etc.). Depth is capped at 1 so we don't recurse into a huge
+ * tree by accident.
+ */
+function serializeValue(v: unknown, depth: number): unknown {
+    if (v === null || v === undefined) {
+        return v;
+    }
+    const t = typeof v;
+    if (t === "string") {
+        const s = v as string;
+        return s.length > MAX_STRING_LENGTH ? s.slice(0, MAX_STRING_LENGTH) + "..." : s;
+    }
+    if (t === "number" || t === "boolean") {
+        return v;
+    }
+    if (t === "bigint") {
+        return String(v) + "n";
+    }
+    if (t === "function" || t === "symbol") {
+        return undefined;
+    }
+    if (Array.isArray(v)) {
+        if (depth >= 1) {
+            return undefined;
+        }
+        const arr: unknown[] = [];
+        for (let i = 0; i < Math.min(v.length, MAX_ARRAY_ITEMS); i += 1) {
+            const s = serializeValue(v[i], depth + 1);
+            if (s !== undefined) {
+                arr.push(s);
+            }
+        }
+        if (v.length > MAX_ARRAY_ITEMS) {
+            arr.push(`...+${v.length - MAX_ARRAY_ITEMS}`);
+        }
+        return arr;
+    }
+    if (t === "object") {
+        if (isReactElement(v)) {
+            return undefined;
+        }
+        if (typeof Node !== "undefined" && v instanceof Node) {
+            return undefined;
+        }
+        if (v instanceof Date) {
+            return (v as Date).toISOString();
+        }
+        if (v instanceof RegExp) {
+            return v.toString();
+        }
+        if (v instanceof Map || v instanceof Set) {
+            return `<${v.constructor.name}(${v.size})>`;
+        }
+        if (depth >= 1) {
+            return undefined;
+        }
+        const src = v as Record<string, unknown>;
+        const obj: Record<string, unknown> = {};
+        for (const k of Object.keys(src)) {
+            if (SKIPPED_PROP_KEYS.has(k)) {
+                continue;
+            }
+            const child = src[k];
+            if (typeof child === "function") {
+                continue;
+            }
+            const s = serializeValue(child, depth + 1);
+            if (s !== undefined) {
+                obj[k] = s;
+            }
+        }
+        return Object.keys(obj).length ? obj : undefined;
+    }
+    return undefined;
+}
+
+function extractProps(props: unknown): Record<string, unknown> | undefined {
     if (!props || typeof props !== "object") {
         return undefined;
     }
     const src = props as Record<string, unknown>;
     const out: Record<string, unknown> = {};
-    for (const k of KEY_PROPS) {
-        const v = src[k];
-        if (v === undefined || v === null) {
+    let truncated = false;
+    for (const k of Object.keys(src)) {
+        if (SKIPPED_PROP_KEYS.has(k)) {
             continue;
         }
-        if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
-            out[k] = v;
+        const v = src[k];
+        if (typeof v === "function") {
+            continue; // drop callbacks (onClick, onChange, etc.)
+        }
+        const s = serializeValue(v, 0);
+        if (s === undefined) {
+            continue;
+        }
+        out[k] = s;
+        // Soft byte cap — bail out cleanly once we exceed it.
+        try {
+            if (JSON.stringify(out).length > MAX_PROPS_BYTES) {
+                delete out[k];
+                truncated = true;
+                break;
+            }
+        }
+        catch {
+            delete out[k];
         }
     }
+    if (truncated) {
+        out.__truncated = true;
+    }
     return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Best-effort walk over a fiber's hook linked list. The shape is React-internal
+ * and may drift across versions. Hooks have no names — entries are positional
+ * and match the order in which the component declares them.
+ */
+function extractHookState(fiber: FiberNode): unknown[] | undefined {
+    const head = fiber.memoizedState as FiberHook | null | undefined;
+    if (!head || typeof head !== "object") {
+        return undefined;
+    }
+    // Filter to real hook list nodes. A function-component fiber's memoizedState
+    // is the head of a linked list; nodes have `next` plus either `queue`,
+    // `baseState`, or `baseQueue`. Class-component state objects don't match.
+    if (!("next" in head)) {
+        return undefined;
+    }
+    if (!("queue" in head) && !("baseState" in head) && !("baseQueue" in head)) {
+        return undefined;
+    }
+
+    const out: unknown[] = [];
+    let node: FiberHook | null | undefined = head;
+    let guard = 0;
+    while (node && guard < 50) {
+        guard += 1;
+        out.push(classifyHook(node.memoizedState));
+        node = node.next;
+    }
+    return out.length ? out : undefined;
+}
+
+type FiberHook = {
+    memoizedState?: unknown;
+    baseState?: unknown;
+    baseQueue?: unknown;
+    queue?: unknown;
+    next?: FiberHook | null;
+};
+
+function classifyHook(val: unknown): unknown {
+    if (val === null || val === undefined) {
+        return val;
+    }
+    const t = typeof val;
+    if (t === "string" || t === "number" || t === "boolean") {
+        return serializeValue(val, 0);
+    }
+    if (t === "function") {
+        return "<fn>";
+    }
+    if (Array.isArray(val)) {
+        // useMemo / useCallback dependency tuples often look like [value, deps].
+        return serializeValue(val, 0);
+    }
+    if (t === "object") {
+        const o = val as Record<string, unknown>;
+        // useRef: { current: ... }
+        const keys = Object.keys(o);
+        if (keys.length === 1 && keys[0] === "current") {
+            const inner = serializeValue(o.current, 0);
+            return { ref: inner === undefined ? "<unserializable>" : inner };
+        }
+        // useEffect record: { tag, create, destroy, deps, next }
+        if (typeof o.create === "function" || typeof o.destroy === "function") {
+            return "<effect>";
+        }
+        const s = serializeValue(val, 0);
+        return s === undefined ? "<object>" : s;
+    }
+    return "<unknown>";
 }
 
 // ─── DOM helpers ────────────────────────────────────────────────────────────
@@ -443,8 +652,16 @@ function pushEvent(partial: { type: EventType; target: EventTarget; chain?: Comp
     session.events.push({
         t: now - session.startedAt,
         timestamp: new Date(now).toISOString(),
+        url: currentUrl(),
         ...partial
     });
+}
+
+function currentUrl(): string | undefined {
+    if (typeof location === "undefined") {
+        return undefined;
+    }
+    return location.pathname + location.search + location.hash;
 }
 
 function buildLog(s: Session): RecordingLog {
@@ -456,6 +673,7 @@ function buildLog(s: Session): RecordingLog {
         eventCount: s.events.length,
         initialUrl: s.initialUrl,
         userAgent: navigator.userAgent,
+        git: s.git,
         events: s.events
     };
 }
@@ -465,11 +683,27 @@ function downloadLog(log: RecordingLog): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `recording-${new Date(log.startedAt).toISOString().replace(/[:.]/g, "-")}.json`;
+    a.download = suggestedFilename(log);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+/**
+ * `recording-<ISO timestamp>[-<tag>][-<short sha>].json`. Tag and sha are
+ * appended only when present so the filename is still readable for non-git
+ * recordings.
+ */
+export function suggestedFilename(log: RecordingLog): string {
+    const ts = new Date(log.startedAt).toISOString().replace(/[:.]/g, "-");
+    const tagPart = log.git?.tag ? `-${sanitizeForFilename(log.git.tag)}` : "";
+    const shaPart = log.git?.sha ? `-${log.git.sha.slice(0, 7)}` : "";
+    return `recording-${ts}${tagPart}${shaPart}.json`;
+}
+
+function sanitizeForFilename(s: string): string {
+    return s.replace(/[^a-zA-Z0-9._-]+/g, "_");
 }
 
 function notify(): void {
