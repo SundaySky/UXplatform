@@ -5,6 +5,7 @@ import { TruffleThemeProvider, TruffleGradientDefinitions } from "@sundaysky/sma
 import App from "./App";
 import RecorderOverlay from "./recorder/RecorderOverlay";
 import PlayerOverlay from "./recorder/PlayerOverlay";
+import HelpOverlay from "./recorder/HelpOverlay";
 import "./index.css";
 import "@fortawesome/fontawesome-pro/css/all.css";
 
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")!).render(
                 <App />
                 {isDev && <RecorderOverlay />}
                 {isDev && <PlayerOverlay />}
+                {isDev && <HelpOverlay />}
             </ThemeProvider>
         </StyledEngineProvider>
     </StrictMode>
